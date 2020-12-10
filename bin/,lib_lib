@@ -4,7 +4,7 @@ if (($# < 2)); then
 	echo ",lib_lib called with invalid arguments" >&2
 	exit 1
 fi
-if [[ "$(basename "$1")" = "$(basename "$0")" ]]; then
+if [[ "$(basename -- "$1")" = "$(basename -- "$0")" ]]; then
 	pattern=$2
 	shift 2
 	if ((!$#)); then
@@ -15,7 +15,7 @@ if [[ "$(basename "$1")" = "$(basename "$0")" ]]; then
 	fi
 else
 	if (($# == 3)) && [[ "$3" = --bash-completion ]]; then
-		complete -W "$(declare -F -p | sed 's/declare -f //; /^'"$2"'/!d')" "$1" "$(basename "$1")"
+		complete -W "$(declare -F -p | sed 's/declare -f //; /^'"$2"'/!d')" "$1" "$(basename -- "$1")"
 	fi
 fi
 
