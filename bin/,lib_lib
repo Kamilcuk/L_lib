@@ -1,21 +1,101 @@
 #!/bin/bash
 
-if (($# < 2)); then
-	echo ",lib_lib called with invalid arguments" >&2
+,lib_lib_usage() {
+	cat <<'EOF'
+Usage:
+	# script.sh
+	LIB_prefix_some_func() {
+		desc="this func does that"
+	}		
+    prefix_some_func() {
+		echo 'yay!'
+	}
+	source ,lib_lib "$BASH_SOURCE" 'prefix_' "$@"
+
+	# then from command line:
+	eval "$(script.sh --bash-autocompletion)"
+	script.sh some_func
+
+
+A library to be called from other libraries
+This is a simple script to allow me to write:
+- simple reusable programs
+- with bash completion
+and much more TODO!
+
+Written by Kamil Cukrowski 2020
+EOF
+}
+
+,lib_lib_fatal() {
+	echo ",lib_lib: ERROR:" "$*" >&2
 	exit 1
-fi
-if [[ "$(basename -- "$1")" = "$(basename -- "$0")" ]]; then
-	pattern=$2
-	shift 2
-	if ((!$#)); then
-		echo "Available commands:"
-		declare -F -p | sed 's/declare -f //; /^'"$pattern"'/!d; s/^/\t/'
+}
+
+,lib_lib_list_functions() {
+	declare -F -p | sed '/^declare -f '"$1"'/!d; s///' | LC_ALL=C sort
+}
+
+,lib_lib_function_exists() {
+	[[ -n "$(LC_ALL=C type -t -- "$1")" && "$(LC_ALL=C type -t -- "$1")" = function ]]
+}
+
+,lib_lib_their_usage() {
+	if ,lib_lib_function_exists usage; then
+		usage "$(,lib_lib_list_functions "$2")"
+		return 
+	fi
+	cat <<EOF
+Usage: $(basename -- "$1") <COMMAND> [OPTIONS]
+
+Commands:
+$(
+	{
+		for f in $(,lib_lib_list_functions "$2"); do
+			desc=""
+			if ,lib_lib_function_exists LIB_"$2$f"; then
+				LIB_"$2$f" "$f" "$2"
+			fi
+			echo "$f${desc:+#}$desc"
+		done
+		echo "--bash-completion#Generate bash completion to be eval'ed."
+	} |
+	if hash column 2>/dev/null >&2; then
+		column -t -s '#' -o ' - '
 	else
-		"$@"
-	fi
+		sed 's/#/ - /'
+	fi | sed 's/^/  /'
+)
+
+EOF
+}
+
+###############################################################################
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+	,lib_lib_usage
+	,lib_lib_fatal "Not sourced"
+fi
+if (($# < 2)); then ,lib_lib_fatal "called with less then two arguments"; fi
+if [[ -z "$1" ]]; then ,lib_lib_fatal "first argument is empty"; fi
+if [[ -z "$2" ]]; then ,lib_lib_fatal "second argument is empty"; fi
+if (($# == 3)) && [[ "$3" = '--bash-completion' ]]; then
+	printf "%q\n" complete -W "$(,lib_lib_list_functions "$2" | paste -sd' ')" "$1" "$(basename -- "$1")" |
+		paste -sd' '
+	exit
+fi
+if (($# < 3)); then
+	,lib_lib_their_usage "$@"
 else
-	if (($# == 3)) && [[ "$3" = --bash-completion ]]; then
-		complete -W "$(declare -F -p | sed 's/declare -f //; /^'"$2"'/!d')" "$1" "$(basename -- "$1")"
+	if ,lib_lib_function_exists "$2$3"; then
+		_lib_lib_variable="$2$3"
+	elif ,lib_lib_function_exists "$3"; then
+		_lib_lib_variable="$3"
+	else
+		,lib_lib_their_usage "$@"
+		,lib_lib_fatal "$(basename -- "$1"): Unknown command: $3"
 	fi
+	shift 3
+	"$_lib_lib_variable" "$@"
 fi
 
