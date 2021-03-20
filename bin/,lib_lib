@@ -1,5 +1,46 @@
 #!/bin/bash
 
+L_name=${0##*/}
+
+L_dir=${0%/*}
+
+L_dryrun=false
+
+L_log() {
+	echo "$L_name: $*" >&2
+}
+
+L_error() {
+	L_log "ERROR:" "$@"
+}
+
+L_fatal() {
+	L_error "$*"
+	exit 2
+}
+
+L_command_exists() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+L_hash() {
+	hash "$1" >/dev/null 2>&1
+}
+
+L_logrun() {
+	L_log "+" "$@"
+	"$@"
+}
+
+L_run() {
+	L_log "+" "$@"
+	if ! "$L_dryrun"; then
+		"$@"
+	fi
+}
+
+###############################################################################
+
 ,lib_lib_usage() {
 	cat <<'EOF'
 Usage:
@@ -10,7 +51,7 @@ Usage:
     prefix_some_func() {
 		echo 'yay!'
 	}
-	source ,lib_lib "$BASH_SOURCE" 'prefix_' "$@"
+	source ,lib_lib 'prefix_' "$@"
 
 	# then from command line:
 	eval "$(script.sh --bash-autocompletion)"
@@ -27,13 +68,21 @@ Written by Kamil Cukrowski 2020
 EOF
 }
 
+,lib_lib_error() {
+	echo ",lib_lib: ERROR: $*" >&2
+}
+
 ,lib_lib_fatal() {
-	echo ",lib_lib: ERROR:" "$*" >&2
-	exit 1
+	,lib_lib_error "$@"
+	exit 3
 }
 
 ,lib_lib_list_functions() {
-	declare -F -p | sed '/^declare -f '"$1"'/!d; s///' | LC_ALL=C sort
+	declare -F -p | LC_ALL=C sed '/^declare -f '"$1"'/!d; s///' | LC_ALL=C sort
+}
+
+,lib_lib_list_prefix_functions() {
+	,lib_lib_list_functions "$L_prefix"
 }
 
 ,lib_lib_function_exists() {
@@ -42,19 +91,19 @@ EOF
 
 ,lib_lib_their_usage() {
 	if ,lib_lib_function_exists usage; then
-		usage "$(,lib_lib_list_functions "$2")"
+		usage "$(,lib_lib_list_prefix_functions)"
 		return 
 	fi
 	cat <<EOF
-Usage: $(basename -- "$1") <COMMAND> [OPTIONS]
+Usage: $L_name <COMMAND> [OPTIONS]
 
 Commands:
 $(
 	{
-		for f in $(,lib_lib_list_functions "$2"); do
+		for f in $(,lib_lib_list_prefix_functions); do
 			desc=""
-			if ,lib_lib_function_exists LIB_"$2$f"; then
-				LIB_"$2$f" "$f" "$2"
+			if ,lib_lib_function_exists LIB_"$L_prefix$f"; then
+				LIB_"$L_prefix$f" "$f" "$L_prefix"
 			fi
 			echo "$f${desc:+#}$desc"
 		done
@@ -70,32 +119,43 @@ $(
 EOF
 }
 
+,lib_lib_show_best_match() {
+	if L_hash fzf &&
+			tmp=$(,lib_lib_list_prefix_functions | fzf -0 -1 -f "$1") &&
+			[[ -n "$tmp" ]]; then
+		echo "   Maybe you meant: $tmp ?" >&2
+	fi
+}
+
 ###############################################################################
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 	,lib_lib_usage
 	,lib_lib_fatal "Not sourced"
 fi
-if (($# < 2)); then ,lib_lib_fatal "called with less then two arguments"; fi
-if [[ -z "$1" ]]; then ,lib_lib_fatal "first argument is empty"; fi
-if [[ -z "$2" ]]; then ,lib_lib_fatal "second argument is empty"; fi
-if (($# == 3)) && [[ "$3" = '--bash-completion' ]]; then
-	printf "%q\n" complete -W "$(,lib_lib_list_functions "$2" | paste -sd' ')" "$1" "$(basename -- "$1")" |
-		paste -sd' '
+if (($# == 0)); then ,lib_lib_fatal "called with less then one argument"; fi
+L_prefix=$1
+shift
+if [[ -z "$L_prefix" ]]; then ,lib_lib_fatal "first argument is empty"; fi
+
+if [[ "${1:-}" = '--bash-completion' ]]; then
+	printf "%q\n" complete -W "$(,lib_lib_list_prefix_functions | paste -sd' ')" "$0" "$(basename -- "$0")" | paste -sd' '
 	exit
 fi
-if (($# < 3)); then
+if (($# == 0)); then
 	,lib_lib_their_usage "$@"
-else
-	if ,lib_lib_function_exists "$2$3"; then
-		_lib_lib_variable="$2$3"
-	elif ,lib_lib_function_exists "$3"; then
-		_lib_lib_variable="$3"
-	else
-		,lib_lib_their_usage "$@"
-		,lib_lib_fatal "$(basename -- "$1"): Unknown command: $3"
-	fi
-	shift 3
-	"$_lib_lib_variable" "$@"
+	exit
 fi
+
+L_mode=$1
+shift
+if ! ,lib_lib_function_exists "$L_prefix$L_mode"; then
+	,lib_lib_their_usage
+	,lib_lib_error "Unknown command: $L_mode"
+	,lib_lib_show_best_match "$L_mode"
+	exit
+fi
+"$L_prefix$L_mode" "$@"
+
+
 
