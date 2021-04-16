@@ -1,17 +1,26 @@
 #!/bin/bash
 
+if [[ -z "${L_LIB_LIB_SOURCED:-}" ]]; then
+L_LIB_LIB_SOURCE=true
+
 L_name=${0##*/}
 
 L_dir=${0%/*}
 
 L_dryrun=false
 
+L_loglevel=3
+
 L_log() {
-	echo "$L_name: $*" >&2
+	printf "%s\n" "$L_name: $*" >&2
 }
 
 L_error() {
 	L_log "ERROR:" "$@"
+}
+
+L_warn() {
+	L_log "WARN:" "$@"
 }
 
 L_fatal() {
@@ -19,12 +28,16 @@ L_fatal() {
 	exit 2
 }
 
+L_function_exists() {
+	[[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]
+}
+
 L_command_exists() {
-	command -v "$1" >/dev/null 2>&1
+	command -v "$@" >/dev/null 2>&1
 }
 
 L_hash() {
-	hash "$1" >/dev/null 2>&1
+	hash "$@" >/dev/null 2>&1
 }
 
 L_logrun() {
@@ -33,11 +46,35 @@ L_logrun() {
 }
 
 L_run() {
-	L_log "+" "$@"
+	L_log "+" "${@@Q}"
 	if ! "$L_dryrun"; then
 		"$@"
 	fi
 }
+
+L_list_functions_with_prefix() {
+	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
+}
+
+L_am_I_sourced() {
+	[[ "${BASH_SOURCE[0]}" != "${0}" ]]
+}
+
+L_trap_err() {
+	L_error "fatal error on $(caller)"
+}
+
+trap L_trap_err ERR
+
+fi
+
+###############################################################################
+
+# If this file is sourced with only a siungle argument -q then just let
+# the upper definitions be visible. This is a library.
+if L_am_I_sourced && (($# == 1)) && [[ "${1:-}" = '-q' ]]; then
+	return
+fi
 
 ###############################################################################
 
@@ -77,21 +114,19 @@ EOF
 	exit 3
 }
 
-,lib_lib_list_functions() {
-	declare -F -p | LC_ALL=C sed '/^declare -f '"$1"'/!d; s///' | LC_ALL=C sort
-}
-
 ,lib_lib_list_prefix_functions() {
-	,lib_lib_list_functions "$L_prefix"
-}
-
-,lib_lib_function_exists() {
-	[[ -n "$(LC_ALL=C type -t -- "$1")" && "$(LC_ALL=C type -t -- "$1")" = function ]]
+	L_list_functions_with_prefix "$L_prefix"
 }
 
 ,lib_lib_their_usage() {
-	if ,lib_lib_function_exists usage; then
-		usage "$(,lib_lib_list_prefix_functions)"
+	if L_function_exists usage; then
+		local tmp saveifs
+		tmp=$(,lib_lib_list_prefix_functions)
+		saveifs="${IFS:-}"
+		IFS=$'\n\r \t' read -r -d '' -a functions <<<"$tmp" ||:
+		IFS="$saveifs"
+		unset tmp
+		usage "${functions[@]}"
 		return 
 	fi
 	cat <<EOF
@@ -102,7 +137,7 @@ $(
 	{
 		for f in $(,lib_lib_list_prefix_functions); do
 			desc=""
-			if ,lib_lib_function_exists LIB_"$L_prefix$f"; then
+			if L_function_exists LIB_"$L_prefix$f"; then
 				LIB_"$L_prefix$f" "$f" "$L_prefix"
 			fi
 			echo "$f${desc:+#}$desc"
@@ -129,7 +164,7 @@ EOF
 
 ###############################################################################
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+if ! L_am_I_sourced; then
 	,lib_lib_usage
 	,lib_lib_fatal "Not sourced"
 fi
@@ -149,7 +184,7 @@ fi
 
 L_mode=$1
 shift
-if ! ,lib_lib_function_exists "$L_prefix$L_mode"; then
+if ! L_function_exists "$L_prefix$L_mode"; then
 	,lib_lib_their_usage
 	,lib_lib_error "Unknown command: $L_mode"
 	,lib_lib_show_best_match "$L_mode"
