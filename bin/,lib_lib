@@ -1,50 +1,249 @@
 #!/bin/bash
+# This is a collection of libraries that I seem to use over and over
+# again and again inm every script I write.
+# It's here to simplify my use of it.
+# Written by Kamil Cukrowski
+# Licensed jointly under MIT License and Beerware License
+# SPDX-License-Identifier: MIT + Beerware
 
+# Library start {{{
+
+# Source only once, to speed up
 if [[ -z "${L_LIB_LIB_SOURCED:-}" ]]; then
-L_LIB_LIB_SOURCE=true
+L_LIB_LIB_SOURCED=true
+readonly L_LIB_LIB_SOURCED
+
+# }}}
+# Globals {{{
 
 L_name=${0##*/}
-
 L_dir=${0%/*}
+L_NAME="$L_name"
+L_DIR="$L_dir"
+readonly L_NAME L_DIR
 
-L_dryrun=false
+# }}}
+# Colors {{{
 
-L_loglevel=3
+L_BOLD=$'\E[1m'
+L_BRIGHT=$'\E[1m'
+L_DIM=$'\E[2m'
+L_FAINT=$'\E[2m'
+L_STANDOUT=$'\E[3m'
+L_UNDERLINE=$'\E[4m'
+L_BLINK=$'\E[5m'
+L_REVERSE=$'\E[7m'
+L_CONCEAL=$'\E[8m'
+L_HIDDEN=$'\E[8m'
+L_CROSSEDOUT=$'\E[9m'
+
+L_FONT0=$'\E[10m'
+L_FONT1=$'\E[11m'
+L_FONT2=$'\E[12m'
+L_FONT3=$'\E[13m'
+L_FONT4=$'\E[14m'
+L_FONT5=$'\E[15m'
+L_FONT6=$'\E[16m'
+L_FONT7=$'\E[17m'
+L_FONT8=$'\E[18m'
+L_FONT9=$'\E[19m'
+
+L_FRAKTUR=$'\E[20m'
+L_DOUBLE_UNDERLINE=$'\E[21m'
+L_NODIM=$'\E[22m'
+L_NOSTANDOUT=$'\E[23m'
+L_NOUNDERLINE=$'\E[24m'
+L_NOBLINK=$'\E[25m'
+L_NOREVERSE=$'\E[27m'
+L_NOHIDDEN=$'\E[28m'
+L_REVEAL=$'\E[28m'
+L_NOCROSSEDOUT=$'\E[29m'
+
+L_BLACK=$'\E[30m'
+L_RED=$'\E[31m'
+L_GREEN=$'\E[32m'
+L_YELLOW=$'\E[33m'
+L_BLUE=$'\E[34m'
+L_MAGENTA=$'\E[35m'
+L_CYAN=$'\E[36m'
+L_LIGHT_GRAY=$'\E[37m'
+L_DEFAULT=$'\E[39m'
+L_FOREGROUND_DEFAULT=$'\E[39m'
+
+L_BACKGROUND_BLUE=$'\E[44m'
+L_BACKGROUND_CYAN=$'\E[46m'
+L_BACKGROUND_DEFAULT=$'\E[49m'
+L_BACKGROUND_GREEN=$'\E[42m'
+L_BACKGROUND_LIGHT_GRAY=$'\E[47m'
+L_BACKGROUND_MAGENTA=$'\E[45m'
+L_BACKGROUND_YELLOW=$'\E[43m'
+L_B_BLACK=$'\E[40m'
+L_B_BLUE=$'\E[44m'
+L_B_CYAN=$'\E[46m'
+L_B_GREEN=$'\E[42m'
+L_B_LIGHT_GRAY=$'\E[47m'
+L_B_MAGENTA=$'\E[45m'
+L_B_RED=$'\E[41m'
+L_B_YELLOW=$'\E[43m'
+
+L_FRAMED=$'\E[51m'
+L_ENCIRCLED=$'\E[52m'
+L_OVERLINED=$'\E[53m'
+L_NOENCIRCLED=$'\E[54m'
+L_NOFRAMED=$'\E[54m'
+L_NOOVERLINED=$'\E[55m'
+
+L_DARK_GRAY=$'\E[90m'
+L_LIGHT_RED=$'\E[91m'
+L_LIGHT_GREEN=$'\E[92m'
+L_LIGHT_YELLOW=$'\E[93m'
+L_LIGHT_BLUE=$'\E[94m'
+L_LIGHT_MAGENTA=$'\E[95m'
+L_LIGHT_CYAN=$'\E[96m'
+L_WHITE=$'\E[97m'
+
+L_BACKGROUND_DARK_GRAY=$'\E[100m'
+L_BACKGROUND_LIGHT_BLUE=$'\E[104m'
+L_BACKGROUND_LIGHT_CYAN=$'\E[106m'
+L_BACKGROUND_LIGHT_GREEN=$'\E[102m'
+L_BACKGROUND_LIGHT_MAGENTA=$'\E[105m'
+L_BACKGROUND_LIGHT_RED=$'\E[101m'
+L_BACKGROUND_LIGHT_YELLOW=$'\E[103m'
+L_BACKGROUND_WHITE=$'\E[107m'
+
+L_B_DARK_GRAY=$'\E[100m'
+L_B_LIGHT_BLUE=$'\E[104m'
+L_B_LIGHT_CYAN=$'\E[106m'
+L_B_LIGHT_GREEN=$'\E[102m'
+L_B_LIGHT_MAGENTA=$'\E[105m'
+L_B_LIGHT_RED=$'\E[101m'
+L_B_LIGHT_YELLOW=$'\E[103m'
+L_B_WHITE=$'\E[107m'
+
+L_RESET=$'\E(B\E[m'
+
+L_ansi_up() { printf $'\E[%dA' "$@"; }
+L_ansi_down() { printf $'\E[%dB' "$@"; }
+L_ansi_right() { printf $'\E[%dC' "$@"; }
+L_ansi_left() { printf $'\E[%dD' "$@"; }
+L_ansi_next_line() { printf $'\E[%dE' "$@"; }
+L_ansi_prev_line() { printf $'\E[%dF' "$@"; }
+L_ansi_set_column() { printf $'\E[%dG' "$@"; }
+L_ansi_set_position() { printf $'\E[%d;%dH' "$@"; }
+L_ansi_clear_screen_until_end() { printf '\E[0J'; }
+L_ansi_clear_screen_until_beginning() { printf '\E[1J'; }
+L_ansi_clear_screen() { printf '\E[2J'; }
+L_ansi_clear_line_until_end() { printf '\E[0K'; }
+L_ansi_clear_line_until_beginning() { printf '\E[1K'; }
+L_ansi_clear_line() { printf '\E[2K'; }
+L_ansi_save_position() { printf '\E7'; }
+L_ansi_restore_position() { printf '\E8'; }
+
+L_lcolor=
+L_lcolor_enable() { L_lcolor=yes; }
+L_lcolor_disable() { L_lcolor=; }
+if [ -t 1 ]; then
+	L_lcolor_enable
+fi
+# Use: echo "${L_color:+$L_RED}someoutput${L_color:+$L_RESET}"
+
+# }}}
+# Loglevel library {{{
+
+L_LOG_EMERG=0	
+L_LOG_ALERT=1	
+L_LOG_CRIT=2	
+L_LOG_ERR=3
+L_LOG_WARNING=4	
+L_LOG_NOTICE=5	
+L_LOG_INFO=6	
+L_LOG_DEBUG=7
+L_LOG_PRIMASK=7
+L_LOG_PRIORITY_NAMES=(
+	[L_LOG_EMERG]="emerg"
+	[L_LOG_ALERT]="alert"
+	[L_LOG_CRIT]="crit"
+	[L_LOG_ERR]="err"
+	[L_LOG_WARNING]="warning"
+	[L_LOG_NOTICE]="notice"
+	[L_LOG_INFO]="info"
+	[L_LOG_DEBUG]="debug"
+)
+L_LOG_COLORS=(
+	[L_LOG_EMERG]="${L_BOLD}${L_RED}"
+	[L_LOG_ALERT]="${L_BOLD}${L_RED}"
+	[L_LOG_CRIT]="${L_BOLD}${L_RED}"
+	[L_LOG_ERR]="${L_BOLD}${L_RED}"
+	[L_LOG_WARNING]="${L_BOLD}${L_YELLOW}"
+	[L_LOG_NOTICE]="${L_BOLD}${L_CYAN}"
+	[L_LOG_INFO]=""
+	[L_LOG_DEBUG]=""
+)
+
+L_lmask=0
+L_lmask_isallowed() {   (( !(L_lmask & (1 << $1)) )); }
+L_lmask_isblocked() {   ((  (L_lmask & (1 << $1)) )); }
+L_lmask_allow() {       (( L_lmask &= (1 << $1) ))||:; }
+L_lmask_block() {       (( L_lmask |= (1 << $1) ))||:; }
+L_lmask_allow_below() { (( L_lmask &= (1 << $1) - 1 ))||:; }
+L_lmask_block_below() { (( L_lmask |= (1 << $1) - 1 ))||:; }
+
+L_logname=
+L_log_set_backend_printf() {
+	L_logl_backend() {
+		printf "%s\n" "${L_logname:-$L_name}: ${*:2}" >&2
+	}
+}
+L_log_set_backend_logger() {
+	L_logl_backend() {
+		logger -s -e -t "${L_logname:-$L_name}" -p "$1" "${*:2}"
+	}
+}
+L_log_set_backend_printf
+
+L_logl() {
+	if L_lmask_isallowed "$1"; then
+		L_logl_backend "$1" "${L_lcolor:+${L_LOG_COLORS[$1]}}""${L_LOG_PRIORITY_NAMES[$1]:+${L_LOG_PRIORITY_NAMES[$1]}}""${L_lcolor:+${L_RESET}}: ${*:2}"
+	fi
+}
 
 L_log() {
-	printf "%s\n" "$L_name: $*" >&2
+	if L_lmask_isallowed "$L_LOG_INFO"; then
+		L_logl_backend "$L_LOG_INFO" "$@"
+	fi
 }
 
-L_error() {
-	L_log "ERROR:" "$@"
-}
+L_emerg() { L_logl "$L_LOG_EMERG" "$@"; }
+L_alert() { L_logl "$L_LOG_ALERT" "$@"; }
+L_crit() { L_logl "$L_LOG_CRIT" "$@"; }
+L_err() { L_logl "$L_LOG_ERR" "$@"; }
+L_warning() { L_logl "$L_LOG_WARNING" "$@"; }
+L_notice() { L_logl "$L_LOG_NOTICE" "$@"; }
+L_info() { L_logl "$L_LOG_INFO" "$@"; }
+L_debug() { L_logl "$L_LOG_DEBUG" "$@"; }
+L_panic() { L_logl "$L_LOG_PANIC" "$@"; }
+L_error() { L_logl "$L_LOG_ERR" "$@"; }
+L_warn() { L_logl "$L_LOG_WARNING" "$@"; }
 
-L_warn() {
-	L_log "WARN:" "$@"
-}
+# }}}
+# Additional functions {{{
 
-L_fatal() {
-	L_error "$*"
-	exit 2
-}
+L_fatal() { L_crit "$*"; exit 2; }
+L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
+L_fn_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
-L_function_exists() {
-	[[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]
-}
+L_command_exists() { command -v "$@" >/dev/null 2>&1; }
+L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
 
-L_command_exists() {
-	command -v "$@" >/dev/null 2>&1
-}
-
-L_hash() {
-	hash "$@" >/dev/null 2>&1
-}
+L_hash() { hash "$@" >/dev/null 2>&1; }
+L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
 
 L_logrun() {
 	L_log "+" "$@"
 	"$@"
 }
 
+L_dryrun=false
 L_run() {
 	L_log "+" "${@@Q}"
 	if ! "$L_dryrun"; then
@@ -56,19 +255,22 @@ L_list_functions_with_prefix() {
 	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
 }
 
-L_am_I_sourced() {
-	[[ "${BASH_SOURCE[0]}" != "${0}" ]]
-}
-
 L_trap_err() {
 	L_error "fatal error on $(caller)"
 }
 
+set -E
 trap L_trap_err ERR
 
-fi
+L_kill_all_jobs() {
+	local IFS=$'\n'
+	for j in $(jobs | awk '{gsub("[^0-9]","",$1);print $1}'); do kill "%$j"; done
+}
 
-###############################################################################
+# }}}
+# Library end {{{
+
+fi
 
 # If this file is sourced with only a siungle argument -q then just let
 # the upper definitions be visible. This is a library.
@@ -76,7 +278,8 @@ if L_am_I_sourced && (($# == 1)) && [[ "${1:-}" = '-q' ]]; then
 	return
 fi
 
-###############################################################################
+# }}}
+# ,lib_lib functions {{{
 
 ,lib_lib_usage() {
 	cat <<'EOF'
@@ -155,14 +358,17 @@ EOF
 }
 
 ,lib_lib_show_best_match() {
-	if L_hash fzf &&
-			tmp=$(,lib_lib_list_prefix_functions | fzf -0 -1 -f "$1") &&
-			[[ -n "$tmp" ]]; then
+	if
+		L_hash fzf &&
+		tmp=$(,lib_lib_list_prefix_functions | fzf -0 -1 -f "$1") &&
+		[[ -n "$tmp" ]]
+	then
 		echo "   Maybe you meant: $tmp ?" >&2
 	fi
 }
 
-###############################################################################
+# }}}
+# ,lib_lib main {{{
 
 if ! L_am_I_sourced; then
 	,lib_lib_usage
@@ -192,5 +398,7 @@ if ! L_function_exists "$L_prefix$L_mode"; then
 fi
 "$L_prefix$L_mode" "$@"
 
+# }}}
 
+# vim: foldmethod=marker:nofoldenable
 
