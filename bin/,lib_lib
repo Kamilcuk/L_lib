@@ -228,6 +228,9 @@ L_warn() { L_logl "$L_LOG_WARNING" "$@"; }
 # }}}
 # Additional functions {{{
 
+# Output a string with the same quotating style as does bash in set -x
+L_set_x_quote() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
+
 L_fatal() { L_crit "$*"; exit 2; }
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 L_fn_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
@@ -239,13 +242,13 @@ L_hash() { hash "$@" >/dev/null 2>&1; }
 L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
 
 L_logrun() {
-	L_log "+" "$@"
+	L_log "+ ${*@Q}"
 	"$@"
 }
 
 L_dryrun=false
 L_run() {
-	L_log "+" "${@@Q}"
+	L_log "+ ${*@Q}"
 	if ! "$L_dryrun"; then
 		"$@"
 	fi
@@ -267,9 +270,41 @@ L_kill_all_jobs() {
 	for j in $(jobs | awk '{gsub("[^0-9]","",$1);print $1}'); do kill "%$j"; done
 }
 
+L_lib_drop_L_prefix() {
+	for i in run fatal logl log emerg alert crit err warning notice info debug panic error warn; do
+		eval "$i() { L_$i \"\$@\"; }"
+	done
+}
+
+L_sed_show_diff() {
+	(
+		file="${@: -1}"
+		tmpf=$(mktemp)
+		trap 'rm -f "$tmpf"' EXIT
+		sed "$@" > "$tmpf"
+		diff "$file" "$tmpf" ||:
+		if [[ "$L_LIB_LIB_SED_INPLACE" = 'true' ]]; then
+			mv "$tmpf" "$file"
+		fi
+	)
+}
+
+L_sed_inplace_show_diff() {
+	(
+		L_LIB_LIB_SED_INPLACE=true
+		L_sed_show_diff "$@"
+	)
+}
+
 # }}}
 # Library end {{{
 
+fi
+
+# Easier to use library - drop L_ prefix on some functions if -L argument is passed
+if (($#)) && [[ "$1" == '-L' ]]; then
+	L_lib_drop_L_prefix
+	shift
 fi
 
 # If this file is sourced with only a siungle argument -q then just let
@@ -374,7 +409,7 @@ if ! L_am_I_sourced; then
 	,lib_lib_usage
 	,lib_lib_fatal "Not sourced"
 fi
-if (($# == 0)); then ,lib_lib_fatal "called with less then one argument"; fi
+if (($# == 0)); then ,lib_lib_fatal "Prefix argument missing"; fi
 L_prefix=$1
 shift
 if [[ -z "$L_prefix" ]]; then ,lib_lib_fatal "first argument is empty"; fi
