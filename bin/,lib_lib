@@ -402,6 +402,38 @@ EOF
 	fi
 }
 
+# https://stackoverflow.com/questions/14513571/how-to-enable-default-file-completion-in-bash
+_lib_lib_do_bash_completion() {
+	if [[ "$(LC_ALL=C type -t -- "_lib_lib_do_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
+		"_lib_lib_do_bash_completion_$L_NAME" "$@"
+		return
+	fi
+    if ((COMP_CWORD == 1)); then
+        COMPREPLY=($(compgen -W "${cmds[*]}" -- "${COMP_WORDS[1]}"))
+		# add trailing space to each
+        #COMPREPLY=("${COMPREPLY[@]/%/ }")
+    else
+		COMPREPLY=()
+    fi
+}
+
+,lib_lib_bash_completion() {
+	local tmp cmds
+	tmp=$(,lib_lib_list_prefix_functions)
+	mapfile -t cmds <<<"$tmp"
+	local funcname
+	funcname=_lib_lib_bash_completion_$L_NAME
+	eval "$funcname() {
+		local cmds L_NAME
+		$(declare -p cmds L_NAME)
+		_lib_lib_do_bash_completion "$@"
+	}"
+	declare -f _lib_lib_do_bash_completion "$funcname"
+	printf "%s" complete
+	printf " %s" -o bashdefault -o default -F $funcname "$0" "$L_NAME"
+	printf "\n"
+}
+
 # }}}
 # ,lib_lib main {{{
 
@@ -415,7 +447,8 @@ shift
 if [[ -z "$L_prefix" ]]; then ,lib_lib_fatal "first argument is empty"; fi
 
 if [[ "${1:-}" = '--bash-completion' ]]; then
-	printf "%q\n" complete -W "$(,lib_lib_list_prefix_functions | paste -sd' ')" "$0" "$(basename -- "$0")" | paste -sd' '
+	,lib_lib_bash_completion
+	return
 	exit
 fi
 if (($# == 0)); then
