@@ -258,9 +258,11 @@ L_list_functions_with_prefix() {
 	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
 }
 
+if ! L_fn_exists L_trap_err; then
 L_trap_err() {
 	L_error "fatal error on $(caller)"
 }
+fi
 
 set -E
 trap L_trap_err ERR
