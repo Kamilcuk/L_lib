@@ -299,21 +299,33 @@ L_sed_inplace_show_diff() {
 }
 
 # }}}
-# Library end {{{
+# Library end - parse arguments {{{
 
 fi
 
 # Easier to use library - drop L_ prefix on some functions if -L argument is passed
-if (($#)) && [[ "$1" == '-L' ]]; then
-	L_lib_drop_L_prefix
+_L_LIB_LIB_args=$(getopt -n "$L_NAME:,lib_lib" -o '+Llq' -- "$@")
+eval "set -- $_L_LIB_LIB_args"
+_L_LIB_LIB_quiet=0
+while (($#)); do
+	case "$1" in
+	-L) L_lib_drop_L_prefix; ;;
+	-q) _L_LIB_LIB_quiet=1; ;;
+	-l) L_lib_drop_L_prefix; _L_LIB_LIB_quiet=1; ;;
+	--) shift; break; ;;
+	*) L_fatal ",lib_lib: Internal error when parsing arguments"; ;;
+	esac
 	shift
-fi
+done
 
 # If this file is sourced with only a siungle argument -q then just let
 # the upper definitions be visible. This is a library.
-if L_am_I_sourced && (($# == 1)) && [[ "${1:-}" = '-q' ]]; then
+if L_am_I_sourced && ((_L_LIB_LIB_quiet)); then
+	if (($#)); then L_warning "Do not pass arguments with -q option"; fi
+	unset _L_LIB_LIB_quiet _L_LIB_LIB_args
 	return
 fi
+unset _L_LIB_LIB_quiet _L_LIB_LIB_args
 
 # }}}
 # ,lib_lib functions {{{
@@ -441,7 +453,7 @@ _lib_lib_do_bash_completion() {
 
 if ! L_am_I_sourced; then
 	,lib_lib_usage
-	,lib_lib_fatal "Not sourced"
+	,lib_lib_fatal "Script ,lib_lib has to be sourced!"
 fi
 if (($# == 0)); then ,lib_lib_fatal "Prefix argument missing"; fi
 L_prefix=$1
