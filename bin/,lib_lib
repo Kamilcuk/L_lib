@@ -258,21 +258,86 @@ L_list_functions_with_prefix() {
 	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
 }
 
+###############################################################################
+
+# https://unix.stackexchange.com/questions/39623/trap-err-and-echoing-the-error-line
+## Outputs Front-Mater formatted failures for functions not returning 0
+## Use the following line after sourcing this file to set failure trap
+##    trap 'failure "LINENO" "BASH_LINENO" "${BASH_COMMAND}" "${?}"' ERR
+L_trap_err_failure() {
+    local -n _lineno="LINENO"
+    local -n _bash_lineno="BASH_LINENO"
+    local _last_command="${2:-$BASH_COMMAND}"
+    local _code="${1:-0}"
+
+    ## Workaround for read EOF combo tripping traps
+    if ! ((_code)); then
+        return "${_code}"
+    fi
+
+    local _last_command_height
+	_last_command_height="$(wc -l <<<"${_last_command}")"
+
+    local -a _output_array=()
+    _output_array+=(
+        '---'
+        "lines_history: [${_lineno} ${_bash_lineno[*]}]"
+        "function_trace: [${FUNCNAME[*]}]"
+        "exit_code: ${_code}"
+    )
+
+    if [[ "${#BASH_SOURCE[@]}" -gt '1' ]]; then
+        _output_array+=('source_trace:')
+        for _item in "${BASH_SOURCE[@]}"; do
+            _output_array+=("  - ${_item}")
+        done
+    else
+        _output_array+=("source_trace: [${BASH_SOURCE[*]}]")
+    fi
+
+    if [[ "${_last_command_height}" -gt '1' ]]; then
+        _output_array+=(
+            'last_command: ->'
+            "${_last_command}"
+        )
+    else
+        _output_array+=("last_command: ${_last_command}")
+    fi
+
+    _output_array+=('---')
+    printf '%s\n' "${_output_array[@]}" >&2
+    exit "$_code"
+}
+
+L_trap_err_show_source() {
+    echo "Traceback:"
+    awk -v L="${BASH_LINENO[1]}" -v M=3 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[0]}"
+	L_error "command returned with non-zero exit status"
+}
+
+L_trap_err_small() {
+	L_error "fatal error on $(caller)"
+}
+
 if ! L_fn_exists L_trap_err; then
 L_trap_err() {
-	L_error "fatal error on $(caller)"
+	L_trap_err_show_source "$@"
 }
 fi
 
-set -E
-trap L_trap_err ERR
+if [[ "$-" =~ e ]]; then
+	set -E -o functrace
+	trap 'L_trap_err "$?" "$BASH_COMMAND"' ERR
+fi
+
+###############################################################################
 
 L_kill_all_jobs() {
 	local IFS=$'\n'
 	for j in $(jobs | awk '{gsub("[^0-9]","",$1);print $1}'); do kill "%$j"; done
 }
 
-L_lib_drop_L_prefix() {
+_L_lib_drop_L_prefix() {
 	for i in run fatal logl log emerg alert crit err warning notice info debug panic error warn; do
 		eval "$i() { L_$i \"\$@\"; }"
 	done
@@ -298,20 +363,262 @@ L_sed_inplace_show_diff() {
 	)
 }
 
+L_is_valid_variable_name() {
+	[[ "$1" =~ ^[a-z][a-zA-Z0-9_]*$ ]]
+}
+
+_L_unittest_check() {
+	((_L_unittest_result|=0)) ||:
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test "
+	if eval "$@"; then
+		echo "ok"
+	else
+		((_L_unittest_result|=1)) ||:
+		echo "failed!"
+	fi
+
+}
+
+_L_unittest_pipes() {
+	((_L_unittest_result|=0)) ||:
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test "
+	if
+		if [[ "$1" = "!" ]]; then
+			shift
+			! cmp -s "$1" "$2"
+		else
+			diff -Naur "$1" "$2"
+		fi
+	then
+		echo "ok"
+	else
+		((_L_unittest_result|=1)) ||:
+		echo "failed!"
+	fi
+}
+
+# }}}
+# Map {{{
+
+_L_map_test() {
+	local var
+	L_map_init var
+	L_map_set var a 1
+	_L_unittest_pipes <(L_map_get var a) <(echo -n 1)
+	_L_unittest_pipes <(L_map_get var b) <(:)
+	L_map_set var b 2
+	_L_unittest_pipes <(L_map_get var a) <(echo -n 1)
+	_L_unittest_pipes <(L_map_get var b) <(echo -n 2)
+	L_map_set var a 3
+	_L_unittest_pipes <(L_map_get var a) <(echo -n 3)
+	_L_unittest_pipes <(L_map_get var b) <(echo -n 2)
+	_L_unittest_pipes <(L_map_get var c; echo $?) <(echo 1)
+	_L_unittest_pipes <(L_map_has var c; echo $?) <(echo 1)
+	_L_unittest_pipes <(L_map_has var a; echo $?) <(echo 0)
+}
+
+_L_map_check() {
+	if ! L_is_valid_variable_name "$1"; then
+		L_error "L_map: is not valid variable name: $1";
+		return 1
+	fi
+}
+
+L_map_init() {
+	declare -n _L_map_name="$1"
+	_L_map_name=''
+}
+
+L_map_clear() {
+	if ! _L_map_check "$2"; then return; fi
+	declare -n _L_map_name="$1"
+	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
+}
+
+L_map_set() {
+	L_map_clear "$1" "$2"
+	declare -n _L_map_name="$1"
+	_L_map_name+=$'\n'"$2 $(shift 2; printf "%q" "$*")"
+}
+
+L_map_append() {
+	local _L_map_name
+	if _L_map_name=$(L_map_get "$1" "$2");then
+		L_map_set "$1" "$2" "$_L_map_name${4:-}$3"
+	else
+		L_map_set "$1" "$2" "$3"
+	fi
+}
+
+L_map_get() {
+	if ! _L_map_check "$2"; then return; fi
+	local _L_map_name
+	_L_map_name=$(declare -n _L_map_name="$1"; printf "%s" "$_L_map_name")
+	local var="$_L_map_name"
+	var=${var##*$'\n'"$2 "}
+	if [[ "$var" == "$_L_map_name" ]]; then
+		return 1
+	fi
+	var=${var%%$'\n'*}
+	eval "printf \"%s\" $var"
+}
+
+L_map_has() {
+	declare -n _L_map_name="$1"
+	[[ "$_L_map_name" =~ $'\n'"$2 " ]]
+}
+
+L_map_getnl() {
+	L_map_get "$@"
+	echo
+}
+
+# }}}
+# Argument parser {{{
+
+_L_argparse_test() {
+	local arg="" num numbers
+	local args
+	args=$(L_argparse \
+		description="description" epilog="epilog" -- \
+		-n --num dest=num -- \
+		numbers nargs="+" -- \
+		-- -n $'\303(' 2 3
+	)
+	_L_unittest_check "(($? == 2))"
+	eval "$args"
+	_L_unittest_pipes <(echo "$num") <(echo $'\303(')
+	_L_unittest_pipes <(printf "%s\n" "${numbers[@]}") <(printf "%s\n" 2 3)
+
+	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
+	args=$(L_argparse -- \
+		arg -- \
+		-- "$allchars"
+	)
+	_L_unittest_check "(($? == 2))"
+	eval "$args"
+	_L_unittest_pipes <(printf "%s" "$arg") <(printf "%s" "$allchars")
+
+	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
+	args=$(L_argparse -- \
+		arg nargs='+' -- \
+		-- "$allchars" "$allchars" "'"
+	)
+	_L_unittest_check "(($? == 2))"
+	eval "$args"
+	_L_unittest_pipes <(printf "%s\0" "${arg[@]}") <(printf "%s\0" "$allchars" "$allchars" "'")
+
+	_L_unittest_check 'L_argparse description=bb7895c0-1644-49a8-8499-472beec5b075 -- -- -h | grep -q bb7895c0-1644-49a8-8499-472beec5b075'
+	_L_unittest_check '!' L_argparse 2>/dev/null
+	_L_unittest_check '!' L_argparse -- 2>/dev/null
+	_L_unittest_check L_argparse -- -- -h >/dev/null
+	_L_unittest_check 'L_argparse -- --; (($? == 2))'
+
+	L_argparse_errexit -- \
+		-n --num -- \
+		numbers nargs='+' -- \
+		-- -n 123 2 3
+	_L_unittest_check '((num == 123))'
+	_L_unittest_check '((${numbers[0]} == 2))'
+	_L_unittest_check '((${numbers[1]} == 3))'
+}
+
+L_argparse() {
+	python3 - "$L_NAME" "$@" <<'EOF' 
+import argparse
+import sys
+import os
+
+def eprint(*args, **kwargs):
+	print(*args, file=sys.stderr, **kwargs)
+def shellquote(s):
+    return b"'" + s.replace(b"'", b"'\\''") + b"'"
+def is_our_option_separator(s):
+	return s == "-" or s == "--"
+
+g_inargs = sys.argv[1:]
+a_args = []; a_kwargs = dict()
+a_args += [ g_inargs.pop(0) ]
+if not g_inargs:
+	raise Exception("L_argparse: needs arguments")
+
+a_first = True
+for i in range(len(g_inargs)):
+	arg = g_inargs[i]
+	if not is_our_option_separator(arg):
+		if arg.find("=") == -1:
+			a_args += [arg]
+		else:
+			(k, v) = arg.split('=', maxsplit=1)
+			a_kwargs[k] = v
+	else:
+		#eprint(a_first, a_args, a_kwargs)
+		if a_first:
+			a_first = False
+			parser = argparse.ArgumentParser(*a_args, **a_kwargs)
+		else:
+			parser.add_argument(*a_args, **a_kwargs)
+		a_args = []; a_kwargs = dict()
+		if i + 1 >= len(g_inargs):
+			raise Exception("L_argparse: the double -- are missing")
+		if is_our_option_separator(g_inargs[i + 1]):
+			break
+
+if not is_our_option_separator(g_inargs[i]) and not is_our_option_separator(g_inargs[i + 1]):
+	raise Exception("L_argparse: the double -- are missing")
+g_inargs = g_inargs[i + 2:]
+args = parser.parse_args(g_inargs)
+
+out = sys.stdout.buffer.write
+def rprint(s):
+	out(s)
+def varprint(var, val):
+	rprint(var.encode())
+	rprint(b"=")
+	rprint(shellquote(os.fsencode(val)))
+
+for k in args.__dict__:
+	v = args.__dict__[k]
+	if v is not None:
+		if isinstance(v, list):
+			rprint(k.encode())
+			rprint(b"=(")
+			for i in range(len(v)):
+				varprint(f"[{i}]", v[i])
+				rprint(b" ")
+			rprint(b")\n")
+		else:
+			varprint(k, v)
+			rprint(b"\n")
+
+sys.exit(2)
+EOF
+}
+
+L_argparse_errexit() {
+	local args
+	args=$(L_argparse "$@")
+	if (($? != 2)); then
+		exit "$?"
+	fi
+	eval "$args"
+}
+
 # }}}
 # Library end - parse arguments {{{
 
 fi
 
 # Easier to use library - drop L_ prefix on some functions if -L argument is passed
-_L_LIB_LIB_args=$(getopt -n "$L_NAME:,lib_lib" -o '+Llq' -- "$@")
+_L_LIB_LIB_args=$(getopt -n "$L_NAME:,lib_lib" -o '+Llq' -l test -- "$@")
 eval "set -- $_L_LIB_LIB_args"
 _L_LIB_LIB_quiet=0
 while (($#)); do
 	case "$1" in
-	-L) L_lib_drop_L_prefix; ;;
+	-L) _L_lib_drop_L_prefix; ;;
 	-q) _L_LIB_LIB_quiet=1; ;;
-	-l) L_lib_drop_L_prefix; _L_LIB_LIB_quiet=1; ;;
+	-l) _L_lib_drop_L_prefix; _L_LIB_LIB_quiet=1; ;;
+	--test) break; ;;
 	--) shift; break; ;;
 	*) L_fatal ",lib_lib: Internal error when parsing arguments"; ;;
 	esac
@@ -452,6 +759,12 @@ _lib_lib_do_bash_completion() {
 # ,lib_lib main {{{
 
 if ! L_am_I_sourced; then
+	if (($# == 2)) && [[ "${1:-}" == '--test' ]]; then
+		for i in _L_argparse_test _L_map_test; do
+			"$i"
+		done
+		exit "$_L_unittest_result"
+	fi
 	,lib_lib_usage
 	,lib_lib_fatal "Script ,lib_lib has to be sourced!"
 fi
