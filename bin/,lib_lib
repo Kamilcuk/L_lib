@@ -420,7 +420,9 @@ _L_unittest_eq() {
 # Map {{{
 
 _L_map_test() {
-	local var
+	local var tmp
+	var=123
+	tmp=123
 	L_map_init var
 	L_map_set var a 1
 	_L_unittest_pipes <(L_map_get var a) <(echo -n 1)
@@ -437,27 +439,32 @@ _L_map_test() {
 }
 
 _L_map_check() {
-	if ! L_is_valid_variable_name "$1"; then
-		L_error "L_map: is not valid variable name: $1";
-		return 1
-	fi
+	for i in "$1" "$2"; do
+		if ! L_is_valid_variable_name "$i"; then
+			L_error "L_map: is not valid variable name: $i";
+			return 1
+		fi
+	done
 }
 
 L_map_init() {
-	declare -n _L_map_name="$1"
-	_L_map_name=''
+	printf -v "$1" "\n"
 }
 
 L_map_clear() {
-	if ! _L_map_check "$2"; then return; fi
-	declare -n _L_map_name="$1"
+	if ! _L_map_check "$@"; then return 2; fi
+	local _L_map_name
+	eval "printf -v _L_map_name %s \"\$$1\""
 	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
+	printf -v "$1" %s "$_L_map_name"
 }
 
 L_map_set() {
 	L_map_clear "$1" "$2"
-	declare -n _L_map_name="$1"
+	local _L_map_name
+	eval "printf -v _L_map_name %s \"\$$1\""
 	_L_map_name+=$'\n'"$2 $(shift 2; printf "%q" "$*")"
+	printf -v "$1" %s "$_L_map_name"
 }
 
 L_map_append() {
@@ -470,20 +477,23 @@ L_map_append() {
 }
 
 L_map_get() {
-	if ! _L_map_check "$2"; then return; fi
+	if ! _L_map_check "$@"; then return 2; fi
 	local _L_map_name
-	_L_map_name=$(declare -n _L_map_name="$1"; printf "%s" "$_L_map_name")
-	local var="$_L_map_name"
+	eval "printf -v _L_map_name %s \"\$$1\""
+	local var
+	var="$_L_map_name"
 	var=${var##*$'\n'"$2 "}
 	if [[ "$var" == "$_L_map_name" ]]; then
 		return 1
 	fi
 	var=${var%%$'\n'*}
-	eval "printf \"%s\" $var"
+	printf %s "$var"
 }
 
 L_map_has() {
-	declare -n _L_map_name="$1"
+	if ! _L_map_check "$@"; then return 2; fi
+	local _L_map_name
+	eval "printf -v _L_map_name %s \"\$$1\""
 	[[ "$_L_map_name" =~ $'\n'"$2 " ]]
 }
 
@@ -588,24 +598,27 @@ _L_argparse_test() {
 }
 
 L_argparse() {
-	python3 - "$L_NAME" "$@" <<'EOF' 
+	LC_ALL=C python - "$L_NAME" "$@" <<'EOF' 
 from __future__ import print_function
 import argparse
 import sys
 import os
 import io
 import pathlib
-import textwrap
-import shutil
 
 # https://stackoverflow.com/questions/37572837/how-can-i-make-python-3s-print-fit-the-size-of-the-command-prompt
 def get_terminal_columns():
-	return shutil.get_terminal_size().columns
-def eprint_autobreak(*args, sep=''):
+	if sys.version_info.major == 3:
+		import shutil
+		return shutil.get_terminal_size().columns
+	else:
+		return 79
+def eprint_autobreak(*args):
+	import textwrap
 	width = get_terminal_columns()  # Check size once to avoid rechecks per "paragraph"
 	# Convert all args to strings, join with separator, then split on any newlines,
 	# preserving line endings, so each "paragraph" wrapped separately
-	for line in sep.join(map(str, args)).splitlines(True):
+	for line in "".join(map(str, args)).splitlines(True):
 		# Py3's print function makes it easy to print textwrap.wrap's result as one-liner
 		eprint(*textwrap.wrap(line, width), sep="\n")
 
@@ -614,6 +627,9 @@ def eprint(*args, **kwargs):
 
 def strchr(str, c):
 	return str.find(c) == -1
+
+fsencode = os.fsencode if sys.version_info.major == 3 else str
+filetype = io.IOBase if sys.version_info.major == 3 else file
 
 myusage = "Usage: L_argparse [variable_prefix] [argparse.ArgumentParser(arguments)...] -- [argparse.add_argument(arguments)... --]... -- <script_arguments>"
 def errusage(*args):
@@ -679,7 +695,7 @@ class ArgparseBuilder:
 		"file_rw": argparse.FileType('rw'),
 		"int": int,
 		"float": float,
-		"ascii": ascii,
+		# "ascii": ascii,
 		"ord": ord,
 		"open": open,
 		"path": pathlib.Path,
@@ -689,7 +705,7 @@ class ArgparseBuilder:
 		if k == "type":
 			# Special strings - file_[rw] are handled specially to create argparse.FileType
 			if v not in self.type_dict:
-				errusage(f"unhandled type specified: {k}={v}")
+				errusage("unhandled type specified: {}={}".format(k, v))
 			return self.type_dict[v]
 		return v
 
@@ -710,7 +726,7 @@ class ArgparseBuilder:
 		# The first argument, if it's not --, is the variable prefix.
 		a_prefix = b""
 		if self.args and not self.is_our_option_separator(self.args[0]) and strchr(self.args[0], "="):
-			a_prefix = os.fsencode(self.args.pop(0))
+			a_prefix = fsencode(self.args.pop(0))
 			if not self.args:
 				errusage("not enough arguments")
 		# From a list of arguments separated by == extract sublists
@@ -726,7 +742,7 @@ class ArgparseBuilder:
 				if strchr(arg, "=") or arg[0] == "-":
 					a_args += [arg]
 				else:
-					(k, v) = arg.split('=', maxsplit=1)
+					(k, v) = arg.split('=', 1)
 					a_kwargs[k] = self.convert_special(k, v)
 			else:
 				# eprint(a_first, a_args, a_kwargs)
@@ -751,22 +767,28 @@ class ArgsOutputter:
 	outbuf = b""
 
 	def shellquote(self, s):
-		return b"'" + s.replace(b"'", b"'\\''") + b"'"
+		if sys.version_info.major == 3:
+			return b"'" + s.replace(b"'", b"'\\''") + b"'"
+		else:
+			return b"'" + str.replace(s, b"'", b"'\\''") + b"'"
 
 	def write(self, *args):
 		for i in args:
 			self.outbuf += i
 
 	def flush(self):
-		sys.stdout.buffer.write(self.outbuf)
+		if sys.version_info.major == 3:
+			sys.stdout.buffer.write(self.outbuf)
+		else:
+			sys.stdout.write(self.outbuf)
 
 	# Convert specific python type to a byte array for bash importing.
 	conv_matrix = {
 		bool: lambda val: b"true" if val else b"false",
-		str: lambda val: os.fsencode(val),
+		str: lambda val: fsencode(val),
 		(int, float): lambda val: str(val).encode(),
-		io.IOBase: lambda val: os.fsencode(val.name),
-		pathlib.Path: lambda val: os.fsencode(val.absolute()),
+		filetype: lambda val: fsencode(val.name),
+		pathlib.Path: lambda val: fsencode(val.absolute()),
 	}
 
 	# Output "variable=value".
@@ -779,7 +801,7 @@ class ArgsOutputter:
 				str = self.shellquote(l(val))
 				break
 		if not str:
-			errusage(f"Unhandled type= specified for {var} option ", type(val))
+			errusage("Unhandled type= specified for {} option ".format(val), type(val))
 		self.write(str)
 
 	def parse(self, prefix, args):
@@ -794,7 +816,7 @@ class ArgsOutputter:
 					self.write(k.encode())
 					self.write(b"=(")
 					for i in range(len(v)):
-						self.varprint(f"[{i}]", v[i])
+						self.varprint("[{}]".format(i), v[i])
 						if i + 1 != len(v):
 							self.write(b" ")
 					self.write(b")\n")
