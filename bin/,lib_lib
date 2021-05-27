@@ -241,6 +241,9 @@ L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
 L_hash() { hash "$@" >/dev/null 2>&1; }
 L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
 
+L_isset() { [[ ! -z "${var+x}" ]]; }
+L_var_isset() { [[ ! -z "${var+x}" ]]; }
+
 L_logrun() {
 	L_log "+ ${*@Q}"
 	"$@"
@@ -367,21 +370,24 @@ L_is_valid_variable_name() {
 	[[ "$1" =~ ^[a-z][a-zA-Z0-9_]*$ ]]
 }
 
-_L_unittest_check() {
+_L_unittest_checkexit() {
 	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test "
-	if eval "$@"; then
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test exit of ${*:2} is $1: "
+	local shouldbe ret
+	shouldbe=$1
+	eval "${@:2}"; ret=$?
+	if ((ret == shouldbe)); then
 		echo "ok"
 	else
 		((_L_unittest_result|=1)) ||:
-		echo "failed!"
+		echo "failed! $ret != $shouldbe"
 	fi
 
 }
 
 _L_unittest_pipes() {
 	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test "
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test pipes "
 	if
 		if [[ "$1" = "!" ]]; then
 			shift
@@ -390,6 +396,19 @@ _L_unittest_pipes() {
 			diff -Naur "$1" "$2"
 		fi
 	then
+		echo "ok"
+	else
+		((_L_unittest_result|=1)) ||:
+		echo "failed!"
+	fi
+}
+
+_L_unittest_eq() {
+	((_L_unittest_result|=0)) ||:
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test \$$1 == $2 "
+	local tmp
+	eval "printf -v tmp %s \"\${$1}\""
+	if [[ "$tmp" == "$2" ]]; then
 		echo "ok"
 	else
 		((_L_unittest_result|=1)) ||:
@@ -485,113 +504,311 @@ _L_argparse_test() {
 		numbers nargs="+" -- \
 		-- -n $'\303(' 2 3
 	)
-	_L_unittest_check "(($? == 2))"
+	_L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
 	_L_unittest_pipes <(echo "$num") <(echo $'\303(')
 	_L_unittest_pipes <(printf "%s\n" "${numbers[@]}") <(printf "%s\n" 2 3)
 
+	local allchars args allcharsnoslash
 	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
 	args=$(L_argparse -- \
 		arg -- \
 		-- "$allchars"
 	)
-	_L_unittest_check "(($? == 2))"
+	_L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
 	_L_unittest_pipes <(printf "%s" "$arg") <(printf "%s" "$allchars")
 
 	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
+	allcharsnoslash=$(tr -d '/' <<<"$allchars")
+
 	args=$(L_argparse -- \
 		arg nargs='+' -- \
 		-- "$allchars" "$allchars" "'"
 	)
-	_L_unittest_check "(($? == 2))"
+	_L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
 	_L_unittest_pipes <(printf "%s\0" "${arg[@]}") <(printf "%s\0" "$allchars" "$allchars" "'")
 
-	_L_unittest_check 'L_argparse description=bb7895c0-1644-49a8-8499-472beec5b075 -- -- -h | grep -q bb7895c0-1644-49a8-8499-472beec5b075'
-	_L_unittest_check '!' L_argparse 2>/dev/null
-	_L_unittest_check '!' L_argparse -- 2>/dev/null
-	_L_unittest_check L_argparse -- -- -h >/dev/null
-	_L_unittest_check 'L_argparse -- --; (($? == 2))'
+	_L_unittest_checkexit 0 'L_argparse description=bb7895c0-1644-49a8-8499-472beec5b075 -- -- -h | grep -q bb7895c0-1644-49a8-8499-472beec5b075'
+	_L_unittest_checkexit 1 L_argparse 2>/dev/null
+	_L_unittest_checkexit 1 L_argparse -- 2>/dev/null
+	_L_unittest_checkexit 0 L_argparse -- -- -h >/dev/null
+	_L_unittest_checkexit 0 'L_argparse -- --; (($? == 2))'
 
 	L_argparse_errexit -- \
 		-n --num -- \
 		numbers nargs='+' -- \
 		-- -n 123 2 3
-	_L_unittest_check '((num == 123))'
-	_L_unittest_check '((${numbers[0]} == 2))'
-	_L_unittest_check '((${numbers[1]} == 3))'
+	_L_unittest_checkexit 0 '((num == 123))'
+	_L_unittest_checkexit 0 '((${numbers[0]} == 2))'
+	_L_unittest_checkexit 0 '((${numbers[1]} == 3))'
+
+	_L_unittest_checkexit 2 L_argparse -- \
+		-q dest=_L_LIB_LIB_quiet action=store_true -- \
+		-- -q '>/dev/null'
+
+	(
+		tmpd=$(mktemp -d)
+		trap 'rm -r "$tmpd"' EXIT
+		f="$tmpd/$allcharsnoslash"
+		touch -- "$f"
+		L_argparse_errexit "PREFIX_" -- \
+			-f --file type=file_w -- \
+			-g --gfile type=file_w -- \
+			-- -f "$f" -g /dev/stdout
+		_L_unittest_pipes <(echo "$PREFIX_gfile") <(echo /dev/stdout)
+		_L_unittest_pipes <(cat <<<"$PREFIX_file") <(cat <<<"$f")
+	)
+
+	L_argparse_errexit "PREFIX_" -- \
+			-n type=int -- \
+			-- -n 123
+	L_argparse_errexit "PREFIX_" -- \
+			-d type=path -- \
+			-- -d /dev/
+
+	L_argparse_errexit PREFIX_ prog=myname description="This is just an example how to use this program." \
+				epilog="Written by Kamil Cukrowski and this example is free to use." -- \
+			-n dest=number type=int help="Give me a number" -- \
+			-f --file type=file_r help="This is a file" -- \
+			-o --ofile type=file_w help="This is output file" -- \
+			-g --ogile type=file_rw help="You can guess it" -- \
+			-p --database type=path help="This is a path to database" -- \
+			args nargs='+' help="Additional positional arguments" -- \
+			-- -n 123 -f /dev/stdout -p /var/log/ some arguments
+	eval "$args"
+	_L_unittest_eq PREFIX_number 123
+	_L_unittest_eq PREFIX_file  /dev/stdout
+	_L_unittest_eq PREFIX_database /var/log
+	_L_unittest_eq PREFIX_args[0] some
+	_L_unittest_eq PREFIX_args[1] arguments
+	_L_unittest_checkexit 1 'L_isset PREFIX_ofile'
+	_L_unittest_checkexit 1 'L_isset PREFIX_gfile'
 }
 
 L_argparse() {
 	python3 - "$L_NAME" "$@" <<'EOF' 
+from __future__ import print_function
 import argparse
 import sys
 import os
+import io
+import pathlib
+import textwrap
+import shutil
+
+# https://stackoverflow.com/questions/37572837/how-can-i-make-python-3s-print-fit-the-size-of-the-command-prompt
+def get_terminal_columns():
+	return shutil.get_terminal_size().columns
+def eprint_autobreak(*args, sep=''):
+	width = get_terminal_columns()  # Check size once to avoid rechecks per "paragraph"
+	# Convert all args to strings, join with separator, then split on any newlines,
+	# preserving line endings, so each "paragraph" wrapped separately
+	for line in sep.join(map(str, args)).splitlines(True):
+		# Py3's print function makes it easy to print textwrap.wrap's result as one-liner
+		eprint(*textwrap.wrap(line, width), sep="\n")
 
 def eprint(*args, **kwargs):
 	print(*args, file=sys.stderr, **kwargs)
-def shellquote(s):
-    return b"'" + s.replace(b"'", b"'\\''") + b"'"
-def is_our_option_separator(s):
-	return s == "-" or s == "--"
 
-g_inargs = sys.argv[1:]
-a_args = []; a_kwargs = dict()
-a_args += [ g_inargs.pop(0) ]
-if not g_inargs:
-	raise Exception("L_argparse: needs arguments")
+def strchr(str, c):
+	return str.find(c) == -1
 
-a_first = True
-for i in range(len(g_inargs)):
-	arg = g_inargs[i]
-	if not is_our_option_separator(arg):
-		if arg.find("=") == -1:
-			a_args += [arg]
-		else:
-			(k, v) = arg.split('=', maxsplit=1)
-			a_kwargs[k] = v
-	else:
-		#eprint(a_first, a_args, a_kwargs)
-		if a_first:
-			a_first = False
-			parser = argparse.ArgumentParser(*a_args, **a_kwargs)
-		else:
-			parser.add_argument(*a_args, **a_kwargs)
+myusage = "Usage: L_argparse [variable_prefix] [argparse.ArgumentParser(arguments)...] -- [argparse.add_argument(arguments)... --]... -- <script_arguments>"
+def errusage(*args):
+	eprint_autobreak(
+		myusage, "\n",
+		"See L_argparse --help for more information.", "\n"
+		"error: ", *args
+	)
+	sys.exit(1)
+
+def usage():
+	eprint_autobreak(myusage)
+	eprint_autobreak("""
+A special wrapper around python argparse to parse and export data to shell.
+The arguments given to the script are split on '=' character and passe as a dictionary to argparse.ArgumentParser and
+argparse.add_arguments functions. The first part before first -- is passed to ArgumetnParser, following parts are passed
+to add_argument.
+
+Example usage could look like the following:""")
+	eprint("""
+	set -- -n 123 -f /dev/stdout -p /var/log/ some arguments
+	args=$(L_argparse PREFIX_ prog=myname description="This is just an example how to use this program." \\
+				epilog="Written by Kamil Cukrowski and this example is free to use." -- \\
+			-n dest=number type=int help="Give me a number" -- \\
+			-f --file type=file_r help="This is read file" -- \\
+			-o --ofile type=file_w help="This is output file" -- \\
+			-g --ogile type=file_rw help="You can guess it" -- \\
+			-p --database type=path help="This is a path to database" -- \\
+			args nargs='+' help="Additional positional arguments" -- \\
+			-- "$@"
+	)
+	ret=$?
+	if ((ret == 0)); then
+		echo "Help was displayed";
+		exit
+	elif ((ret == 1)); then
+		echo "There was a parsing error";
+		exit 1
+	elif ((ret != 2)); then
+		echo "There is an unhandled error that happened";
+		exit 1
+	fi
+	# ret == 2
+	eval "$args"
+	echo "PREFIX_number=$PREFIX_number"
+	echo "PREFIX_file=$PREFIX_file"
+	echo "PREFIX_database=$PREFIX_database"
+	echo "PREFIX_args=(${PREFIX_args[*]})"
+	""")
+	eprint_autobreak("Written by Kamil Cukrowski. Licensed jointly under MIT License and Beerware License.")
+	sys.exit(0)
+
+# Handle --help separately
+if len(sys.argv) == 3 and sys.argv[2] in ("-h","--help"):
+	usage()
+
+class ArgparseBuilder:
+	type_dict={
+		"file_w": argparse.FileType('w'),
+		"file_r":  argparse.FileType('r'),
+		"file": argparse.FileType('rw') ,
+		"file_": argparse.FileType('rw') ,
+		"file_rw": argparse.FileType('rw'),
+		"int": int,
+		"float": float,
+		"ascii": ascii,
+		"ord": ord,
+		"open": open,
+		"path": pathlib.Path,
+		"pathlib.Path": pathlib.Path,
+	}
+	def convert_special(self, k, v):
+		if k == "type":
+			# Special strings - file_[rw] are handled specially to create argparse.FileType
+			if v not in self.type_dict:
+				errusage(f"unhandled type specified: {k}={v}")
+			return self.type_dict[v]
+		return v
+
+	def __init__(self, argv):
+		self.args = argv
+
+	def is_our_option_separator(self, s):
+		return s == "-" or s == "--"
+
+	def build(self):
+		# Our looping arguments state.
 		a_args = []; a_kwargs = dict()
-		if i + 1 >= len(g_inargs):
-			raise Exception("L_argparse: the double -- are missing")
-		if is_our_option_separator(g_inargs[i + 1]):
-			break
+		# The first argument is the program name - it goes to argparse.ArgumentParser first argument.
+		a_kwargs["prog"] = self.args.pop(0)
+		# The second argument is expected to be prefix for variables.
+		if not self.args:
+			errusage("not enough arguments")
+		# The first argument, if it's not --, is the variable prefix.
+		a_prefix = b""
+		if self.args and not self.is_our_option_separator(self.args[0]) and strchr(self.args[0], "="):
+			a_prefix = os.fsencode(self.args.pop(0))
+			if not self.args:
+				errusage("not enough arguments")
+		# From a list of arguments separated by == extract sublists
+		# from sublists extract arguments with `=` and `-` assign twose to a dictionati in kwargs
+		# other asing to array args
+		# and then pass the first sublist to argparse.ArgumentParser
+		# and other to argparse.add_argument
+		# Such build the parsing. Parsing ends on empty list, ie. `-- --`.
+		a_first = True
+		for i in range(len(self.args)):
+			arg = self.args[i]
+			if not self.is_our_option_separator(arg):
+				if strchr(arg, "=") or arg[0] == "-":
+					a_args += [arg]
+				else:
+					(k, v) = arg.split('=', maxsplit=1)
+					a_kwargs[k] = self.convert_special(k, v)
+			else:
+				# eprint(a_first, a_args, a_kwargs)
+				if a_first:
+					a_first = False
+					parser = argparse.ArgumentParser(*a_args, **a_kwargs)
+				else:
+					parser.add_argument(*a_args, **a_kwargs)
+				a_args = []; a_kwargs = dict()
+				if i + 1 >= len(self.args):
+					errusage("double -- -- is missing in arguments")
+				if self.is_our_option_separator(self.args[i + 1]):
+					break
+		if not self.is_our_option_separator(self.args[i]) and not self.is_our_option_separator(self.args[i + 1]):
+			errusage("double -- -- is missing in arguments")
+		# The rest of arguments are the arguments actually to be parsed
+		self.args = self.args[i + 2:]
+		return (a_prefix, parser.parse_args(self.args))
 
-if not is_our_option_separator(g_inargs[i]) and not is_our_option_separator(g_inargs[i + 1]):
-	raise Exception("L_argparse: the double -- are missing")
-g_inargs = g_inargs[i + 2:]
-args = parser.parse_args(g_inargs)
 
-out = sys.stdout.buffer.write
-def rprint(s):
-	out(s)
-def varprint(var, val):
-	rprint(var.encode())
-	rprint(b"=")
-	rprint(shellquote(os.fsencode(val)))
+class ArgsOutputter:
+	outbuf = b""
 
-for k in args.__dict__:
-	v = args.__dict__[k]
-	if v is not None:
-		if isinstance(v, list):
-			rprint(k.encode())
-			rprint(b"=(")
-			for i in range(len(v)):
-				varprint(f"[{i}]", v[i])
-				rprint(b" ")
-			rprint(b")\n")
-		else:
-			varprint(k, v)
-			rprint(b"\n")
+	def shellquote(self, s):
+		return b"'" + s.replace(b"'", b"'\\''") + b"'"
 
+	def write(self, *args):
+		for i in args:
+			self.outbuf += i
+
+	def flush(self):
+		sys.stdout.buffer.write(self.outbuf)
+
+	# Convert specific python type to a byte array for bash importing.
+	conv_matrix = {
+		bool: lambda val: b"true" if val else b"false",
+		str: lambda val: os.fsencode(val),
+		(int, float): lambda val: str(val).encode(),
+		io.IOBase: lambda val: os.fsencode(val.name),
+		pathlib.Path: lambda val: os.fsencode(val.absolute()),
+	}
+
+	# Output "variable=value".
+	def varprint(self, var, val):
+		self.write(var.encode())
+		self.write(b"=")
+		str = b""
+		for (t, l) in self.conv_matrix.items():
+			if isinstance(val, t):
+				str = self.shellquote(l(val))
+				break
+		if not str:
+			errusage(f"Unhandled type= specified for {var} option ", type(val))
+		self.write(str)
+
+	def parse(self, prefix, args):
+		# For each argument parsed now in args, convert it and output
+		# into a form eval-able in bash.
+		for k in args.__dict__:
+			v = args.__dict__[k]
+			if v is not None:
+				if isinstance(v, list):
+					# Create a bash array from list
+					self.write(prefix)
+					self.write(k.encode())
+					self.write(b"=(")
+					for i in range(len(v)):
+						self.varprint(f"[{i}]", v[i])
+						if i + 1 != len(v):
+							self.write(b" ")
+					self.write(b")\n")
+				else:
+					self.write(prefix)
+					self.varprint(k, v)
+					self.write(b"\n")
+		return self
+
+# The first argument is '-', so we start from second one.
+(prefix, args) = ArgparseBuilder(sys.argv[1:]).build()
+ArgsOutputter().parse(prefix, args).flush()
 sys.exit(2)
+
 EOF
 }
 
@@ -609,6 +826,7 @@ L_argparse_errexit() {
 
 fi
 
+if true; then
 # Easier to use library - drop L_ prefix on some functions if -L argument is passed
 _L_LIB_LIB_args=$(getopt -n "$L_NAME:,lib_lib" -o '+Llq' -l test -- "$@")
 eval "set -- $_L_LIB_LIB_args"
@@ -624,6 +842,7 @@ while (($#)); do
 	esac
 	shift
 done
+fi
 
 # If this file is sourced with only a siungle argument -q then just let
 # the upper definitions be visible. This is a library.
