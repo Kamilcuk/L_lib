@@ -8,6 +8,8 @@
 
 # Library start {{{
 
+shopt -s extglob
+
 # Source only once, to speed up
 if [[ -z "${L_LIB_LIB_SOURCED:-}" ]]; then
 L_LIB_LIB_SOURCED=true
@@ -180,13 +182,13 @@ L_LOG_COLORS=(
 	[L_LOG_DEBUG]=""
 )
 
-L_lmask=0
-L_lmask_isallowed() {   (( !(L_lmask & (1 << $1)) )); }
-L_lmask_isblocked() {   ((  (L_lmask & (1 << $1)) )); }
-L_lmask_allow() {       (( L_lmask &= (1 << $1) ))||:; }
-L_lmask_block() {       (( L_lmask |= (1 << $1) ))||:; }
-L_lmask_allow_below() { (( L_lmask &= (1 << $1) - 1 ))||:; }
-L_lmask_block_below() { (( L_lmask |= (1 << $1) - 1 ))||:; }
+L_lmask=128
+L_lmask_isallowed() {   (( !(L_lmask & (1 << $1) ) )); }
+L_lmask_isblocked() {   ((  (L_lmask & (1 << $1) ) )); }
+L_lmask_allow() {       (( L_lmask &= ~(1 << $1) )) || :; }
+L_lmask_block() {       (( L_lmask |=  (1 << $1) )) || :; }
+L_lmask_allow_below() { (( L_lmask &= ~((1 << $1) - 1) )) || :; }
+L_lmask_block_below() { (( L_lmask |=  (1 << $1) - 1 )) || :; }
 
 L_logname=
 L_log_set_backend_printf() {
@@ -208,22 +210,37 @@ L_logl() {
 }
 
 L_log() {
-	if L_lmask_isallowed "$L_LOG_INFO"; then
+	if L_lmask_isallowed "L_LOG_INFO"; then
 		L_logl_backend "$L_LOG_INFO" "$@"
 	fi
 }
 
-L_emerg() { L_logl "$L_LOG_EMERG" "$@"; }
-L_alert() { L_logl "$L_LOG_ALERT" "$@"; }
-L_crit() { L_logl "$L_LOG_CRIT" "$@"; }
-L_err() { L_logl "$L_LOG_ERR" "$@"; }
-L_warning() { L_logl "$L_LOG_WARNING" "$@"; }
-L_notice() { L_logl "$L_LOG_NOTICE" "$@"; }
-L_info() { L_logl "$L_LOG_INFO" "$@"; }
-L_debug() { L_logl "$L_LOG_DEBUG" "$@"; }
-L_panic() { L_logl "$L_LOG_PANIC" "$@"; }
-L_error() { L_logl "$L_LOG_ERR" "$@"; }
-L_warn() { L_logl "$L_LOG_WARNING" "$@"; }
+L_emerg() { L_logl "L_LOG_EMERG" "$@"; }
+L_alert() { L_logl "L_LOG_ALERT" "$@"; }
+L_crit() { L_logl "L_LOG_CRIT" "$@"; }
+L_err() { L_logl "L_LOG_ERR" "$@"; }
+L_warning() { L_logl "L_LOG_WARNING" "$@"; }
+L_notice() { L_logl "L_LOG_NOTICE" "$@"; }
+L_info() { L_logl "L_LOG_INFO" "$@"; }
+L_debug() { L_logl "L_LOG_DEBUG" "$@"; }
+L_panic() { L_logl "L_LOG_PANIC" "$@"; }
+L_error() { L_logl "L_LOG_ERR" "$@"; }
+L_warn() { L_logl "L_LOG_WARNING" "$@"; }
+
+_L_loglibrary_unittest() {
+	(
+		set -euo pipefail
+		u=17070a0d-8ebf-465b-b630-281e89fd6df2
+		! L_debug "$u" 2>&1 | grep -q "$u"
+		L_info g "$u" 2>&1 | grep -q "$u"
+		L_lmask_isblocked L_LOG_DEBUG
+		L_lmask_isallowed L_LOG_INFO
+		L_lmask_block L_LOG_INFO
+		L_lmask_allow L_LOG_DEBUG
+		L_lmask_isallowed L_LOG_DEBUG
+		L_lmask_isblocked L_LOG_INFO
+	)
+}
 
 # }}}
 # Additional functions {{{
@@ -232,6 +249,7 @@ L_warn() { L_logl "$L_LOG_WARNING" "$@"; }
 L_set_x_quote() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
 
 L_fatal() { L_crit "$*"; exit 2; }
+L_assert() { if eval '!' "$1"; then L_print_traceback2; L_fatal "assertion $1 failed: ${@:-2}"; fi }
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 L_fn_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
@@ -249,10 +267,31 @@ L_logrun() {
 	"$@"
 }
 
-L_dryrun=false
+L_is_false() {
+	case "$1" in
+	(0+(0)) return 0; ;;
+	([fF]) return 0; ;;
+	([fF][aA][lL][sS][eE]) return 0; ;;
+	esac
+	return 1
+}
+
+L_is_true() {
+	case "$1" in
+	(0*(0)) return 1; ;;
+	([0-9]*([0-9])) return 0; ;;
+	([tT]) return 0; ;;
+	([tT][rR][uU][eE]) return 0; ;;
+	esac
+	return 1
+}
+
+: "${L_dryrun:=0}"
 L_run() {
-	L_log "+ ${*@Q}"
-	if ! "$L_dryrun"; then
+	if L_is_true "${L_dryrun:-}"; then
+		L_log "DRYRUN: + ${*@Q}"
+	else
+		L_log "+ ${*@Q}"
 		"$@"
 	fi
 }
@@ -312,10 +351,28 @@ L_trap_err_failure() {
     exit "$_code"
 }
 
+L_print_traceback2() {
+	echo "Traceback from pid $BASHPID (most recent call last):"
+	local i s l f tmp offset
+	offset=${1:-0}
+	for ((i = ${#BASH_SOURCE[@]} - 1; i > ${offset}; --i)); do
+		s=${BASH_SOURCE[i]}
+		l=${BASH_LINENO[i - 1]}
+		f=${FUNCNAME[i]}
+		echo "  File $(printf "%q" "$s"), line $l, in $f"
+		if tmp=$(awk -v "L=$l" -v M=2 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "$s" 2>/dev/null) &&
+				[[ -n "$tmp" ]]; then
+			echo "$tmp"
+		fi
+	done
+	L_crit "Command returned with non-zero exit status: ${1:-0}"
+}
+
 L_trap_err_show_source() {
+	local idx=${1:-0}
     echo "Traceback:"
-    awk -v L="${BASH_LINENO[1]}" -v M=3 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[0]}"
-	L_error "command returned with non-zero exit status"
+    awk -v L="${BASH_LINENO[idx]}" -v M=3 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[idx+1]}"
+	L_crit "command returned with non-zero exit status"
 }
 
 L_trap_err_small() {
@@ -324,13 +381,22 @@ L_trap_err_small() {
 
 if ! L_fn_exists L_trap_err; then
 L_trap_err() {
-	L_trap_err_show_source "$@"
+    local _code="${1:-0}"
+    ## Workaround for read EOF combo tripping traps
+    if ! ((_code)); then
+        return "${_code}"
+    fi
+	{
+		#L_trap_err_show_source 1 "$@"
+		L_print_traceback2 1 "$@"
+	} >&2 ||:
+    exit "$_code"
 }
 fi
 
 if [[ "$-" =~ e ]]; then
 	set -E -o functrace
-	trap 'L_trap_err "$?" "$BASH_COMMAND"' ERR
+	trap 'L_trap_err "$?" "$BASH_COMMAND" -- "${BASH_SOURCE[@]}" -- "${BASH_LINENO[@]}" -- "${FUNCNAME[@]}"' ERR
 fi
 
 ###############################################################################
@@ -403,17 +469,87 @@ _L_unittest_pipes() {
 	fi
 }
 
-_L_unittest_eq() {
+_L_unittest_vareq() {
 	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test \$$1 == $2 "
-	local tmp
-	eval "printf -v tmp %s \"\${$1}\""
-	if [[ "$tmp" == "$2" ]]; then
+	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test \$$1=${!1} == $2 "
+	if [[ "${!1}" == "$2" ]]; then
 		echo "ok"
 	else
 		((_L_unittest_result|=1)) ||:
+		if L_str_is_print "${!1}" "$2"; then
+			diff -Naur <(cat <<<"${!1}") - <<<"$2"
+		else
+			diff -Naur <(xxd -p <<<"${!1}") <(xxd -p <<<"$2")
+		fi
 		echo "failed!"
 	fi
+}
+
+L_str_is_print() {
+	grep -Fq '[[:print:]]' <<<"$*"
+}
+
+# }}}
+# trapchain library{{{
+
+_L_allchars() {
+	# printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
+	echo $'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
+}
+
+L_get_trap_number_from_name() {
+	trap -l | sed -n 's/.*[^0-9]\([0-9]\+\)) SIGUSR1.*/\1/p'
+}
+
+L_get_trap_name() {
+	local tmp
+	(
+		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
+		trap -p | awk '/0738dc3c-6716-44a1-960a-991b0ec4abaa/{print $NF}'
+	)
+	tmp=$(
+		(
+			set -x
+			L_trapchain 'echo hello' SIGUSR1
+			L_trapchain 'echo world' SIGUSR1
+			L_trapchain "echo $(printf "%q" "$(_L_allchars)")" SIGUSR1
+			L_raise SIGUSR1
+		) 2>&1 ||:
+	)
+	_L_unittest_vareq tmp $'hello\nworld\n'"$(_L_allchars)"
+}
+
+L_extract_trap() {
+	local tmp
+	tmp=$(L_get_trap_name "$@")
+	trap -p "$tmp" |
+		sed '1s/^trap -- //; $s/ [^ ]\+$//' |
+		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
+}
+
+_L_trapchain_unittest() {
+	(
+		trap "$(_L_allchars)" "$(L_get_trap_number_from_name SIGUSR1)"
+		tmp=$(L_extract_trap SIGUSR1)
+		_L_unittest_vareq tmp "$(_L_allchars)"
+	)
+}
+
+
+_L_trapchain_callback() {
+	# This is what it takes.
+	eval "$(eval printf %s \"\$_L_trapchain_data_$1\")"
+}
+
+L_trapchain() {
+	local name
+	name=$(L_get_trap_name "$2") &&
+	trap "_L_trapchain_callback $name" "$name" &&
+	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\$_L_trapchain_data_$2\""
+}
+
+L_raise() {
+	kill -s "$1" "$BASHPID"
 }
 
 # }}}
@@ -588,11 +724,11 @@ _L_argparse_test() {
 			args nargs='+' help="Additional positional arguments" -- \
 			-- -n 123 -f /dev/stdout -p /var/log/ some arguments
 	eval "$args"
-	_L_unittest_eq PREFIX_number 123
-	_L_unittest_eq PREFIX_file  /dev/stdout
-	_L_unittest_eq PREFIX_database /var/log
-	_L_unittest_eq PREFIX_args[0] some
-	_L_unittest_eq PREFIX_args[1] arguments
+	_L_unittest_vareq PREFIX_number 123
+	_L_unittest_vareq PREFIX_file  /dev/stdout
+	_L_unittest_vareq PREFIX_database /var/log
+	_L_unittest_vareq PREFIX_args[0] some
+	_L_unittest_vareq PREFIX_args[1] arguments
 	_L_unittest_checkexit 1 'L_isset PREFIX_ofile'
 	_L_unittest_checkexit 1 'L_isset PREFIX_gfile'
 }
@@ -1001,7 +1137,7 @@ _lib_lib_do_bash_completion() {
 
 if ! L_am_I_sourced; then
 	if (($# == 2)) && [[ "${1:-}" == '--test' ]]; then
-		for i in _L_argparse_test _L_map_test; do
+		for i in _L_argparse_test _L_map_test _L_loglibrary_unittest; do
 			"$i"
 		done
 		exit "$_L_unittest_result"
