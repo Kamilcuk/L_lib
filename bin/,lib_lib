@@ -6,6 +6,8 @@
 # Licensed jointly under MIT License and Beerware License
 # SPDX-License-Identifier: MIT + Beerware
 
+# shellcheck disable=SC2034
+
 # Library start {{{
 
 shopt -s extglob
@@ -152,15 +154,17 @@ fi
 # }}}
 # Loglevel library {{{
 
-L_LOG_EMERG=0	
-L_LOG_ALERT=1	
-L_LOG_CRIT=2	
+L_LOG_EMERG=0
+L_LOG_ALERT=1
+L_LOG_CRIT=2
 L_LOG_ERR=3
-L_LOG_WARNING=4	
-L_LOG_NOTICE=5	
-L_LOG_INFO=6	
+L_LOG_WARNING=4
+L_LOG_NOTICE=5
+L_LOG_INFO=6
 L_LOG_DEBUG=7
 L_LOG_PRIMASK=7
+L_LOG_DEBUG2=8
+L_LOG_DEBUG3=9
 L_LOG_PRIORITY_NAMES=(
 	[L_LOG_EMERG]="emerg"
 	[L_LOG_ALERT]="alert"
@@ -203,9 +207,13 @@ L_log_set_backend_logger() {
 }
 L_log_set_backend_printf
 
+# shellcheck disable=SC2140
 L_logl() {
 	if L_lmask_isallowed "$1"; then
-		L_logl_backend "$1" "${L_lcolor:+${L_LOG_COLORS[$1]}}""${L_LOG_PRIORITY_NAMES[$1]:+${L_LOG_PRIORITY_NAMES[$1]}}""${L_lcolor:+${L_RESET}}: ${*:2}"
+		L_logl_backend "$1" \
+"${L_lcolor:+${L_LOG_COLORS[$1]}}"\
+"${L_LOG_PRIORITY_NAMES[$1]:+${L_LOG_PRIORITY_NAMES[$1]}}"\
+"${L_lcolor:+${L_RESET}}: ${*:2}"
 	fi
 }
 
@@ -227,18 +235,23 @@ L_panic() { L_logl "L_LOG_PANIC" "$@"; }
 L_error() { L_logl "L_LOG_ERR" "$@"; }
 L_warn() { L_logl "L_LOG_WARNING" "$@"; }
 
-_L_loglibrary_unittest() {
+# shellcheck disable=SC2016
+_L_loglibrary_test() {
 	(
 		set -euo pipefail
 		u=17070a0d-8ebf-465b-b630-281e89fd6df2
-		! L_debug "$u" 2>&1 | grep -q "$u"
-		L_info g "$u" 2>&1 | grep -q "$u"
-		L_lmask_isblocked L_LOG_DEBUG
-		L_lmask_isallowed L_LOG_INFO
-		L_lmask_block L_LOG_INFO
-		L_lmask_allow L_LOG_DEBUG
-		L_lmask_isallowed L_LOG_DEBUG
-		L_lmask_isblocked L_LOG_INFO
+		L_unittest_assert '! L_debug "$u" 2>&1 | grep -q "$u"'
+		L_unittest_assert 'L_info g "$u" 2>&1 | grep -q "$u"'
+		L_unittest_assert 'L_lmask_isblocked L_LOG_DEBUG'
+		L_unittest_assert 'L_lmask_isallowed L_LOG_INFO'
+		L_unittest_assert 'L_lmask_block L_LOG_INFO'
+		L_unittest_assert 'L_lmask_allow L_LOG_DEBUG'
+		L_unittest_assert 'L_lmask_isallowed L_LOG_DEBUG'
+		L_unittest_assert 'L_lmask_isblocked L_LOG_INFO'
+		L_unittest_assert '! L_lmask_isblocked L_LOG_DEBUG'
+		L_unittest_assert '! L_lmask_isallowed L_LOG_INFO'
+		L_unittest_assert 'L_lmask_block L_LOG_DEBUG'
+		L_unittest_assert 'L_lmask_isblocked L_LOG_DEBUG'
 	)
 }
 
@@ -248,10 +261,15 @@ _L_loglibrary_unittest() {
 # Output a string with the same quotating style as does bash in set -x
 L_set_x_quote() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
 
+# Output a critical message and exit the script.
 L_fatal() { L_crit "$*"; exit 2; }
-L_assert() { if eval '!' "$1"; then L_print_traceback2; L_fatal "assertion $1 failed: ${@:-2}"; fi }
+
+# Eval the first argument - if it returns failure, then fatal.
+L_assert() { if eval '!' "$1"; then L_print_traceback2; L_fatal "assertion $1 failed: ${*:2}"; fi }
+
+# Return success if function exists.
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
-L_fn_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
+L_fn_exists()       { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
 L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
@@ -259,7 +277,9 @@ L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
 L_hash() { hash "$@" >/dev/null 2>&1; }
 L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
 
-L_isset() { [[ ! -z "${var+x}" ]]; }
+# shellcheck disable=SC2236
+L_isset()     { [[ ! -z "${var+x}" ]]; }
+# shellcheck disable=SC2236
 L_var_isset() { [[ ! -z "${var+x}" ]]; }
 
 L_logrun() {
@@ -287,13 +307,19 @@ L_is_true() {
 }
 
 : "${L_dryrun:=0}"
-L_run() {
+L_run_log() {
+	local _L_tmp
+	_L_tmp="$1" # loglevel
+	shift
 	if L_is_true "${L_dryrun:-}"; then
-		L_log "DRYRUN: + ${*@Q}"
+		L_logl "$_L_tmp" "DRYRUN: + ${*@Q}"
 	else
-		L_log "+ ${*@Q}"
+		L_logl "$_L_tmp" "+ ${*@Q}"
 		"$@"
 	fi
+}
+L_run() {
+	L_run_log L_LOG_INFO "$@"
 }
 
 L_list_functions_with_prefix() {
@@ -355,7 +381,7 @@ L_print_traceback2() {
 	echo "Traceback from pid $BASHPID (most recent call last):"
 	local i s l f tmp offset
 	offset=${1:-0}
-	for ((i = ${#BASH_SOURCE[@]} - 1; i > ${offset}; --i)); do
+	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
 		l=${BASH_LINENO[i - 1]}
 		f=${FUNCNAME[i]}
@@ -414,12 +440,12 @@ _L_lib_drop_L_prefix() {
 
 L_sed_show_diff() {
 	(
-		file="${@: -1}"
+		file="${*: -1}"
 		tmpf=$(mktemp)
 		trap 'rm -f "$tmpf"' EXIT
 		sed "$@" > "$tmpf"
 		diff "$file" "$tmpf" ||:
-		if [[ "$L_LIB_LIB_SED_INPLACE" = 'true' ]]; then
+		if [[ "${L_LIB_LIB_SED_INPLACE:-}" = 'true' ]]; then
 			mv "$tmpf" "$file"
 		fi
 	)
@@ -436,66 +462,68 @@ L_is_valid_variable_name() {
 	[[ "$1" =~ ^[a-z][a-zA-Z0-9_]*$ ]]
 }
 
-_L_unittest_checkexit() {
-	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test exit of ${*:2} is $1: "
-	local shouldbe ret
-	shouldbe=$1
-	eval "${@:2}"; ret=$?
-	if ((ret == shouldbe)); then
-		echo "ok"
-	else
-		((_L_unittest_result|=1)) ||:
-		echo "failed! $ret != $shouldbe"
-	fi
-
-}
-
-_L_unittest_pipes() {
-	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test pipes "
-	if
-		if [[ "$1" = "!" ]]; then
-			shift
-			! cmp -s "$1" "$2"
-		else
-			diff -Naur "$1" "$2"
-		fi
-	then
-		echo "ok"
-	else
-		((_L_unittest_result|=1)) ||:
-		echo "failed!"
-	fi
-}
-
-_L_unittest_vareq() {
-	((_L_unittest_result|=0)) ||:
-	echo -n "${FUNCNAME[1]}:${BASH_LINENO[0]}: test \$$1=${!1} == $2 "
-	if [[ "${!1}" == "$2" ]]; then
-		echo "ok"
-	else
-		((_L_unittest_result|=1)) ||:
-		if L_str_is_print "${!1}" "$2"; then
-			diff -Naur <(cat <<<"${!1}") - <<<"$2"
-		else
-			diff -Naur <(xxd -p <<<"${!1}") <(xxd -p <<<"$2")
-		fi
-		echo "failed!"
-	fi
-}
-
 L_str_is_print() {
 	grep -Fq '[[:print:]]' <<<"$*"
 }
 
 # }}}
+# L_unittest {{{
+
+_L_unittest_internal() {
+	local _L_tmp
+	_L_tmp=0
+	"${@:3}" || _L_tmp=$?
+	((_L_unittest_result|=0)) ||:
+	if ((_L_tmp)); then
+		echo -n "${L_RED}${L_BRIGHT}"
+	fi
+	echo -n "${FUNCNAME[2]}:${BASH_LINENO[1]}${1:+: }${1:-}: "
+	if ((_L_tmp == 0)); then
+		echo "${L_GREEN}OK${L_RESET}"
+	else
+		((_L_unittest_result|=1)) ||:
+		_L_tmp=("${@:3}")
+		echo "expr ${_L_tmp[*]@Q} FAILED!${2:+ }${2:-}${L_RESET}"
+		return 1
+	fi
+} >&2
+
+L_unittest_assert() {
+	_L_unittest_internal "test eval ${1@Q}" "${*:2}" eval "$1" ||:
+}
+
+L_unittest_checkexit() {
+	local _L_ret
+	_L_ret=0
+	eval "${@:2}" || _L_ret=$?
+	_L_unittest_internal "test exit of ${*:2} is $1" "$_L_ret != $1" [ "$_L_ret" -eq "$1" ] ||:
+}
+
+L_unittest_pipes() {
+	if [[ "$1" = "!" ]]; then
+		shift
+		set -- "${3:-}" "${*:4}" ! cmp -s "$1" "$2"
+	else
+		set -- "${3:-}" "${*:4}" diff -Naur "$1" "$2"
+	fi
+	_L_unittest_internal "test pipes${1:+: }$1" "$2" "${@:3}" ||:
+}
+
+L_unittest_vareq() {
+	if ! _L_unittest_internal "test: \$$1=${!1} == $2" "" [ "${!1}" == "$2" ]; then
+		if L_str_is_print "${!1}" "$2"; then
+			diff -Naur <(cat <<<"${!1}") - <<<"$2"
+		else
+			diff -Naur <(xxd -p <<<"${!1}") <(xxd -p <<<"$2")
+		fi
+	fi
+}
+
+# }}}
 # trapchain library{{{
 
-_L_allchars() {
-	# printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
-	echo $'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
-}
+# printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
+_L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
 L_get_trap_number_from_name() {
 	trap -l | sed -n 's/.*[^0-9]\([0-9]\+\)) SIGUSR1.*/\1/p'
@@ -507,16 +535,6 @@ L_get_trap_name() {
 		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
 		trap -p | awk '/0738dc3c-6716-44a1-960a-991b0ec4abaa/{print $NF}'
 	)
-	tmp=$(
-		(
-			set -x
-			L_trapchain 'echo hello' SIGUSR1
-			L_trapchain 'echo world' SIGUSR1
-			L_trapchain "echo $(printf "%q" "$(_L_allchars)")" SIGUSR1
-			L_raise SIGUSR1
-		) 2>&1 ||:
-	)
-	_L_unittest_vareq tmp $'hello\nworld\n'"$(_L_allchars)"
 }
 
 L_extract_trap() {
@@ -527,25 +545,55 @@ L_extract_trap() {
 		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
 }
 
+# shellcheck disable=2064
 _L_trapchain_unittest() {
 	(
-		trap "$(_L_allchars)" "$(L_get_trap_number_from_name SIGUSR1)"
+		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
 		tmp=$(L_extract_trap SIGUSR1)
-		_L_unittest_vareq tmp "$(_L_allchars)"
+		L_unittest_vareq tmp "$_L_allchars"
 	)
 }
 
-
 _L_trapchain_callback() {
 	# This is what it takes.
-	eval "$(eval printf %s \"\$_L_trapchain_data_$1\")"
+	local _L_tmp
+	_L_tmp=_L_trapchain_data_$1
+	eval "${!_L_tmp}"
 }
 
+# shellcheck disable=2064
 L_trapchain() {
 	local name
 	name=$(L_get_trap_name "$2") &&
 	trap "_L_trapchain_callback $name" "$name" &&
 	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\$_L_trapchain_data_$2\""
+}
+
+# shellcheck disable=2016
+_L_trapchain_test() {
+	local tmp
+	local allchars
+	tmp=$(
+		L_trapchain 'echo -n "!"' EXIT
+		L_trapchain 'echo -n world' EXIT
+		L_trapchain 'echo -n " "' EXIT
+		L_trapchain 'echo -n hello' EXIT
+	)
+	L_unittest_assert '[[ "$tmp" == "hello world!" ]]' "tmp=$tmp"
+	allchars="$_L_allchars"
+	tmp=$(
+		printf -v tmp %q "$allchars"
+		L_trapchain 'echo -n "hello"' SIGUSR1
+		L_trapchain "echo $tmp" SIGUSR1
+		L_trapchain 'echo -n world' SIGUSR2
+		L_trapchain 'echo -n " "' SIGUSR2
+		L_trapchain 'echo -n "!"' EXIT
+		L_raise SIGUSR1
+		L_raise SIGUSR2
+	)
+	local res
+	res="$allchars"$'\n'"hello world!"
+	L_unittest_assert '[[ "$tmp" == "$res" ]]' $'\n'"tmp=${tmp@Q}"$'\n'"res=${res@Q}"
 }
 
 L_raise() {
@@ -561,17 +609,21 @@ _L_map_test() {
 	tmp=123
 	L_map_init var
 	L_map_set var a 1
-	_L_unittest_pipes <(L_map_get var a) <(echo -n 1)
-	_L_unittest_pipes <(L_map_get var b) <(:)
+	L_unittest_pipes <(L_map_get var a) <(echo -n 1)
+	L_unittest_pipes <(L_map_get var b) <(:)
 	L_map_set var b 2
-	_L_unittest_pipes <(L_map_get var a) <(echo -n 1)
-	_L_unittest_pipes <(L_map_get var b) <(echo -n 2)
+	L_unittest_pipes <(L_map_get var a) <(echo -n 1)
+	L_unittest_pipes <(L_map_get var b) <(echo -n 2)
 	L_map_set var a 3
-	_L_unittest_pipes <(L_map_get var a) <(echo -n 3)
-	_L_unittest_pipes <(L_map_get var b) <(echo -n 2)
-	_L_unittest_pipes <(L_map_get var c; echo $?) <(echo 1)
-	_L_unittest_pipes <(L_map_has var c; echo $?) <(echo 1)
-	_L_unittest_pipes <(L_map_has var a; echo $?) <(echo 0)
+	L_unittest_pipes <(L_map_get var a) <(echo -n 3)
+	L_unittest_pipes <(L_map_get var b) <(echo -n 2)
+	L_unittest_checkexit 1 L_map_get var c
+	L_unittest_checkexit 1 L_map_has var c
+	L_unittest_checkexit 0 L_map_has var a
+	L_map_set var allchars "$_L_allchars"
+	L_unittest_pipes <(L_map_get var allchars) <(printf %s "$_L_allchars") "L_map_get var d"
+	L_map_clear var allchars
+	L_unittest_checkexit 1 L_map_get var allchars
 }
 
 _L_map_check() {
@@ -583,6 +635,15 @@ _L_map_check() {
 	done
 }
 
+# L_map consist of an empty initial newline.
+# Then follows map name, follows a spce, and then printf %q of the value.
+#
+#                     # empty initial newline
+#     key $'value'
+#     key2 $'value2'
+#
+# This format matches the regexes used in L_map_get for easy extraction using bash
+# Variable substituation.
 L_map_init() {
 	printf -v "$1" "\n"
 }
@@ -590,7 +651,7 @@ L_map_init() {
 L_map_clear() {
 	if ! _L_map_check "$@"; then return 2; fi
 	local _L_map_name
-	eval "printf -v _L_map_name %s \"\$$1\""
+	_L_map_name=${!1}
 	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
 	printf -v "$1" %s "$_L_map_name"
 }
@@ -598,8 +659,10 @@ L_map_clear() {
 L_map_set() {
 	L_map_clear "$1" "$2"
 	local _L_map_name
-	eval "printf -v _L_map_name %s \"\$$1\""
-	_L_map_name+=$'\n'"$2 $(shift 2; printf "%q" "$*")"
+	_L_map_name=${!1}
+	# This code strongly bases that `printf %q` _never_ prints a newline.
+	# If it does, I do not have an idea what will happen.
+	_L_map_name+=$'\n'"$2 $(printf %q "${*:3}")"
 	printf -v "$1" %s "$_L_map_name"
 }
 
@@ -615,7 +678,7 @@ L_map_append() {
 L_map_get() {
 	if ! _L_map_check "$@"; then return 2; fi
 	local _L_map_name
-	eval "printf -v _L_map_name %s \"\$$1\""
+	_L_map_name=${!1}
 	local var
 	var="$_L_map_name"
 	var=${var##*$'\n'"$2 "}
@@ -623,13 +686,13 @@ L_map_get() {
 		return 1
 	fi
 	var=${var%%$'\n'*}
-	printf %s "$var"
+	eval "printf %s $var"
 }
 
 L_map_has() {
 	if ! _L_map_check "$@"; then return 2; fi
 	local _L_map_name
-	eval "printf -v _L_map_name %s \"\$$1\""
+	_L_map_name=${!1}
 	[[ "$_L_map_name" =~ $'\n'"$2 " ]]
 }
 
@@ -641,6 +704,7 @@ L_map_getnl() {
 # }}}
 # Argument parser {{{
 
+# shellcheck disable=2016,2154
 _L_argparse_test() {
 	local arg="" num numbers
 	local args
@@ -650,10 +714,10 @@ _L_argparse_test() {
 		numbers nargs="+" -- \
 		-- -n $'\303(' 2 3
 	)
-	_L_unittest_checkexit 0 "(($? == 2))"
+	L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
-	_L_unittest_pipes <(echo "$num") <(echo $'\303(')
-	_L_unittest_pipes <(printf "%s\n" "${numbers[@]}") <(printf "%s\n" 2 3)
+	L_unittest_pipes <(echo "$num") <(echo $'\303(')
+	L_unittest_pipes <(printf "%s\n" "${numbers[@]}") <(printf "%s\n" 2 3)
 
 	local allchars args allcharsnoslash
 	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
@@ -661,9 +725,9 @@ _L_argparse_test() {
 		arg -- \
 		-- "$allchars"
 	)
-	_L_unittest_checkexit 0 "(($? == 2))"
+	L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
-	_L_unittest_pipes <(printf "%s" "$arg") <(printf "%s" "$allchars")
+	L_unittest_pipes <(printf "%s" "$arg") <(printf "%s" "$allchars")
 
 	allchars=$(seq 255 | xargs -d'\n' printf "%02x" | xxd -r -p)
 	allcharsnoslash=$(tr -d '/' <<<"$allchars")
@@ -672,26 +736,26 @@ _L_argparse_test() {
 		arg nargs='+' -- \
 		-- "$allchars" "$allchars" "'"
 	)
-	_L_unittest_checkexit 0 "(($? == 2))"
+	L_unittest_checkexit 0 "(($? == 2))"
 	eval "$args"
-	_L_unittest_pipes <(printf "%s\0" "${arg[@]}") <(printf "%s\0" "$allchars" "$allchars" "'")
+	L_unittest_pipes <(printf "%s\0" "${arg[@]}") <(printf "%s\0" "$allchars" "$allchars" "'")
 
-	_L_unittest_checkexit 0 'L_argparse description=bb7895c0-1644-49a8-8499-472beec5b075 -- -- -h | grep -q bb7895c0-1644-49a8-8499-472beec5b075'
-	_L_unittest_checkexit 1 L_argparse 2>/dev/null
-	_L_unittest_checkexit 1 L_argparse -- 2>/dev/null
-	_L_unittest_checkexit 0 L_argparse -- -- -h >/dev/null
-	_L_unittest_checkexit 0 'L_argparse -- --; (($? == 2))'
+	L_unittest_checkexit 0 'L_argparse description=bb7895c0-1644-49a8-8499-472beec5b075 -- -- -h | grep -q bb7895c0-1644-49a8-8499-472beec5b075'
+	L_unittest_checkexit 1 L_argparse 2>/dev/null
+	L_unittest_checkexit 1 L_argparse -- 2>/dev/null
+	L_unittest_checkexit 0 L_argparse -- -- -h >/dev/null
+	L_unittest_checkexit 0 'L_argparse -- --; (($? == 2))'
 
 	L_argparse_errexit -- \
 		-n --num -- \
 		numbers nargs='+' -- \
 		-- -n 123 2 3
-	_L_unittest_checkexit 0 '((num == 123))'
-	_L_unittest_checkexit 0 '((${numbers[0]} == 2))'
-	_L_unittest_checkexit 0 '((${numbers[1]} == 3))'
+	L_unittest_checkexit 0 '((num == 123))'
+	L_unittest_checkexit 0 '((${numbers[0]} == 2))'
+	L_unittest_checkexit 0 '((${numbers[1]} == 3))'
 
-	_L_unittest_checkexit 2 L_argparse -- \
-		-q dest=_L_LIB_LIB_quiet action=store_true -- \
+	L_unittest_checkexit 2 L_argparse -- \
+		-q dest=_L_lib_loadonly action=store_true -- \
 		-- -q '>/dev/null'
 
 	(
@@ -703,8 +767,8 @@ _L_argparse_test() {
 			-f --file type=file_w -- \
 			-g --gfile type=file_w -- \
 			-- -f "$f" -g /dev/stdout
-		_L_unittest_pipes <(echo "$PREFIX_gfile") <(echo /dev/stdout)
-		_L_unittest_pipes <(cat <<<"$PREFIX_file") <(cat <<<"$f")
+		L_unittest_pipes <(echo "$PREFIX_gfile") <(echo /dev/stdout)
+		L_unittest_pipes <(cat <<<"$PREFIX_file") <(cat <<<"$f")
 	)
 
 	L_argparse_errexit "PREFIX_" -- \
@@ -724,17 +788,17 @@ _L_argparse_test() {
 			args nargs='+' help="Additional positional arguments" -- \
 			-- -n 123 -f /dev/stdout -p /var/log/ some arguments
 	eval "$args"
-	_L_unittest_vareq PREFIX_number 123
-	_L_unittest_vareq PREFIX_file  /dev/stdout
-	_L_unittest_vareq PREFIX_database /var/log
-	_L_unittest_vareq PREFIX_args[0] some
-	_L_unittest_vareq PREFIX_args[1] arguments
-	_L_unittest_checkexit 1 'L_isset PREFIX_ofile'
-	_L_unittest_checkexit 1 'L_isset PREFIX_gfile'
+	L_unittest_vareq PREFIX_number 123
+	L_unittest_vareq PREFIX_file  /dev/stdout
+	L_unittest_vareq PREFIX_database /var/log
+	L_unittest_vareq PREFIX_args[0] some
+	L_unittest_vareq PREFIX_args[1] arguments
+	L_unittest_checkexit 1 'L_isset PREFIX_ofile'
+	L_unittest_checkexit 1 'L_isset PREFIX_gfile'
 }
 
 L_argparse() {
-	LC_ALL=C python - "$L_NAME" "$@" <<'EOF' 
+	LC_ALL=C python - "$L_NAME" "$@" <<'EOF'
 from __future__ import print_function
 import argparse
 import sys
@@ -980,130 +1044,97 @@ L_argparse_errexit() {
 }
 
 # }}}
-# Library end - parse arguments {{{
+# lib_lib functions {{{
 
-fi
+_L_lib_name=${BASH_SOURCE##*/}
 
-if true; then
-# Easier to use library - drop L_ prefix on some functions if -L argument is passed
-_L_LIB_LIB_args=$(getopt -n "$L_NAME:,lib_lib" -o '+Llq' -l test -- "$@")
-eval "set -- $_L_LIB_LIB_args"
-_L_LIB_LIB_quiet=0
-while (($#)); do
-	case "$1" in
-	-L) _L_lib_drop_L_prefix; ;;
-	-q) _L_LIB_LIB_quiet=1; ;;
-	-l) _L_lib_drop_L_prefix; _L_LIB_LIB_quiet=1; ;;
-	--test) break; ;;
-	--) shift; break; ;;
-	*) L_fatal ",lib_lib: Internal error when parsing arguments"; ;;
-	esac
-	shift
-done
-fi
-
-# If this file is sourced with only a siungle argument -q then just let
-# the upper definitions be visible. This is a library.
-if L_am_I_sourced && ((_L_LIB_LIB_quiet)); then
-	if (($#)); then L_warning "Do not pass arguments with -q option"; fi
-	unset _L_LIB_LIB_quiet _L_LIB_LIB_args
-	return
-fi
-unset _L_LIB_LIB_quiet _L_LIB_LIB_args
-
-# }}}
-# ,lib_lib functions {{{
-
-,lib_lib_usage() {
-	cat <<'EOF'
-Usage:
-	# script.sh
-	LIB_prefix_some_func() {
-		desc="this func does that"
-	}		
-    prefix_some_func() {
-		echo 'yay!'
-	}
-	source ,lib_lib 'prefix_' "$@"
-
-	# then from command line:
-	eval "$(script.sh --bash-autocompletion)"
-	script.sh some_func
-
-
-A library to be called from other libraries
-This is a simple script to allow me to write:
-- simple reusable programs
-- with bash completion
-and much more TODO!
-
-Written by Kamil Cukrowski 2020
-EOF
+_L_lib_lib_error() {
+	echo "$_L_lib_name: ERROR: $*" >&2
 }
 
-,lib_lib_error() {
-	echo ",lib_lib: ERROR: $*" >&2
-}
-
-,lib_lib_fatal() {
-	,lib_lib_error "$@"
+_L_lib_lib_fatal() {
+	_L_lib_lib_error "$@"
 	exit 3
 }
 
-,lib_lib_list_prefix_functions() {
+_L_lib_lib_list_prefix_functions() {
 	L_list_functions_with_prefix "$L_prefix"
 }
 
-,lib_lib_their_usage() {
-	if L_function_exists usage; then
-		local tmp saveifs
-		tmp=$(,lib_lib_list_prefix_functions)
-		saveifs="${IFS:-}"
-		IFS=$'\n\r \t' read -r -d '' -a functions <<<"$tmp" ||:
-		IFS="$saveifs"
-		unset tmp
-		usage "${functions[@]}"
-		return 
+if ! L_fn_exists L_cb_usage_usage; then L_cb_usage_usage() {
+	echo "Usage:  $L_name <COMMAND> [OPTIONS]"
+}; fi
+
+if ! L_fn_exists L_cb_usage_desc; then L_cb_usage_desc() {
+	:;
+}; fi
+
+if ! L_fn_exists L_cb_usage_footer; then L_cb_usage_footer() {
+	echo 'Written by Kamil Cukrowski. Licensed jointly under MIT License and Beeware License'
+}; fi
+
+# shellcheck disable=2046
+_L_lib_lib_their_usage() {
+	if L_function_exists L_cb_usage; then
+		L_cb_usage $(_L_lib_lib_list_prefix_functions)
+		return
 	fi
-	cat <<EOF
-Usage: $L_name <COMMAND> [OPTIONS]
-
-Commands:
-$(
-	{
-		for f in $(,lib_lib_list_prefix_functions); do
-			desc=""
-			if L_function_exists LIB_"$L_prefix$f"; then
-				LIB_"$L_prefix$f" "$f" "$L_prefix"
+	local a_usage a_desc a_cmds a_footer
+	a_usage=$(L_cb_usage_usage)
+	a_desc=$(L_cb_usage_desc)
+	a_cmds=$(
+		{
+			for f in $(_L_lib_lib_list_prefix_functions); do
+				desc=""
+				if L_function_exists L_cb_"$L_prefix$f"; then
+					L_cb_"$L_prefix$f" "$f" "$L_prefix"
+				fi
+				echo "$f${desc:+$'\01'}$desc"
+			done
+			echo "-h --help"$'\01'"print this help and exit"
+			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
+		} | {
+			if L_cmd_exists column && column -V 2>/dev/null | grep -q util-linux; then
+				column -t -s $'\01' -o '   '
+			else
+				sed 's/#/    /'
 			fi
-			echo "$f${desc:+#}$desc"
-		done
-		echo "--bash-completion#Generate bash completion to be eval'ed."
-	} |
-	if hash column 2>/dev/null >&2; then
-		column -t -s '#' -o ' - '
-	else
-		sed 's/#/ - /'
-	fi | sed 's/^/  /'
-)
+		} | sed 's/^/  /'
+	)
+	a_footer=$(L_cb_usage_footer)
+	cat <<EOF
+${a_usage}
 
+${a_desc:-}${a_desc:+
+
+}Commands:
+$a_cmds${a_footer:+
+
+}${a_footer:-}
 EOF
 }
 
-,lib_lib_show_best_match() {
-	if
-		L_hash fzf &&
-		tmp=$(,lib_lib_list_prefix_functions | fzf -0 -1 -f "$1") &&
-		[[ -n "$tmp" ]]
-	then
-		echo "   Maybe you meant: $tmp ?" >&2
-	fi
+_L_lib_lib_show_best_match() {
+	if tmp=$(
+		_L_lib_lib_list_prefix_functions |
+		if L_hash fzf; then
+			fzf -0 -1 -f "$1"
+		else
+			grep -F "$1"
+		fi
+	) && [[ -n "$tmp" ]]; then
+		echo
+		echo "The most similar commands are"
+		# shellcheck disable=2001
+		<<<"$tmp" sed 's/^/\t/'
+	fi >&2
 }
 
 # https://stackoverflow.com/questions/14513571/how-to-enable-default-file-completion-in-bash
-_lib_lib_do_bash_completion() {
-	if [[ "$(LC_ALL=C type -t -- "_lib_lib_do_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
-		"_lib_lib_do_bash_completion_$L_NAME" "$@"
+# shellcheck disable=2207
+_L_do_bash_completion() {
+	if [[ "$(LC_ALL=C type -t -- "_L_cb_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
+		"_L_cb_bash_completion_$L_NAME" "$@"
 		return
 	fi
     if ((COMP_CWORD == 1)); then
@@ -1115,62 +1146,161 @@ _lib_lib_do_bash_completion() {
     fi
 }
 
-,lib_lib_bash_completion() {
+# shellcheck disable=2120
+_L_lib_lib_bash_completion() {
 	local tmp cmds
-	tmp=$(,lib_lib_list_prefix_functions)
+	tmp=$(_L_lib_lib_list_prefix_functions)
 	mapfile -t cmds <<<"$tmp"
 	local funcname
-	funcname=_lib_lib_bash_completion_$L_NAME
+	funcname=_L_bash_completion_$L_NAME
 	eval "$funcname() {
-		local cmds L_NAME
-		$(declare -p cmds L_NAME)
-		_lib_lib_do_bash_completion "$@"
-	}"
-	declare -f _lib_lib_do_bash_completion "$funcname"
-	printf "%s" complete
-	printf " %s" -o bashdefault -o default -F $funcname "$0" "$L_NAME"
-	printf "\n"
+		$(declare -p cmds L_NAME)"'
+		_L_do_bash_completion "$@"
+	}'
+	declare -f _L_do_bash_completion "$funcname"
+	printf "%s" "complete -o bashdefault -o default -F"
+	printf " %q" "$funcname" "$0" "$L_NAME"
+	printf '\n'
+}
+
+_L_lib_lib_usage() {
+	cat <<EOF
+Usage:
+      . $_L_lib_name [options] -q
+      . $_L_lib_name [options] <prefix> "\$@"
+	  $_L_lib_name --test
+
+A library to be called from other libraries. This is a simple script to
+allow me to write simple reusable programs with bash completion and much
+more TODO!
+
+Usage example:
+
+	# script.sh
+	LIB_prefix_some_func() {
+		desc="this func does that"
+	}
+    prefix_some_func() {
+		echo 'yay!'
+	}
+    prefix_some_other_func() {
+		echo 'not yay!'
+	}
+	source $_L_lib_name 'prefix_' "\$@"
+
+Then you can enter from command line:
+
+	script.sh some_func
+
+You can import bash completion for the script with:
+
+	eval "\$(script.sh --bash-completion)"
+
+Options:
+	-L   Drop L_ prefix on some functions
+	-q   Only import library - do not parse arguments
+	-l   Both -L and -q
+
+Written by Kamil Cukrowski 2020.
+Licensed jointly under Beerware License and MIT License.
+EOF
 }
 
 # }}}
-# ,lib_lib main {{{
+# Library end {{{
+fi
+# }}}
+# lib_lib main {{{
+
+# Easier to use library - drop L_ prefix on some functions if -L argument is passed
+_L_lib_lib_args=$(getopt -n "$L_NAME:$_L_lib_name" -o +Llqh -l help,test:: -- "$@")
+eval "set -- $_L_lib_lib_args"
+_L_lib_loadonly=0
+_L_lib_help=0
+while (($#)); do
+	case "$1" in
+	-L) _L_lib_drop_L_prefix; ;;
+	-q) _L_lib_loadonly=1; ;;
+	-l) _L_lib_drop_L_prefix; _L_lib_loadonly=1; ;;
+	-h|--help) _L_lib_help=1; ;;
+	--test) break; ;;
+	--) shift; break; ;;
+	*) L_fatal "$_L_lib_name: Internal error when parsing arguments"; ;;
+	esac
+	shift
+done
 
 if ! L_am_I_sourced; then
-	if (($# == 2)) && [[ "${1:-}" == '--test' ]]; then
-		for i in _L_argparse_test _L_map_test _L_loglibrary_unittest; do
+	if (($# >= 2)) && [[ "$1" == "--test" ]]; then
+		L_assert "(($# <= 3))" "too many arguments for --test"
+		tests=$(
+			compgen -A function |
+			grep -x '_L_.*_test' |
+			if [[ -n "${2:-}" ]]; then grep "$2"; else cat; fi ||:
+		)
+		for i in $tests; do
 			"$i"
 		done
-		exit "$_L_unittest_result"
+		exit "${_L_unittest_result:-5}"
 	fi
-	,lib_lib_usage
-	,lib_lib_fatal "Script ,lib_lib has to be sourced!"
+	_L_lib_lib_usage
+	if ((_L_lib_help)); then exit 0; fi
+	_L_lib_lib_fatal "Script $_L_lib_name has to be sourced!"
+	exit 1
 fi
-if (($# == 0)); then ,lib_lib_fatal "Prefix argument missing"; fi
-L_prefix=$1
-shift
-if [[ -z "$L_prefix" ]]; then ,lib_lib_fatal "first argument is empty"; fi
 
-if [[ "${1:-}" = '--bash-completion' ]]; then
-	,lib_lib_bash_completion
+if ((_L_lib_loadonly)); then
+	if (($#)); then L_warning "Do not pass arguments with -q option"; fi
+	unset _L_lib_loadonly _L_lib_lib_args
+	return
+fi
+unset _L_lib_loadonly _L_lib_lib_args
+
+if (($# == 0)); then _L_lib_lib_fatal "prefix argument missing"; fi
+L_prefix=$1
+case "$L_prefix" in
+(-*) _L_lib_lib_fatal "prefix argument cannot start with -"; ;;
+("") _L_lib_lib_fatal "prefix argument is empty"; ;;
+esac
+shift
+
+case "${1:-}" in
+(--bash-completion)
+	_L_lib_lib_bash_completion
 	return
 	exit
-fi
-if (($# == 0)); then
-	,lib_lib_their_usage "$@"
+	;;
+(-h|--help)
+	_L_lib_lib_their_usage "$@"
+	return
 	exit
+	;;
+esac
+if L_fn_exists "L_cb_parse_args"; then
+	unset L_cb_args
+	L_cb_parse_args "$@"
+	if ! L_var_isset L_cb_args; then L_error "L_cb_parse_args did not return L_cb_args array"; fi
+	# shellcheck disable=2154
+	set -- "${L_cb_args[@]}"
 fi
 
-L_mode=$1
+if (($# == 0)); then
+	if ! L_fn_exists "${L_prefix}DEFAULT"; then
+		_L_lib_lib_their_usage "$@"
+		L_error "Command argument missing."
+		exit 1
+	fi
+fi
+L_mode="${1:-DEFAULT}"
 shift
 if ! L_function_exists "$L_prefix$L_mode"; then
-	,lib_lib_their_usage
-	,lib_lib_error "Unknown command: $L_mode"
-	,lib_lib_show_best_match "$L_mode"
-	exit
+	L_error "Unknown command: '$L_mode'. See '$L_NAME --help'."
+	_L_lib_lib_show_best_match "$L_mode"
+	exit 1
 fi
 "$L_prefix$L_mode" "$@"
 
 # }}}
 
-# vim: foldmethod=marker:nofoldenable
+# vim: foldmethod=marker
 
