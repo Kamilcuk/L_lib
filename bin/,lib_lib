@@ -576,7 +576,7 @@ fi
 ###############################################################################
 
 L_kill_all_jobs() {
-	local IFS=$'\n'
+	local IFS=$'\n' j
 	for j in $(jobs | awk '{gsub("[^0-9]","",$1);print $1}'); do kill "%$j"; done
 }
 
@@ -706,15 +706,27 @@ L_unittest_eq() {
 _L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
 L_get_trap_number_from_name() {
-	trap -l | sed -n 's/.*[^0-9]\([0-9]\+\)) SIGUSR1.*/\1/p'
+	trap -l | 
+		sed 's/[ \t]*\([0-9]\+\))[ \t]*\([^ \t]\+\)[ \t]*/\1 \2\n/g; s/\n$//' |
+		while IFS=' ' read -r a b; do
+			if [[ "$b" == $1 ]]; then
+				echo "$a"
+			fi
+		done
 }
 
 L_get_trap_name() {
-	local tmp
 	(
 		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
-		trap -p | awk '/0738dc3c-6716-44a1-960a-991b0ec4abaa/{print $NF}'
-	)
+		trap -p
+	) | while IFS= read -r line; do
+		if
+			[[ "$line" == *'0738dc3c-6716-44a1-960a-991b0ec4abaa'* ]] &&
+			[[ "$line" =~ [^\ ]*$ ]]
+		then
+				printf %s "${BASH_REMATCH[0]}"
+		fi
+	done
 }
 
 L_extract_trap() {
@@ -723,15 +735,6 @@ L_extract_trap() {
 	trap -p "$tmp" |
 		sed '1s/^trap -- //; $s/ [^ ]\+$//' |
 		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
-}
-
-# shellcheck disable=2064
-_L_trapchain_unittest() {
-	(
-		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
-		tmp=$(L_extract_trap SIGUSR1)
-		L_unittest_vareq tmp "$_L_allchars"
-	)
 }
 
 _L_trapchain_callback() {
@@ -746,9 +749,11 @@ L_trapchain() {
 	local name
 	name=$(L_get_trap_name "$2") &&
 	trap "_L_trapchain_callback $name" "$name" &&
-	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\$_L_trapchain_data_$2\""
+	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
 }
 
+
+# shellcheck disable=2064
 # shellcheck disable=2016
 _L_trapchain_test() {
 	local tmp
@@ -774,6 +779,11 @@ _L_trapchain_test() {
 	local res
 	res="$allchars"$'\n'"hello world!"
 	L_unittest_assert '[[ "$tmp" == "$res" ]]' $'\n'"tmp=${tmp@Q}"$'\n'"res=${res@Q}"
+	(
+		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
+		tmp=$(L_extract_trap SIGUSR1)
+		L_unittest_vareq tmp "$_L_allchars"
+	)
 }
 
 L_raise() {
@@ -1364,14 +1374,14 @@ _L_argparse_in() {
 	_L_argparse_argload() {
 		a_arg=$1
 		a_argnum=${1#arg}
-		a_nargs=$(L_map_get "$1" nargs '')
-		a_lopts=$(L_map_get "$1" lopts '')
-		a_sopts=$(L_map_get "$1" sopts '')
-		a_isopt=$(L_map_get "$1" isopt 0)
-		a_num=$(L_map_get "$1" num '')
-		a_default=$(L_map_get "$1" default '')
-		a_dest=$(L_map_get "$1" dest '')
-		a_metavar=$(L_map_get "$1" metavar "$a_dest")
+		L_map_getv a_nargs "$1" nargs ''
+		L_map_getv a_lopts "$1" lopts ''
+		L_map_getv a_sopts "$1" sopts ''
+		L_map_getv a_isopt "$1" isopt 0
+		L_map_getv a_num "$1" num ''
+		L_map_getv a_default "$1" default ''
+		L_map_getv a_dest "$1" dest ''
+		L_map_getv a_metavar "$1" metavar "$a_dest"
 	}
 	#
 	_L_argparse_debug() {
@@ -1482,22 +1492,22 @@ EOF
 		fi
 		local a_nargs a_isopt a_help a_metavar l_defaults defaults
 		for arg in $argit; do
-			a_nargs=$(L_map_get "$arg" nargs)
-			a_isopt=$(L_map_get "$arg" isopt)
-			a_help=$(L_map_get "$arg" help '')
-			a_metavar=$(L_map_get "$arg" metavar)
+			L_map_getv a_nargs "$arg" nargs
+			L_map_getv a_isopt "$arg" isopt
+			L_map_getv a_help "$arg" help ''
+			L_map_getv a_metavar "$arg" metavar
 			l_defaults=""
-			if default=$(L_map_get "$arg" default) && ((${#default} < 80)); then
+			if L_map_getv default "$arg" default && ((${#default} < 80)); then
 				printf -v default "%q" "$default"
 				l_defaults=" (default: $default)"
 			fi
 			#echo "$a_isopt $arg"
 			if ((a_isopt)); then
-				a_sopts=$(L_map_get "$arg" sopts)
+				L_map_getv a_sopts "$arg" sopts
 				# Convert 'a b c ' into '-a -b -c'
 				l_sopts=${a_sopts:+-}${a_sopts// / -}
 				l_sopts=${l_sopts% -}
-				a_lopts=$(L_map_get "$arg" lopts)
+				L_map_getv a_lopts "$arg" lopts
 				# Convert 'abc def efg ' into '--abc --def --efg'
 				l_lopts=${a_lopts:+--}${a_lopts// / --}
 				l_lopts=${l_lopts% --}
@@ -1639,10 +1649,10 @@ EOF
 	sopts=""
 	lopts=""
 	for arg in $argit; do
-		a_sopts=$(L_map_get "$arg" sopts '')
-		a_lopts=$(L_map_get "$arg" lopts '')
+		L_map_getv a_sopts "$arg" sopts ''
+		L_map_getv a_lopts "$arg" lopts ''
 		# Set default destination if not set.
-		if ! a_dest=$(L_map_get "$arg" dest); then
+		if ! L_map_getv a_dest "$arg" dest; then
 			# shellcheck disable=2086
 			if ! a_dest=$(set -- $a_lopts $a_sopts; (($#)) && printf %s "$1"); then
 				_L_argparse_fatal "argument number ${arg#arg} has no name - you have specify it's name or at least one option"
@@ -1650,13 +1660,13 @@ EOF
 			L_map_set "$arg" dest "$a_dest"
 		fi
 		# Set default value of metavar from dest.
-		if ! a_metavar=$(L_map_has "$arg" metavar); then
+		if ! L_map_getv a_metavar "$arg" metavar; then
 			a_metavar="$a_dest"
 			L_map_set "$arg" metavar "$a_metavar"
 		fi
-		a_isopt=$(L_map_get "$arg" isopt 0)
+		L_map_getv a_isopt "$arg" isopt 0
 		# Set default arguments count.
-		if ! a_nargs=$(L_map_get "$arg" nargs); then
+		if ! L_map_getv a_nargs "$arg" nargs; then
 			a_nargs="1"
 			L_map_set "$arg" nargs "$a_nargs"
 		fi
@@ -1672,28 +1682,11 @@ EOF
 			sopts+=$a_sopts
 			lopts+=${lopts:+,}$a_lopts
 		fi
-		# Check for destination repetitions.
+		# Set default value for action
+		L_map_setdefault "$arg" action store
 	done
 	#_L_argparse_debug "$(declare -p sopts)"
 	#_L_argparse_debug "$(declare -p lopts)"
-	for a1 in $argit; do
-		tmp1=$(L_map_get "$a1" dest)
-		if [[ -z "$tmp1" ]]; then
-			_L_argparse_fatal "argument ${a1#arg} has empty dest= value: $tmp1"
-		fi
-		if ! L_is_valid_variable_name "$tmp1"; then
-			_L_argparse_fatal "argument ${a1#arg} has invalid dest= value - it has to be a valid variable name: $tmp1"
-		fi
-		for a2 in $argit; do
-			if [[ "$a1" == "$a2" ]]; then continue; fi
-			tmp2=$(L_map_get "$a2" dest)
-			if [[ "$tmp1" == "$tmp2" ]]; then
-				a1_metavar=$(L_map_get "$a1" metavar)
-				a2_metavar=$(L_map_get "$a2" metavar)
-				_L_argparse_fatal "argument $a1_metavar and $a2_metavar have same dest= value: $tmp1"
-			fi
-		done
-	done
 	#
 	# Parse arguments with getopt
 	# If there are no arguments, assign them from default argument.
@@ -1708,9 +1701,11 @@ EOF
 		l_getopt+=(-a)
 	fi
 	if args=$("${l_getopt[@]}" -n "$_L_p_prog" -o "${sopts}h" -l "help${lopts:+,}$lopts" -- "$@"); then :; else
-		return $?
+		return "$?"
 	fi
 	eval "set -- $args"
+	#
+	#
 	#
 	_L_argparse_cb_action_init_store() {
 		:
@@ -1719,13 +1714,11 @@ EOF
 		:
 	}
 	_L_argparse_cb_action_init_store_const() {
-		if L_map_has "$1" nargs; then
-			_L_argparse_fatal "nargs not allowed"
-		fi
+		if L_map_has "$1" nargs; then _L_argparse_fatal "nargs not allowed"; fi
 	}
-	_L_argparse_cb_action_call_store_cost() {
+	_L_argparse_cb_action_call_store_const() {
 		if ! L_map_getv value "$1" const; then
-			_L_argparse_fatal "option $a_metavar missing required argument: const="
+			_L_argparse_fatal "option $a_metavar missing required argument: const"
 		fi
 	}
 	_L_argparse_cb_action_init_store_true() {
@@ -1758,27 +1751,30 @@ EOF
 	_L_argparse_cb_action_call_store_count() {
 		printf -v value "$(($1 + 1))"
 	}
-	_L_argparse_cb_action_init_externd() {
+	_L_argparse_cb_action_init_extern() {
 		value=()
 	}
 	_L_argparse_cb_action_call_extend() {
 		value+=("$@")
 	}
-	#for a_arg in $argit; do
-		#L_map_getv a_action "$a_arg" action 'store'
-		#f=_L_argparse_cb_action_init_$a_action
-		#if ! L_fn_exists "$f"; then
-			#_L_argparse_fatal "invalid action $a_action, function does not exists: $f"
-		#fi
-		#unset value
-		#"$f" "$a_arg"
-		#L_map_set "$a_arg" value "$(declare -p value)"
-	#done
+	#
+	for a_arg in $argit; do
+		L_map_getv a_action "$a_arg" action
+		f=_L_argparse_cb_action_init_$a_action
+		if ! L_fn_exists "$f"; then
+			_L_argparse_fatal "invalid action $a_action, function does not exists: $f"
+		fi
+		unset value
+		"$f" "$a_arg"
+		if value=$(declare -p value 2>/dev/null); then
+			L_map_set "$a_arg" value "$value"
+		fi
+	done
 	_L_argparse_setarg() {
-		local nargs arg num
+		local a_nargs arg num
 		arg="$1"
-		L_map_getv nargs "$arg" nargs ''
-		case "$nargs" in
+		L_map_getv a_nargs "$arg" nargs ''
+		case "$a_nargs" in
 		+(0))
 			L_map_set "$arg" value "1"
 			;;
@@ -1787,11 +1783,11 @@ EOF
 			return 1
 			;;
 		'+'|'*'|+([0-9]))
-			num=$(L_map_get "$arg" num 0)
+			L_map_getv num "$arg" num 0
 			L_map_append "$arg" "value$num" "$2";
 			L_map_set "$arg" num "$((num + 1))"
-			case "$nargs" in [0-9]*)
-				if ((num > nargs)); then
+			case "$a_nargs" in [0-9]*)
+				if ((num > a_nargs)); then
 					_L_argparse_fatal "Too many arguments for option: $1"
 				fi
 			esac
@@ -1805,7 +1801,7 @@ EOF
 		type="$1"
 		v="$2"
 		for arg in $argit; do
-			tmp=$(L_map_get "$arg" "${type}opts" '')
+			L_map_getv tmp "$arg" "${type}opts" ''
 			for j in $tmp; do
 				if [[ "$v" = "$j" ]]; then
 					if ! _L_argparse_setarg "$arg" "$3"; then
@@ -1838,12 +1834,12 @@ EOF
 		for ((++idx; idx < argcnt; ++idx)); do
 			arg=arg$idx
 			local isopt
-			isopt=$(L_map_get "$arg" isopt 0)
+			L_map_getv isopt "$arg" isopt 0
 			if ((!isopt)); then break; fi
 		done
 		if ((idx == argcnt)); then return 1; fi
-		a_nargs=$(L_map_get "$arg" nargs '')
-		a_metavar=$(L_map_get "$arg" metavar)
+		L_map_getv a_nargs "$arg" nargs ''
+		L_map_getv a_metavar "$arg" metavar
 		# _L_argparse_debug "$arg $a_nargs $a_metavar"
 	}
 	next=1
@@ -1969,7 +1965,7 @@ EOF
 			value=()
 			if [[ -n "$a_num" ]]; then
 				for ((j = 0; j < a_num; ++j)); do
-					a_v=$(L_map_get "$arg" "value$j")
+					L_map_getv a_v "$arg" "value$j"
 					_L_argparse_handle_type "$a_v"
 					value+=("$a_v")
 				done
@@ -1985,7 +1981,7 @@ EOF
 			;;
 		esac
 		#
-		dest=$(L_map_get "$arg" dest)
+		L_map_getv dest "$arg" dest
 		v=$(declare -p value)
 		v=${v#*value=}
 		printf "%s\n" "${_L_p_prefix}$dest=$v" >&3
