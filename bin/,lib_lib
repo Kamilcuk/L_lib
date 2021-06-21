@@ -472,6 +472,7 @@ L_time_all() {
 	Number of signals delivered to the process:	%k
 	Name and command-line arguments of the command being timed:	%C
 	Exit status of the command:	%x" "$@"
+	# "
 }
 
 ###############################################################################
@@ -553,20 +554,29 @@ L_trap_err_small() {
 	L_error "fatal error on $(caller)"
 }
 
-if ! L_fn_exists L_trap_err; then
-L_trap_err() {
-    local _code="${1:-0}"
-    ## Workaround for read EOF combo tripping traps
-    if ! ((_code)); then
-        return "${_code}"
-    fi
-	{
-		#L_trap_err_show_source 1 "$@"
-		L_print_traceback2 1 "$@"
-	} >&2 ||:
-    exit "$_code"
+L_trap_err_enable() {
+	L_trap_err() {
+		local _code="${1:-0}"
+		## Workaround for read EOF combo tripping traps
+		if ! ((_code)); then
+			return "${_code}"
+		fi
+		{
+			#L_trap_err_show_source 1 "$@"
+			L_print_traceback2 1 "$@"
+		} >&2 ||:
+		exit "$_code"
+	}
 }
+
+L_trap_err_disable() {
+	L_trap_err() { :; }
+}
+
+if ! L_fn_exists L_trap_err; then
+	L_trap_err_enable
 fi
+
 
 if [[ "$-" =~ e ]]; then
 	set -E -o functrace
