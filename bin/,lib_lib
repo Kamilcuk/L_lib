@@ -1999,6 +1999,7 @@ EOF
 }
 
 _L_argparse_test() {
+	return # disabled
 	local a pos1 pos2 bool more star mystar file f arg1 arg2
 
 	a=(
