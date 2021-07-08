@@ -403,7 +403,7 @@ L_var_is_array() {
 }
 
 L_logrun() {
-	L_log "+ ${*@Q}"
+	L_log "+ $*"
 	"$@"
 }
 
@@ -432,9 +432,9 @@ L_run_log() {
 	_L_tmp="$1" # loglevel
 	shift
 	if L_is_true "${L_dryrun:-}"; then
-		L_logl "$_L_tmp" "DRYRUN: + ${*@Q}"
+		L_logl "$_L_tmp" "DRYRUN: + $*"
 	else
-		L_logl "$_L_tmp" "+ ${*@Q}"
+		L_logl "$_L_tmp" "+ $*"
 		"$@"
 	fi
 }
@@ -645,13 +645,13 @@ _L_unittest_internal() {
 	else
 		(( _L_unittest_result |= 1 ))
 		_L_tmp=("${@:3}")
-		echo "expression ${_L_tmp[*]@Q} FAILED!${2:+ }${2:-}${L_usecolor:+${L_COLORRESET}}"
+		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_usecolor:+${L_COLORRESET}}"
 		return 1
 	fi
 } >&2
 
 L_unittest_assert() {
-	_L_unittest_internal "test eval ${1@Q}" "${*:2}" eval "$1" ||:
+	_L_unittest_internal "test eval ${1}" "${*:2}" eval "$1" ||:
 }
 
 L_unittest_checkexit() {
@@ -788,7 +788,7 @@ _L_trapchain_test() {
 	)
 	local res
 	res="$allchars"$'\n'"hello world!"
-	L_unittest_assert '[[ "$tmp" == "$res" ]]' $'\n'"tmp=${tmp@Q}"$'\n'"res=${res@Q}"
+	L_unittest_assert '[[ "$tmp" == "$res" ]]' $'\n'"tmp=${tmp}"$'\n'"res=${res}"
 	(
 		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
 		tmp=$(L_extract_trap SIGUSR1)
@@ -1618,7 +1618,7 @@ EOF
 			case "$1" in
 			--) shift; break; ;;
 			-*[$' \v\r\t\n']*)
-				_L_argparse_fatal "invalid option value has a whitespace in it: ${1@Q}"
+				_L_argparse_fatal "invalid option value has a whitespace in it: ${1}"
 				;;
 			--*)
 				v="${1#--}"; 
