@@ -561,10 +561,11 @@ L_trap_err_enable() {
 		if ! ((_code)); then
 			return "${_code}"
 		fi
-		{
+		(
+			set +x
 			#L_trap_err_show_source 1 "$@"
 			L_print_traceback2 1 "$@"
-		} >&2 ||:
+		) >&2 ||:
 		exit "$_code"
 	}
 }
@@ -2474,14 +2475,14 @@ if (($# == 0)); then
 		exit 1
 	fi
 fi
-L_mode="${1:-DEFAULT}"
+L_CMD="${1:-DEFAULT}"
 shift
-if ! L_function_exists "$L_prefix$L_mode"; then
-	L_error "Unknown command: '$L_mode'. See '$L_NAME --help'."
-	_L_lib_lib_show_best_match "$L_mode"
+if ! L_function_exists "$L_prefix$L_CMD"; then
+	L_error "Unknown command: '$L_CMD'. See '$L_NAME --help'."
+	_L_lib_lib_show_best_match "$L_CMD"
 	exit 1
 fi
-"$L_prefix$L_mode" "$@"
+"$L_prefix$L_CMD" "$@"
 
 # }}}
 
