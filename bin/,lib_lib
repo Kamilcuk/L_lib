@@ -2390,7 +2390,7 @@ fi
 # lib_lib main {{{
 
 # Easier to use library - drop L_ prefix on some functions if -L argument is passed
-_L_lib_lib_args=$(getopt -n "$L_NAME:$_L_lib_name" -o +Llqha -l help,test:: -- "$@") || return 1
+_L_lib_lib_args=$(getopt -n "$L_NAME:$_L_lib_name" -o +Llqha -l help,test::,bash-completion-gen-symlinks -- "$@") || return 1
 eval "set -- $_L_lib_lib_args"
 unset _L_lib_lib_args
 _L_lib_loadonly=0
@@ -2403,6 +2403,12 @@ while (($#)); do
 	-l) _L_lib_drop_L_prefix; _L_lib_loadonly=1; ;;
 	-a) _L_argparse=1; ;;
 	-h|--help) _L_lib_help=1; ;;
+	(--bash-completion-gen-symlinks)
+		set -x
+		( cd ~/.kamilscripts/bin/ && ag -l '(\.|source)\s+,lib_lib\s+.*"\$@"' . ) |
+		( cd ~/.kamilscripts/bash-completions && xargs -i ln -vs ,lib_lib {} )
+		exit
+		;;
 	--test) break; ;;
 	--) shift; break; ;;
 	*) L_fatal "$_L_lib_name: Internal error when parsing arguments"; ;;
