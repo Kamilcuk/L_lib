@@ -399,7 +399,7 @@ L_isset()     { [[ ! -z "${var+x}" ]]; }
 # shellcheck disable=SC2236
 L_var_isset() { [[ ! -z "${var+x}" ]]; }
 
-L_var_is_array() { 
+L_var_is_array() {
 	[[ "$(declare -p "$1" 2> /dev/null)" == "declare -a"* ]]
 }
 
@@ -433,11 +433,15 @@ L_run_log() {
 	_L_tmp="$1" # loglevel
 	shift
 	if L_is_true "${L_dryrun:-}"; then
-		L_logl "$_L_tmp" "DRYRUN: + $*"
+		set -- "DRYRUN: +" "$@"
 	else
-		L_logl "$_L_tmp" "+ $*"
-		"$@"
+		set -- "+" "$@"
 	fi
+	if ! L_logl "$_L_tmp" "$*"; then
+		L_fatal "Could not log from L_run_log"
+	fi
+	shift
+	"$@"
 }
 L_run() {
 	L_run_log L_LOG_INFO "$@"
@@ -528,17 +532,36 @@ L_trap_err_failure() {
 }
 
 L_print_traceback2() {
-	echo "Traceback from pid $BASHPID (most recent call last):"
-	local i s l f tmp offset
+	local i s l tmp offset
+	echo
+	echo "${L_usecolor:+${L_CYAN}}Traceback from pid $BASHPID (most recent call last):${L_usecolor:+${L_RESET}}"
 	offset=${1:-0}
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
 		l=${BASH_LINENO[i - 1]}
-		f=${FUNCNAME[i]}
-		echo "  File $(printf "%q" "$s"), line $l, in $f"
-		if tmp=$(awk -v "L=$l" -v M=2 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "$s" 2>/dev/null) &&
-				[[ -n "$tmp" ]]; then
-			echo "$tmp"
+		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
+			"${L_usecolor:+${L_CYAN}}" "$s" "${L_usecolor:+${L_RESET}}" \
+			"${L_usecolor:+${L_BLUE}${L_BOLD}}" "$l" "${L_usecolor:+${L_RESET}}" \
+			"${FUNCNAME[i]}"
+
+		if
+			tmp=$(awk \
+				-v line="$l" \
+				-v around=2 \
+				-v RESET="${L_usecolor:+${L_RESET}}" \
+				-v RED="${L_usecolor:+${L_RED}}" \
+				-v COLORLINE="${L_usecolor:+${L_BLUE}${L_BOLD}}" \
+				'NR > line - around && NR < line + around {
+					printf "%s%-5d%s%3s%s%s%s\n", \
+						COLORLINE, NR, RESET, \
+						(NR == line ? ">> " : ""), \
+						(NR == line ? RED : ""), \
+						$0, \
+						(NR == line ? RESET : "")
+				}' "$s" 2>/dev/null) &&
+				[[ -n "$tmp" ]]
+		then
+			printf "%s\n" "$tmp"
 		fi
 	done
 	L_crit "Command returned with non-zero exit status: ${1:-0}"
@@ -1381,7 +1404,7 @@ L_argparse() {
 }
 
 _L_argparse_in() {
-	# functions 
+	# functions
 	_L_argparse_argnext() {
 		var="arg$(( argnext = ${argnext:-0} + 1 , argnext - 1 ))"
 		L_map_init "$var"
@@ -1432,7 +1455,7 @@ Usage: L_argparse [ArgumentParser_option=value]... -- \\
 
 This is a handy bash argument parser to mimic python argparse library. It
 parses the it's arguments, then calls getopt(1) with prepared arguments, then
-set's variables with proper names as given from options. 
+set's variables with proper names as given from options.
 It is a bash function and by default the function will exits the program on
 error. Use exit_on_error=0 to disable that behavior.
 
@@ -1627,7 +1650,7 @@ EOF
 				_L_argparse_fatal "invalid option value has a whitespace in it: ${1}"
 				;;
 			--*)
-				v="${1#--}"; 
+				v="${1#--}";
 				L_map_append "$var" lopts "$v "
 				L_map_set "$var" isopt 1
 				;;
@@ -1991,7 +2014,7 @@ EOF
 					for a_v in "${tmp[@]}"; do
 						_L_argparse_handle_type "$a_v"
 						value+=("$a_v")
-					done				
+					done
 				fi
 			fi
 			;;
@@ -2150,7 +2173,7 @@ _L_argparse_test() {
 	L_unittest_checkexit 10 L_argparse exit_on_error=0 prog=$uuid -- -f --file -- -- --help >/dev/null
 	L_unittest_checkexit 10 L_argparse exit_on_error=0 prog=$uuid -- -f --file -- -- -h >/dev/null
 	L_unittest_pipes <(L_argparse prog=$uuid -- -f --file -- -- --help 2>&1 | grep -ow "$uuid") <(echo "$uuid")
-	
+
 	L_unittest_checkexit 0 L_argparse alternative=1 -- -f --file -- -- -file arg1
 	L_unittest_vareq file arg1
 	unset file
@@ -2158,7 +2181,7 @@ _L_argparse_test() {
 	L_unittest_checkexit 0 L_argparse exitatfirst=1 -- -f -- dest=arg1 nargs=+ -- -- -f farg arg1 -f
 	L_unittest_vareq f farg
 	unset f
-	L_unittest_vareq arg1[0] arg1 
+	L_unittest_vareq arg1[0] arg1
 	L_unittest_vareq arg1[1] -f
 	unset arg1
 
@@ -2341,7 +2364,7 @@ _L_lib_lib_unittests_run() {
 				"$test"
 			done
 		done >/dev/null 2>/dev/null
-	fi	
+	fi
 	exit "${_L_unittest_result:-5}"
 }
 
