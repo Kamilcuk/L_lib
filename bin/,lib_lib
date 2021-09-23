@@ -544,6 +544,7 @@ L_print_traceback2() {
 			"${L_usecolor:+${L_BLUE}${L_BOLD}}" "$l" "${L_usecolor:+${L_RESET}}" \
 			"${FUNCNAME[i]}"
 
+		# shellcheck disable=1004
 		if
 			tmp=$(awk \
 				-v line="$l" \
@@ -1010,6 +1011,7 @@ _L_map_test() {
 	L_map_load var s_
 	L_unittest_vareq s_a 3
 	L_unittest_vareq s_b 2
+	# shellcheck disable=2016
 	L_unittest_assert '[[ "$s_allchars" == "$_L_allchars" ]]'
 }
 
@@ -1403,6 +1405,7 @@ L_argparse() {
 	fi
 }
 
+# shellcheck disable=2154,2128,2178
 _L_argparse_in() {
 	# functions
 	_L_argparse_argnext() {
@@ -1788,7 +1791,7 @@ EOF
 		value=0
 	}
 	_L_argparse_cb_action_call_store_count() {
-		printf -v value "$(($1 + 1))"
+		printf -v value "%d" "$(($1 + 1))"
 	}
 	_L_argparse_cb_action_init_extern() {
 		value=()
@@ -2285,6 +2288,7 @@ EOF
 }
 
 _L_lib_lib_show_best_match() {
+	local tmp
 	if tmp=$(
 		_L_lib_lib_list_prefix_functions |
 		if L_hash fzf; then
