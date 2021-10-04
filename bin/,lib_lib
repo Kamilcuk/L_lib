@@ -287,6 +287,7 @@ L_log_open_logger() {
 	'
 }
 L_log_open_stdout
+
 # shellcheck disable=SC2140
 L_logl() {
 	if L_logmask_is_allowed "$1"; then
@@ -316,6 +317,36 @@ L_debug() { L_logl "L_LOG_DEBUG" "$@"; }
 L_panic() { L_logl "L_LOG_PANIC" "$@"; }
 L_error() { L_logl "L_LOG_ERR" "$@"; }
 L_warn() { L_logl "L_LOG_WARNING" "$@"; }
+
+# log extended.
+# Speciall logging iwth additinal attributes from input
+# Usage examples:
+#   L_loge "Normal info message"
+#   L_loge cyan warn "Message to warn about in cyan"
+L_loge() {
+	local lvl color
+	while (($# > 1)); do
+		case "${1,,}" in
+		(cyan)  color="${L_usecolor:+$L_CYAN}";  ;;
+		(green) color="${L_usecolor:+$L_GREEN}"; ;;
+		(red)   color="${L_usecolor:+$L_RED}";   ;;
+		(*emerg)   lvl=L_LOG_EMERG;   ;;
+		(*alert)   lvl=L_LOG_ALERT;   ;;
+		(*crit)    lvl=L_LOG_CRIT;    ;;
+		(*error)   lvl=L_LOG_ERR;     ;;
+		(*err)     lvl=L_LOG_ERR;     ;;
+		(*warning) lvl=L_LOG_WARNING; ;;
+		(*warn)    lvl=L_LOG_WARNING; ;;
+		(*notice)  lvl=L_LOG_NOTICE;  ;;
+		(*info)    lvl=L_LOG_INFO;    ;;
+		(*debug)   lvl=L_LOG_DEBUG;   ;;
+		(*panic)   lvl=L_LOG_PANIC;   ;;
+		(*) break;
+		esac
+		shift
+	done
+	L_logl "${lvl:-L_LOG_INFO}" "${color:-}$*${color:+$L_RESET}"
+}
 
 # shellcheck disable=SC2016
 _L_loglibrary_test() {
