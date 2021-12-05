@@ -441,9 +441,11 @@ L_logrun() {
 
 L_is_false() {
 	case "$1" in
-	(0+(0)) return 0; ;;
+	(0*(0)) return 0; ;;
 	([fF]) return 0; ;;
 	([fF][aA][lL][sS][eE]) return 0; ;;
+	([nN]) return 0; ;;
+	([nN][oO]) return 0; ;;
 	esac
 	return 1
 }
@@ -454,6 +456,8 @@ L_is_true() {
 	([0-9]*([0-9])) return 0; ;;
 	([tT]) return 0; ;;
 	([tT][rR][uU][eE]) return 0; ;;
+	([yY]) return 0; ;;
+	([yY][eE][sS]) return 0; ;;
 	esac
 	return 1
 }
@@ -472,7 +476,9 @@ L_run_log() {
 		L_fatal "Could not log from L_run_log"
 	fi
 	shift
-	"$@"
+	if ! L_is_true "${L_dryrun:-}"; then
+		"$@"
+	fi
 }
 L_run() {
 	L_run_log L_LOG_INFO "$@"
