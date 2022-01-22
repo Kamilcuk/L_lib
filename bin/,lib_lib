@@ -8,7 +8,7 @@
 
 # shellcheck disable=SC2034
 
-# Library start {{{
+# Library start [[[
 
 shopt -s extglob
 
@@ -17,8 +17,8 @@ if [[ -z "${L_LIB_LIB_SOURCED:-}" ]]; then
 L_LIB_LIB_SOURCED=true
 readonly L_LIB_LIB_SOURCED
 
-# }}}
-# Globals {{{
+# ]]]
+# Globals [[[
 
 L_name=${0##*/}
 L_dir=${0%/*}
@@ -26,8 +26,8 @@ L_NAME="$L_name"
 L_DIR="$L_dir"
 readonly L_NAME L_DIR
 
-# }}}
-# Colors {{{
+# ]]]
+# Colors [[[
 
 L_BOLD=$'\E[1m'
 L_BRIGHT=$'\E[1m'
@@ -152,8 +152,8 @@ if [[ -t 1 ]]; then
 	L_usecolor=yes
 fi
 
-# }}}
-# Loglevel library {{{
+# ]]]
+# Loglevel library [[[
 
 L_LOG_EMERG=0
 L_LOG_ALERT=1
@@ -402,8 +402,17 @@ _L_loglibrary_test() {
 	)
 }
 
-# }}}
-# Additional functions {{{
+# ]]]
+# Additional functions [[[
+
+# Move cursor $1 lines above, output second argument, then move cursor $1 lines down.
+L_print_on_line_above() {
+	if ((!$1)); then
+		printf "\r\33[2K%s" "${*:2}"
+	else
+		printf "\33[%dA\r\33[2K%s\33[%dB\r" "$1" "${*:2}" "$1"
+	fi
+}
 
 # Output a string with the same quotating style as does bash in set -x
 L_set_x_quote() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
@@ -687,8 +696,8 @@ L_str_is_print() {
 	grep -Fq '[[:print:]]' <<<"$*"
 }
 
-# }}}
-# L_unittest {{{
+# ]]]
+# L_unittest [[[
 
 _L_unittest_internal() {
 	local _L_tmp=0 _L_invert=0
@@ -772,8 +781,8 @@ L_unittest_eq() {
 	fi
 }
 
-# }}}
-# trapchain library{{{
+# ]]]
+# trapchain library[[[
 
 # printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
 _L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
@@ -867,8 +876,8 @@ L_raise() {
 	kill -s "$1" "$BASHPID"
 }
 
-# }}}
-# Map {{{
+# ]]]
+# Map [[[
 # L_map consist of an empty initial newline.
 # Then follows map name, follows a spce, and then printf %q of the value.
 #
@@ -1052,8 +1061,8 @@ _L_map_test() {
 	L_unittest_assert '[[ "$s_allchars" == "$_L_allchars" ]]'
 }
 
-# }}}
-# L_argparsepy {{{
+# ]]]
+# L_argparsepy [[[
 
 # see 'def usage()' below
 L_argparsepy() {
@@ -1397,8 +1406,8 @@ _L_argparsepy_test() {
 	L_unittest_evalcheckexit 1 'L_isset PREFIX_gfile'
 }
 
-# }}}
-# L_argparse {{{
+# ]]]
+# L_argparse [[[
 
 L_argparse() {
 	# Arguments from pythona argparse.ArgumentParser() function
@@ -2253,8 +2262,8 @@ _L_argparse_test() {
 	L_unittest_vareq pos2 c
 }
 
-# }}}
-# lib_lib functions {{{
+# ]]]
+# lib_lib functions [[[
 
 _L_lib_name=${BASH_SOURCE##*/}
 
@@ -2452,11 +2461,11 @@ Licensed jointly under Beerware License and MIT License.
 EOF
 }
 
-# }}}
-# Library end {{{
+# ]]]
+# Library end [[[
 fi
-# }}}
-# lib_lib main {{{
+# ]]]
+# lib_lib main [[[
 
 # Easier to use library - drop L_ prefix on some functions if -L argument is passed
 _L_lib_lib_args=$(getopt -n "$L_NAME:$_L_lib_name" -o +Llqha -l help,test::,bash-completion-gen-symlinks -- "$@") || return 1
@@ -2559,7 +2568,7 @@ if ! L_function_exists "$L_prefix$L_CMD"; then
 fi
 "$L_prefix$L_CMD" "$@"
 
-# }}}
+# ]]]
 
-# vim: foldmethod=marker
+# vim: foldmethod=marker foldmarker=[[[,]]]
 
