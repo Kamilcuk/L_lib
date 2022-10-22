@@ -126,7 +126,7 @@ L_B_WHITE=$'\E[107m'
 
 # It resets color and font.
 L_COLORRESET=$'\E[m'
-L_RESET=$'\E(B\E[m'
+L_RESET=$'\E[m'
 
 L_ansi_up() { printf '\E[%dA' "$@"; }
 L_ansi_down() { printf '\E[%dB' "$@"; }
