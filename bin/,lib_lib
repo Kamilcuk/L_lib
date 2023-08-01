@@ -876,6 +876,38 @@ L_raise() {
 	kill -s "$1" "$BASHPID"
 }
 
+if hash ,nice 2>/dev/null; then
+	L_nicecmd=(",nice")
+else
+	L_nicecmd=(nice -n 20 ionice -c 3)
+fi
+
+L_sudo_args_get() {
+	declare -n ret=$1
+	ret=()
+	local envs
+	envs=
+	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
+		if [[ -n "${!i:-}" ]]; then
+			envs="${envs:---preserve-env=}${envs:+,}$i"
+		fi
+	done
+	if ((${#envs})); then
+		ret=("$envs")
+	fi
+}
+
+L_sudo() {
+	local sudo
+	sudo=()
+	if ((UID != 0)) && hash sudo 2>/dev/null; then
+		local sudo_args
+		L_sudo_args_get sudo_args
+		sudo=(sudo -n "${sudo_args[@]}")
+	fi
+	L_run "${sudo[@]}" "$@"
+}
+
 # ]]]
 # Map [[[
 # L_map consist of an empty initial newline.
