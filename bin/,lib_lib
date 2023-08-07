@@ -479,15 +479,12 @@ L_run_log() {
 	local _L_tmp
 	_L_tmp="$1" # loglevel
 	shift
+	local log="+"
 	if L_is_true "${L_dryrun:-}"; then
-		set -- "DRYRUN: +" "$@"
-	else
-		set -- "+" "$@"
+		log="DRYRUN: +"
 	fi
-	if ! L_logl "$_L_tmp" "$*"; then
-		L_fatal "Could not log from L_run_log"
-	fi
-	shift
+	log="$log$(printf " %q" "$@")"
+	L_logl "$_L_tmp" "$log"
 	if ! L_is_true "${L_dryrun:-}"; then
 		"$@"
 	fi
