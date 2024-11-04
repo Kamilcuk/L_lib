@@ -29,104 +29,120 @@ readonly L_NAME L_DIR
 # ]]]
 # Colors [[[
 
-L_BOLD=$'\E[1m'
-L_BRIGHT=$'\E[1m'
-L_DIM=$'\E[2m'
-L_FAINT=$'\E[2m'
-L_STANDOUT=$'\E[3m'
-L_UNDERLINE=$'\E[4m'
-L_BLINK=$'\E[5m'
-L_REVERSE=$'\E[7m'
-L_CONCEAL=$'\E[8m'
-L_HIDDEN=$'\E[8m'
-L_CROSSEDOUT=$'\E[9m'
+{
+	readonly L_COLOR_BOLD=$'\E[1m'
+	readonly L_COLOR_BRIGHT=$'\E[1m'
+	readonly L_COLOR_DIM=$'\E[2m'
+	readonly L_COLOR_FAINT=$'\E[2m'
+	readonly L_COLOR_STANDOUT=$'\E[3m'
+	readonly L_COLOR_UNDERLINE=$'\E[4m'
+	readonly L_COLOR_BLINK=$'\E[5m'
+	readonly L_COLOR_REVERSE=$'\E[7m'
+	readonly L_COLOR_CONCEAL=$'\E[8m'
+	readonly L_COLOR_HIDDEN=$'\E[8m'
+	readonly L_COLOR_CROSSEDOUT=$'\E[9m'
 
-L_FONT0=$'\E[10m'
-L_FONT1=$'\E[11m'
-L_FONT2=$'\E[12m'
-L_FONT3=$'\E[13m'
-L_FONT4=$'\E[14m'
-L_FONT5=$'\E[15m'
-L_FONT6=$'\E[16m'
-L_FONT7=$'\E[17m'
-L_FONT8=$'\E[18m'
-L_FONT9=$'\E[19m'
+	readonly L_COLOR_FONT0=$'\E[10m'
+	readonly L_COLOR_FONT1=$'\E[11m'
+	readonly L_COLOR_FONT2=$'\E[12m'
+	readonly L_COLOR_FONT3=$'\E[13m'
+	readonly L_COLOR_FONT4=$'\E[14m'
+	readonly L_COLOR_FONT5=$'\E[15m'
+	readonly L_COLOR_FONT6=$'\E[16m'
+	readonly L_COLOR_FONT7=$'\E[17m'
+	readonly L_COLOR_FONT8=$'\E[18m'
+	readonly L_COLOR_FONT9=$'\E[19m'
 
-L_FRAKTUR=$'\E[20m'
-L_DOUBLE_UNDERLINE=$'\E[21m'
-L_NODIM=$'\E[22m'
-L_NOSTANDOUT=$'\E[23m'
-L_NOUNDERLINE=$'\E[24m'
-L_NOBLINK=$'\E[25m'
-L_NOREVERSE=$'\E[27m'
-L_NOHIDDEN=$'\E[28m'
-L_REVEAL=$'\E[28m'
-L_NOCROSSEDOUT=$'\E[29m'
+	readonly L_COLOR_FRAKTUR=$'\E[20m'
+	readonly L_COLOR_DOUBLE_UNDERLINE=$'\E[21m'
+	readonly L_COLOR_NODIM=$'\E[22m'
+	readonly L_COLOR_NOSTANDOUT=$'\E[23m'
+	readonly L_COLOR_NOUNDERLINE=$'\E[24m'
+	readonly L_COLOR_NOBLINK=$'\E[25m'
+	readonly L_COLOR_NOREVERSE=$'\E[27m'
+	readonly L_COLOR_NOHIDDEN=$'\E[28m'
+	readonly L_COLOR_REVEAL=$'\E[28m'
+	readonly L_COLOR_NOCROSSEDOUT=$'\E[29m'
 
-L_BLACK=$'\E[30m'
-L_RED=$'\E[31m'
-L_GREEN=$'\E[32m'
-L_YELLOW=$'\E[33m'
-L_BLUE=$'\E[34m'
-L_MAGENTA=$'\E[35m'
-L_CYAN=$'\E[36m'
-L_LIGHT_GRAY=$'\E[37m'
-L_DEFAULT=$'\E[39m'
-L_FOREGROUND_DEFAULT=$'\E[39m'
+	readonly L_COLOR_BLACK=$'\E[30m'
+	readonly L_COLOR_RED=$'\E[31m'
+	readonly L_COLOR_GREEN=$'\E[32m'
+	readonly L_COLOR_YELLOW=$'\E[33m'
+	readonly L_COLOR_BLUE=$'\E[34m'
+	readonly L_COLOR_MAGENTA=$'\E[35m'
+	readonly L_COLOR_CYAN=$'\E[36m'
+	readonly L_COLOR_LIGHT_GRAY=$'\E[37m'
+	readonly L_COLOR_DEFAULT=$'\E[39m'
+	readonly L_COLOR_FOREGROUND_DEFAULT=$'\E[39m'
 
-L_BACKGROUND_BLUE=$'\E[44m'
-L_BACKGROUND_CYAN=$'\E[46m'
-L_BACKGROUND_DEFAULT=$'\E[49m'
-L_BACKGROUND_GREEN=$'\E[42m'
-L_BACKGROUND_LIGHT_GRAY=$'\E[47m'
-L_BACKGROUND_MAGENTA=$'\E[45m'
-L_BACKGROUND_YELLOW=$'\E[43m'
-L_B_BLACK=$'\E[40m'
-L_B_BLUE=$'\E[44m'
-L_B_CYAN=$'\E[46m'
-L_B_GREEN=$'\E[42m'
-L_B_LIGHT_GRAY=$'\E[47m'
-L_B_MAGENTA=$'\E[45m'
-L_B_RED=$'\E[41m'
-L_B_YELLOW=$'\E[43m'
+	readonly L_COLOR_BG_BLACK=$'\E[40m'
+	readonly L_COLOR_BG_BLUE=$'\E[44m'
+	readonly L_COLOR_BG_CYAN=$'\E[46m'
+	readonly L_COLOR_BG_GREEN=$'\E[42m'
+	readonly L_COLOR_BG_LIGHT_GRAY=$'\E[47m'
+	readonly L_COLOR_BG_MAGENTA=$'\E[45m'
+	readonly L_COLOR_BG_RED=$'\E[41m'
+	readonly L_COLOR_BG_YELLOW=$'\E[43m'
 
-L_FRAMED=$'\E[51m'
-L_ENCIRCLED=$'\E[52m'
-L_OVERLINED=$'\E[53m'
-L_NOENCIRCLED=$'\E[54m'
-L_NOFRAMED=$'\E[54m'
-L_NOOVERLINED=$'\E[55m'
+	readonly L_COLOR_FRAMED=$'\E[51m'
+	readonly L_COLOR_ENCIRCLED=$'\E[52m'
+	readonly L_COLOR_OVERLINED=$'\E[53m'
+	readonly L_COLOR_NOENCIRCLED=$'\E[54m'
+	readonly L_COLOR_NOFRAMED=$'\E[54m'
+	readonly L_COLOR_NOOVERLINED=$'\E[55m'
 
-L_DARK_GRAY=$'\E[90m'
-L_LIGHT_RED=$'\E[91m'
-L_LIGHT_GREEN=$'\E[92m'
-L_LIGHT_YELLOW=$'\E[93m'
-L_LIGHT_BLUE=$'\E[94m'
-L_LIGHT_MAGENTA=$'\E[95m'
-L_LIGHT_CYAN=$'\E[96m'
-L_WHITE=$'\E[97m'
+	readonly L_COLOR_DARK_GRAY=$'\E[90m'
+	readonly L_COLOR_LIGHT_RED=$'\E[91m'
+	readonly L_COLOR_LIGHT_GREEN=$'\E[92m'
+	readonly L_COLOR_LIGHT_YELLOW=$'\E[93m'
+	readonly L_COLOR_LIGHT_BLUE=$'\E[94m'
+	readonly L_COLOR_LIGHT_MAGENTA=$'\E[95m'
+	readonly L_COLOR_LIGHT_CYAN=$'\E[96m'
+	readonly L_COLOR_WHITE=$'\E[97m'
 
-L_BACKGROUND_DARK_GRAY=$'\E[100m'
-L_BACKGROUND_LIGHT_BLUE=$'\E[104m'
-L_BACKGROUND_LIGHT_CYAN=$'\E[106m'
-L_BACKGROUND_LIGHT_GREEN=$'\E[102m'
-L_BACKGROUND_LIGHT_MAGENTA=$'\E[105m'
-L_BACKGROUND_LIGHT_RED=$'\E[101m'
-L_BACKGROUND_LIGHT_YELLOW=$'\E[103m'
-L_BACKGROUND_WHITE=$'\E[107m'
+	readonly L_COLOR_BG_DARK_GRAY=$'\E[100m'
+	readonly L_COLOR_BG_LIGHT_BLUE=$'\E[104m'
+	readonly L_COLOR_BG_LIGHT_CYAN=$'\E[106m'
+	readonly L_COLOR_BG_LIGHT_GREEN=$'\E[102m'
+	readonly L_COLOR_BG_LIGHT_MAGENTA=$'\E[105m'
+	readonly L_COLOR_BG_LIGHT_RED=$'\E[101m'
+	readonly L_COLOR_BG_LIGHT_YELLOW=$'\E[103m'
+	readonly L_COLOR_BG_WHITE=$'\E[107m'
 
-L_B_DARK_GRAY=$'\E[100m'
-L_B_LIGHT_BLUE=$'\E[104m'
-L_B_LIGHT_CYAN=$'\E[106m'
-L_B_LIGHT_GREEN=$'\E[102m'
-L_B_LIGHT_MAGENTA=$'\E[105m'
-L_B_LIGHT_RED=$'\E[101m'
-L_B_LIGHT_YELLOW=$'\E[103m'
-L_B_WHITE=$'\E[107m'
+	# It resets color and font.
+	readonly L_COLOR_COLORRESET=$'\E[m'
+	readonly L_COLOR_RESET=$'\E[m'
+}
 
-# It resets color and font.
-L_COLORRESET=$'\E[m'
-L_RESET=$'\E[m'
+# @description
+L_color_on() {
+	local i
+	for i in ${!L_COLOR_@}; do
+		eval "${i//COLOR_/}=\$$i"
+	done
+}
+
+# @description
+L_color_off() {
+	local i
+	for i in ${!L_COLOR_@}; do
+		eval "${i//COLOR_/}="
+	done
+}
+
+# @description
+L_setcolor() {
+	if [[ ! -v NO_COLOR && "${TERM:-dumb}" != "dumb" && -t 1 ]]; then
+		L_color_on
+	else
+		L_color_off
+	fi
+}
+
+L_setcolor
+
+# ]]]
+# Ansi [[[
 
 L_ansi_up() { printf '\E[%dA' "$@"; }
 L_ansi_down() { printf '\E[%dB' "$@"; }
@@ -136,345 +152,235 @@ L_ansi_next_line() { printf '\E[%dE' "$@"; }
 L_ansi_prev_line() { printf '\E[%dF' "$@"; }
 L_ansi_set_column() { printf '\E[%dG' "$@"; }
 L_ansi_set_position() { printf '\E[%d;%dH' "$@"; }
-L_ansi_clear_screen_until_end() { printf '\E[0J'; }
-L_ansi_clear_screen_until_beginning() { printf '\E[1J'; }
-L_ansi_clear_screen() { printf '\E[2J'; }
-L_ansi_clear_line_until_end() { printf '\E[0K'; }
-L_ansi_clear_line_until_beginning() { printf '\E[1K'; }
-L_ansi_clear_line() { printf '\E[2K'; }
-L_ansi_save_position() { printf '\E7'; }
-L_ansi_restore_position() { printf '\E8'; }
+L_ansi_set_title() { printf '\E]0;%s' "$*"; }
+readonly L_ANSI_CLEAR_SCREEN_UNTIL_END=$'\E[0J'
+readonly L_ANSI_CLEAR_SCREEN_UNTIL_BEGINNING=$'\E[1J'
+readonly L_ANSI_CLEAR_SCREEN=$'\E[2J'
+readonly L_ANSI_CLEAR_LINE_UNTIL_END=$'\E[0K'
+readonly L_ANSI_CLEAR_LINE_UNTIL_BEGINNING=$'\E[1K'
+readonly L_ANSI_CLEAR_LINE=$'\E[2K'
+readonly L_ANSI_SAVE_POSITION=$'\E7'
+readonly L_ANSI_RESTORE_POSITION=$'\E8'
 
-# L_usecolor variable
-# For example use: echo "${L_usecolor:+$L_RED}someoutput${L_usecolor:+$L_COLORRESET}"
-L_usecolor=
-if [[ -t 1 ]]; then
-	L_usecolor=yes
-fi
+# @description Move cursor $1 lines above, output second argument, then move cursor $1 lines down.
+L_ansi_print_on_line_above() {
+	if ((!$1)); then
+		printf "\r\E[2K%s" "${*:2}"
+	else
+		printf "\E[%dA\r\E[2K%s\E[%dB\r" "$1" "${*:2}" "$1"
+	fi
+}
 
 # ]]]
 # Loglevel library [[[
 
-L_LOG_EMERG=0
-L_LOG_ALERT=1
-L_LOG_CRIT=2
-L_LOG_ERR=3
-L_LOG_WARNING=4
-L_LOG_NOTICE=5
-L_LOG_INFO=6
-L_LOG_DEBUG=7
-L_LOG_PRIMASK=7
-L_LOG_PRIORITY_NAMES=(
-	[L_LOG_EMERG]="emerg"
-	[L_LOG_ALERT]="alert"
-	[L_LOG_CRIT]="crit"
-	[L_LOG_ERR]="err"
-	[L_LOG_WARNING]="warning"
-	[L_LOG_NOTICE]="notice"
-	[L_LOG_INFO]="info"
-	[L_LOG_DEBUG]="debug"
+readonly L_LOGLEVEL_CRITICAL=60
+readonly L_LOGLEVEL_ERROR=50
+readonly L_LOGLEVEL_WARNING=40
+readonly L_LOGLEVEL_NOTICE=30
+readonly L_LOGLEVEL_INFO=20
+readonly L_LOGLEVEL_DEBUG=10
+
+declare -a L_LOGLEVEL_NAMES=(
+	[L_LOGLEVEL_CRITICAL]="critical"
+	[L_LOGLEVEL_ERROR]="error"
+	[L_LOGLEVEL_WARNING]="warning"
+	[L_LOGLEVEL_NOTICE]="notice"
+	[L_LOGLEVEL_INFO]="info"
+	[L_LOGLEVEL_DEBUG]="debug"
 )
-L_LOG_COLORS=(
-	[L_LOG_EMERG]="${L_BOLD}${L_RED}"
-	[L_LOG_ALERT]="${L_BOLD}${L_RED}"
-	[L_LOG_CRIT]="${L_BOLD}${L_RED}"
-	[L_LOG_ERR]="${L_BOLD}${L_RED}"
-	[L_LOG_WARNING]="${L_BOLD}${L_YELLOW}"
-	[L_LOG_NOTICE]="${L_BOLD}${L_CYAN}"
-	[L_LOG_INFO]=""
-	[L_LOG_DEBUG]=""
+declare -a L_LOGLEVEL_COLORS=(
+	[L_LOGLEVEL_CRITICAL]="${L_BOLD}${L_RED}"
+	[L_LOGLEVEL_ERROR]="${L_BOLD}${L_RED}"
+	[L_LOGLEVEL_WARNING]="${L_BOLD}${L_YELLOW}"
+	[L_LOGLEVEL_NOTICE]="${L_BOLD}${L_CYAN}"
+	[L_LOGLEVEL_INFO]="${L_BOLD}"
+	[L_LOGLEVEL_DEBUG]="${L_LIGHT_GRAY}"
 )
 
-# facility codes
-L_LOG_KERN=0         # kernel messages
-L_LOG_USER=8         # random user-level messages
-L_LOG_MAIL=16        # mail system
-L_LOG_DAEMON=24      # system daemons
-L_LOG_AUTH=32        # security/authorization messages
-L_LOG_SYSLOG=40      # messages generated internally by syslogd
-L_LOG_LPR=48         # line printer subsystem
-L_LOG_NEWS=56        # network news subsystem
-L_LOG_UUCP=64        # UUCP subsystem
-L_LOG_CRON=72        # clock daemon
-L_LOG_AUTHPRIV=80    # security/authorization messages (private)
-L_LOG_FTP=88         # ftp daemon
+L_log_level=$L_LOGLEVEL_INFO
 
-# other codes through 15 reserved for system use
-L_LOG_LOCAL0=128    # reserved for local use
-L_LOG_LOCAL1=136    # reserved for local use
-L_LOG_LOCAL2=144    # reserved for local use
-L_LOG_LOCAL3=152    # reserved for local use
-L_LOG_LOCAL4=160    # reserved for local use
-L_LOG_LOCAL5=168    # reserved for local use
-L_LOG_LOCAL6=176    # reserved for local use
-L_LOG_LOCAL7=184    # reserved for local use
+L_logrecord_stacklevel=1
+L_logrecord_loglevel=0
+L_logrecord_line=""
 
-# Additional log levels - max is 63
-L_LOG_EMERG1=8
-L_LOG_ALERT1=9
-L_LOG_CRIT1=10
-L_LOG_ERR1=11
-L_LOG_WARNING1=12
-L_LOG_NOTICE1=13
-L_LOG_INFO1=14
-L_LOG_DEBUG1=15
-#
-L_LOG_EMERG2=16
-L_LOG_ALERT2=17
-L_LOG_CRIT2=18
-L_LOG_ERR2=19
-L_LOG_WARNING2=20
-L_LOG_NOTICE2=21
-L_LOG_INFO2=22
-L_LOG_DEBUG2=23
-#
-L_LOG_EMERG3=32
-L_LOG_ALERT3=33
-L_LOG_CRIT3=34
-L_LOG_ERR3=35
-L_LOG_WARNING3=36
-L_LOG_NOTICE3=37
-L_LOG_INFO3=38
-L_LOG_DEBUG3=39
-#
-L_LOG_EMERG5=40
-L_LOG_ALERT5=41
-L_LOG_CRIT5=42
-L_LOG_ERR5=43
-L_LOG_WARNING5=44
-L_LOG_NOTICE5=45
-L_LOG_INFO5=46
-L_LOG_DEBUG5=47
-#
-L_LOG_EMERG4=48
-L_LOG_ALERT4=49
-L_LOG_CRIT4=50
-L_LOG_ERR4=51
-L_LOG_WARNING4=52
-L_LOG_NOTICE4=53
-L_LOG_INFO4=54
-L_LOG_DEBUG4=55
-#
-L_LOG_EMERG5=56
-L_LOG_ALERT5=57
-L_LOG_CRIT5=58
-L_LOG_ERR5=59
-L_LOG_WARNING5=60
-L_LOG_NOTICE5=61
-L_LOG_INFO5=62
-L_LOG_DEBUG5=63
-
-# Logging mask - what is allowed, what is not.
-L_logmask=127
-L_logmask_is_allowed() {   ((    L_logmask & (1 << ($1) )   )); }
-L_logmask_is_blocked() {   (( !( L_logmask & (1 << ($1) ) ) )); }
-L_logmask_allow() {        (( L_logmask |= (   1 << ($1)   ) , 1)); }
-L_logmask_block() {        (( L_logmask &= ( ~(1 << ($1) ) ) , 1)); }
-L_logmask_allow_all() { L_logmask=-1; }
-L_log_set_level() {        (( L_logmask =  (1 << ( ($1) + 1)) - 1  , 1)); }
-
-L_logname=
-L_log_open_stdout() {
-	L_logl_backend() {
-		printf "%s\n" "${L_logname:-$L_name}: ${*:2}" >&2
-	}
+# @arg $1 str variable name
+# @arg $2 str loglevel
+L_log_level_str_to_int() {
+	local i
+	if [[ ! "$2" == [0-9]* ]]; then
+		for i in "${!L_LOGLEVEL_@}"; do
+			if [[ "${2^^}" == "$i" || "${2^^}" == "${i//L_LOGLEVEL_}" ]]; then
+				printf -v "$1" "%s" "${!i}"
+				return
+			fi
+		done
+	fi
+	printf -v "$1" "%d" "$2"
 }
-L_log_open_logger() {
-	eval '
-	L_logl_backend() {
-		logger '"${1:--s}"' -e -t "${L_logname:-$L_name}" -p "$(('"${2:-L_LOG_LOCAL7}"' | ($1) & L_LOG_PRIMASK))" "${*:2}"
-	}
-	'
+
+L_log_setLevel() {
+	L_log_level=$1
 }
-L_log_open_stdout
+
+L_log_is_enabled_for() {
+	L_log_level_str_to_int L_logrecord_loglevel "$1"
+	# echo "$L_logrecord_loglevel $L_log_level"
+	((L_log_level <= L_logrecord_loglevel))
+}
+
+L_log_format() {
+	L_log_format_default "$@"
+}
+
+L_log_format_default() {
+	printf -v L_logrecord_line "%s%s:%s:%d:%s%s" \
+		"${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}" \
+		"${L_NAME}" \
+		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
+		"${BASH_LINENO[L_logrecord_stacklevel]}" \
+		"$*" \
+		"${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:+$L_COLORRESET}"
+}
+
+L_log_format_long() {
+	printf -v L_logrecord_line "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s %s""%s" \
+		"${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}" \
+		-1 \
+		"${L_NAME}" \
+		"${FUNCNAME[L_logrecord_stacklevel]}" \
+		"${BASH_LINENO[L_logrecord_stacklevel]}" \
+		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
+		"$*" \
+		"${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:+$L_COLORRESET}"
+}
+
+# Output formatted line
+L_log_output() {
+	L_log_output_to_stderr
+}
+
+L_log_output_to_stderr() {
+	printf "%s\n" "$L_logrecord_line" >&2
+}
+
+L_log_output_to_logger() {
+	logger \
+		--tag "$L_NAME" \
+		--priority "local3.${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-notice}" \
+		--skip-empty \
+		-- "$L_logrecord_line"
+}
 
 # shellcheck disable=SC2140
+# @arg $1 int loglevel
+# @arg $2 str logline
 L_logl() {
-	if L_logmask_is_allowed "$1"; then
-		set -- "$(($1 & L_LOG_PRIMASK))" "${*:2}"
-		L_logl_backend "$1" \
-"${L_usecolor:+${L_LOG_COLORS[$1]}}"\
-"${L_LOG_PRIORITY_NAMES[$1]:+${L_LOG_PRIORITY_NAMES[$1]}: }"\
-"$2"\
-"${L_usecolor:+${L_LOG_COLORS[$1]:+${L_COLORRESET}}}"
-	fi
-}
-
-L_log() {
-	if L_logmask_is_allowed "L_LOG_INFO"; then
-		L_logl_backend "$L_LOG_INFO" "$@"
-	fi
-}
-
-L_emerg() { L_logl "L_LOG_EMERG" "$@"; }
-L_alert() { L_logl "L_LOG_ALERT" "$@"; }
-L_crit() { L_logl "L_LOG_CRIT" "$@"; }
-L_err() { L_logl "L_LOG_ERR" "$@"; }
-L_warning() { L_logl "L_LOG_WARNING" "$@"; }
-L_notice() { L_logl "L_LOG_NOTICE" "$@"; }
-L_info() { L_logl "L_LOG_INFO" "$@"; }
-L_debug() { L_logl "L_LOG_DEBUG" "$@"; }
-L_panic() { L_logl "L_LOG_PANIC" "$@"; }
-L_error() { L_logl "L_LOG_ERR" "$@"; }
-L_warn() { L_logl "L_LOG_WARNING" "$@"; }
-
-# log extended.
-# Speciall logging iwth additinal attributes from input
-# Usage examples:
-#   L_loge "Normal info message"
-#   L_loge cyan warn "Message to warn about in cyan"
-L_loge() {
-	local lvl color
-	while (($# > 1)); do
-		case "${1,,}" in
-		(cyan)  color="${L_usecolor:+$L_CYAN}";  ;;
-		(green) color="${L_usecolor:+$L_GREEN}"; ;;
-		(red)   color="${L_usecolor:+$L_RED}";   ;;
-		(*emerg)   lvl=L_LOG_EMERG;   ;;
-		(*alert)   lvl=L_LOG_ALERT;   ;;
-		(*crit)    lvl=L_LOG_CRIT;    ;;
-		(*error)   lvl=L_LOG_ERR;     ;;
-		(*err)     lvl=L_LOG_ERR;     ;;
-		(*warning) lvl=L_LOG_WARNING; ;;
-		(*warn)    lvl=L_LOG_WARNING; ;;
-		(*notice)  lvl=L_LOG_NOTICE;  ;;
-		(*info)    lvl=L_LOG_INFO;    ;;
-		(*debug)   lvl=L_LOG_DEBUG;   ;;
-		(*panic)   lvl=L_LOG_PANIC;   ;;
-		(*) break;
-		esac
+	((++L_logrecord_stacklevel))
+	if L_log_is_enabled_for "$1"; then
 		shift
-	done
-	L_logl "${lvl:-L_LOG_INFO}" "${color:-}$*${color:+$L_RESET}"
+		L_log_format "$@"
+		L_log_output
+	fi
+	L_logrecord_stacklevel=1
 }
 
-# shellcheck disable=SC2016
-_L_loglibrary_test() {
-	(
-		set -euo pipefail
-		u=17070a0d-8ebf-465b-b630-281e89fd6df2
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_INFO
-		L_unittest_assert '! L_debug "$u" 2>&1 | grep -q "$u"'
-		L_unittest_assert 'L_info g "$u" 2>&1 | grep -q "$u"'
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_INFO
 
-		L_unittest_cmd '' L_logmask_block L_LOG_INFO
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_INFO
-		L_unittest_cmd '' ! L_logmask_is_allowed L_LOG_INFO
-
-		L_unittest_cmd '' L_logmask_allow L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_DEBUG
-		L_unittest_cmd '' ! L_logmask_is_blocked L_LOG_DEBUG
-
-		L_unittest_cmd '' L_logmask_block L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG
-
-		L_unittest_cmd '' L_log_set_level L_LOG_NOTICE
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_INFO
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_NOTICE
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_WARNING
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG2
-
-		L_unittest_cmd '' L_log_set_level L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_INFO
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_NOTICE
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_WARNING
-
-		L_unittest_cmd '' L_log_set_level L_LOG_CRIT
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_CRIT
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_INFO
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_NOTICE
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_WARNING
-
-		L_unittest_cmd '' L_log_set_level L_LOG_INFO
-		L_unittest_cmd '' L_logmask_allow L_LOG_DEBUG2
-		L_unittest_cmd '' L_logmask_allow L_LOG_DEBUG3
-		L_unittest_cmd '' L_logmask_is_blocked L_LOG_DEBUG1
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_DEBUG3
-		L_unittest_cmd '' L_logmask_is_allowed L_LOG_DEBUG2
-
-		L_unittest_cmd '' L_logmask_allow L_LOG_EMERG5
-	)
-}
+L_critical() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_CRITICAL" "$@"; }
+L_error() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_ERROR" "$@"; }
+L_warn() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_WARNING" "$@"; }
+L_warning() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_WARNING" "$@"; }
+L_notice() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_NOTICE" "$@"; }
+L_log() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_INFO" "$@"; }
+L_info() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_INFO" "$@"; }
+L_debug() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_DEBUG" "$@"; }
 
 # ]]]
 # Additional functions [[[
 
-# Move cursor $1 lines above, output second argument, then move cursor $1 lines down.
-L_print_on_line_above() {
-	if ((!$1)); then
-		printf "\r\33[2K%s" "${*:2}"
-	else
-		printf "\33[%dA\r\33[2K%s\33[%dB\r" "$1" "${*:2}" "$1"
-	fi
-}
+# @description Output a string with the same quotating style as does bash in set -x
+L_quote_setx() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
 
-# Output a string with the same quotating style as does bash in set -x
-L_set_x_quote() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
+# @description Output a critical message and exit the script.
+L_fatal() { L_critical "$*"; exit 2; }
 
-# Output a critical message and exit the script.
-L_fatal() { L_crit "$*"; exit 2; }
-
-# Eval the first argument - if it returns failure, then fatal.
+# @description Eval the first argument - if it returns failure, then fatal.
 L_assert() { if eval '!' "$1"; then L_print_traceback2; L_fatal "assertion $1 failed: ${*:2}"; fi }
 
-# Return success if function exists.
+# @description Return 0 if function exists.
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
+# @description Return 0 if function exists.
 L_fn_exists()       { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
+# @description Return 0 if command exists.
 L_command_exists() { command -v "$@" >/dev/null 2>&1; }
+# @description Return 0 if command exists.
 L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
 
+# @description like hash, but silenced output, to check if command exists.
 L_hash() { hash "$@" >/dev/null 2>&1; }
+# @description return true if sourced
 L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
+# @description return true if not sourced
+L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
 
-# shellcheck disable=SC2236
-L_isset()     { [[ ! -z "${var+x}" ]]; }
+# @description
+# @see L_var_is_set
+L_isset() { L_var_is_set "$@"; }
+# @description
+# @see L_var_is_set
+L_var_isset() { L_var_is_set "$@"; }
+# @description
+# @arg $1 variable nameref
+# @exitcode 0 if variable is set, nonzero otherwise
+L_var_is_set() {
+	declare -n _L_nameref_var_is_set
+	_L_nameref_var_is_set=$1
+	[[ -n ${_L_nameref_var_is_set+x} ]]
+}
 
-# shellcheck disable=SC2236
-L_var_isset() { [[ ! -z "${var+x}" ]]; }
-
+# @description
+# @arg $1 variable nameref
+# @exitcode 0 if variable is an array, nonzero otherwise
 L_var_is_array() {
 	[[ "$(declare -p "$1" 2> /dev/null)" == "declare -a"* ]]
 }
 
+# @description Return 0 if the string happend to be something like false.
+L_is_false() {
+	case "$1" in
+	0*(0)) return 0; ;;
+	[fF]) return 0; ;;
+	[fF][aA][lL][sS][eE]) return 0; ;;
+	[nN]) return 0; ;;
+	[nN][oO]) return 0; ;;
+	esac
+	return 1
+}
+
+# @description Return 0 if the string happend to be something like true.
+L_is_true() {
+	case "$1" in
+	0*(0)) return 1; ;;
+	[0-9]*([0-9])) return 0; ;;
+	[tT]) return 0; ;;
+	[tT][rR][uU][eE]) return 0; ;;
+	[yY]) return 0; ;;
+	[yY][eE][sS]) return 0; ;;
+	esac
+	return 1
+}
+
+# @descrpition log a command and then execute it
 L_logrun() {
 	L_log "+ $*"
 	"$@"
 }
 
-L_is_false() {
-	case "$1" in
-	(0*(0)) return 0; ;;
-	([fF]) return 0; ;;
-	([fF][aA][lL][sS][eE]) return 0; ;;
-	([nN]) return 0; ;;
-	([nN][oO]) return 0; ;;
-	esac
-	return 1
-}
-
-L_is_true() {
-	case "$1" in
-	(0*(0)) return 1; ;;
-	([0-9]*([0-9])) return 0; ;;
-	([tT]) return 0; ;;
-	([tT][rR][uU][eE]) return 0; ;;
-	([yY]) return 0; ;;
-	([yY][eE][sS]) return 0; ;;
-	esac
-	return 1
-}
-
 : "${L_dryrun:=0}"
 
-# Executes a command by printing it first with a + on stderr
-# Uses L_dryrun global variable
+# @description Executes a command by printing it first with a + on stderr
+# @env L_dryrun
 L_run_log() {
 	local _L_tmp
 	_L_tmp="$1" # loglevel
@@ -494,13 +400,15 @@ L_run() {
 	L_run_log L_LOG_INFO "$@"
 }
 
+# @description
 L_list_functions_with_prefix() {
 	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
 }
 
+# @description
 L_time_all() {
-	command time -f \
-"	Elapsed real time (in [hours:]minutes:seconds):	%E
+	command time -f "\
+	Elapsed real time (in [hours:]minutes:seconds):	%E
 	Elapsed real time (in seconds):	%e
 	Total number of CPU-seconds that the process spent in kernel mode:	%S
 	Total number of CPU-seconds that the process spent in user mode:	%U
@@ -580,15 +488,16 @@ L_trap_err_failure() {
 
 L_print_traceback2() {
 	local i s l tmp offset
+	L_setcolor
 	echo
-	echo "${L_usecolor:+${L_CYAN}}Traceback from pid $BASHPID (most recent call last):${L_usecolor:+${L_RESET}}"
+	echo "${L_CYAN}Traceback from pid $BASHPID (most recent call last):${L_RESET}"
 	offset=${1:-0}
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
 		l=${BASH_LINENO[i - 1]}
 		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
-			"${L_usecolor:+${L_CYAN}}" "$s" "${L_usecolor:+${L_RESET}}" \
-			"${L_usecolor:+${L_BLUE}${L_BOLD}}" "$l" "${L_usecolor:+${L_RESET}}" \
+			"${L_CYAN}" "$s" "${L_RESET}" \
+			"${L_BLUE}${L_BOLD}" "$l" "${L_RESET}" \
 			"${FUNCNAME[i]}"
 
 		# shellcheck disable=1004
@@ -596,9 +505,9 @@ L_print_traceback2() {
 			tmp=$(awk \
 				-v line="$l" \
 				-v around=2 \
-				-v RESET="${L_usecolor:+${L_RESET}}" \
-				-v RED="${L_usecolor:+${L_RED}}" \
-				-v COLORLINE="${L_usecolor:+${L_BLUE}${L_BOLD}}" \
+				-v RESET="${L_RESET}" \
+				-v RED="${L_RED}" \
+				-v COLORLINE="${L_BLUE}${L_BOLD}" \
 				'NR > line - around && NR < line + around {
 					printf "%s%-5d%s%3s%s%s%s\n", \
 						COLORLINE, NR, RESET, \
@@ -612,14 +521,14 @@ L_print_traceback2() {
 			printf "%s\n" "$tmp"
 		fi
 	done
-	L_crit "Command returned with non-zero exit status: ${1:-0}"
+	L_critical "Command returned with non-zero exit status: ${1:-0}"
 }
 
 L_trap_err_show_source() {
 	local idx=${1:-0}
     echo "Traceback:"
     awk -v L="${BASH_LINENO[idx]}" -v M=3 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[idx+1]}"
-	L_crit "command returned with non-zero exit status"
+	L_critical "command returned with non-zero exit status"
 }
 
 L_trap_err_small() {
@@ -635,7 +544,7 @@ L_trap_err_enable() {
 		fi
 		(
 			set +x
-			#L_trap_err_show_source 1 "$@"
+			# L_trap_err_show_source 1 "$@"
 			L_print_traceback2 1 "$@"
 		) >&2 ||:
 		exit "$_code"
@@ -660,8 +569,10 @@ fi
 ###############################################################################
 
 L_kill_all_jobs() {
-	local IFS=$'\n' j
-	for j in $(jobs | awk '{gsub("[^0-9]","",$1);print $1}'); do kill "%$j"; done
+	local IFS='[]' j _
+	while read -r _ j _; do
+		kill "%$j"
+	done <<<"$(jobs)"
 }
 
 _L_lib_drop_L_prefix() {
@@ -695,7 +606,7 @@ L_is_valid_variable_name() {
 }
 
 L_str_is_print() {
-	grep -Fq '[[:print:]]' <<<"$*"
+	[[ "$*" =~ ^[[:print:]]*$ ]]
 }
 
 # ]]]
@@ -711,15 +622,15 @@ _L_unittest_internal() {
 	(( _L_invert ? (_L_tmp = !_L_tmp) : 1 , 1 ))
 	: "${_L_unittest_result:=0}"
 	if ((_L_tmp)); then
-		echo -n "${L_usecolor:+${L_RED}${L_BRIGHT}}"
+		echo -n "${L_RED}${L_BRIGHT}"
 	fi
 	echo -n "${FUNCNAME[2]}:${BASH_LINENO[1]}${1:+: }${1:-}: "
 	if ((_L_tmp == 0)); then
-		echo "${L_usecolor:+${L_GREEN}}OK${L_usecolor:+${L_COLORRESET}}"
+		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
 		(( _L_unittest_result |= 1 ))
 		_L_tmp=("${@:3}")
-		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_usecolor:+${L_COLORRESET}}"
+		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_COLORRESET}"
 		return 1
 	fi
 } >&2
@@ -762,7 +673,7 @@ L_unittest_pipes() {
 }
 
 _L_unittest_showdiff() {
-	if [[ "$1" =~ ^[[:print:]]*$ && "$2" =~ ^[[:print:]]*$ ]]; then
+	if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
 		sdiff <(cat <<<"$1") - <<<"$2"
 	else
 		sdiff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
@@ -770,15 +681,15 @@ _L_unittest_showdiff() {
 }
 
 L_unittest_vareq() {
-	if ! _L_unittest_internal "test: \$$1=${!1} == $2" "" [ "${!1}" == "$2" ]; then
-		_L_unittest_showdiff "${!1}" "$2"
+	if ! _L_unittest_internal "test: \$$1=${!1:-} == $2" "" [ "${!1:-}" == "$2" ]; then
+		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
 	fi
 }
 
 L_unittest_eq() {
-	if ! _L_unittest_internal "test: $1 == $2" "" [ "$1" == "$2" ]; then
-		_L_unittest_showdiff "${!1}" "$2"
+	if ! _L_unittest_internal "test: ${1@Q} == ${2@Q}" "" [ "$1" == "$2" ]; then
+		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
 }
