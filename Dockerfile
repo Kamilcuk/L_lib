@@ -1,6 +1,6 @@
 ARG VERSION=latest
-FROM bash:${VERSION} AS L_lib
+FROM bash:${VERSION} AS l_lib
 COPY ./bin/L_lib.sh /bin
 
-FROM L_lib AS test
+FROM l_lib AS test
 RUN L_lib.sh --unittest
