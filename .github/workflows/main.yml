@@ -23,6 +23,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  shellcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: reviewdog/action-shellcheck@v1
+
   pages:
     needs: test
     runs-on: ubuntu-latest
