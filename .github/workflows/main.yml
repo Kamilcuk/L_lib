@@ -18,8 +18,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
-          build-args:
-            VERSION: ${{ matrix.version }}
+          build-args: VERSION=${{ matrix.version }}
           target: test
           cache-from: type=gha
           cache-to: type=gha,mode=max
