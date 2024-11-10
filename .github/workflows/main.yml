@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         version:
-          - 5.2.13
+          - 5.2
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -28,7 +28,13 @@ jobs:
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
-      - uses: ludeeus/action-shellcheck@master
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
+        with:
+          build-args: VERSION=${{ matrix.version }}
+          target: shellcheck
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   pages:
     needs: test
@@ -45,14 +51,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          name: fchastanet/shdoc
+          name: kamilcuk/shdoc
           path: shdoc
-      - run: mkdir -v ./pages && shdoc/shdoc <./bin/L_lib.sh >./pages/index.md
-      - uses: jaywcjlove/markdown-to-html-cli@main
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
         with:
-          source: ./pages/index.md
-          output: ./pages/index.html
-          title: L_lib.sh
+          build-args: VERSION=${{ matrix.version }}
+          target: shellcheck
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          outputs: type=local,dest=pages
       - uses: actions/upload-pages-artifact@v1
         with:
           path: ./pages

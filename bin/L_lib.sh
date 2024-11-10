@@ -1,118 +1,103 @@
-#!/bin/bash
-# This is a collection of libraries that I seem to use over and over
-# again and again inm every script I write.
-# It's here to simplify my use of it.
-# Written by Kamil Cukrowski
-# Licensed jointly under MIT License and Beerware License
-# SPDX-License-Identifier: MIT + Beerware
-
-# shellcheck disable=SC2034
-
-# Library start [[[
+#!/usr/bin/env bash
+# shellcheck disable=2034,2178,2016,2128,2329
+# vim: foldmethod=marker foldmarker=[[[,]]]
+# Globals [[[
+# @section globals
+# @description some global variables
 
 shopt -s extglob
-
-# Source only once, to speed up
-if [[ -z "${L_LIB_LIB_SOURCED:-}" ]]; then
-L_LIB_LIB_SOURCED=true
-readonly L_LIB_LIB_SOURCED
-
-# ]]]
-# Globals [[[
-
-L_name=${0##*/}
-L_dir=${0%/*}
-L_NAME="$L_name"
-L_DIR="$L_dir"
-readonly L_NAME L_DIR
+L_LIB_VERSION=1.0
+# @description The basename part of $0
+L_NAME=${0##*/}
+# @description The directory part of $0
+L_DIR=${0%/*}
 
 # ]]]
 # Colors [[[
+# @section colors
+# @description colors
 
-{
-	readonly L_COLOR_BOLD=$'\E[1m'
-	readonly L_COLOR_BRIGHT=$'\E[1m'
-	readonly L_COLOR_DIM=$'\E[2m'
-	readonly L_COLOR_FAINT=$'\E[2m'
-	readonly L_COLOR_STANDOUT=$'\E[3m'
-	readonly L_COLOR_UNDERLINE=$'\E[4m'
-	readonly L_COLOR_BLINK=$'\E[5m'
-	readonly L_COLOR_REVERSE=$'\E[7m'
-	readonly L_COLOR_CONCEAL=$'\E[8m'
-	readonly L_COLOR_HIDDEN=$'\E[8m'
-	readonly L_COLOR_CROSSEDOUT=$'\E[9m'
+L_BOLD=$'\E[1m'
+L_BRIGHT=$'\E[1m'
+L_DIM=$'\E[2m'
+L_FAINT=$'\E[2m'
+L_STANDOUT=$'\E[3m'
+L_UNDERLINE=$'\E[4m'
+L_BLINK=$'\E[5m'
+L_REVERSE=$'\E[7m'
+L_CONCEAL=$'\E[8m'
+L_HIDDEN=$'\E[8m'
+L_CROSSEDOUT=$'\E[9m'
 
-	readonly L_COLOR_FONT0=$'\E[10m'
-	readonly L_COLOR_FONT1=$'\E[11m'
-	readonly L_COLOR_FONT2=$'\E[12m'
-	readonly L_COLOR_FONT3=$'\E[13m'
-	readonly L_COLOR_FONT4=$'\E[14m'
-	readonly L_COLOR_FONT5=$'\E[15m'
-	readonly L_COLOR_FONT6=$'\E[16m'
-	readonly L_COLOR_FONT7=$'\E[17m'
-	readonly L_COLOR_FONT8=$'\E[18m'
-	readonly L_COLOR_FONT9=$'\E[19m'
+L_FONT0=$'\E[10m'
+L_FONT1=$'\E[11m'
+L_FONT2=$'\E[12m'
+L_FONT3=$'\E[13m'
+L_FONT4=$'\E[14m'
+L_FONT5=$'\E[15m'
+L_FONT6=$'\E[16m'
+L_FONT7=$'\E[17m'
+L_FONT8=$'\E[18m'
+L_FONT9=$'\E[19m'
 
-	readonly L_COLOR_FRAKTUR=$'\E[20m'
-	readonly L_COLOR_DOUBLE_UNDERLINE=$'\E[21m'
-	readonly L_COLOR_NODIM=$'\E[22m'
-	readonly L_COLOR_NOSTANDOUT=$'\E[23m'
-	readonly L_COLOR_NOUNDERLINE=$'\E[24m'
-	readonly L_COLOR_NOBLINK=$'\E[25m'
-	readonly L_COLOR_NOREVERSE=$'\E[27m'
-	readonly L_COLOR_NOHIDDEN=$'\E[28m'
-	readonly L_COLOR_REVEAL=$'\E[28m'
-	readonly L_COLOR_NOCROSSEDOUT=$'\E[29m'
+L_FRAKTUR=$'\E[20m'
+L_DOUBLE_UNDERLINE=$'\E[21m'
+L_NODIM=$'\E[22m'
+L_NOSTANDOUT=$'\E[23m'
+L_NOUNDERLINE=$'\E[24m'
+L_NOBLINK=$'\E[25m'
+L_NOREVERSE=$'\E[27m'
+L_NOHIDDEN=$'\E[28m'
+L_REVEAL=$'\E[28m'
+L_NOCROSSEDOUT=$'\E[29m'
 
-	readonly L_COLOR_BLACK=$'\E[30m'
-	readonly L_COLOR_RED=$'\E[31m'
-	readonly L_COLOR_GREEN=$'\E[32m'
-	readonly L_COLOR_YELLOW=$'\E[33m'
-	readonly L_COLOR_BLUE=$'\E[34m'
-	readonly L_COLOR_MAGENTA=$'\E[35m'
-	readonly L_COLOR_CYAN=$'\E[36m'
-	readonly L_COLOR_LIGHT_GRAY=$'\E[37m'
-	readonly L_COLOR_DEFAULT=$'\E[39m'
-	readonly L_COLOR_FOREGROUND_DEFAULT=$'\E[39m'
+L_BLACK=$'\E[30m'
+L_RED=$'\E[31m'
+L_GREEN=$'\E[32m'
+L_YELLOW=$'\E[33m'
+L_BLUE=$'\E[34m'
+L_MAGENTA=$'\E[35m'
+L_CYAN=$'\E[36m'
+L_LIGHT_GRAY=$'\E[37m'
+L_DEFAULT=$'\E[39m'
+L_FOREGROUND_DEFAULT=$'\E[39m'
 
-	readonly L_COLOR_BG_BLACK=$'\E[40m'
-	readonly L_COLOR_BG_BLUE=$'\E[44m'
-	readonly L_COLOR_BG_CYAN=$'\E[46m'
-	readonly L_COLOR_BG_GREEN=$'\E[42m'
-	readonly L_COLOR_BG_LIGHT_GRAY=$'\E[47m'
-	readonly L_COLOR_BG_MAGENTA=$'\E[45m'
-	readonly L_COLOR_BG_RED=$'\E[41m'
-	readonly L_COLOR_BG_YELLOW=$'\E[43m'
+L_BG_BLACK=$'\E[40m'
+L_BG_BLUE=$'\E[44m'
+L_BG_CYAN=$'\E[46m'
+L_BG_GREEN=$'\E[42m'
+L_BG_LIGHT_GRAY=$'\E[47m'
+L_BG_MAGENTA=$'\E[45m'
+L_BG_RED=$'\E[41m'
+L_BG_YELLOW=$'\E[43m'
 
-	readonly L_COLOR_FRAMED=$'\E[51m'
-	readonly L_COLOR_ENCIRCLED=$'\E[52m'
-	readonly L_COLOR_OVERLINED=$'\E[53m'
-	readonly L_COLOR_NOENCIRCLED=$'\E[54m'
-	readonly L_COLOR_NOFRAMED=$'\E[54m'
-	readonly L_COLOR_NOOVERLINED=$'\E[55m'
+L_FRAMED=$'\E[51m'
+L_ENCIRCLED=$'\E[52m'
+L_OVERLINED=$'\E[53m'
+L_NOENCIRCLED=$'\E[54m'
+L_NOFRAMED=$'\E[54m'
+L_NOOVERLINED=$'\E[55m'
 
-	readonly L_COLOR_DARK_GRAY=$'\E[90m'
-	readonly L_COLOR_LIGHT_RED=$'\E[91m'
-	readonly L_COLOR_LIGHT_GREEN=$'\E[92m'
-	readonly L_COLOR_LIGHT_YELLOW=$'\E[93m'
-	readonly L_COLOR_LIGHT_BLUE=$'\E[94m'
-	readonly L_COLOR_LIGHT_MAGENTA=$'\E[95m'
-	readonly L_COLOR_LIGHT_CYAN=$'\E[96m'
-	readonly L_COLOR_WHITE=$'\E[97m'
+L_DARK_GRAY=$'\E[90m'
+L_LIGHT_RED=$'\E[91m'
+L_LIGHT_GREEN=$'\E[92m'
+L_LIGHT_YELLOW=$'\E[93m'
+L_LIGHT_BLUE=$'\E[94m'
+L_LIGHT_MAGENTA=$'\E[95m'
+L_LIGHT_CYAN=$'\E[96m'
+L_WHITE=$'\E[97m'
 
-	readonly L_COLOR_BG_DARK_GRAY=$'\E[100m'
-	readonly L_COLOR_BG_LIGHT_BLUE=$'\E[104m'
-	readonly L_COLOR_BG_LIGHT_CYAN=$'\E[106m'
-	readonly L_COLOR_BG_LIGHT_GREEN=$'\E[102m'
-	readonly L_COLOR_BG_LIGHT_MAGENTA=$'\E[105m'
-	readonly L_COLOR_BG_LIGHT_RED=$'\E[101m'
-	readonly L_COLOR_BG_LIGHT_YELLOW=$'\E[103m'
-	readonly L_COLOR_BG_WHITE=$'\E[107m'
+L_BG_DARK_GRAY=$'\E[100m'
+L_BG_LIGHT_BLUE=$'\E[104m'
+L_BG_LIGHT_CYAN=$'\E[106m'
+L_BG_LIGHT_GREEN=$'\E[102m'
+L_BG_LIGHT_MAGENTA=$'\E[105m'
+L_BG_LIGHT_RED=$'\E[101m'
+L_BG_LIGHT_YELLOW=$'\E[103m'
+L_BG_WHITE=$'\E[107m'
 
-	# It resets color and font.
-	readonly L_COLOR_COLORRESET=$'\E[m'
-	readonly L_COLOR_RESET=$'\E[m'
-}
+L_COLORRESET=$'\E[m'
+L_RESET=$'\E[m'
 
 # @description
 L_color_on() {
@@ -130,8 +115,8 @@ L_color_off() {
 	done
 }
 
-# @description
-L_setcolor() {
+# @description Detect if colors should be used on the terminal.
+L_color_use() {
 	if [[ ! -v NO_COLOR && "${TERM:-dumb}" != "dumb" && -t 1 ]]; then
 		L_color_on
 	else
@@ -139,10 +124,100 @@ L_setcolor() {
 	fi
 }
 
-L_setcolor
+L_color_use
+
+# ]]]
+# Color constants [[[
+# @section color constants
+# @description color constants. Prefer to use colors above for color usage detection.
+
+L_COLOR_BOLD=$'\E[1m'
+L_COLOR_BRIGHT=$'\E[1m'
+L_COLOR_DIM=$'\E[2m'
+L_COLOR_FAINT=$'\E[2m'
+L_COLOR_STANDOUT=$'\E[3m'
+L_COLOR_UNDERLINE=$'\E[4m'
+L_COLOR_BLINK=$'\E[5m'
+L_COLOR_REVERSE=$'\E[7m'
+L_COLOR_CONCEAL=$'\E[8m'
+L_COLOR_HIDDEN=$'\E[8m'
+L_COLOR_CROSSEDOUT=$'\E[9m'
+
+L_COLOR_FONT0=$'\E[10m'
+L_COLOR_FONT1=$'\E[11m'
+L_COLOR_FONT2=$'\E[12m'
+L_COLOR_FONT3=$'\E[13m'
+L_COLOR_FONT4=$'\E[14m'
+L_COLOR_FONT5=$'\E[15m'
+L_COLOR_FONT6=$'\E[16m'
+L_COLOR_FONT7=$'\E[17m'
+L_COLOR_FONT8=$'\E[18m'
+L_COLOR_FONT9=$'\E[19m'
+
+L_COLOR_FRAKTUR=$'\E[20m'
+L_COLOR_DOUBLE_UNDERLINE=$'\E[21m'
+L_COLOR_NODIM=$'\E[22m'
+L_COLOR_NOSTANDOUT=$'\E[23m'
+L_COLOR_NOUNDERLINE=$'\E[24m'
+L_COLOR_NOBLINK=$'\E[25m'
+L_COLOR_NOREVERSE=$'\E[27m'
+L_COLOR_NOHIDDEN=$'\E[28m'
+L_COLOR_REVEAL=$'\E[28m'
+L_COLOR_NOCROSSEDOUT=$'\E[29m'
+
+L_COLOR_BLACK=$'\E[30m'
+L_COLOR_RED=$'\E[31m'
+L_COLOR_GREEN=$'\E[32m'
+L_COLOR_YELLOW=$'\E[33m'
+L_COLOR_BLUE=$'\E[34m'
+L_COLOR_MAGENTA=$'\E[35m'
+L_COLOR_CYAN=$'\E[36m'
+L_COLOR_LIGHT_GRAY=$'\E[37m'
+L_COLOR_DEFAULT=$'\E[39m'
+L_COLOR_FOREGROUND_DEFAULT=$'\E[39m'
+
+L_COLOR_BG_BLACK=$'\E[40m'
+L_COLOR_BG_BLUE=$'\E[44m'
+L_COLOR_BG_CYAN=$'\E[46m'
+L_COLOR_BG_GREEN=$'\E[42m'
+L_COLOR_BG_LIGHT_GRAY=$'\E[47m'
+L_COLOR_BG_MAGENTA=$'\E[45m'
+L_COLOR_BG_RED=$'\E[41m'
+L_COLOR_BG_YELLOW=$'\E[43m'
+
+L_COLOR_FRAMED=$'\E[51m'
+L_COLOR_ENCIRCLED=$'\E[52m'
+L_COLOR_OVERLINED=$'\E[53m'
+L_COLOR_NOENCIRCLED=$'\E[54m'
+L_COLOR_NOFRAMED=$'\E[54m'
+L_COLOR_NOOVERLINED=$'\E[55m'
+
+L_COLOR_DARK_GRAY=$'\E[90m'
+L_COLOR_LIGHT_RED=$'\E[91m'
+L_COLOR_LIGHT_GREEN=$'\E[92m'
+L_COLOR_LIGHT_YELLOW=$'\E[93m'
+L_COLOR_LIGHT_BLUE=$'\E[94m'
+L_COLOR_LIGHT_MAGENTA=$'\E[95m'
+L_COLOR_LIGHT_CYAN=$'\E[96m'
+L_COLOR_WHITE=$'\E[97m'
+
+L_COLOR_BG_DARK_GRAY=$'\E[100m'
+L_COLOR_BG_LIGHT_BLUE=$'\E[104m'
+L_COLOR_BG_LIGHT_CYAN=$'\E[106m'
+L_COLOR_BG_LIGHT_GREEN=$'\E[102m'
+L_COLOR_BG_LIGHT_MAGENTA=$'\E[105m'
+L_COLOR_BG_LIGHT_RED=$'\E[101m'
+L_COLOR_BG_LIGHT_YELLOW=$'\E[103m'
+L_COLOR_BG_WHITE=$'\E[107m'
+
+# It resets color and font.
+L_COLOR_COLORRESET=$'\E[m'
+L_COLOR_RESET=$'\E[m'
 
 # ]]]
 # Ansi [[[
+# @section ansi
+# @description manipulating cursor positions
 
 L_ansi_up() { printf '\E[%dA' "$@"; }
 L_ansi_down() { printf '\E[%dB' "$@"; }
@@ -171,8 +246,17 @@ L_ansi_print_on_line_above() {
 	fi
 }
 
+L_ansi_8bit_fg() { printf '\E[37;5;%dm' "$@"; }
+L_ansi_8bit_bg() { printf '\E[47;5;%dm' "$@"; }
+L_ansi_8bit_fg_rgb() { printf '\E[37;5;%dm' "$((16+36*$1+6*$2+$3))"; }
+L_ansi_8bit_bg_rgb() { printf '\E[47;5;%dm' "$((16+36*$1+6*$2+$3))"; }
+L_ansi_24bit_fg() { printf '\E[38;2;%d;%d;%dm' "$@"; }
+L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
+
 # ]]]
-# Loglevel library [[[
+# Log [[[
+# @section log
+# @description logging library
 
 readonly L_LOGLEVEL_CRITICAL=60
 readonly L_LOGLEVEL_ERROR=50
@@ -181,7 +265,7 @@ readonly L_LOGLEVEL_NOTICE=30
 readonly L_LOGLEVEL_INFO=20
 readonly L_LOGLEVEL_DEBUG=10
 
-declare -a L_LOGLEVEL_NAMES=(
+L_LOGLEVEL_NAMES=(
 	[L_LOGLEVEL_CRITICAL]="critical"
 	[L_LOGLEVEL_ERROR]="error"
 	[L_LOGLEVEL_WARNING]="warning"
@@ -189,7 +273,7 @@ declare -a L_LOGLEVEL_NAMES=(
 	[L_LOGLEVEL_INFO]="info"
 	[L_LOGLEVEL_DEBUG]="debug"
 )
-declare -a L_LOGLEVEL_COLORS=(
+L_LOGLEVEL_COLORS=(
 	[L_LOGLEVEL_CRITICAL]="${L_BOLD}${L_RED}"
 	[L_LOGLEVEL_ERROR]="${L_BOLD}${L_RED}"
 	[L_LOGLEVEL_WARNING]="${L_BOLD}${L_YELLOW}"
@@ -198,12 +282,22 @@ declare -a L_LOGLEVEL_COLORS=(
 	[L_LOGLEVEL_DEBUG]="${L_LIGHT_GRAY}"
 )
 
+# @description (int) current log level
 L_log_level=$L_LOGLEVEL_INFO
 
+# @description used to track nesting when logging
 L_logrecord_stacklevel=1
+# @description current log line log level
 L_logrecord_loglevel=0
+# @description current log line to ouptut
 L_logrecord_line=""
 
+# @description increase stacklevel of logging information
+L_log_stack_inc() { ((++L_logrecord_stacklevel)); }
+# @description decrease stacklevel of logging information
+L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
+
+# @description
 # @arg $1 str variable name
 # @arg $2 str loglevel
 L_log_level_str_to_int() {
@@ -219,10 +313,12 @@ L_log_level_str_to_int() {
 	printf -v "$1" "%d" "$2"
 }
 
+# @description
 L_log_setLevel() {
 	L_log_level=$1
 }
 
+# @description
 L_log_is_enabled_for() {
 	L_log_level_str_to_int L_logrecord_loglevel "$1"
 	# echo "$L_logrecord_loglevel $L_log_level"
@@ -273,69 +369,262 @@ L_log_output_to_logger() {
 }
 
 # shellcheck disable=SC2140
-# @arg $1 int loglevel
-# @arg $2 str logline
-L_logl() {
+# @description main logging entrypoint
+# @option -s int Increment stacklevel by this much
+# @option -l int|string loglevel to print log line as
+# @arg $1 str logline
+L_log() {
+	local OPTARG OPTIND _L_opt
+	L_logrecord_loglevel=$L_LOGLEVEL_INFO
+	while getopts ":s:l:" _L_opt; do
+		case "$_L_opt" in
+			s) ((L_logrecord_stacklevel+=OPTARG)); ;;
+			l) L_logrecord_loglevel=$OPTARG; ;;
+			*) L_fatal "$_L_opt"; ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
 	((++L_logrecord_stacklevel))
-	if L_log_is_enabled_for "$1"; then
-		shift
+	if L_log_is_enabled_for "$L_logrecord_loglevel"; then
 		L_log_format "$@"
 		L_log_output
 	fi
 	L_logrecord_stacklevel=1
 }
 
-
-L_critical() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_CRITICAL" "$@"; }
-L_error() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_ERROR" "$@"; }
-L_warn() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_WARNING" "$@"; }
-L_warning() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_WARNING" "$@"; }
-L_notice() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_NOTICE" "$@"; }
-L_log() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_INFO" "$@"; }
-L_info() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_INFO" "$@"; }
-L_debug() { ((++L_logrecord_stacklevel)); L_logl "$L_LOGLEVEL_DEBUG" "$@"; }
+L_critical() { L_log_stack_inc; L_log -l "$L_LOGLEVEL_CRITICAL" "$@"; }
+L_error()    { L_log_stack_inc; L_log -l "$L_LOGLEVEL_ERROR"    "$@"; }
+L_warn()     { L_log_stack_inc; L_log -l "$L_LOGLEVEL_WARNING"  "$@"; }
+L_warning()  { L_log_stack_inc; L_log -l "$L_LOGLEVEL_WARNING"  "$@"; }
+L_notice()   { L_log_stack_inc; L_log -l "$L_LOGLEVEL_NOTICE"   "$@"; }
+L_info()     { L_log_stack_inc; L_log -l "$L_LOGLEVEL_INFO"     "$@"; }
+L_debug()    { L_log_stack_inc; L_log -l "$L_LOGLEVEL_DEBUG"    "$@"; }
 
 # ]]]
-# Additional functions [[[
+# sort [[[
+# @section sort
+# @description sorting function
+
+_L_sort_bash_in() {
+	local _L_start=$1 _L_end=$2
+	if ((_L_start < _L_end))
+	then
+		local _L_left=$((_L_start+1)) _L_right=$_L_end _L_pivot=${_L_array[_L_start]}
+		while ((_L_left < _L_right))
+		do
+			if
+				if ((_L_sort_numeric))
+				then
+					((_L_pivot > _L_array[_L_left]))
+				else
+					[[ "$_L_pivot" > "${_L_array[_L_left]}" ]]
+				fi
+			then
+				(( _L_left++ ))
+			elif
+				if ((_L_sort_numeric))
+				then
+					((_L_pivot < _L_array[_L_right]))
+				else
+					[[ "$_L_pivot" < "${_L_array[_L_right]}" ]]
+				fi
+			then
+				(( _L_right--, 1 ))
+			else
+				local _L_tmp=${_L_array[_L_left]}
+				_L_array[_L_left]=${_L_array[_L_right]}
+				_L_array[_L_right]=$_L_tmp
+			fi
+		done
+		if
+			if ((_L_sort_numeric))
+			then
+				((_L_array[_L_left] < _L_pivot))
+			else
+				[[ "${_L_array[_L_left]}" < "$_L_pivot" ]]
+			fi
+		then
+			local _L_tmp=${_L_array[_L_left]}
+			_L_array[_L_left]=${_L_array[_L_start]}
+			_L_array[_L_start]=$_L_tmp
+			(( _L_left--, 1 ))
+		else
+			(( _L_left--, 1 ))
+			local _L_tmp=${_L_array[_L_left]}
+			_L_array[_L_left]=${_L_array[_L_start]}
+			_L_array[_L_start]=$_L_tmp
+		fi
+		_L_sort_bash_in "$_L_start" "$_L_left"
+		_L_sort_bash_in "$_L_right" "$_L_end"
+	fi
+}
+
+
+# @description quicksort an array in place in pure bash
+# @option -n --numeric-sort numeric sort, otherwise lexical
+# @arg $1 array
+# @arg [$2] starting index
+# @arg [$3] ending index
+L_sort_bash() {
+	local _L_sort_numeric=0
+	if [[ $1 = -n || $1 = --numeric-sort ]]; then
+		_L_sort_numeric=1
+		shift
+	fi
+	if [[ $1 = -- ]]; then
+		shift
+	fi
+	#
+	if [[ $1 != _L_array ]]; then declare -n _L_array=$1; fi
+	_L_sort_bash_in 0 $((${#_L_array[@]}-1))
+}
+
+# @description sort an array
+# If -z or --zero-terminated optino is passed, try to use zero separated stream
+# @option * any options taken by sort command
+# @arg $1 array nameref
+L_sort() {
+	if [[ "${*: -1}" != _L_array ]]; then declare -n _L_array=${*: -1}; fi
+	if L_args_contain -z "$@" || L_args_contain --zero-terminated "$@"; then
+		mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${_L_array[@]}" | sort "${@:1:$#-1}")
+	else
+		mapfile -t "${@: -1}" < <(printf "%s\n" "${_L_array[@]}" | sort "${@:1:$#-1}")
+	fi
+}
+
+_L_test_sort() {
+	{
+		L_log "test bash sorting of an array"
+		local arr=(9 4 1 3 4 5)
+		L_sort_bash -n arr
+		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		local arr=(g s b a c o)
+		L_sort_bash arr
+		L_unittest_eq "${arr[*]}" "a b c g o s"
+	}
+	{
+		L_log "test sorting of an array"
+		local arr=(9 4 1 3 4 5)
+		L_sort -n arr
+		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		local arr=(g s b a c o)
+		L_sort arr
+		L_unittest_eq "${arr[*]}" "a b c g o s"
+	}
+	{
+		L_log "test sorting of an array with zero separated stream"
+		local arr=(9 4 1 3 4 5)
+		L_sort -z -n arr
+		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		local arr=(g s b a c o)
+		L_sort -z arr
+		L_unittest_eq "${arr[*]}" "a b c g o s"
+	}
+	{
+		L_log "Compare times of bash sort vs command sort"
+		local arr=() i TIMEFORMAT
+		for ((i=500;i;--i)); do arr[i]=$RANDOM; done
+		local arr2=("${arr[@]}")
+		TIMEFORMAT='L_sort   real=%lR user=%lU sys=%lS';
+		time L_sort_bash -n arr2
+		local arr3=("${arr[@]}")
+		TIMEFORMAT='GNU sort real=%lR user=%lU sys=%lS';
+		time L_sort -n arr3
+		[[ "${arr2[*]}" == "${arr3[*]}" ]]
+	}
+}
+
+# ]]]
+# uncategorized [[[
+# @section uncategorized
+# @description many functions without any particular grouping
+
+# @description wrapper function for handling -v argumnets to other functions
+# It calls a function called `_<caller>_v` with argumenst without `-v <var>`
+# The function `_<caller>_v` should set the variable nameref _L_v to the returned value
+#   just: _L_v=$value
+#   or: _L_v=(a b c)
+# When the caller function is called without -v, the value of _L_v is printed to stdout with a newline..
+# Otherwise, the value is a nameref to user requested variable and nothing is printed.
+# @arg $@ arbitrary function arguments
+# @exitcode Whatever exitcode does the `_<caller>_v` funtion exits with.
+# @example:
+#    L_add() { _L_handle_v "$@"; }
+#    _L_add_v() { _L_v="$(($1 + $2))"; }
+_L_handle_v() {
+	if [[ $1 == -v?* ]]; then
+		set -- -v "${1#-v}" "${@:2}"
+	fi
+	if [[ $1 == -v ]]; then
+		if [[ $2 != _L_v ]]; then local -n _L_v=$2; fi
+		_"${FUNCNAME[1]}"_v "${@:3}"
+	else
+		local _L_v
+		if _"${FUNCNAME[1]}"_v "$@"; then
+			printf "%s\n" "${_L_v[@]}"
+		else
+			return $?
+		fi
+	fi
+}
 
 # @description Output a string with the same quotating style as does bash in set -x
+# @arg $@ arguments to quote
 L_quote_setx() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
 
 # @description Output a critical message and exit the script.
-L_fatal() { L_critical "$*"; exit 2; }
+# @arg $@ L_log arguments
+L_fatal() { L_log_stack_inc; L_critical "$@"; exit 2; }
 
 # @description Eval the first argument - if it returns failure, then fatal.
-L_assert() { if eval '!' "$1"; then L_print_traceback2; L_fatal "assertion $1 failed: ${*:2}"; fi }
+# @arg $1 string to evaluate
+# @arg $@ assertion message
+# @example '[[ $var = 0 ]]' "Value of var is invalid"
+L_assert() { if eval '!' "$1"; then L_print_traceback; L_fatal "assertion $1 failed: ${*:2}"; fi }
+
+# @description Assert the command starting from second arguments returns success.
+# @arg $1 str assertiong string description
+# @arg $@ command to test
+# @example L_assert2 'wrong number of arguments' test "$#" = 0
+L_assert2() {
+	if "${@:2}"; then
+		:
+	else
+		L_print_traceback
+		L_fatal "assertion ${*:2} failed${1:+: $1}"
+	fi
+}
 
 # @description Return 0 if function exists.
+# @arg $1 function name
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
-# @description Return 0 if function exists.
-L_fn_exists()       { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
 # @description Return 0 if command exists.
+# @arg $1 command name
 L_command_exists() { command -v "$@" >/dev/null 2>&1; }
-# @description Return 0 if command exists.
-L_cmd_exists() { command -v "$@" >/dev/null 2>&1; }
 
 # @description like hash, but silenced output, to check if command exists.
+# @arg $@ commands to check
 L_hash() { hash "$@" >/dev/null 2>&1; }
-# @description return true if sourced
-L_am_I_sourced() { [[ "${BASH_SOURCE[0]}" != "${0}" ]]; }
-# @description return true if not sourced
+
+# @description return true if current script sourced
+L_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
+
+# @description return true if current script is not sourced
 L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
 
-# @description
-# @see L_var_is_set
-L_isset() { L_var_is_set "$@"; }
-# @description
-# @see L_var_is_set
-L_var_isset() { L_var_is_set "$@"; }
+# @description return true if running in bash shell
+# Portable with POSIX shell.
+L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
+
+# @description return true if running in posix mode
+L_in_posix_mode() { [[ :$SHELLOPTS: == *:posix:* ]]; }
+
 # @description
 # @arg $1 variable nameref
 # @exitcode 0 if variable is set, nonzero otherwise
 L_var_is_set() {
-	declare -n _L_nameref_var_is_set
-	_L_nameref_var_is_set=$1
+	declare -n _L_nameref_var_is_set=$1
 	[[ -n ${_L_nameref_var_is_set+x} ]]
 }
 
@@ -343,10 +632,24 @@ L_var_is_set() {
 # @arg $1 variable nameref
 # @exitcode 0 if variable is an array, nonzero otherwise
 L_var_is_array() {
-	[[ "$(declare -p "$1" 2> /dev/null)" == "declare -a"* ]]
+	[[ "$(declare -p "$1" 2>/dev/null)" == "declare -a"* ]]
+}
+
+# @description check if variable is an associative array
+# @arg $1 variable nameref
+L_var_is_associative() {
+	[[ "$(declare -p "$1" 2>/dev/null)" == "declare -A"* ]]
+}
+
+# @description check if variable is readonly
+# @arg $1 variable nameref
+L_var_is_readonly() {
+	declare -n _L_nameref_var_is_readonly=$1
+	( _L_nameref_var_is_readonly= ) 2>/dev/null
 }
 
 # @description Return 0 if the string happend to be something like false.
+# @arg $1 str
 L_is_false() {
 	case "$1" in
 	0*(0)) return 0; ;;
@@ -359,6 +662,7 @@ L_is_false() {
 }
 
 # @description Return 0 if the string happend to be something like true.
+# @arg $1 str
 L_is_true() {
 	case "$1" in
 	0*(0)) return 1; ;;
@@ -371,76 +675,316 @@ L_is_true() {
 	return 1
 }
 
-# @descrpition log a command and then execute it
+# @description log a command and then execute it
+# Is not affected by L_DRYRUN variable.
+# @arg $@ command to run
 L_logrun() {
 	L_log "+ $*"
 	"$@"
 }
 
-: "${L_dryrun:=0}"
+# @description set to 1 if L_run should not execute the function.
+: "${L_DRYRUN:=0}"
 
 # @description Executes a command by printing it first with a + on stderr
-# @env L_dryrun
+# @env L_DRYRUN
 L_run_log() {
 	local _L_tmp
 	_L_tmp="$1" # loglevel
 	shift
 	local log="+"
-	if L_is_true "${L_dryrun:-}"; then
+	if L_is_true "${L_DRYRUN:-}"; then
 		log="DRYRUN: +"
 	fi
 	log="$log$(printf " %q" "$@")"
-	L_logl "$_L_tmp" "$log"
-	if ! L_is_true "${L_dryrun:-}"; then
+	L_log "$_L_tmp" "$log"
+	if ! L_is_true "${L_DRYRUN:-}"; then
 		"$@"
 	fi
 }
 
+# @description Executes a command by printing it first with a + on stderr
+# @env L_DRYRUN
 L_run() {
 	L_run_log L_LOG_INFO "$@"
 }
 
-# @description
+_L_list_functions_with_prefix_v() {
+	_L_v=()
+	for _L_i in $(compgen -A function); do
+		if [[ $_L_i == "$1"* ]]; then
+			_L_v+=("$_L_i")
+		fi
+	done
+}
+
+# @description list functions with prefix
+# @option -v var
+# @arg $1 prefix
 L_list_functions_with_prefix() {
-	compgen -A function | LC_ALL=C sed -n "s/^$*//p" | LC_ALL=C sort
+	_L_handle_v "$@"
 }
 
-# @description
-L_time_all() {
-	command time -f "\
-	Elapsed real time (in [hours:]minutes:seconds):	%E
-	Elapsed real time (in seconds):	%e
-	Total number of CPU-seconds that the process spent in kernel mode:	%S
-	Total number of CPU-seconds that the process spent in user mode:	%U
-	Percentage of the CPU that this job got, computed as (%U + %S) / %E:	%P
-	Maximum resident set size of the process during its lifetime, in Kbytes:	%M
-	Average resident set size of the process, in Kbytes:	%t
-	Average total (data+stack+text) memory use of the process, in Kbytes:	%K
-	Average size of the process's unshared data area, in Kbytes:	%D
-	Average size of the process's unshared stack space, in Kbytes:	%p
-	Average size of the process's shared text space, in Kbytes:	%X
-	System's page size, in bytes.  This is a per-system constant, but varies between systems:	%Z
-	Number of major page faults that occurred while the process was running:	%F
-	Number of minor, or recoverable, page faults:	%R
-	Number of times the process was swapped out of main memory:	%W
-	Number of times the process was context-switched involuntarily (because the time slice expired):	%c
-	Number of waits: times that the program was context-switched voluntarily, for instance while waiting for an I/O operation to complete:	%w
-	Number of filesystem inputs by the process:	%I
-	Number of filesystem outputs by the process:	%O
-	Number of socket messages received by the process:	%r
-	Number of socket messages sent by the process:	%s
-	Number of signals delivered to the process:	%k
-	Name and command-line arguments of the command being timed:	%C
-	Exit status of the command:	%x" "$@"
-	# "
+L_kill_all_jobs() {
+	local IFS='[]' j _
+	while read -r _ j _; do
+		kill "%$j"
+	done <<<"$(jobs)"
 }
 
-###############################################################################
+L_sed_show_diff() {
+	(
+		file="${*: -1}"
+		tmpf=$(mktemp)
+		trap 'rm -f "$tmpf"' EXIT
+		sed "$@" > "$tmpf"
+		diff "$file" "$tmpf" ||:
+		if [[ "${L_lib_SED_INPLACE:-}" = 'true' ]]; then
+			mv "$tmpf" "$file"
+		fi
+	)
+}
 
-# https://unix.stackexchange.com/questions/39623/trap-err-and-echoing-the-error-line
-## Outputs Front-Mater formatted failures for functions not returning 0
-## Use the following line after sourcing this file to set failure trap
-##    trap 'failure "LINENO" "BASH_LINENO" "${BASH_COMMAND}" "${?}"' ERR
+L_sed_inplace_show_diff() {
+	(
+		L_lib_SED_INPLACE=true
+		L_sed_show_diff "$@"
+	)
+}
+
+L_is_valid_variable_name() {
+	[[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]
+}
+
+L_str_is_print() {
+	[[ "$*" =~ ^[[:print:]]*$ ]]
+}
+
+L_str_is_digit() {
+	[[ "$*" =~ ^[0-9]+$ ]]
+}
+
+L_raise() {
+	kill -s "$1" "$BASHPID"
+}
+
+# @description An array to execute a command nicest way possible.
+# @example "${L_NICE[@]}" make -j $(nproc)
+L_NICE=(nice -n 40 ionice -c 3)
+if L_hash ,nice; then
+	L_NICE=(",nice")
+elif L_hash chrt; then
+	L_NICE+=(chrt -i 0)
+fi
+
+# @description execute a command in nicest possible way
+# @arg $@ command to execute
+L_nice() {
+	"${L_NICE[@]}" "$@"
+}
+
+_L_sudo_args_get() {
+	declare -n ret=$1
+	ret=()
+	local envs
+	envs=
+	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
+		if [[ -n "${!i:-}" ]]; then
+			envs="${envs:---preserve-env=}${envs:+,}$i"
+		fi
+	done
+	if ((${#envs})); then
+		ret=("$envs")
+	fi
+}
+
+# @description Execute a command with sudo if not root, otherwise just execute the command.
+# Preserves all proxy environment variables.
+L_sudo() {
+	local sudo=()
+	if ((UID != 0)) && hash sudo 2>/dev/null; then
+		local sudo_args
+		_L_sudo_args_get sudo_args
+		sudo=(sudo -n "${sudo_args[@]}")
+	fi
+	L_run "${sudo[@]}" "$@"
+}
+
+# @description check if array variable contains value
+# @arg $1 array nameref
+# @arg $2 needle
+L_arrayvar_contains() {
+	# shellcheck disable=2178
+	if [[ $1 != _L_array ]]; then declare -n _L_array=$1; fi
+	L_assert2 "" test "$#" = 2
+	L_args_contain "$2" "${_L_array[@]}"
+}
+
+# @description check if arguments starting from second contain the first argument
+# @arg $1 needle
+# @arg $@ heystack
+L_args_contain() {
+	local needle=$1
+	shift
+	while (($#)); do
+		if [[ "$1" = "$needle" ]]; then
+			return
+		fi
+		shift
+	done
+	return 1
+}
+
+# @description Remove elements from array for which expression evaluates to failure.
+# @arg $1 array nameref
+# @arg $2 expression to `eval`uate with array element of index L_i and value $1
+L_arrayvar_filter_eval() {
+	local -n _L_array=$1
+	shift
+	local L_i _L_cmd=$*
+	for ((L_i=${#_L_array[@]}; L_i; --L_i)); do
+		set -- "${_L_array[L_i-1]}"
+		if ! eval "$_L_cmd"; then
+			unset '_L_array[L_i-1]'
+		fi
+	done
+}
+
+# shellcheck disable=1105,2094,2035
+_L_max_v() {
+	_L_v=$1
+	shift
+	while (($#)); do
+		(( "$1" > _L_v ? _L_v = "$1" : 0, 1 ))
+		shift
+	done
+}
+
+# @description return max of arguments
+# @option -v var
+# @arg $@ int arguments
+# @example L_max -v max 1 2 3 4
+L_max() {
+	_L_handle_v "$@"
+}
+
+# shellcheck disable=1105,2094,2035
+_L_min_v() {
+	_L_v=$1
+	shift
+	while (($#)); do
+		(( "$1" < _L_v ? _L_v = "$1" : 0, 1 ))
+		shift
+	done
+}
+
+# @description return max of arguments
+# @option -v var
+# @arg $@ int arguments
+# @example L_min -v min 1 2 3 4
+L_min() {
+	_L_handle_v "$@"
+}
+
+_L_capture_exit_v() {
+	"$@" && _L_v=$? || _L_v=$?
+}
+
+# @description capture exit code of a command to a variable
+# @option -v var
+# @arg $@ command to execute
+L_capture_exit() {
+	_L_handle_v "$@"
+}
+
+_L_test_other() {
+	{
+		local max=-1
+		L_max -v max 1 2 3 4
+		L_unittest_eq "$max" 4
+	}
+	{
+		local min=-1
+		L_min -v min 1 2 3 4
+		L_unittest_eq "$min" 1
+	}
+	{
+		L_unittest_checkexit 0 L_args_contain 1 0 1 2
+		L_unittest_checkexit 0 L_args_contain 1 2 1
+		L_unittest_checkexit 0 L_args_contain 1 1 0
+		L_unittest_checkexit 0 L_args_contain 1 1
+		L_unittest_checkexit 1 L_args_contain 0 1
+		L_unittest_checkexit 1 L_args_contain 0
+	}
+	{
+		local arr=(1 2 3 4 5)
+		L_arrayvar_filter_eval arr '[[ $1 -ge 3 ]]'
+		L_unittest_eq "${arr[*]}" "3 4 5"
+	}
+}
+
+# ]]]
+# trap [[[
+# @section trap
+
+# @description prints traceback
+# @arg [$1] stack offset to start from
+# @example:
+#   Example traceback:
+#   Traceback from pid 3973390 (most recent call last):
+#     File ./bin/L_lib.sh, line 2921, in main()
+#   2921 >> _L_lib_main "$@"
+#     File ./bin/L_lib.sh, line 2912, in _L_lib_main()
+#   2912 >>                 "test") _L_lib_run_tests "$@"; ;;
+#     File ./bin/L_lib.sh, line 2793, in _L_lib_run_tests()
+#   2793 >>                 "$_L_test"
+#     File ./bin/L_lib.sh, line 891, in _L_test_other()
+#   891  >>                 L_unittest_eq "$max" 4
+#     File ./bin/L_lib.sh, line 1412, in L_unittest_eq()
+#   1412 >>                 _L_unittest_showdiff "$1" "$2"
+#     File ./bin/L_lib.sh, line 1391, in _L_unittest_showdiff()
+#   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
+L_print_traceback() {
+	local i s l tmp offset around=1
+	L_color_use
+	echo
+	echo "${L_CYAN}Traceback from pid $BASHPID (most recent call last):${L_RESET}"
+	offset=${1:-0}
+	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
+		s=${BASH_SOURCE[i]}
+		l=${BASH_LINENO[i - 1]}
+		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
+			"${L_CYAN}" "$s" "${L_RESET}" \
+			"${L_BLUE}${L_BOLD}" "$l" "${L_RESET}" \
+			"${FUNCNAME[i]}"
+		# shellcheck disable=1004
+		if
+			tmp=$(awk \
+				-v line="$l" \
+				-v around="$around" \
+				-v RESET="${L_RESET}" \
+				-v RED="${L_RED}" \
+				-v COLORLINE="${L_BLUE}${L_BOLD}" \
+				'NR > line - around && NR < line + around {
+					printf "%s%-5d%s%3s%s%s%s\n", \
+						COLORLINE, NR, RESET, \
+						(NR == line ? ">> " : ""), \
+						(NR == line ? RED : ""), \
+						$0, \
+						(NR == line ? RESET : "")
+				}' "$s" 2>/dev/null) &&
+				[[ -n "$tmp" ]]
+		then
+			printf "%s\n" "$tmp"
+		fi
+	done
+	L_critical "Command returned with non-zero exit status: ${1:-0}"
+}
+
+# @description Outputs Front-Mater formatted failures for functions not returning 0
+# Use the following line after sourcing this file to set failure trap
+#    trap 'failure "LINENO" "BASH_LINENO" "${BASH_COMMAND}" "${?}"' ERR
+# @see https://unix.stackexchange.com/questions/39623/trap-err-and-echoing-the-error-line
 L_trap_err_failure() {
     local -n _lineno="LINENO"
     local -n _bash_lineno="BASH_LINENO"
@@ -486,48 +1030,11 @@ L_trap_err_failure() {
     exit "$_code"
 }
 
-L_print_traceback2() {
-	local i s l tmp offset
-	L_setcolor
-	echo
-	echo "${L_CYAN}Traceback from pid $BASHPID (most recent call last):${L_RESET}"
-	offset=${1:-0}
-	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
-		s=${BASH_SOURCE[i]}
-		l=${BASH_LINENO[i - 1]}
-		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
-			"${L_CYAN}" "$s" "${L_RESET}" \
-			"${L_BLUE}${L_BOLD}" "$l" "${L_RESET}" \
-			"${FUNCNAME[i]}"
-
-		# shellcheck disable=1004
-		if
-			tmp=$(awk \
-				-v line="$l" \
-				-v around=2 \
-				-v RESET="${L_RESET}" \
-				-v RED="${L_RED}" \
-				-v COLORLINE="${L_BLUE}${L_BOLD}" \
-				'NR > line - around && NR < line + around {
-					printf "%s%-5d%s%3s%s%s%s\n", \
-						COLORLINE, NR, RESET, \
-						(NR == line ? ">> " : ""), \
-						(NR == line ? RED : ""), \
-						$0, \
-						(NR == line ? RESET : "")
-				}' "$s" 2>/dev/null) &&
-				[[ -n "$tmp" ]]
-		then
-			printf "%s\n" "$tmp"
-		fi
-	done
-	L_critical "Command returned with non-zero exit status: ${1:-0}"
-}
-
 L_trap_err_show_source() {
 	local idx=${1:-0}
-    echo "Traceback:"
-    awk -v L="${BASH_LINENO[idx]}" -v M=3 'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[idx+1]}"
+	echo "Traceback:"
+	awk -v L="${BASH_LINENO[idx]}" -v M=3 \
+		'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[idx+1]}"
 	L_critical "command returned with non-zero exit status"
 }
 
@@ -543,9 +1050,9 @@ L_trap_err_enable() {
 			return "${_code}"
 		fi
 		(
-			set +x
+			# set +x
 			# L_trap_err_show_source 1 "$@"
-			L_print_traceback2 1 "$@"
+			L_print_traceback 1 "$@"
 		) >&2 ||:
 		exit "$_code"
 	}
@@ -556,940 +1063,96 @@ L_trap_err_disable() {
 	L_trap_err() { :; }
 }
 
-if ! L_fn_exists L_trap_err; then
-	L_trap_err_enable
-fi
+L_trap_init() {
+	if ! L_function_exists L_trap_err; then
+		L_trap_err_enable
+	fi
 
+	if [[ "$-" == *e* ]] || L_is_main; then
+		set -e -E -o functrace
+		trap 'L_trap_err "$?" "$BASH_COMMAND" -- "${BASH_SOURCE[@]}" -- "${BASH_LINENO[@]}" -- "${FUNCNAME[@]}"' ERR
+	fi
+}
 
-if [[ "$-" =~ e ]]; then
-	set -E -o functrace
-	trap 'L_trap_err "$?" "$BASH_COMMAND" -- "${BASH_SOURCE[@]}" -- "${BASH_LINENO[@]}" -- "${FUNCNAME[@]}"' ERR
-fi
+L_trap_init
 
 ###############################################################################
-
-L_kill_all_jobs() {
-	local IFS='[]' j _
-	while read -r _ j _; do
-		kill "%$j"
-	done <<<"$(jobs)"
-}
-
-_L_lib_drop_L_prefix() {
-	for i in run fatal logl log emerg alert crit err warning notice info debug panic error warn; do
-		eval "$i() { L_$i \"\$@\"; }"
-	done
-}
-
-L_sed_show_diff() {
-	(
-		file="${*: -1}"
-		tmpf=$(mktemp)
-		trap 'rm -f "$tmpf"' EXIT
-		sed "$@" > "$tmpf"
-		diff "$file" "$tmpf" ||:
-		if [[ "${L_LIB_LIB_SED_INPLACE:-}" = 'true' ]]; then
-			mv "$tmpf" "$file"
-		fi
-	)
-}
-
-L_sed_inplace_show_diff() {
-	(
-		L_LIB_LIB_SED_INPLACE=true
-		L_sed_show_diff "$@"
-	)
-}
-
-L_is_valid_variable_name() {
-	[[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]
-}
-
-L_str_is_print() {
-	[[ "$*" =~ ^[[:print:]]*$ ]]
-}
-
 # ]]]
-# L_unittest [[[
+# version [[[
+# @section version
 
-_L_unittest_internal() {
-	local _L_tmp=0 _L_invert=0
-	if [[ "$3" == "!" ]]; then
-		_L_invert=1
-		shift
-	fi
-	"${@:3}" || _L_tmp=$?
-	(( _L_invert ? (_L_tmp = !_L_tmp) : 1 , 1 ))
-	: "${_L_unittest_result:=0}"
-	if ((_L_tmp)); then
-		echo -n "${L_RED}${L_BRIGHT}"
-	fi
-	echo -n "${FUNCNAME[2]}:${BASH_LINENO[1]}${1:+: }${1:-}: "
-	if ((_L_tmp == 0)); then
-		echo "${L_GREEN}OK${L_COLORRESET}"
-	else
-		(( _L_unittest_result |= 1 ))
-		_L_tmp=("${@:3}")
-		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_COLORRESET}"
-		return 1
-	fi
-} >&2
-
-L_unittest_assert() {
-	_L_unittest_internal "test eval ${1}" "${*:2}" eval "$1" ||:
-}
-
-L_unittest_checkexit() {
-	local _L_ret
-	_L_ret=0
-	"${@:2}" || _L_ret=$?
-	_L_unittest_internal "test exit of ${*:2} is $1" "$_L_ret != $1" [ "$_L_ret" -eq "$1" ] ||:
-}
-
-L_unittest_evalcheckexit() {
-	local _L_ret
-	_L_ret=0
-	"${@:2}" || _L_ret=$?
-	_L_unittest_internal "test exit of ${*:2} is $1" "$_L_ret != $1" [ "$_L_ret" -eq "$1" ] ||:
-}
-
-L_unittest_cmd() {
-	_L_unittest_internal "test ${*:2}" "" "${@:2}" ||:
-}
-
-L_unittest_pipes() {
-	local op='='
-	if [[ "$1" = "!" ]]; then
-		op='!='
-		shift
-	fi
-	local a b
-	a=$(< "$1")
-	b=$(< "$2")
-	if ! _L_unittest_internal "test pipes${3:+ $3}" "$4" [ "$a" "$op" "$b" ]; then
-		_L_unittest_showdiff "$a" "$b"
-		return 1
-	fi
-}
-
-_L_unittest_showdiff() {
-	if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
-		sdiff <(cat <<<"$1") - <<<"$2"
-	else
-		sdiff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
-	fi
-}
-
-L_unittest_vareq() {
-	if ! _L_unittest_internal "test: \$$1=${!1:-} == $2" "" [ "${!1:-}" == "$2" ]; then
-		_L_unittest_showdiff "${!1:-}" "$2"
-		return 1
-	fi
-}
-
-L_unittest_eq() {
-	if ! _L_unittest_internal "test: ${1@Q} == ${2@Q}" "" [ "$1" == "$2" ]; then
-		_L_unittest_showdiff "$1" "$2"
-		return 1
-	fi
-}
-
-# ]]]
-# trapchain library[[[
-
-# printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
-_L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
-
-L_get_trap_number_from_name() {
-	local line
-	line=$(trap -l)
-	while IFS= read -r line; do
-		while [[ "$line" =~ ^[$'\t ']*([0-9]+)\)[$'\t ']*([^$'\t ']+)(.*) ]]; do
-			if [[ "$1" == "${BASH_REMATCH[2]}" ]]; then
-				echo "${BASH_REMATCH[1]}"
-				break 2
+# shellcheck disable=1105,2053
+# @description compare version numbers
+# @see https://peps.python.org/pep-0440/
+# @arg $1 str one version
+# @arg $2 str one of: -lt -le -eq -ne -gt -ge '<' '<=' '==' '!=' '>' '>=' '~='
+# @arg $3 str second version
+# @arg [$4] int accuracy, how many at max elements to compare? By default up to 3.
+L_version_cmp() {
+	local -A ops=(["-lt"]='<' ["-le"]='<=' ["-eq"]='==' ["-ne"]='!=' ["-gt"]='>' ["-ge"]='>=')
+	local op=${ops["$2"]:-$2}
+	case "$op" in
+	'~=')
+		L_version_cmp "$1" '>=' "$3" && L_version_cmp "$1" "==" "${3%.*}.*"
+		;;
+	'==')
+		[[ $1 == $3 ]]
+		;;
+	'!=')
+		[[ $1 != $3 ]]
+		;;
+	*)
+		local res='=' i max a=() b=()
+		IFS='.-()' read -ra a <<<"$1"
+		IFS='.-()' read -ra b <<<"$3"
+		L_max -v max "${#a[@]}" "${#b[@]}"
+		L_min -v max "${4:-3}" "$max"
+		for ((i=0;i<max;++i)); do
+			if ((a[i] > b[i])); then
+				res='>'
+				break
+			elif ((a[i] < b[i])); then
+				res='<'
+				break
 			fi
-			line=${BASH_REMATCH[3]}
 		done
-	done <<<"$line"
-}
-
-L_get_trap_name() {
-	(
-		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
-		trap -p
-	) | while IFS= read -r line; do
-		if
-			[[ "$line" == *'0738dc3c-6716-44a1-960a-991b0ec4abaa'* ]] &&
-			[[ "$line" =~ [^\ ]*$ ]]
-		then
-				printf %s "${BASH_REMATCH[0]}"
-		fi
-	done
-}
-
-L_extract_trap() {
-	local tmp
-	tmp=$(L_get_trap_name "$@")
-	trap -p "$tmp" |
-		sed '1s/^trap -- //; $s/ [^ ]\+$//' |
-		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
-}
-
-_L_trapchain_callback() {
-	# This is what it takes.
-	local _L_tmp
-	_L_tmp=_L_trapchain_data_$1
-	eval "${!_L_tmp}"
-}
-
-# shellcheck disable=2064
-L_trapchain() {
-	local name
-	name=$(L_get_trap_name "$2") &&
-	trap "_L_trapchain_callback $name" "$name" &&
-	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
-}
-
-
-# shellcheck disable=2064
-# shellcheck disable=2016
-_L_trapchain_test() {
-	local tmp
-	local allchars
-	tmp=$(
-		L_trapchain 'echo -n "!"' EXIT
-		L_trapchain 'echo -n world' EXIT
-		L_trapchain 'echo -n " "' EXIT
-		L_trapchain 'echo -n hello' EXIT
-	)
-	L_unittest_assert '[[ "$tmp" == "hello world!" ]]' "tmp=$tmp"
-	allchars="$_L_allchars"
-	tmp=$(
-		printf -v tmp %q "$allchars"
-		L_trapchain 'echo -n "hello"' SIGUSR1
-		L_trapchain "echo $tmp" SIGUSR1
-		L_trapchain 'echo -n world' SIGUSR2
-		L_trapchain 'echo -n " "' SIGUSR2
-		L_trapchain 'echo -n "!"' EXIT
-		L_raise SIGUSR1
-		L_raise SIGUSR2
-	)
-	local res
-	res="$allchars"$'\n'"hello world!"
-	L_unittest_assert '[[ "$tmp" == "$res" ]]' $'\n'"tmp=${tmp}"$'\n'"res=${res}"
-	(
-		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
-		tmp=$(L_extract_trap SIGUSR1)
-		L_unittest_vareq tmp "$_L_allchars"
-	)
-}
-
-L_raise() {
-	kill -s "$1" "$BASHPID"
-}
-
-if hash ,nice 2>/dev/null; then
-	L_nicecmd=(",nice")
-else
-	L_nicecmd=(nice -n 20 ionice -c 3)
-fi
-
-L_sudo_args_get() {
-	declare -n ret=$1
-	ret=()
-	local envs
-	envs=
-	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
-		if [[ -n "${!i:-}" ]]; then
-			envs="${envs:---preserve-env=}${envs:+,}$i"
-		fi
-	done
-	if ((${#envs})); then
-		ret=("$envs")
-	fi
-}
-
-L_sudo() {
-	local sudo
-	sudo=()
-	if ((UID != 0)) && hash sudo 2>/dev/null; then
-		local sudo_args
-		L_sudo_args_get sudo_args
-		sudo=(sudo -n "${sudo_args[@]}")
-	fi
-	L_run "${sudo[@]}" "$@"
-}
-
-# ]]]
-# Map [[[
-# L_map consist of an empty initial newline.
-# Then follows map name, follows a spce, and then printf %q of the value.
-#
-#                     # empty initial newline
-#     key $'value'
-#     key2 $'value2'
-#
-# This format matches the regexes used in L_map_get for easy extraction using bash
-# Variable substituation.
-
-# @func
-# @brief Initializes a map
-# @param variable name holding the map
-L_map_init() {
-	printf -v "$1" "%s" ""
-}
-
-# @brief Clear a key of a map
-# @param map
-# @param key
-L_map_clear() {
-	if ! _L_map_check "$1" "$2"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
-	printf -v "$1" %s "$_L_map_name"
-}
-
-# @brief set value of a map if not set
-# @param map
-# @param key
-# @param default value
-L_map_setdefault() {
-	if ! L_map_has "$@"; then
-		L_map_set "$@"
-	fi
-}
-
-# @brief Set a key in a map to value
-# @param map
-# @param key
-# @param value
-L_map_set() {
-	L_map_clear "$1" "$2"
-	local _L_map_name _L_map_name2
-	_L_map_name=${!1}
-	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
-	# I add key-value pairs in chunks with preeceeding newline.
-	printf -v _L_map_name2 %q "${*:3}"
-	_L_map_name+=$'\n'"$2 $_L_map_name2"
-	printf -v "$1" %s "$_L_map_name"
-}
-
-L_map_append() {
-	local _L_map_name
-	if L_map_getv _L_map_name "$1" "$2";then
-		L_map_set "$1" "$2" "$_L_map_name${4:-}$3"
-	else
-		L_map_set "$1" "$2" "$3"
-	fi
-}
-
-# @brief Assigns the value of key in map.
-# If the key is not set, then assigns default if given and returns with 1.
-# You want to prefer this version of L_map_get
-# @param var
-# @param map
-# @param attribute
-# @param optional default
-L_map_getv() {
-	if ! _L_map_check "$1" "$2" "$3"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!2}
-	local _L_map_name2
-	_L_map_name2="$_L_map_name"
-	# Remove anything in front of the newline followed by key followed by space.
-	# Because the key can't have newline not space, it's fine.
-	_L_map_name2=${_L_map_name2##*$'\n'"$3 "}
-	# If nothing was removed, then the key does not exists.
-	if [[ "$_L_map_name2" == "$_L_map_name" ]]; then
-		if (($# >= 4)); then
-			printf -v "$1" %s "${*:4}"
-		fi
-		return 1
-	fi
-	# Remove from the newline until the end and print with eval.
-	# The key was inserted with printf %q, so it has to go through eval now.
-	_L_map_name2=${_L_map_name2%%$'\n'*}
-	eval "printf -v \"\$1\" %s $_L_map_name2"
-}
-
-L_map_get() {
-	local tmp="" ret=0
-	L_map_getv tmp "$@" || ret=$?
-	printf "%s\n" "$tmp"
-	return "$ret"
-}
-
-L_map_has() {
-	if ! _L_map_check "$1" "$2"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	[[ "$_L_map_name" == *$'\n'"$2 "* ]]
-}
-
-# List all keys in the map.
-L_map_keys() {
-	local _L_map_name
-	_L_map_name=${!1}
-	local oldIFS key val
-	oldIFS=$IFS
-	IFS=' '
-	while read -r key val; do
-		if [[ -z "$key" ]]; then continue; fi
-		printf "%s\n" "$key"
-	done <<<"$_L_map_name"
-}
-
-# List items with tab separated key and value.
-# Note: value is the output from printf %q - it needs to be eval-ed.
-L_map_items() {
-	local _L_map_name
-	_L_map_name=${!1}
-	local key val
-	while read -r key val; do
-		if [[ -z "$key" ]]; then continue; fi
-		printf "%s\t%s\n" "$key" "$val"
-	done <<<"$_L_map_name"
-}
-
-# Load all keys to variables with the name of $prefix$key.
-# @param $1 map variable
-# @param $2 prefix
-# @param [$3...] Optional list of keys to load. If not set, all are loaded.
-L_map_load() {
-	if ! _L_map_check "$@"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	local _L_oldIFS _L_key _L_val
-	_L_oldIFS="$IFS"
-	IFS=' '
-	while read -r _L_key _L_val; do
-		if [[ -z "$_L_key" ]]; then continue; fi
-		if (($# > 2)); then
-			for _L_tmp in "${@:3}"; do
-				if [[ "$_L_tmp" == "$_L_key" ]]; then
-					eval "printf -v \"\$2\$_L_key\" %s $_L_val"
-					break
-				fi
-			done
-		else
-			eval "printf -v \"\$2\$_L_key\" %s $_L_val"
-		fi
-	done <<<"$_L_map_name"
-	IFS="$_L_oldIFS"
-}
-
-_L_map_check() {
-	local i
-	for i in "$@"; do
-		if ! L_is_valid_variable_name "$i"; then
-			L_error "L_map: ${FUNCNAME[1]}: is not valid variable name: $i";
-			return 1
-		fi
-	done
-}
-
-# shellcheck disable=2018
-_L_map_test() {
-	local var tmp
-	var=123
-	tmp=123
-	L_map_init var
-	L_map_set var a 1
-	L_unittest_pipes <(L_map_get var a) <(echo -n 1)
-	L_unittest_pipes <(L_map_get var b) <(:)
-	L_map_set var b 2
-	L_unittest_pipes <(L_map_get var a) <(echo -n 1)
-	L_unittest_pipes <(L_map_get var b) <(echo -n 2)
-	L_map_set var a 3
-	L_unittest_pipes <(L_map_get var a) <(echo -n 3)
-	L_unittest_pipes <(L_map_get var b) <(echo -n 2)
-	L_unittest_checkexit 1 L_map_get var c
-	L_unittest_checkexit 1 L_map_has var c
-	L_unittest_checkexit 0 L_map_has var a
-	L_map_set var allchars "$_L_allchars"
-	L_unittest_pipes <(L_map_get var allchars) <(printf %s "$_L_allchars") "L_map_get var allchars"
-	L_map_clear var allchars
-	L_unittest_checkexit 1 L_map_get var allchars
-	L_map_set var allchars "$_L_allchars"
-	local s_a s_b s_allchars
-	L_unittest_pipes <(L_map_keys var | sort) <(printf "%s\n" b a allchars | sort) "L_map_keys check"
-	L_map_load var s_
-	L_unittest_vareq s_a 3
-	L_unittest_vareq s_b 2
-	# shellcheck disable=2016
-	L_unittest_assert '[[ "$s_allchars" == "$_L_allchars" ]]'
-}
-
-# ]]]
-# lib_lib functions [[[
-
-_L_lib_name=${BASH_SOURCE##*/}
-
-_L_lib_lib_error() {
-	echo "$_L_lib_name: ERROR: $*" >&2
-}
-
-_L_lib_lib_fatal() {
-	_L_lib_lib_error "$@"
-	exit 3
-}
-
-_L_lib_lib_list_prefix_functions() {
-	L_list_functions_with_prefix "$L_prefix"
-}
-
-if ! L_fn_exists L_cb_usage_usage; then L_cb_usage_usage() {
-	echo "Usage:  $L_name <COMMAND> [OPTIONS]"
-}; fi
-
-if ! L_fn_exists L_cb_usage_desc; then L_cb_usage_desc() {
-	:;
-}; fi
-
-if ! L_fn_exists L_cb_usage_footer; then L_cb_usage_footer() {
-	echo 'Written by Kamil Cukrowski. Licensed jointly under MIT License and Beeware License'
-}; fi
-
-# shellcheck disable=2046
-_L_lib_lib_their_usage() {
-	if L_function_exists L_cb_usage; then
-		L_cb_usage $(_L_lib_lib_list_prefix_functions)
-		return
-	fi
-	local a_usage a_desc a_cmds a_footer
-	a_usage=$(L_cb_usage_usage)
-	a_desc=$(L_cb_usage_desc)
-	a_cmds=$(
-		{
-			for f in $(_L_lib_lib_list_prefix_functions); do
-				desc=""
-				if L_function_exists L_cb_"$L_prefix$f"; then
-					L_cb_"$L_prefix$f" "$f" "$L_prefix"
-				fi
-				echo "$f${desc:+$'\01'}$desc"
-			done
-			echo "-h --help"$'\01'"print this help and exit"
-			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
-		} | {
-			if L_cmd_exists column && column -V 2>/dev/null | grep -q util-linux; then
-				column -t -s $'\01' -o '   '
-			else
-				sed 's/#/    /'
-			fi
-		} | sed 's/^/  /'
-	)
-	a_footer=$(L_cb_usage_footer)
-	cat <<EOF
-${a_usage}
-
-${a_desc:-}${a_desc:+
-
-}Commands:
-$a_cmds${a_footer:+
-
-}${a_footer:-}
-EOF
-}
-
-_L_lib_lib_show_best_match() {
-	local tmp
-	if tmp=$(
-		_L_lib_lib_list_prefix_functions |
-		if L_hash fzf; then
-			fzf -0 -1 -f "$1"
-		else
-			grep -F "$1"
-		fi
-	) && [[ -n "$tmp" ]]; then
-		echo
-		echo "The most similar commands are"
-		# shellcheck disable=2001
-		<<<"$tmp" sed 's/^/\t/'
-	fi >&2
-}
-
-# https://stackoverflow.com/questions/14513571/how-to-enable-default-file-completion-in-bash
-# shellcheck disable=2207
-_L_do_bash_completion() {
-	if [[ "$(LC_ALL=C type -t -- "_L_cb_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
-		"_L_cb_bash_completion_$L_NAME" "$@"
-		return
-	fi
-    if ((COMP_CWORD == 1)); then
-        COMPREPLY=($(compgen -W "${cmds[*]}" -- "${COMP_WORDS[1]}"))
-		# add trailing space to each
-        #COMPREPLY=("${COMPREPLY[@]/%/ }")
-    else
-		COMPREPLY=()
-    fi
-}
-
-# shellcheck disable=2120
-_L_lib_lib_bash_completion() {
-	local tmp cmds
-	tmp=$(_L_lib_lib_list_prefix_functions)
-	mapfile -t cmds <<<"$tmp"
-	local funcname
-	funcname=_L_bash_completion_$L_NAME
-	eval "$funcname() {
-		$(declare -p cmds L_NAME)"'
-		_L_do_bash_completion "$@"
-	}'
-	declare -f _L_do_bash_completion "$funcname"
-	printf "%s" "complete -o bashdefault -o default -F"
-	printf " %q" "$funcname" "$0" "$L_NAME"
-	printf '\n'
-}
-
-_L_lib_lib_unittests_run() {
-	if (($# < 2)); then return; fi
-	if [[ "$1" != "--test" ]]; then return; fi
-	L_assert "(($# <= 3))" "too many arguments for --test"
-	local mode repeat=0
-	mode=${2:-}
-	case "$mode" in +([0-9])-*)
-		repeat=${mode%%-*}
-		mode=${mode#+([0-9])-}
+		[[ $op == *"$res"* ]]
+	;;
 	esac
-	if [[ "$mode" == time_all-* ]]; then
-		L_time_all "$0" --test="50-${mode#time_all-}"
-		exit
-	fi
-	tests=$(
-		compgen -A function |
-		grep -x '_L_.*_test' |
-		grep "${mode:-.*}" ||:
-	)
-	if [[ -z "$tests" ]]; then
-		L_fatal "No tests matched with $mode"
-	fi
-	local test i
-	if ((repeat == 0)); then
-		for test in $tests; do "$test"; done
-	else
-		for test in $tests; do
-			for ((i = 0; i < repeat; ++i)); do
-				"$test"
-			done
-		done >/dev/null 2>/dev/null
-	fi
-	exit "${_L_unittest_result:-5}"
 }
 
-_L_lib_lib_usage() {
-	cat <<EOF
-Usage:
-      . $_L_lib_name [options] -q
-      . $_L_lib_name [options] <prefix> "\$@"
-	  $_L_lib_name --test
-
-A library to be called from other libraries. This is a simple script to
-allow me to write simple reusable programs with bash completion and much
-more TODO!
-
-Usage example:
-
-	# script.sh
-	LIB_prefix_some_func() {
-		desc="this func does that"
-	}
-    prefix_some_func() {
-		echo 'yay!'
-	}
-    prefix_some_other_func() {
-		echo 'not yay!'
-	}
-	source $_L_lib_name 'prefix_' "\$@"
-
-Then you can enter from command line:
-
-	script.sh some_func
-
-You can import bash completion for the script with:
-
-	eval "\$(script.sh --bash-completion)"
-
-Options:
-	-L   Drop L_ prefix on some functions
-	-q   Only import library - do not parse arguments
-	-l   Both -L and -q
-
-Written by Kamil Cukrowski 2020.
-Licensed jointly under Beerware License and MIT License.
-EOF
+_L_test_version() {
+	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
+	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
+	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
+	L_unittest_checkexit 0 L_version_cmp "0" '<' "1"
+	L_unittest_checkexit 0 L_version_cmp "0" '<=' "1"
+	L_unittest_checkexit 0 L_version_cmp "0.1" '<' "0.2"
+	L_unittest_checkexit 0 L_version_cmp "2.3.1" '<' "10.1.2"
+	L_unittest_checkexit 0 L_version_cmp "1.3.a4" '<' "10.1.2"
+	L_unittest_checkexit 0 L_version_cmp "0.0.1" '<' "0.0.2"
+	L_unittest_checkexit 0 L_version_cmp "0.1.0" -gt "0.0.2"
+	L_unittest_checkexit 0 L_version_cmp "${BASH_VERSION}" -gt "0.1.0"
+	L_unittest_checkexit 0 L_version_cmp "1.0.3" "<" "1.0.7"
+	L_unittest_checkexit 1 L_version_cmp "1.0.3" ">" "1.0.7"
+	L_unittest_checkexit 0 L_version_cmp "2.0.1" ">=" "2"
+	L_unittest_checkexit 0 L_version_cmp "2.1" ">=" "2"
+	L_unittest_checkexit 0 L_version_cmp "2.0.0" ">=" "2"
+	L_unittest_checkexit 0 L_version_cmp "1.4.5" "~=" "1.4.5"
+	L_unittest_checkexit 0 L_version_cmp "1.4.6" "~=" "1.4.5"
+	L_unittest_checkexit 1 L_version_cmp "1.5.0" "~=" "1.4.5"
+	L_unittest_checkexit 1 L_version_cmp "1.3.0" "~=" "1.4.5"
 }
 
 # ]]]
-# Library end [[[
-fi
-# ]]]
-# lib_lib main [[[
+# asa - ASsociative Array [[[
+# @section asa
+# @description collection of function to work on associative arrays
 
-# Easier to use library - drop L_ prefix on some functions if -L argument is passed
-_L_lib_lib_args=$(getopt -n "$L_NAME:$_L_lib_name" -o +Llqha -l help,test::,bash-completion-gen-symlinks -- "$@") || return 1
-eval "set -- $_L_lib_lib_args"
-unset _L_lib_lib_args
-_L_lib_loadonly=0
-_L_lib_help=0
-_L_argparse=0
-while (($#)); do
-	case "$1" in
-	-L) _L_lib_drop_L_prefix; ;;
-	-q) _L_lib_loadonly=1; ;;
-	-l) _L_lib_drop_L_prefix; _L_lib_loadonly=1; ;;
-	-a) _L_argparse=1; ;;
-	-h|--help) _L_lib_help=1; ;;
-	(--bash-completion-gen-symlinks)
-		set -x
-		( cd ~/.kamilscripts/bin/ && ag -l '(\.|source)\s+,lib_lib\s+.*"\$@"' . ) |
-		( cd ~/.kamilscripts/bash-completions && xargs -i ln -vs ,lib_lib {} )
-		exit
-		;;
-	--test) break; ;;
-	--) shift; break; ;;
-	*) L_fatal "$_L_lib_name: Internal error when parsing arguments"; ;;
-	esac
-	shift
-done
-
-if ! L_am_I_sourced; then
-	_L_lib_lib_unittests_run "$@"
-	_L_lib_lib_usage
-	if ((_L_lib_help)); then exit 0; fi
-	_L_lib_lib_fatal "Script $_L_lib_name has to be sourced!"
-	exit 1
-fi
-
-if ((_L_lib_loadonly)); then
-	if (($#)); then L_warning "Do not pass arguments with -q option"; fi
-	unset _L_lib_loadonly
-	return
-fi
-unset _L_lib_loadonly
-
-if (($# == 0)); then _L_lib_lib_fatal "prefix argument missing"; fi
-L_prefix=$1
-case "$L_prefix" in
-(-*) _L_lib_lib_fatal "prefix argument cannot start with -"; ;;
-("") _L_lib_lib_fatal "prefix argument is empty"; ;;
-esac
-shift
-
-if L_fn_exists "L_cb_parse_args"; then
-	unset L_cb_args
-	L_cb_parse_args "$@"
-	if ! L_var_isset L_cb_args; then L_error "L_cb_parse_args did not return L_cb_args array"; fi
-	# shellcheck disable=2154
-	set -- "${L_cb_args[@]}"
-elif ((_L_argparse)); then
-	_L_tmps=()
-	while (($#)); do
-		if [[ "$1" == '--' ]]; then
-			shift
-			break
-		fi
-		_L_tmps+=("$1")
-		shift
-	done
-	L_argparse "${_L_tmps[@]}" \
-		-q --quiet callback='L_logmask=61' -- \
-		-v --verbose dest=L_logmask action=store_const const=255 --
-		"$@"
-else
-	case "${1:-}" in
-	(--bash-completion)
-		_L_lib_lib_bash_completion
-		return
-		exit
-		;;
-	(-h|--help)
-		_L_lib_lib_their_usage "$@"
-		return
-		exit
-		;;
-	esac
-fi
-
-if (($# == 0)); then
-	if ! L_fn_exists "${L_prefix}DEFAULT"; then
-		_L_lib_lib_their_usage "$@"
-		L_error "Command argument missing."
-		exit 1
-	fi
-fi
-L_CMD="${1:-DEFAULT}"
-shift
-if ! L_function_exists "$L_prefix$L_CMD"; then
-	L_error "Unknown command: '$L_CMD'. See '$L_NAME --help'."
-	_L_lib_lib_show_best_match "$L_CMD"
-	exit 1
-fi
-"$L_prefix$L_CMD" "$@"
-
-# ]]]
-
-# vim: foldmethod=marker foldmarker=[[[,]]]
-
-#!/bin/bash
-# shellcheck disable=2317,2178
-set -euo pipefail
-
-. lib_lib.sh -l
-
-L_arrayvar_contains() {
-	if [[ $1 != _L_array ]]; then
-		declare -n _L_array=$1
-	fi
-	L_assert2 "" test "$#" = 2
-	L_arrayvar_contains "${_L_array[@]}" "$2"
-}
-
-L_array_contains() {
-	L_assert2 "" test "$#" -ge 1
-	local last i
-	last="${*: -1}"
-	for i in "${@:1:$#-1}"; do
-		if [[ "$last" == "$i" ]]; then
-			return 0
-		fi
-	done
-	return 1
-}
-
-L_assert2() {
-	if "${@:2}"; then
-		:
-	else
-		L_print_traceback2
-		L_fatal "assertion ${*:2} failed${1:+: $1}"
-	fi
-}
-
-L_unittest_ne() {
-	if ! _L_unittest_internal "test: $1 != $2" "" [ "$1" != "$2" ]; then
-		_L_unittest_showdiff "$1" "$2"
-		return 1
-	fi
-}
-
-L_unittest_regex() {
-	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" eval "[[ ${1@Q} =~ $2 ]]"; then
-		_L_unittest_showdiff "$1" "$2"
-		return 1
-	fi
-}
-
-L_unittest_pattern() {
-	if ! _L_unittest_internal "test: ${1@Q} pattern ${2@Q}" "" eval "set -- ${2@Q}; [[ ${1@Q} == \$1 ]]"; then
-		_L_unittest_showdiff "$1" "$2"
-		return 1
-	fi
-}
-
-L_unittest_contains() {
-	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
-		_L_unittest_showdiff "$1" "$2"
-		return 1
-	fi
-}
-
-# @section L_asa
-# @description check if variable is an associative array
-# @arg $1 variable nameref
-L_var_is_associative() {
-	[[ $(declare -p "$1") == "declare -A"* ]]
-}
-
-###############################################################################
-
-# @section L_sort
-# @description internal function for sorting
-# @internal
-# @see L_sort
-# @env _L_array
-# @env _L_sort_numeric
-# @env _L_i
-_L_sort_partition() {
-	local _L_j _L_temp _L_pivot
-	_L_pivot=${_L_array[$2]}
-	for ((_L_i = $1 - 1, _L_j = $1; _L_j < $2; _L_j++)); do
-		if
-			if ((_L_sort_numeric)); then
-				((_L_array[_L_j] < _L_pivot))
-			else
-				[[ "${_L_array[_L_j]}" < "$_L_pivot" ]]
-			fi
-		then
-			_L_temp=${_L_array[++_L_i]}
-			_L_array[_L_i]=${_L_array[_L_j]}
-			_L_array[_L_j]=$_L_temp
-		fi
-	done
-	_L_temp=${_L_array[++_L_i]}
-	_L_array[_L_i]=${_L_array[$2]}
-	_L_array[$2]=$_L_temp
-}
-
-# @section L_sort
-# @description
-# @internal
-# @env _L_array
-# @env _L_i
-# @arg $1 starting index
-# @arg $2 ending index
-_L_sort_in() {
-	local _L_i
-	if (($1 < $2)); then
-		_L_sort_partition "$1" "$2"
-		_L_sort_in "$1" "$((_L_i - 1))"
-		_L_sort_in "$((_L_i + 1))" "$2"
-	fi
-}
-
-# @section L_sort
-# @description quicksort an array in place in pure bash
-# @option -n --numeric-sort numeric sort, otherwise lexical
-# @arg $1 array
-# @arg [$2] starting index
-# @arg [$3] ending index
-L_sort() {
-	local _L_sort_numeric=0
-	if [[ "$1" == -n || "$1" == --numeric-sort ]]; then
-		_L_sort_numeric=1
-		shift
-	fi
-	#
-	L_var_is_array "$1"
-	L_assert2 '' L_var_is_array "$1"
-	if [[ "$1" != _L_array ]]; then declare -n _L_array=$1; fi
-	# second argument default to 0
-	if (($# == 1)); then set -- "$@" 0; fi
-	# third argument default to array length
-	if (($# == 2)); then set -- "$@" "$((${#_L_array[@]} - 1))"; fi
-	_L_sort_in "$2" "$3"
-}
-
-# @section L_sort
-_L_test_sort() {
-	local arr=(9 4 1 3 4 5)
-	L_sort -n arr
-	L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
-	local arr=(g s b a c o)
-	L_sort arr
-	L_unittest_eq "${arr[*]}" "a b c g o s"
-}
-_L_test_sort
-
-###############################################################################
-# asa - ASsociative Array
-
-# @section L_asa
 # @description Copy associative dictionary
-# @arg $1 The name of one dictionary variable
-# @arg $2 The name of the other dictionary variable
-# @arg [$3] Filter only keys with this prefix
+# @arg $1 var The name of one dictionary variable
+# @arg $2 var The name of the other dictionary variable
+# @arg [$3] str Filter only keys with this prefix
 L_asa_copy() {
 	if [[ $1 != _L_nameref_from ]]; then declare -n _L_nameref_from=$1; fi
 	if [[ $1 != _L_nameref_to ]]; then declare -n _L_nameref_to=$2; fi
@@ -1502,7 +1165,6 @@ L_asa_copy() {
 	done
 }
 
-# @section L_asa
 # @description check if associative array has key
 # @arg $1 associative array nameref
 # @arg $2 key
@@ -1516,18 +1178,18 @@ _L_asa_handle_v() {
 		set -- -v "${1#-v}" "${@:2}"
 	fi
 	if [[ $1 == -v ]]; then
+		# if [[ $2 != _L_v ]]; then local -n _L_v=$2; fi
 		"${FUNCNAME[1]}"_v "${@:2}"
 	else
-		local _L_res
-		if "${FUNCNAME[1]}"_v _L_res "$@"; then
-			printf "%s\n" "${_L_res[@]}"
+		local _L_v
+		if "${FUNCNAME[1]}"_v _L_v "$@"; then
+			printf "%s\n" "${_L_v[@]}"
 		else
 			return $?
 		fi
 	fi
 }
 
-# @section L_asa
 # @description Get value from associative array
 # @arg $1 destination variable nameref
 # @arg $2 associative array nameref
@@ -1548,7 +1210,6 @@ L_asa_get_v() {
 	fi
 }
 
-# @section L_asa
 # @description Get value from associative array
 # @option -v var
 # @arg $1 associative array nameref
@@ -1559,7 +1220,6 @@ L_asa_get() {
 	_L_asa_handle_v "$@"
 }
 
-# @section L_asa
 # @description get the length of associative array
 # @arg $1 destination variable nameref
 # @arg $2 associative array nameref
@@ -1569,7 +1229,6 @@ L_asa_len_v() {
 	printf -v "$1" "%s" "${#_L_keys[@]}"
 }
 
-# @section L_asa
 # @description get the length of associative array
 # @option -v var
 # @arg $1 associative array nameref
@@ -1577,7 +1236,6 @@ L_asa_len() {
 	_L_asa_handle_v "$@"
 }
 
-# @section L_asa
 # @description get keys of an associative array in a sorted
 # @arg $1 destination array variable nameref
 # @arg $2 associative array nameref
@@ -1589,7 +1247,6 @@ L_asa_keys_sorted_v() {
 	L_sort "$1"
 }
 
-# @section L_asa
 # @description get keys of an associative array in a sorted
 # @option -v var
 # @arg $1 associative array nameref
@@ -1597,14 +1254,13 @@ L_asa_keys_sorted() {
 	_L_asa_handle_v "$@"
 }
 
-# @section L_asa
 # @description Move the 3rd argument to the first and call
 # The `L_asa $1 $2 $3 $4 $5` becomes `L_asa_$3 $1 $2 $4 $5`
-# @example L_asa -v v get map a
 # @option -v var
 # @arg $1 function name
 # @arg $2 associative array nameref
-# @arg * arguments
+# @arg $@ arguments
+# @example L_asa -v v get map a
 L_asa() {
 	if [[ $1 == -v?* ]]; then
 		"L_asa_$2" "$1" "${@:3}"
@@ -1615,11 +1271,10 @@ L_asa() {
 	fi
 }
 
-# @section L_asa
 # @description store an associative array inside an associative array
-# @arg $1 destination nameref
+# @arg $1 var destination nameref
 # @arg $2 =
-# @arg $3 associative array nameref to store
+# @arg $3 var associative array nameref to store
 # @see L_nested_asa_get
 L_nested_asa_set() {
 	if [[ $1 != _L_dest ]]; then declare -n _L_dest=$1; fi
@@ -1628,21 +1283,19 @@ L_nested_asa_set() {
 	_L_dest=${_L_tmp#*=}
 }
 
-# @section L_asa
 # @description extract an associative array inside an associative array
-# @arg $1 associative array nameref to store
+# @arg $1 var associative array nameref to store
 # @arg $2 =
-# @arg $3 source nameref
+# @arg $3 var source nameref
 # @see L_nested_asa_set
 L_nested_asa_get() {
 	if [[ $3 != _L_asa ]]; then declare -n _L_asa=$3; fi
 	if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to=$1; fi
-	declare -A _L_tmp="$_L_asa"
+	declare -A _L_tmpa="$_L_asa"
 	_L_asa_to=()
-	L_asa_copy _L_tmp "$1"
+	L_asa_copy _L_tmpa "$1"
 }
 
-# @section L_asa
 _L_test_asa() {
 	declare -A map
 	local v
@@ -1694,11 +1347,472 @@ _L_test_asa() {
 		L_unittest_eq "${v[*]}" "c e"
 	}
 }
-_L_test_asa
 
-###############################################################################
+# ]]]
+# unittest [[[
+# @section unittest
+# @description unit testing library
 
-###############################################################################
+# @description accumulator for unittest results
+L_unittest_result=0
+
+# @description internal unittest function
+# @env L_unittest_result
+# @set L_unittest_result
+# @arg $1 message to print what is testing
+# @arg $2 message to print on failure
+# @arg $@ command to execute, can start with '!' to invert exit status
+_L_unittest_internal() {
+	local _L_tmp=0 _L_invert=0
+	if [[ "$3" == "!" ]]; then
+		_L_invert=1
+		shift
+	fi
+	"${@:3}" || _L_tmp=$?
+	(( _L_invert ? (_L_tmp = !_L_tmp) : 1 , 1 ))
+	: "${L_unittest_result:=0}"
+	if ((_L_tmp)); then
+		echo -n "${L_RED}${L_BRIGHT}"
+	fi
+	echo -n "${FUNCNAME[2]}:${BASH_LINENO[1]}${1:+: }${1:-}: "
+	if ((_L_tmp == 0)); then
+		echo "${L_GREEN}OK${L_COLORRESET}"
+	else
+		(( ++L_unittest_result ))
+		_L_tmp=("${@:3}")
+		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_COLORRESET}"
+		return 1
+	fi
+} >&2
+
+# @description Test is eval of a string return success.
+# @arg $1 string to eval-ulate
+# @arg $@ error message
+L_unittest_eval() {
+	_L_unittest_internal "test eval ${1}" "${*:2}" eval "$1" ||:
+}
+
+# @description Check if command exits with specified exitcode
+# @arg $1 exit code
+# @arg $@ command to execute
+L_unittest_checkexit() {
+	local _L_ret _L_shouldbe
+	_L_shouldbe=$1
+	shift 1
+	"${@}" && _L_ret=$? || _L_ret=$?
+	_L_unittest_internal "test exit of ${*@Q} is $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
+}
+
+# @description Check if command exits with 0
+# @arg $@ command to execute
+L_unittest_success() {
+	L_unittest_checkexit 0 "$@"
+}
+
+# @description Check if command exits with non zero
+# @arg $@ command to execute
+L_unittest_failure() {
+	L_unittest_checkexit 0 ! "$@"
+}
+
+# @description Check if the content of files is equal
+# @arg $1 first file
+# @arg $2 second file
+# @example L_unittest_cmpfiles <(testfunc $1) <(echo shluldbethis)
+L_unittest_cmpfiles() {
+	local op='='
+	if [[ "$1" = "!" ]]; then
+		op='!='
+		shift
+	fi
+	local a b
+	a=$(< "$1")
+	b=$(< "$2")
+	if ! _L_unittest_internal "test pipes${3:+ $3}" "${4:-}" [ "$a" "$op" "$b" ]; then
+		_L_unittest_showdiff "$a" "$b"
+		return 1
+	fi
+}
+
+_L_unittest_showdiff() {
+	if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
+		sdiff <(cat <<<"$1") - <<<"$2"
+	else
+		sdiff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
+	fi
+}
+
+# @description test if varaible has value
+# @arg $1 variable nameref
+# @arg $2 value
+L_unittest_vareq() {
+	if ! _L_unittest_internal "test: \$$1=${!1:+${!1@Q}} == ${2@Q}" "" [ "${!1:-}" == "$2" ]; then
+		_L_unittest_showdiff "${!1:-}" "$2"
+		return 1
+	fi
+}
+
+# @description test if two strings are equal
+# @arg $1 one string
+# @arg $2 second string
+L_unittest_eq() {
+	if ! _L_unittest_internal "test: ${1@Q} == ${2@Q}" "" [ "$1" == "$2" ]; then
+		_L_unittest_showdiff "$1" "$2"
+		return 1
+	fi
+}
+
+# @description test two strings are not equal
+# @arg $1 one string
+# @arg $2 second string
+L_unittest_ne() {
+	if ! _L_unittest_internal "test: ${1@Q} != ${2@Q}" "" [ "$1" != "$2" ]; then
+		_L_unittest_showdiff "$1" "$2"
+		return 1
+	fi
+}
+
+# @description test if a string matches regex
+# @arg $1 string
+# @arg $2 regex
+L_unittest_regex() {
+	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" eval "[[ ${1@Q} =~ $2 ]]"; then
+		_L_unittest_showdiff "$1" "$2"
+		return 1
+	fi
+}
+
+# @description test if a string contains other string
+# @arg $1 string
+# @arg $2 needle
+L_unittest_contains() {
+	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
+		_L_unittest_showdiff "$1" "$2"
+		return 1
+	fi
+}
+
+# ]]]
+# trapchain [[[
+# @section trapchain
+# @description library for chaining traps
+
+# @description 255 bytes with all possible 255 values
+# Generated by: printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
+_L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
+
+# @description
+L_get_trap_number_from_name() {
+	local line
+	line=$(trap -l)
+	while IFS= read -r line; do
+		while [[ "$line" =~ ^[$'\t ']*([0-9]+)\)[$'\t ']*([^$'\t ']+)(.*) ]]; do
+			if [[ "$1" == "${BASH_REMATCH[2]}" ]]; then
+				echo "${BASH_REMATCH[1]}"
+				break 2
+			fi
+			line=${BASH_REMATCH[3]}
+		done
+	done <<<"$line"
+}
+
+# @description convert trap number to trap name
+L_get_trap_name() {
+	(
+		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
+		trap -p
+	) | while IFS= read -r line; do
+		if
+			[[ "$line" == *'0738dc3c-6716-44a1-960a-991b0ec4abaa'* ]] &&
+			[[ "$line" =~ [^\ ]*$ ]]
+		then
+				printf %s "${BASH_REMATCH[0]}"
+		fi
+	done
+}
+
+# @description
+L_extract_trap() {
+	local tmp
+	tmp=$(L_get_trap_name "$@")
+	trap -p "$tmp" |
+		sed '1s/^trap -- //; $s/ [^ ]\+$//' |
+		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
+}
+
+# @description internal callback called when trap fires
+_L_trapchain_callback() {
+	# This is what it takes.
+	local _L_tmp
+	_L_tmp=_L_trapchain_data_$1
+	eval "${!_L_tmp}"
+}
+
+# shellcheck disable=2064
+# @description Chain a trap to execute in reverse order
+# @arg $1 str Script to execute
+# @arg $2 str signal to handle
+# @example
+#   L_trapchain 'echo' EXIT
+#   L_trapchain 'echo -n world' EXIT
+#   L_trapchain 'echo -n " "' EXIT
+#   L_trapchain 'echo -n hello' EXIT
+#   # will print 'hello world' on exit
+L_trapchain() {
+	local _L_name
+	_L_name=$(L_get_trap_name "$2") &&
+	trap "_L_trapchain_callback $_L_name" "$_L_name" &&
+	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
+}
+
+
+# shellcheck disable=2064
+# shellcheck disable=2016
+_L_test_trapchain() {
+	local tmp
+	local allchars
+	tmp=$(
+		L_trapchain 'echo -n "!"' EXIT
+		L_trapchain 'echo -n world' EXIT
+		L_trapchain 'echo -n " "' EXIT
+		L_trapchain 'echo -n hello' EXIT
+	)
+	L_unittest_eq "$tmp" "hello world!"
+	allchars="$_L_allchars"
+	tmp=$(
+		printf -v tmp %q "$allchars"
+		L_trapchain 'echo -n "hello"' SIGUSR1
+		L_trapchain "echo $tmp" SIGUSR1
+		L_trapchain 'echo -n world' SIGUSR2
+		L_trapchain 'echo -n " "' SIGUSR2
+		L_trapchain 'echo -n "!"' EXIT
+		L_raise SIGUSR1
+		L_raise SIGUSR2
+	)
+	local res
+	res="$allchars"$'\n'"hello world!"
+	L_unittest_eq "$tmp" "$res"
+	(
+		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
+		tmp=$(L_extract_trap SIGUSR1)
+		L_unittest_vareq tmp "$_L_allchars"
+	)
+}
+
+# ]]]
+# Map [[[
+# @section map
+# @description key value store without associative array implementation
+# Deprecated, experimental, do not use.
+#
+# L_map consist of an empty initial newline.
+# Then follows map name, follows a spce, and then printf %q of the value.
+#
+#                     # empty initial newline
+#     key $'value'
+#     key2 $'value2'
+#
+# This format matches the regexes used in L_map_get for easy extraction using bash
+# Variable substituation.
+
+# @description Initializes a map
+# @arg $1 var variable name holding the map
+L_map_init() {
+	printf -v "$1" "%s" ""
+}
+
+# @description Clear a key of a map
+# @arg $1 var map
+# @arg $2 str key
+L_map_clear() {
+	if ! _L_map_check "$1" "$2"; then return 2; fi
+	local _L_map_name
+	_L_map_name=${!1}
+	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
+	printf -v "$1" %s "$_L_map_name"
+}
+
+# @description set value of a map if not set
+# @arg $1 var map
+# @arg $2 str key
+# @arg $3 str default value
+L_map_setdefault() {
+	if ! L_map_has "$@"; then
+		L_map_set "$@"
+	fi
+}
+
+# @description Set a key in a map to value
+# @arg $1 var map
+# @arg $2 str key
+# @arg $3 str value
+L_map_set() {
+	L_map_clear "$1" "$2"
+	local _L_map_name _L_map_name2
+	_L_map_name=${!1}
+	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
+	# I add key-value pairs in chunks with preeceeding newline.
+	printf -v _L_map_name2 %q "${*:3}"
+	_L_map_name+=$'\n'"$2 $_L_map_name2"
+	printf -v "$1" %s "$_L_map_name"
+}
+
+# @description Append value to an existing key in map
+# @arg $1 var map
+# @arg $2 str key
+# @arg $3 str value to append
+L_map_append() {
+	local _L_map_name
+	if L_map_get_v _L_map_name "$1" "$2";then
+		L_map_set "$1" "$2" "$_L_map_name${*:3}"
+	else
+		L_map_set "$1" "$2" "$3"
+	fi
+}
+
+# @description Assigns the value of key in map.
+# If the key is not set, then assigns default if given and returns with 1.
+# You want to prefer this version of L_map_get
+# @arg $1 var
+# @arg $2 var map
+# @arg $3 str key
+# @arg [$4] str optional default value
+L_map_get_v() {
+	if ! _L_map_check "$1" "$2" "$3"; then return 2; fi
+	local _L_map_name
+	_L_map_name=${!2}
+	local _L_map_name2
+	_L_map_name2="$_L_map_name"
+	# Remove anything in front of the newline followed by key followed by space.
+	# Because the key can't have newline not space, it's fine.
+	_L_map_name2=${_L_map_name2##*$'\n'"$3 "}
+	# If nothing was removed, then the key does not exists.
+	if [[ "$_L_map_name2" == "$_L_map_name" ]]; then
+		if (($# >= 4)); then
+			printf -v "$1" %s "${*:4}"
+		fi
+		return 1
+	fi
+	# Remove from the newline until the end and print with eval.
+	# The key was inserted with printf %q, so it has to go through eval now.
+	_L_map_name2=${_L_map_name2%%$'\n'*}
+	eval "printf -v \"\$1\" %s $_L_map_name2"
+}
+
+# @description
+# @arg $1 var map
+# @arg $2 str key
+# @arg [$3] str default
+L_map_get() {
+	local tmp="" ret=0
+	L_map_get_v tmp "$@" || ret=$?
+	printf "%s\n" "$tmp"
+	return "$ret"
+}
+
+# @description
+# @arg $1 var map
+# @arg $2 str key
+# @exitcode 0 if map contains key, nonzero otherwise
+L_map_has() {
+	if ! _L_map_check "$1" "$2"; then return 2; fi
+	local _L_map_name
+	_L_map_name=${!1}
+	[[ "$_L_map_name" == *$'\n'"$2 "* ]]
+}
+
+# @description List all keys in the map.
+L_map_keys() {
+	local _L_map_name
+	_L_map_name=${!1}
+	local IFS=' ' key val
+	while read -r key val; do
+		if [[ -z "$key" ]]; then continue; fi
+		printf "%s\n" "$key"
+	done <<<"$_L_map_name"
+}
+
+# @description List items with tab separated key and value.
+# Value is the output from printf %q - it needs to be eval-ed.
+L_map_items() {
+	local _L_map_name
+	_L_map_name=${!1}
+	local key val
+	while read -r key val; do
+		if [[ -z "$key" ]]; then continue; fi
+		printf "%s\t%s\n" "$key" "$val"
+	done <<<"$_L_map_name"
+}
+
+# @description Load all keys to variables with the name of $prefix$key.
+# @arg $1 map variable
+# @arg $2 prefix
+# @arg $@ Optional list of keys to load. If not set, all are loaded.
+L_map_load() {
+	if ! _L_map_check "$@"; then return 2; fi
+	local _L_map_name
+	_L_map_name=${!1}
+	local IFS=' ' _L_key _L_val
+	while read -r _L_key _L_val; do
+		if [[ -z "$_L_key" ]]; then continue; fi
+		if (($# > 2)); then
+			for _L_tmp in "${@:3}"; do
+				if [[ "$_L_tmp" == "$_L_key" ]]; then
+					eval "printf -v \"\$2\$_L_key\" %s $_L_val"
+					break
+				fi
+			done
+		else
+			eval "printf -v \"\$2\$_L_key\" %s $_L_val"
+		fi
+	done <<<"$_L_map_name"
+}
+
+_L_map_check() {
+	local i
+	for i in "$@"; do
+		if ! L_is_valid_variable_name "$i"; then
+			L_error "L_map: ${FUNCNAME[1]}: is not valid variable name: $i";
+			return 1
+		fi
+	done
+}
+
+# shellcheck disable=2018
+_L_test_map() {
+	local var tmp
+	var=123
+	tmp=123
+	L_map_init var
+	L_map_set var a 1
+	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
+	L_unittest_cmpfiles <(L_map_get var b) <(:)
+	L_map_set var b 2
+	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
+	L_unittest_cmpfiles <(L_map_get var b) <(echo -n 2)
+	L_map_set var a 3
+	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 3)
+	L_unittest_cmpfiles <(L_map_get var b) <(echo -n 2)
+	L_unittest_checkexit 1 L_map_get var c
+	L_unittest_checkexit 1 L_map_has var c
+	L_unittest_checkexit 0 L_map_has var a
+	L_map_set var allchars "$_L_allchars"
+	L_unittest_cmpfiles <(L_map_get var allchars) <(printf %s "$_L_allchars") "L_map_get var allchars"
+	L_map_clear var allchars
+	L_unittest_checkexit 1 L_map_get var allchars
+	L_map_set var allchars "$_L_allchars"
+	local s_a s_b s_allchars
+	L_unittest_cmpfiles <(L_map_keys var | sort) <(printf "%s\n" b a allchars | sort) "L_map_keys check"
+	L_map_load var s_
+	L_unittest_vareq s_a 3
+	L_unittest_vareq s_b 2
+	L_unittest_eq "$s_allchars" "$_L_allchars"
+}
+
+# ]]]
+# argparse [[[
+# @section argparse
+# @decription argument parsing in bash
 
 # @description Print argument parsing error.
 # @env L_NAME
@@ -1839,7 +1953,7 @@ L_argparse_print_usage() {
 # @arg $1 argparser
 # @arg $2 index into argparser. Index 0 is the ArgumentParser class definitions, rest are arguments.
 # @arg $3 --
-# @arg * arguments to parse
+# @arg $@ arguments to parse
 # @set argparser[index]
 # @env _L_parser
 # @see L_argparse_init
@@ -1871,7 +1985,7 @@ _L_argparse_split() {
 				local _L_opt
 				_L_opt=${1%%=*}
 				L_assert2 "kv option may not contain space: $_L_opt" eval "[[ ! ${_L_opt@Q} == *' '* ]]"
-				L_assert2 "invalid kv option: $_L_opt" L_array_contains "${_L_allowed[@]}" "$_L_opt"
+				L_assert2 "invalid kv option: $_L_opt" L_args_contain "$_L_opt" "${_L_allowed[@]}"
 				_L_optspec["$_L_opt"]=${1#*=}
 				;;
 			--)
@@ -1985,7 +2099,7 @@ _L_argparse_split() {
 # - Adest - Store all values as keys into this associated dictionary
 # @arg $1 The parser variable
 # @arg $2 Must be set to '--'
-# @arg * Parameters
+# @arg $@ Parameters
 L_argparse_init() {
 	if [[ $1 != _L_parser ]]; then
 		declare -n _L_parser="$1"
@@ -2026,7 +2140,7 @@ L_argparse_init() {
 #
 # @arg $1 parser
 # @arg $2 --
-# @arg * parameters
+# @arg $@ parameters
 L_argparse_add_argument() {
 	if [[ $1 != _L_parser ]]; then declare -n _L_parser="$1"; fi
 	L_assert2 "" test "$2" = --
@@ -2214,7 +2328,7 @@ L_argparse_bash_complete() {
 # @env _L_parser
 # @arg $1 argparser nameref
 # @arg $2 --
-# @arg * arguments
+# @arg $@ arguments
 L_argparse_parse_args() {
 	if [[ "$1" != "_L_parser" ]]; then declare -n _L_parser=$1; fi
 	L_assert2 "" test "$2" = --
@@ -2222,7 +2336,7 @@ L_argparse_parse_args() {
 	#
 	{
 		local _L_in_complete=0
-		if [[ "$1" == --bash-complete ]]; then
+		if [[ "${1:-}" == --bash-complete ]]; then
 			_L_in_complete=1
 			shift
 		fi
@@ -2352,7 +2466,7 @@ L_argparse_parse_args() {
 		while _L_argparse_parser_next_optspec _L_i _L_optspec; do
 			if _L_argparse_optspec_is_option; then
 				if L_is_true "${_L_optspec["required"]:-}"; then
-					if ! L_array_contains "${_L_assigned_options[@]}" "${_L_optspec["mainoption"]}"; then
+					if ! L_args_contain "${_L_optspec["mainoption"]}" "${_L_assigned_options[@]}"; then
 						_L_required_options+=("${_L_optspec["mainoption"]}")
 					fi
 				fi
@@ -2429,9 +2543,7 @@ L_argparse() {
 	L_argparse_parse_args _L_parser -- "$@"
 }
 
-###############################################################################
-
-L_argparse_unittest() {
+_L_test_argparse() {
 	local ret tmp option parser storetrue storefalse store0 store1 storeconst append
 	{
 		L_log "define parser"
@@ -2551,10 +2663,7 @@ L_argparse_unittest() {
 	}
 }
 
-L_argparse_unittest
-exit
-
-test1() {
+_L_argparse_test1() {
 	local option bar verbose param arg
 	L_argparse \
 		prog="ProgramName" \
@@ -2570,12 +2679,7 @@ test1() {
 	echo
 }
 
-(test1 -h) || :
-test1 a b 1 2 3
-test1 a b 1 2
-exit
-
-test2() {
+_L_argparse_test2() {
 	local parser
 	L_argparse_init parser -- \
 		prog="PROG"
@@ -2588,9 +2692,7 @@ test2() {
 	declare -p args
 }
 
-test2 --foo 123 234
-
-test3() {
+_L_argparse_test3() {
 	local -A args
 	L_argparse \
 		prog="PROG" \
@@ -2601,17 +2703,300 @@ test3() {
 	declare -p args
 }
 
-test3 -e -u -o pipefail
-test3 -euo pipefail
-test3 -euopipefail
+# ]]]
+# private lib_lib functions [[[
+# @section lib_lib
+# @description internal functions and section
 
-cmd_a() {
-	local option arg1 arg2
-	L_argparse opt \
-		-- -o --option \
-		-- arg1 -- arg2 \
-		-- -- "$@"
-	echo "$option $arg1 $arg2"
+_L_lib_name=${BASH_SOURCE##*/}
+
+_L_lib_error() {
+	echo "$_L_lib_name: ERROR: $*" >&2
 }
 
-exit
+_L_lib_fatal() {
+	_L_lib_error "$@"
+	exit 3
+}
+
+_L_lib_drop_L_prefix() {
+	for i in run fatal logl log emerg alert crit err warning notice info debug panic error warn; do
+		eval "$i() { L_$i \"\$@\"; }"
+	done
+}
+
+_L_lib_list_prefix_functions() {
+	L_list_functions_with_prefix "$L_prefix"
+}
+
+if ! L_function_exists L_cb_usage_usage; then L_cb_usage_usage() {
+	echo "Usage:  $L_NAME <COMMAND> [OPTIONS]"
+}; fi
+
+if ! L_function_exists L_cb_usage_desc; then L_cb_usage_desc() {
+	:;
+}; fi
+
+if ! L_function_exists L_cb_usage_footer; then L_cb_usage_footer() {
+	echo 'Written by Kamil Cukrowski. Licensed jointly under MIT License and Beeware License'
+}; fi
+
+# shellcheck disable=2046
+_L_lib_their_usage() {
+	if L_function_exists L_cb_usage; then
+		L_cb_usage $(_L_lib_list_prefix_functions)
+		return
+	fi
+	local a_usage a_desc a_cmds a_footer
+	a_usage=$(L_cb_usage_usage)
+	a_desc=$(L_cb_usage_desc)
+	a_cmds=$(
+		{
+			for f in $(_L_lib_list_prefix_functions); do
+				desc=""
+				if L_function_exists L_cb_"$L_prefix$f"; then
+					L_cb_"$L_prefix$f" "$f" "$L_prefix"
+				fi
+				echo "$f${desc:+$'\01'}$desc"
+			done
+			echo "-h --help"$'\01'"print this help and exit"
+			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
+		} | {
+			if L_cmd_exists column && column -V 2>/dev/null | grep -q util-linux; then
+				column -t -s $'\01' -o '   '
+			else
+				sed 's/#/    /'
+			fi
+		} | sed 's/^/  /'
+	)
+	a_footer=$(L_cb_usage_footer)
+	cat <<EOF
+${a_usage}
+
+${a_desc:-}${a_desc:+
+
+}Commands:
+$a_cmds${a_footer:+
+
+}${a_footer:-}
+EOF
+}
+
+_L_lib_show_best_match() {
+	local tmp
+	if tmp=$(
+		_L_lib_list_prefix_functions |
+		if L_hash fzf; then
+			fzf -0 -1 -f "$1"
+		else
+			grep -F "$1"
+		fi
+	) && [[ -n "$tmp" ]]; then
+		echo
+		echo "The most similar commands are"
+		# shellcheck disable=2001
+		<<<"$tmp" sed 's/^/\t/'
+	fi >&2
+}
+
+# https://stackoverflow.com/questions/14513571/how-to-enable-default-file-completion-in-bash
+# shellcheck disable=2207
+_L_do_bash_completion() {
+	if [[ "$(LC_ALL=C type -t -- "_L_cb_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
+		"_L_cb_bash_completion_$L_NAME" "$@"
+		return
+	fi
+    if ((COMP_CWORD == 1)); then
+        COMPREPLY=($(compgen -W "${cmds[*]}" -- "${COMP_WORDS[1]}"))
+		# add trailing space to each
+        #COMPREPLY=("${COMPREPLY[@]/%/ }")
+    else
+		COMPREPLY=()
+    fi
+}
+
+# shellcheck disable=2120
+_L_lib_bash_completion() {
+	local tmp cmds
+	tmp=$(_L_lib_list_prefix_functions)
+	mapfile -t cmds <<<"$tmp"
+	local funcname
+	funcname=_L_bash_completion_$L_NAME
+	eval "$funcname() {
+		$(declare -p cmds L_NAME)"'
+		_L_do_bash_completion "$@"
+	}'
+	declare -f _L_do_bash_completion "$funcname"
+	printf "%s" "complete -o bashdefault -o default -F"
+	printf " %q" "$funcname" "$0" "$L_NAME"
+	printf '\n'
+}
+
+_L_lib_run_tests() {
+	set -euo pipefail
+	local OPTIND OPTARG _L_opt _L_tests=()
+	L_list_functions_with_prefix -v _L_tests _L_test
+	while getopts :hr: _L_opt; do
+		case $_L_opt in
+		h) cat <<EOF
+Options:
+  -h         Print this help and exit
+  -r REGEX   Filter tests with regex
+EOF
+		exit
+		;;
+		r)
+			L_log "filtering tests with ${OPTARG@Q}"
+			L_arrayvar_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
+			;;
+		*) L_fatal "invalid argument: $_L_opt"; ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	L_assert2 '' test "$#" = 0
+	L_assert2 'no tests matched' test "${#_L_tests[@]}" '!=' 0
+	local _L_test
+	for _L_test in "${_L_tests[@]}"; do
+		L_log "executing $_L_test"
+		"$_L_test"
+	done
+	L_log "done testing: ${_L_tests[*]}"
+	if ((L_unittest_result)); then
+		L_error "testing failed"
+	else
+		L_log "${L_GREEN}testing success"
+	fi
+	exit "$L_unittest_result"
+}
+
+_L_lib_usage() {
+	cat <<EOF
+Usage: . $_L_lib_name [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  -h  Print this help and exit.
+  -l  Drop the L_ prefix from some of the functions.
+  -a
+
+Commands:
+  help                  Print this help and exit
+  cmd PREFIX [ARGS]...  Run subcommands with specified prefix
+  test                  Run internal unit tests
+  eval                  Evaluate expression for testing
+
+Usage example of 'cmd' command:
+
+  # script.sh
+  prefix_some_func() { echo 'yay!'; }
+  prefix_some_other_func() { echo 'not yay!'; }
+  .  $_L_lib_name cmd 'prefix_' "\$@"
+
+Usage example of 'bash-completion' command:
+
+  eval "\$(script.sh --bash-completion)"
+
+Written by Kamil Cukrowski 2024. Licensed under LGPL.
+EOF
+}
+
+_L_lib_main_cmd() {
+			if (($# == 0)); then _L_lib_fatal "prefix argument missing"; fi
+			L_prefix=$1
+			case "$L_prefix" in
+			(-*) _L_lib_fatal "prefix argument cannot start with -"; ;;
+			("") _L_lib_fatal "prefix argument is empty"; ;;
+			esac
+			shift
+			if L_function_exists "L_cb_parse_args"; then
+				unset L_cb_args
+				L_cb_parse_args "$@"
+				if ! L_var_is_set L_cb_args; then L_error "L_cb_parse_args did not return L_cb_args array"; fi
+				# shellcheck disable=2154
+				set -- "${L_cb_args[@]}"
+			elif ((_L_opt_argparse)); then
+				_L_tmps=()
+				while (($#)); do
+					if [[ "$1" == '--' ]]; then
+						shift
+						break
+					fi
+					_L_tmps+=("$1")
+					shift
+				done
+				L_argparse "${_L_tmps[@]}" \
+					-q --quiet callback='L_logmask=61' -- \
+					-v --verbose dest=L_logmask action=store_const const=255 --
+					"$@"
+			else
+				case "${1:-}" in
+				(--bash-completion)
+					_L_lib_bash_completion
+					if L_is_main; then
+						exit
+					else
+						return
+					fi
+					;;
+				(-h|--help)
+					_L_lib_their_usage "$@"
+					if L_is_main; then
+						exit
+					else
+						return
+					fi
+					;;
+				esac
+			fi
+			if (($# == 0)); then
+				if ! L_function_exists "${L_prefix}DEFAULT"; then
+					_L_lib_their_usage "$@"
+					L_error "Command argument missing."
+					exit 1
+				fi
+			fi
+			L_CMD="${1:-DEFAULT}"
+			shift
+			if ! L_function_exists "$L_prefix$L_CMD"; then
+				_L_lib_error "Unknown command: '$L_CMD'. See '$L_NAME --help'."
+				_L_lib_show_best_match "$L_CMD"
+				exit 1
+			fi
+			"$L_prefix$L_CMD" "$@"
+}
+
+_L_lib_main() {
+	local _L_opt_argparse=0 _L_mode=""
+	local OPTARG OPTING _L_opt
+	while getopts :Lah _L_opt; do
+		case $_L_opt in
+		L) _L_lib_drop_L_prefix; ;;
+		a) _L_opt_argparse=1; ;;
+		h) _L_mode=help; ;;
+		*) L_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt"; ;;
+		esac
+		shift
+	done
+	shift "$((OPTIND-1))"
+	if (($#)); then
+		: "${_L_mode:=$1}"
+		shift 1
+	elif L_is_main; then
+		: "${_L_mode:="help"}"
+	fi
+	case "$_L_mode" in
+		"") ;;
+		"eval") eval "$*"; ;;
+		"exec") "$@"; ;;
+		"help") _L_lib_usage; ;;
+		"test") _L_lib_run_tests "$@"; ;;
+		"cmd") _L_lib_main_cmd; ;;
+		*) if (($# != 0)); then _L_lib_fatal "too many arguments: ${*@Q}"; fi; ;;
+	esac
+}
+
+# ]]]
+# main [[[
+
+_L_lib_main "$@"
+
+# ]]]
