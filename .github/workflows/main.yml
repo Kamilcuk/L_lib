@@ -48,8 +48,6 @@ jobs:
         with:
           repository: kamilcuk/shdoc
           path: shdoc
-      - run: find -type f
-      - run: stat shdoc/shdoc
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
