@@ -1,9 +1,9 @@
 ARG VERSION=latest
-FROM bash:${VERSION} AS l_lib
+FROM bash:${VERSION} AS app
 COPY bin/L_lib.sh /bin
 RUN L_lib.sh
 
-FROM l_lib AS test
+FROM app AS test
 RUN L_lib.sh test
 
 FROM koalaman/shellcheck AS shellcheck
