@@ -726,7 +726,7 @@ _L_list_functions_with_prefix_v() {
 }
 
 # @description list functions with prefix
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 prefix
 L_list_functions_with_prefix() {
 	_L_handle_v "$@"
@@ -868,7 +868,7 @@ _L_max_v() {
 }
 
 # @description return max of arguments
-# @option -v<var>
+# @option -v<var> var
 # @arg $@ int arguments
 # @example L_max -v max 1 2 3 4
 L_max() {
@@ -886,7 +886,7 @@ _L_min_v() {
 }
 
 # @description return max of arguments
-# @option -v<var>
+# @option -v<var> var
 # @arg $@ int arguments
 # @example L_min -v min 1 2 3 4
 L_min() {
@@ -898,7 +898,7 @@ _L_capture_exit_v() {
 }
 
 # @description capture exit code of a command to a variable
-# @option -v<var>
+# @option -v<var> var
 # @arg $@ command to execute
 L_capture_exit() {
 	_L_handle_v "$@"
@@ -1218,7 +1218,7 @@ L_asa_get_v() {
 }
 
 # @description Get value from associative array
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 associative array nameref
 # @arg $2 key
 # @arg [$3] optional default value
@@ -1237,7 +1237,7 @@ L_asa_len_v() {
 }
 
 # @description get the length of associative array
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 associative array nameref
 L_asa_len() {
 	_L_asa_handle_v "$@"
@@ -1255,7 +1255,7 @@ L_asa_keys_sorted_v() {
 }
 
 # @description get keys of an associative array in a sorted
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 associative array nameref
 L_asa_keys_sorted() {
 	_L_asa_handle_v "$@"
@@ -1263,7 +1263,7 @@ L_asa_keys_sorted() {
 
 # @description Move the 3rd argument to the first and call
 # The `L_asa $1 $2 $3 $4 $5` becomes `L_asa_$3 $1 $2 $4 $5`
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 function name
 # @arg $2 associative array nameref
 # @arg $@ arguments
@@ -1577,7 +1577,7 @@ _L_trap_to_number_v() {
 }
 
 # @description Convert trap name to number
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 trap name or trap number
 L_trap_to_number() {
 	_L_handle_v "$@"
@@ -1596,7 +1596,7 @@ _L_trap_to_name_v() {
 }
 
 # @description convert trap number to trap name
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 signal name or signal number
 # @example L_trap_to_name -v var 0 && L_assert2 '' test "$var" = EXIT
 L_trap_to_name() {
@@ -1616,7 +1616,7 @@ _L_trap_get_v() {
 }
 
 # @description Get the current value of trap
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 str|int signal name or number
 # @example
 #   trap 'echo hi' EXIT
@@ -1796,7 +1796,7 @@ _L_map_get_v() {
 # @description Assigns the value of key in map.
 # If the key is not set, then assigns default if given and returns with 1.
 # You want to prefer this version of L_map_get
-# @option -v<var>
+# @option -v<var> var
 # @arg $1 var map
 # @arg $2 str key
 # @arg [$3] str default

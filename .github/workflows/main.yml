@@ -55,9 +55,10 @@ jobs:
           target: doc1
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          outputs: type=local,dest=./pages
+          # build-push-action doesn't work, I'll just use make
+          # outputs: type=local,dest=./pages
       - run: make doc
-      - uses: actions/upload-pages-artifact@v1
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: ./pages
 

@@ -6,10 +6,12 @@ Bash library. Collection of functions and libraries that I deem usefull for writ
 
 See generated documentation on [github pages](https://kamilcuk.github.io/L_lib.sh).
 
-# Namespace
+# Conventions
 
-- `L_*` for public symbols
-- `_L_*` for private symbols
+- `L_*` namespace for public symbols
+- `_L_*` namespace for private symbols
+  - In particular `_L_*` are used in function taking name references
+- Function taking `-v <var>` can set variables, just like `printf -v <var>`
 
 # License
 
