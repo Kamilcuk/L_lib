@@ -4,9 +4,13 @@ export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
 
+all: test doc
+	@echo SUCCESS all
 test:
 	docker build --build-arg VERSION=5.2 --target test .
+	docker build --build-arg VERSION=4.4 --target test .
 	$(MAKE) shellcheck
+	@echo SUCCESS test
 shellcheck:
 	docker build --target shellcheck .
 shdoc:
@@ -16,6 +20,7 @@ doc: shdoc
 	docker build --target doc --output public .
 	grep -q L_LOGLEVEL_CRITICAL public/index.md
 	grep -q L_DRYRUN public/index.md
+	@echo SUCCESS doc
 doc_open: doc
 	xdg-open public/index.html
 md: shdoc
@@ -23,4 +28,4 @@ md: shdoc
 	docker build --target md --output public .
 md_open:
 	xdg-open public/index.md
-
+.PHONY: test shellcheck shdoc doc doc_open md md_open
