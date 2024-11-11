@@ -620,12 +620,20 @@ L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
 # @description return true if running in posix mode
 L_in_posix_mode() { [[ :$SHELLOPTS: == *:posix:* ]]; }
 
+# @description has declare -n var=$1
+L_has_nameref() { L_version_cmp "$BASH_VERSION" -ge "4.2.46"; }
+# @description has declare -A var=[a]=b)
+L_has_associative_array() { L_version_cmp "$BASH_VERSION" -ge "4"; }
+# @description has ${!prefix*} expansion
+L_has_prefix_expansion() { L_version_cmp "$BASH_VERSION" -ge "2.4"; }
+# @description has ${!var} expansion
+L_has_indirect_expansion() { L_version_cmp "$BASH_VERSION" -ge "2.0"; }
+
 # @description
 # @arg $1 variable nameref
 # @exitcode 0 if variable is set, nonzero otherwise
 L_var_is_set() {
-	declare -n _L_nameref_var_is_set=$1
-	[[ -n ${_L_nameref_var_is_set+x} ]]
+	eval "[[ -n \${$1+x} ]]"
 }
 
 # @description
@@ -644,8 +652,7 @@ L_var_is_associative() {
 # @description check if variable is readonly
 # @arg $1 variable nameref
 L_var_is_readonly() {
-	declare -n _L_nameref_var_is_readonly=$1
-	( _L_nameref_var_is_readonly= ) 2>/dev/null
+	( eval "$1=" ) 2>/dev/null
 }
 
 # @description Return 0 if the string happend to be something like false.
@@ -719,7 +726,7 @@ _L_list_functions_with_prefix_v() {
 }
 
 # @description list functions with prefix
-# @option -v var
+# @option -v<var>
 # @arg $1 prefix
 L_list_functions_with_prefix() {
 	_L_handle_v "$@"
@@ -861,7 +868,7 @@ _L_max_v() {
 }
 
 # @description return max of arguments
-# @option -v var
+# @option -v<var>
 # @arg $@ int arguments
 # @example L_max -v max 1 2 3 4
 L_max() {
@@ -879,7 +886,7 @@ _L_min_v() {
 }
 
 # @description return max of arguments
-# @option -v var
+# @option -v<var>
 # @arg $@ int arguments
 # @example L_min -v min 1 2 3 4
 L_min() {
@@ -891,7 +898,7 @@ _L_capture_exit_v() {
 }
 
 # @description capture exit code of a command to a variable
-# @option -v var
+# @option -v<var>
 # @arg $@ command to execute
 L_capture_exit() {
 	_L_handle_v "$@"
@@ -978,7 +985,6 @@ L_print_traceback() {
 			printf "%s\n" "$tmp"
 		fi
 	done
-	L_critical "Command returned with non-zero exit status: ${1:-0}"
 }
 
 # @description Outputs Front-Mater formatted failures for functions not returning 0
@@ -1046,13 +1052,14 @@ L_trap_err_enable() {
 	L_trap_err() {
 		local _code="${1:-0}"
 		## Workaround for read EOF combo tripping traps
-		if ! ((_code)); then
+		if ((!_code)); then
 			return "${_code}"
 		fi
 		(
 			# set +x
 			# L_trap_err_show_source 1 "$@"
 			L_print_traceback 1 "$@"
+			L_critical "Command returned with non-zero exit status: $_code"
 		) >&2 ||:
 		exit "$_code"
 	}
@@ -1211,7 +1218,7 @@ L_asa_get_v() {
 }
 
 # @description Get value from associative array
-# @option -v var
+# @option -v<var>
 # @arg $1 associative array nameref
 # @arg $2 key
 # @arg [$3] optional default value
@@ -1230,7 +1237,7 @@ L_asa_len_v() {
 }
 
 # @description get the length of associative array
-# @option -v var
+# @option -v<var>
 # @arg $1 associative array nameref
 L_asa_len() {
 	_L_asa_handle_v "$@"
@@ -1248,7 +1255,7 @@ L_asa_keys_sorted_v() {
 }
 
 # @description get keys of an associative array in a sorted
-# @option -v var
+# @option -v<var>
 # @arg $1 associative array nameref
 L_asa_keys_sorted() {
 	_L_asa_handle_v "$@"
@@ -1256,7 +1263,7 @@ L_asa_keys_sorted() {
 
 # @description Move the 3rd argument to the first and call
 # The `L_asa $1 $2 $3 $4 $5` becomes `L_asa_$3 $1 $2 $4 $5`
-# @option -v var
+# @option -v<var>
 # @arg $1 function name
 # @arg $2 associative array nameref
 # @arg $@ arguments
@@ -1355,6 +1362,8 @@ _L_test_asa() {
 
 # @description accumulator for unittest results
 L_unittest_result=0
+# @description set to 1 to exit immediately
+L_unittest_exit_on_error=0
 
 # @description internal unittest function
 # @env L_unittest_result
@@ -1381,9 +1390,58 @@ _L_unittest_internal() {
 		(( ++L_unittest_result ))
 		_L_tmp=("${@:3}")
 		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_COLORRESET}"
-		return 1
+		if ((L_unittest_exit_on_error)); then
+			exit 17
+		else
+			return 17
+		fi
 	fi
 } >&2
+
+L_unittest_run() {
+	set -euo pipefail
+	local OPTIND OPTARG _L_opt _L_tests=()
+	while getopts :hr:EP: _L_opt; do
+		case $_L_opt in
+		h) cat <<EOF
+Options:
+  -h         Print this help and exit
+  -P PREFIX  Execute all function with this prefix
+  -r REGEX   Filter tests with regex
+  -E         Exit on error
+EOF
+		exit
+		;;
+		P)
+			L_log "Getting function with prefix ${OPTARG@Q}"
+			L_list_functions_with_prefix -v _L_tests "$OPTARG"
+			;;
+		r)
+			L_log "filtering tests with ${OPTARG@Q}"
+			L_arrayvar_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
+			;;
+		E)
+			L_unittest_exit_on_error=1
+			;;
+		*) L_fatal "invalid argument: $_L_opt"; ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	L_assert2 'too many arguments' test "$#" = 0
+	L_assert2 'no tests matched' test "${#_L_tests[@]}" '!=' 0
+	local _L_test
+	for _L_test in "${_L_tests[@]}"; do
+		L_log "executing $_L_test"
+		"$_L_test"
+	done
+	L_log "done testing: ${_L_tests[*]}"
+	if ((L_unittest_result)); then
+		L_error "testing failed"
+	else
+		L_log "${L_GREEN}testing success"
+	fi
+	exit "$L_unittest_result"
+}
 
 # @description Test is eval of a string return success.
 # @arg $1 string to eval-ulate
@@ -1428,6 +1486,7 @@ L_unittest_cmpfiles() {
 	local a b
 	a=$(< "$1")
 	b=$(< "$2")
+	set -x
 	if ! _L_unittest_internal "test pipes${3:+ $3}" "${4:-}" [ "$a" "$op" "$b" ]; then
 		_L_unittest_showdiff "$a" "$b"
 		return 1
@@ -1435,10 +1494,14 @@ L_unittest_cmpfiles() {
 }
 
 _L_unittest_showdiff() {
-	if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
-		sdiff <(cat <<<"$1") - <<<"$2"
+	if L_hash sdiff; then
+		if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
+			sdiff <(cat <<<"$1") - <<<"$2"
+		else
+			sdiff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
+		fi
 	else
-		sdiff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
+		printf -- "--- diff ---\nL: %q\nR: %q\n\n" "$1" "$2"
 	fi
 }
 
@@ -1501,46 +1564,70 @@ L_unittest_contains() {
 # Generated by: printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
 _L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
-# @description
-L_get_trap_number_from_name() {
-	local line
-	line=$(trap -l)
-	while IFS= read -r line; do
-		while [[ "$line" =~ ^[$'\t ']*([0-9]+)\)[$'\t ']*([^$'\t ']+)(.*) ]]; do
-			if [[ "$1" == "${BASH_REMATCH[2]}" ]]; then
-				echo "${BASH_REMATCH[1]}"
-				break 2
-			fi
-			line=${BASH_REMATCH[3]}
-		done
-	done <<<"$line"
+_L_trap_to_number_v() {
+	if [[ "$1" == EXIT ]]; then
+		_L_v=0
+	elif L_str_is_digit "$1"; then
+		_L_v=$1
+	else
+		_L_v=$(trap -l) &&
+		[[ "$_L_v" =~ [^0-9]([0-9]*)\)\ $1[[:space:]] ]] &&
+		_L_v=${BASH_REMATCH[1]}
+	fi
+}
+
+# @description Convert trap name to number
+# @option -v<var>
+# @arg $1 trap name or trap number
+L_trap_to_number() {
+	_L_handle_v "$@"
+}
+
+_L_trap_to_name_v() {
+	if [[ "$1" == 0 ]]; then
+		_L_v=EXIT
+	elif L_str_is_digit "$1"; then
+		_L_v=$(trap -l) &&
+		[[ "$_L_v" =~ [^0-9]$1\)\ ([^[:space:]]+) ]] &&
+		_L_v=${BASH_REMATCH[1]}
+	else
+		_L_v="$1"
+	fi
 }
 
 # @description convert trap number to trap name
-L_get_trap_name() {
-	(
-		trap ': 0738dc3c-6716-44a1-960a-991b0ec4abaa' "$1"
-		trap -p
-	) | while IFS= read -r line; do
-		if
-			[[ "$line" == *'0738dc3c-6716-44a1-960a-991b0ec4abaa'* ]] &&
-			[[ "$line" =~ [^\ ]*$ ]]
-		then
-				printf %s "${BASH_REMATCH[0]}"
-		fi
-	done
+# @option -v<var>
+# @arg $1 signal name or signal number
+# @example L_trap_to_name -v var 0 && L_assert2 '' test "$var" = EXIT
+L_trap_to_name() {
+	_L_handle_v "$@"
 }
 
-# @description
-L_extract_trap() {
-	local tmp
-	tmp=$(L_get_trap_name "$@")
-	trap -p "$tmp" |
-		sed '1s/^trap -- //; $s/ [^ ]\+$//' |
-		sed "1s/^'//; s/'\\\\''/'/g; \$s/'$//"
+_L_trap_get_v() {
+	local _L_tmp &&
+	L_trap_to_name -v _L_tmp "$@" &&
+	_L_tmp=$(trap -p "$_L_tmp") &&
+	if [[ $_L_tmp ]]; then
+		local -a _L_tmp="($_L_tmp)" &&
+		_L_v=${_L_tmp[2]}
+	else
+		_L_v=
+	fi
+}
+
+# @description Get the current value of trap
+# @option -v<var>
+# @arg $1 str|int signal name or number
+# @example
+#   trap 'echo hi' EXIT
+#   L_trap_get -v var EXIT
+#   L_assert2 '' test "$var" = 'echo hi'
+L_trap_get() {
+	_L_handle_v "$@"
 }
 
 # @description internal callback called when trap fires
+# @arg $1 str trap name
 _L_trapchain_callback() {
 	# This is what it takes.
 	local _L_tmp
@@ -1559,43 +1646,56 @@ _L_trapchain_callback() {
 #   L_trapchain 'echo -n hello' EXIT
 #   # will print 'hello world' on exit
 L_trapchain() {
-	local _L_name
-	_L_name=$(L_get_trap_name "$2") &&
+	local _L_name &&
+	L_trap_to_name -v _L_name "$2" &&
 	trap "_L_trapchain_callback $_L_name" "$_L_name" &&
 	eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
 }
 
-
 # shellcheck disable=2064
 # shellcheck disable=2016
 _L_test_trapchain() {
-	local tmp
-	local allchars
-	tmp=$(
-		L_trapchain 'echo -n "!"' EXIT
-		L_trapchain 'echo -n world' EXIT
-		L_trapchain 'echo -n " "' EXIT
-		L_trapchain 'echo -n hello' EXIT
-	)
-	L_unittest_eq "$tmp" "hello world!"
-	allchars="$_L_allchars"
-	tmp=$(
-		printf -v tmp %q "$allchars"
-		L_trapchain 'echo -n "hello"' SIGUSR1
-		L_trapchain "echo $tmp" SIGUSR1
-		L_trapchain 'echo -n world' SIGUSR2
-		L_trapchain 'echo -n " "' SIGUSR2
-		L_trapchain 'echo -n "!"' EXIT
-		L_raise SIGUSR1
-		L_raise SIGUSR2
-	)
-	local res
-	res="$allchars"$'\n'"hello world!"
-	L_unittest_eq "$tmp" "$res"
+	{
+		L_log "test converting int to signal name"
+		local tmp
+		L_trap_to_name -v tmp EXIT ; L_unittest_eq "$tmp" EXIT
+		L_trap_to_name -v tmp 0 ; L_unittest_eq "$tmp" EXIT
+		L_trap_to_name -v tmp 1 ; L_unittest_eq "$tmp" SIGHUP
+		L_trap_to_name -v tmp DEBUG ; L_unittest_eq "$tmp" DEBUG
+		L_trap_to_name -v tmp SIGRTMIN+5 ; L_unittest_eq "$tmp" SIGRTMIN+5
+		L_trap_to_number -v tmp SIGRTMAX-5 ; L_unittest_eq "$tmp" 59
+	}
+	{
+		L_log "test L_trapchain"
+		local tmp
+		local allchars
+		tmp=$(
+			L_trapchain 'echo -n "!"' EXIT
+			L_trapchain 'echo -n world' EXIT
+			L_trapchain 'echo -n " "' EXIT
+			L_trapchain 'echo -n hello' EXIT
+		)
+		L_unittest_eq "$tmp" "hello world!"
+		allchars="$_L_allchars"
+		tmp=$(
+			printf -v tmp %q "$allchars"
+			L_trapchain 'echo -n "hello"' SIGUSR1
+			L_trapchain "echo $tmp" SIGUSR1
+			L_trapchain 'echo -n world' SIGUSR2
+			L_trapchain 'echo -n " "' SIGUSR2
+			L_trapchain 'echo -n "!"' EXIT
+			L_raise SIGUSR1
+			L_raise SIGUSR2
+		)
+		local res
+		res="$allchars"$'\n'"hello world!"
+		L_unittest_eq "$tmp" "$res"
+	}
 	(
-		trap "$_L_allchars" "$(L_get_trap_number_from_name SIGUSR1)"
-		tmp=$(L_extract_trap SIGUSR1)
-		L_unittest_vareq tmp "$_L_allchars"
+		L_log "Check if extracting all charactesr from trap works"
+		trap ": $_L_allchars" SIGUSR1
+		L_trap_get -v tmp SIGUSR1
+		L_unittest_eq "$tmp" ": $_L_allchars"
 	)
 }
 
@@ -1670,44 +1770,38 @@ L_map_append() {
 	fi
 }
 
-# @description Assigns the value of key in map.
-# If the key is not set, then assigns default if given and returns with 1.
-# You want to prefer this version of L_map_get
-# @arg $1 var
-# @arg $2 var map
-# @arg $3 str key
-# @arg [$4] str optional default value
-L_map_get_v() {
-	if ! _L_map_check "$1" "$2" "$3"; then return 2; fi
+_L_map_get_v() {
 	local _L_map_name
-	_L_map_name=${!2}
+	_L_map_name=${!1}
 	local _L_map_name2
 	_L_map_name2="$_L_map_name"
 	# Remove anything in front of the newline followed by key followed by space.
 	# Because the key can't have newline not space, it's fine.
-	_L_map_name2=${_L_map_name2##*$'\n'"$3 "}
+	_L_map_name2=${_L_map_name2##*$'\n'"$2 "}
 	# If nothing was removed, then the key does not exists.
 	if [[ "$_L_map_name2" == "$_L_map_name" ]]; then
-		if (($# >= 4)); then
-			printf -v "$1" %s "${*:4}"
+		if (($# >= 3)); then
+			_L_v="${*:3}"
+			return 0
+		else
+			return 1
 		fi
-		return 1
 	fi
 	# Remove from the newline until the end and print with eval.
 	# The key was inserted with printf %q, so it has to go through eval now.
 	_L_map_name2=${_L_map_name2%%$'\n'*}
-	eval "printf -v \"\$1\" %s $_L_map_name2"
+	eval "_L_v=$_L_map_name2"
 }
 
-# @description
+# @description Assigns the value of key in map.
+# If the key is not set, then assigns default if given and returns with 1.
+# You want to prefer this version of L_map_get
+# @option -v<var>
 # @arg $1 var map
 # @arg $2 str key
 # @arg [$3] str default
 L_map_get() {
-	local tmp="" ret=0
-	L_map_get_v tmp "$@" || ret=$?
-	printf "%s\n" "$tmp"
-	return "$ret"
+	_L_handle_v "$@"
 }
 
 # @description
@@ -1772,7 +1866,7 @@ _L_map_check() {
 	local i
 	for i in "$@"; do
 		if ! L_is_valid_variable_name "$i"; then
-			L_error "L_map: ${FUNCNAME[1]}: is not valid variable name: $i";
+			L_error "L_map:${FUNCNAME[1]}:${BASH_LINENO[2]}: ${i@Q} is not valid variable name";
 			return 1
 		fi
 	done
@@ -1785,24 +1879,24 @@ _L_test_map() {
 	tmp=123
 	L_map_init var
 	L_map_set var a 1
-	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
-	L_unittest_cmpfiles <(L_map_get var b) <(:)
+	# L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
+	L_unittest_eq "$(L_map_get var b "")" ""
 	L_map_set var b 2
-	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
-	L_unittest_cmpfiles <(L_map_get var b) <(echo -n 2)
+	L_unittest_eq "$(L_map_get var a)" "1"
+	L_unittest_eq "$(L_map_get var b)" "2"
 	L_map_set var a 3
-	L_unittest_cmpfiles <(L_map_get var a) <(echo -n 3)
-	L_unittest_cmpfiles <(L_map_get var b) <(echo -n 2)
+	L_unittest_eq "$(L_map_get var a)" "3"
+	L_unittest_eq "$(L_map_get var b)" "2"
 	L_unittest_checkexit 1 L_map_get var c
 	L_unittest_checkexit 1 L_map_has var c
 	L_unittest_checkexit 0 L_map_has var a
 	L_map_set var allchars "$_L_allchars"
-	L_unittest_cmpfiles <(L_map_get var allchars) <(printf %s "$_L_allchars") "L_map_get var allchars"
+	L_unittest_eq "$(L_map_get var allchars)" "$(printf %s "$_L_allchars")" "L_map_get var allchars"
 	L_map_clear var allchars
 	L_unittest_checkexit 1 L_map_get var allchars
 	L_map_set var allchars "$_L_allchars"
 	local s_a s_b s_allchars
-	L_unittest_cmpfiles <(L_map_keys var | sort) <(printf "%s\n" b a allchars | sort) "L_map_keys check"
+	L_unittest_eq "$(L_map_keys var | sort)" "$(printf "%s\n" b a allchars | sort)" "L_map_keys check"
 	L_map_load var s_
 	L_unittest_vareq s_a 3
 	L_unittest_vareq s_b 2
@@ -2833,40 +2927,7 @@ _L_lib_bash_completion() {
 }
 
 _L_lib_run_tests() {
-	set -euo pipefail
-	local OPTIND OPTARG _L_opt _L_tests=()
-	L_list_functions_with_prefix -v _L_tests _L_test
-	while getopts :hr: _L_opt; do
-		case $_L_opt in
-		h) cat <<EOF
-Options:
-  -h         Print this help and exit
-  -r REGEX   Filter tests with regex
-EOF
-		exit
-		;;
-		r)
-			L_log "filtering tests with ${OPTARG@Q}"
-			L_arrayvar_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
-			;;
-		*) L_fatal "invalid argument: $_L_opt"; ;;
-		esac
-	done
-	shift "$((OPTIND-1))"
-	L_assert2 '' test "$#" = 0
-	L_assert2 'no tests matched' test "${#_L_tests[@]}" '!=' 0
-	local _L_test
-	for _L_test in "${_L_tests[@]}"; do
-		L_log "executing $_L_test"
-		"$_L_test"
-	done
-	L_log "done testing: ${_L_tests[*]}"
-	if ((L_unittest_result)); then
-		L_error "testing failed"
-	else
-		L_log "${L_GREEN}testing success"
-	fi
-	exit "$L_unittest_result"
+	L_unittest_run -P _L_test_ "$@"
 }
 
 _L_lib_usage() {

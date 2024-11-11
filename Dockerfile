@@ -4,7 +4,7 @@ COPY bin/L_lib.sh /bin
 RUN L_lib.sh
 
 FROM l_lib AS test
-RUN L_lib.sh --unittest
+RUN L_lib.sh test
 
 FROM koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh .
