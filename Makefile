@@ -16,8 +16,8 @@ shellcheck:
 shdoc:
 	if [[ ! -e shdoc ]]; then git clone https://github.com/kamilcuk/shdoc.git; fi
 doc: shdoc
-	rm -f public/index.md public/index.html
-	docker build --target doc --output type=local,dest=public .
+	rm -vf public/index.md public/index.html
+	docker buildx build --pull --target doc --output type=local,dest=public .
 	$(MAKE) doc_test
 	@echo SUCCESS doc
 doc_test:

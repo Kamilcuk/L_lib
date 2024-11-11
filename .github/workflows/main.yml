@@ -52,11 +52,11 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          target: doc
+          target: doc1
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=./pages
-      - run: make doc_test
+      - run: make doc
       - uses: actions/upload-pages-artifact@v1
         with:
           path: ./pages
