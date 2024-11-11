@@ -53,6 +53,7 @@ jobs:
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
+          context: .
           target: doc
           cache-from: type=gha
           cache-to: type=gha,mode=max
