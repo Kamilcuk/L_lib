@@ -23,6 +23,7 @@ doc: shdoc
 doc_test:
 	grep -q L_LOGLEVEL_CRITICAL public/index.md
 	grep -q L_DRYRUN public/index.md
+	ls -la public
 	test $$(find public -type f | wc -l) = 2
 doc_open: doc
 	xdg-open public/index.html

@@ -56,11 +56,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           # build-push-action doesn't work, I'll just use make
-          # outputs: type=local,dest=./pages
+          # outputs: type=local,dest=./public
       - run: make doc
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: ./pages
+          path: public
 
   deploy_docker:
     needs: [test, shellcheck, build_pages]
