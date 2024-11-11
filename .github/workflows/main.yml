@@ -55,6 +55,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           outputs: type=local,dest=pages
+      - run: make doc_test
       - uses: actions/upload-pages-artifact@v1
         with:
           path: ./pages

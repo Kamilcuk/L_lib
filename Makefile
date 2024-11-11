@@ -18,9 +18,11 @@ shdoc:
 doc: shdoc
 	rm -f public/index.md public/index.html
 	docker build --target doc --output public .
+	$(MAKE) doc_test
+	@echo SUCCESS doc
+doc_test:
 	grep -q L_LOGLEVEL_CRITICAL public/index.md
 	grep -q L_DRYRUN public/index.md
-	@echo SUCCESS doc
 doc_open: doc
 	xdg-open public/index.html
 md: shdoc
