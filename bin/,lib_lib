@@ -3,8 +3,8 @@
 # again and again inm every script I write.
 # It's here to simplify my use of it.
 # Written by Kamil Cukrowski
-# Licensed jointly under MIT License and Beerware License
-# SPDX-License-Identifier: MIT + Beerware
+# This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
+# SPDX-License-Identifier: GPL-3.0
 
 # shellcheck disable=SC2034
 
@@ -1217,7 +1217,7 @@ Options:
 	-l   Both -L and -q
 
 Written by Kamil Cukrowski 2020.
-Licensed jointly under Beerware License and MIT License.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 3.
 EOF
 }
 
