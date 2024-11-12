@@ -1049,7 +1049,7 @@ if ! L_fn_exists L_cb_usage_desc; then L_cb_usage_desc() {
 }; fi
 
 if ! L_fn_exists L_cb_usage_footer; then L_cb_usage_footer() {
-	echo 'Written by Kamil Cukrowski. Licensed jointly under MIT License and Beeware License'
+	echo 'Written by Kamil Cukrowski. Licensed under GPL-3.0
 }; fi
 
 # shellcheck disable=2046
