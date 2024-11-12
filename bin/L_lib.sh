@@ -426,11 +426,24 @@ L_is_false() { [[ "${1,,}" =~ ^(-|0+|f|false|n|no)$ ]]; }
 
 # @description Return 0 if the string happend to be something like true in locale.
 # @arg $1 str
-L_is_true_locale() { set -- "$1" $(locale LC_MESSAGES); [[ "$1" =~ $2 ]]; }
+L_is_true_locale() {
+	local i
+	i=$(locale LC_MESSAGES)
+	# extract first line
+	i=${i%%$'\n'*}
+	[[ "$1" =~ $i ]]
+}
 
 # @description Return 0 if the string happend to be something like false in locale.
 # @arg $1 str
-L_is_false_locale() { set -- "$1" $(locale LC_MESSAGES); [[ "$1" =~ $3 ]]; }
+L_is_false_locale() {
+	local i
+	i=$(locale LC_MESSAGES)
+	# extract second line
+	i=${i#*$'\n'}
+	i=${i%%$'\n'*}
+	[[ "$1" =~ $i ]]
+}
 
 # @description list functions with prefix
 # @option -v <var> var
