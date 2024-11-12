@@ -2474,6 +2474,7 @@ _L_argparse_optspec_assign_array() {
 # @env _L_value
 # @env _L_used_value
 # @env _L_assigned_options
+# @env _L_in_complete
 _L_argparse_optspec_execute_action() {
 	local _L_dest=${_L_optspec["dest"]}
 	local _L_const="${_L_optspec["const"]:-}"
