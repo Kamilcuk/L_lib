@@ -23,6 +23,6 @@ FROM scratch AS md
 COPY --from=md1 public /
 
 FROM md1 AS doc1
-RUN pandoc -f markdown public/index.md >public/index.html
+RUN pandoc --number-sections -f markdown public/index.md >public/index.html
 FROM scratch AS doc
 COPY --from=doc1 public /

@@ -3,10 +3,12 @@ SHELL = bash
 export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
+ARGS ?=
 
 all: test doc
 	@echo SUCCESS all
 test:
+	./bin/L_lib.sh test $(ARGS)
 	docker build --build-arg VERSION=5.2 --target test .
 	docker build --build-arg VERSION=4.4 --target test .
 	$(MAKE) shellcheck
@@ -22,7 +24,8 @@ doc: shdoc
 	@echo SUCCESS doc
 doc_test:
 	grep -q L_LOGLEVEL_CRITICAL public/index.md
-	grep -q L_DRYRUN public/index.md
+	grep -q L_dryrun public/index.md
+	grep -q L_log_level public/index.md
 	ls -la public
 	test $$(find public -type f | wc -l) = 2
 doc_open: doc
