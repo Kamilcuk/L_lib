@@ -613,6 +613,97 @@ _L_basename_v() { _L_v=${*##*/}; }
 L_dirname() { _L_handle_v "$@"; }
 _L_dirname_v() { _L_v=${*%/*}; }
 
+# @description Produces a string properly quoted for JSON inclusion
+# Poor man's jq
+# @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
+# @see https://stackoverflow.com/a/27516892/9072753
+# @example
+#    L_json_escape -v tmp "some string"
+#    echo "{\"key\":$tmp}" | jq .
+L_json_escape() { _L_handle_v "$@"; }
+_L_json_escape_v() {
+	_L_v=$*
+	_L_v=${_L_v//\\/\\\\}
+	_L_v=${_L_v//\"/\\\"}
+	# _L_v=${_L_v//\//\\\/}
+	_L_v=${_L_v//$'\x01'/\\u0001}
+	_L_v=${_L_v//$'\x02'/\\u0002}
+	_L_v=${_L_v//$'\x03'/\\u0003}
+	_L_v=${_L_v//$'\x04'/\\u0004}
+	_L_v=${_L_v//$'\x05'/\\u0005}
+	_L_v=${_L_v//$'\x06'/\\u0006}
+	_L_v=${_L_v//$'\x07'/\\u0007}
+	_L_v=${_L_v//$'\b'/\\b}
+	_L_v=${_L_v//$'\t'/\\t}
+	_L_v=${_L_v//$'\n'/\\n}
+	_L_v=${_L_v//$'\x0B'/\\u000B}
+	_L_v=${_L_v//$'\f'/\\f}
+	_L_v=${_L_v//$'\r'/\\r}
+	_L_v=${_L_v//$'\x0E'/\\u000E}
+	_L_v=${_L_v//$'\x0F'/\\u000F}
+	_L_v=${_L_v//$'\x10'/\\u0010}
+	_L_v=${_L_v//$'\x11'/\\u0011}
+	_L_v=${_L_v//$'\x12'/\\u0012}
+	_L_v=${_L_v//$'\x13'/\\u0013}
+	_L_v=${_L_v//$'\x14'/\\u0014}
+	_L_v=${_L_v//$'\x15'/\\u0015}
+	_L_v=${_L_v//$'\x16'/\\u0016}
+	_L_v=${_L_v//$'\x17'/\\u0017}
+	_L_v=${_L_v//$'\x18'/\\u0018}
+	_L_v=${_L_v//$'\x19'/\\u0019}
+	_L_v=${_L_v//$'\x1A'/\\u001A}
+	_L_v=${_L_v//$'\x1B'/\\u001B}
+	_L_v=${_L_v//$'\x1C'/\\u001C}
+	_L_v=${_L_v//$'\x1D'/\\u001D}
+	_L_v=${_L_v//$'\x1E'/\\u001E}
+	_L_v=${_L_v//$'\x1F'/\\u001F}
+	_L_v=${_L_v//$'\x7F'/\\u007F}
+	_L_v=\"$_L_v\"
+}
+
+# @description WIP
+# @option -A <allowed> list of allowed keywords
+# @arg $1 args destination
+# @arg $2 kwargs destination
+# @arg $3 -- separator
+# @arg $@ arguments
+_L_kwargs_split() {
+	{
+		# parse args
+		local OPTIND OPTARG _L_opt _L_opt_allowed=()
+		while getopts :A: _L_opt; do
+			case $_L_opt in
+				A) declare -a _L_opt_allowed=("$OPTARG"); ;;
+				*) L_fatal "unhanlded argument: $_L_opt"; ;;
+			esac
+		done
+		shift $((OPTIND-1))
+		if [[ $1 != _L_args ]]; then declare -n _L_args=$1; else declare -a _Largs=(); fi
+		if [[ $2 != _L_kwargs ]]; then declare -n _L_kwargs=$2; else declare -A _L_kwargs=(); fi
+		L_assert2 '3rd argument has to be --' test "$3" = '--'
+		shift 3
+	}
+	{
+		# parse args
+		while (($#)); do
+			case "$1" in
+			-*) _L_args+=("$1") ;;
+			*' '*=*) L_fatal "kw option may not contain a space" ;;
+			*=*)
+				local _L_opt
+				_L_opt=${1%%=*}
+				if [[ $_L_opt_allowed ]]; then
+					L_assert2 "invalid kw option: $_L_opt" L_args_contain "$_L_opt" "${_L_opt_allowed[@]}"
+				fi
+				_L_kwargs["$_L_opt"]=${1#*=}
+				;;
+			*) _L_args+=("$1") ;;
+			esac
+			shift
+		done
+	}
+}
+
 _L_test_other() {
 	{
 		local max=-1
@@ -661,6 +752,24 @@ _L_test_other() {
 		L_dirname -v tmp a/b/c
 		L_unittest_eq "$tmp" a/b
 	}
+	{
+		if L_hash jq; then
+			local tmp
+			t() {
+				local tmp
+				L_json_escape -v tmp "$1"
+				# L_log "JSON ${tmp@Q}"
+				out=$(echo "{\"v\":$tmp}" | jq -r .v)
+				L_unittest_eq "$1" "$out"
+			}
+			t $'1 hello\n\t\bworld'
+			t $'2 \x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+			t $'3 \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
+			t $'4 \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f'
+			t $'5 \x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f'
+			t "! ${_L_allchars::127}"
+		fi
+	}
 }
 
 # ]]]
@@ -674,12 +783,13 @@ _L_test_other() {
 #     L_info "this is information"
 #     L_debug "This is debug"
 
-L_LOGLEVEL_CRITICAL=60
-L_LOGLEVEL_ERROR=50
-L_LOGLEVEL_WARNING=40
-L_LOGLEVEL_NOTICE=30
+L_LOGLEVEL_CRITICAL=50
+L_LOGLEVEL_ERROR=40
+L_LOGLEVEL_WARNING=30
+L_LOGLEVEL_NOTICE=25
 L_LOGLEVEL_INFO=20
 L_LOGLEVEL_DEBUG=10
+L_LOGLEVEL_TRACE=5
 
 # @description convert log level to log name
 L_LOGLEVEL_NAMES=(
@@ -689,6 +799,7 @@ L_LOGLEVEL_NAMES=(
 	[L_LOGLEVEL_NOTICE]="notice"
 	[L_LOGLEVEL_INFO]="info"
 	[L_LOGLEVEL_DEBUG]="debug"
+	[L_LOGLEVEL_TRACE]="trace"
 )
 # @description get color associated with particular loglevel
 L_LOGLEVEL_COLORS=(
@@ -697,7 +808,8 @@ L_LOGLEVEL_COLORS=(
 	[L_LOGLEVEL_WARNING]="${L_BOLD}${L_YELLOW}"
 	[L_LOGLEVEL_NOTICE]="${L_BOLD}${L_CYAN}"
 	[L_LOGLEVEL_INFO]="$L_BOLD"
-	[L_LOGLEVEL_DEBUG]="$L_LIGHT_GRAY"
+	[L_LOGLEVEL_DEBUG]=""
+	[L_LOGLEVEL_TRACE]="$L_LIGHT_GRAY"
 )
 
 # @description int current global log level
