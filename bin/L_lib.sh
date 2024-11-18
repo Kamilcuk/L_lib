@@ -335,6 +335,37 @@ _L_handle_v() {
 	fi
 }
 
+L_gpl_30_notice() {
+	cat <<EOF
+$L_NAME Copyright (C) $*
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+EOF
+}
+
+L_FREE_SOFTWARE="\
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+"
+
+L_free_software() {
+	cat <<EOF
+$L_NAME Copyright (C) $*
+$L_FREE_SOFTWARE
+EOF
+}
+
 # @description Output a string with the same quotating style as does bash in set -x
 # @arg $@ arguments to quote
 L_quote_setx() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
@@ -346,7 +377,10 @@ L_quote_setx() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tm
 L_assert() {
 	if eval '!' "$1"; then
 		L_print_traceback
-		L_fatal "assertion $1 failed: ${*:2}"
+		local msg=$1
+		shift
+		msg="assertion $msg failed${1:+: ${*@Q}}"
+		echo "$L_NAME: $msg" >&2
 	fi
 }
 
@@ -357,7 +391,10 @@ L_assert() {
 L_assert2() {
 	if ! "${@:2}"; then
 		L_print_traceback
-		L_fatal "assertion ${*:2} failed${1:+: $1}"
+		local msg=$1
+		shift
+		msg="assertion ${*@Q} failed${msg:+: $msg}"
+		echo "$L_NAME: $msg" >&2
 	fi
 }
 
@@ -387,16 +424,24 @@ L_is_in_bash() { [ "${BASH_VERSION:-}" != "" ]; }
 L_in_posix_mode() { [[ :$SHELLOPTS: == *:posix:* ]]; }
 
 # @description Bash has declare -n var=$1 ?
-L_has_nameref() { L_version_cmp "$BASH_VERSION" -ge "4.2.46"; }
+L_has_nameref() { L_version_cmp "$BASH_VERSION" -ge 4.2.46; }
 
 # @description Bash has declare -A var=[a]=b) ?
-L_has_associative_array() { L_version_cmp "$BASH_VERSION" -ge "4"; }
+L_has_associative_array() { L_version_cmp "$BASH_VERSION" -ge 4; }
 
 # @description Bash has ${!prefix*} expansion ?
-L_has_prefix_expansion() { L_version_cmp "$BASH_VERSION" -ge "2.4"; }
+L_has_prefix_expansion() { L_version_cmp "$BASH_VERSION" -ge 2.4; }
 
 # @description Bash has ${!var} expansion ?
-L_has_indirect_expansion() { L_version_cmp "$BASH_VERSION" -ge "2.0"; }
+L_has_indirect_expansion() { L_version_cmp "$BASH_VERSION" -ge 2.0; }
+
+# @description Bash has mapfile
+L_has_mapfile() { L_version_cmp "$BASH_VERSION" -ge 4; }
+
+# @description Bash has mapfile
+L_has_readarray() { L_version_cmp "$BASH_VERSION" -ge 4; }
+
+L_has_here_string() { L_version_cmp "$BASH_VERSION" -ge 2.05; }
 
 # @description
 # @arg $1 variable nameref
@@ -474,13 +519,21 @@ L_wait_all_jobs() {
 	done <<<"$(jobs)"
 }
 
+# @description exit with success if argument could be a variable name
+# @arg $1 string to check
 L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
 
-L_str_is_print() { [[ "$*" =~ ^[[:print:]]*$ ]]; }
+# @description exits with success if all characters in string are printable
+# @arg $1 string to check
+L_is_print() { [[ "$*" =~ ^[[:print:]]*$ ]]; }
 
-L_str_is_digit() { [[ "$*" =~ ^[0-9]+$ ]]; }
+# @description exits with success if all string characters are digits
+# @arg $1 string to check
+L_is_digit() { [[ "$*" =~ ^[0-9]+$ ]]; }
 
-L_raise() { kill -s "$1" "$BASHPID"; }
+# @description send signal to itself
+# @arg $1 signal to send, see kill -l
+L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
 
 # @description An array to execute a command nicest way possible.
 # @example "${L_NICE[@]}" make -j $(nproc)
@@ -836,7 +889,7 @@ L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
 L_log_level_to_int() {
-	if L_str_is_digit "$2"; then
+	if L_is_digit "$2"; then
 		printf -v "$1" "%d" "$2"
 	else
 		local _L_i
@@ -859,7 +912,7 @@ L_log_is_enabled_for() {
 	L_log_level_to_int L_log_level "$L_log_level"
 	L_log_level_to_int L_logrecord_loglevel "$1"
 	# echo "$L_logrecord_loglevel $L_log_level"
-	((L_log_level >= L_logrecord_loglevel))
+	((L_log_level <= L_logrecord_loglevel))
 }
 
 
@@ -1215,7 +1268,7 @@ _L_test_sort() {
 #     File ./bin/L_lib.sh, line 1391, in _L_unittest_showdiff()
 #   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
 L_print_traceback() {
-	local i s l tmp offset around=1
+	local i s l tmp offset around=0
 	L_color_detect
 	echo
 	echo "${L_CYAN}Traceback from pid $BASHPID (most recent call last):${L_RESET}"
@@ -1227,28 +1280,46 @@ L_print_traceback() {
 			"$L_CYAN" "$s" "$L_RESET" \
 			"${L_BLUE}${L_BOLD}" "$l" "$L_RESET" \
 			"${FUNCNAME[i]}"
-		# shellcheck disable=1004
-		if
-			tmp=$(awk \
-				-v line="$l" \
-				-v around="$around" \
-				-v RESET="$L_RESET" \
-				-v RED="$L_RED" \
-				-v COLORLINE="${L_BLUE}${L_BOLD}" \
-				'NR > line - around && NR < line + around {
-					printf "%s%-5d%s%3s%s%s%s\n", \
-						COLORLINE, NR, RESET, \
-						(NR == line ? ">> " : ""), \
-						(NR == line ? RED : ""), \
-						$0, \
-						(NR == line ? RESET : "")
-				}' "$s" 2>/dev/null) &&
-				[[ -n "$tmp" ]]
-		then
-			printf "%s\n" "$tmp"
+		if ((around >= 0)) && [[ -r "$s" ]]; then
+			if false; then
+				# shellcheck disable=1004
+				awk \
+					-v line="$l" \
+					-v around="$((around + 1))" \
+					-v RESET="$L_RESET" \
+					-v RED="$L_RED" \
+					-v COLORLINE="${L_BLUE}${L_BOLD}" \
+					'NR > line - around && NR < line + around {
+						printf "%s%-5d%s%3s%s%s%s\n", \
+							COLORLINE, NR, RESET, \
+							(NR == line ? ">> " : ""), \
+							(NR == line ? RED : ""), \
+							$0, \
+							(NR == line ? RESET : "")
+					}' "$s" 2>/dev/null
+			else
+				local min j lines cur cnt
+				((min=l-around-1, min=min<0?0:min, cnt=around*2+1, cnt=cnt<0?0:cnt ,1))
+				if ((cnt)); then
+					mapfile -s "$min" -n "$cnt" -t lines <"$s"
+					for ((j= 0 ; j < cnt; ++j)); do
+						cur=
+						if ((min+j+1==l)); then
+							cur=yes
+						fi
+						printf "%s%-5d%s%3s%s%s%s\n" \
+							"$L_BLUE$L_BOLD" \
+							"$((min+j+1))" \
+							"$L_COLORRESET" \
+							"${cur:+">> $L_RED"}" \
+							"${lines[j]}" \
+							"${cur:+"$L_COLORRESET"}"
+					done
+				fi
+			fi
 		fi
 	done
-}
+} >&2
 
 # @description Outputs Front-Mater formatted failures for functions not returning 0
 # Use the following line after sourcing this file to set failure trap
@@ -1353,6 +1424,7 @@ L_trap_init
 
 # shellcheck disable=1105,2053
 # @description compare version numbers
+# This function is used to detect bash features. It should handle any bash version.
 # @see https://peps.python.org/pep-0440/
 # @arg $1 str one version
 # @arg $2 str one of: -lt -le -eq -ne -gt -ge '<' '<=' '==' '!=' '>' '>=' '~='
@@ -1381,8 +1453,12 @@ L_version_cmp() {
 			return 2
 		esac
 		local res='=' i max a=() b=()
-		IFS='.-()' read -ra a <<<"$1"
-		IFS='.-()' read -ra b <<<"$3"
+		IFS='.-()' read -ra a <<EOF
+$1
+EOF
+		IFS='.-()' read -ra b <<EOF
+$3
+EOF
 		L_max -v max "${#a[@]}" "${#b[@]}"
 		L_min -v max "${4:-3}" "$max"
 		for ((i = 0; i < max; ++i)); do
@@ -1815,7 +1891,7 @@ L_trap_to_number() {
 _L_trap_to_number_v() {
 	if [[ "$1" == EXIT ]]; then
 		_L_v=0
-	elif L_str_is_digit "$1"; then
+	elif L_is_digit "$1"; then
 		_L_v=$1
 	else
 		_L_v=$(trap -l) &&
@@ -1834,7 +1910,7 @@ L_trap_to_name() {
 _L_trap_to_name_v() {
 	if [[ "$1" == 0 ]]; then
 		_L_v=EXIT
-	elif L_str_is_digit "$1"; then
+	elif L_is_digit "$1"; then
 		_L_v=$(trap -l) &&
 			[[ "$_L_v" =~ [^0-9]$1\)\ ([^[:space:]]+) ]] &&
 			_L_v=${BASH_REMATCH[1]}
@@ -2170,6 +2246,28 @@ L_argparse_error() {
 	fi
 }
 
+# @description given two lists indent them properly
+# This is used internally by L_argparse_print_help to
+# align help message of options and arguments for ouptut.
+# @arg $1 -v
+# @arg $2 destination variable
+# @arg $3 metavars
+# @arg $4 help messages variable
+_L_argparse_print_help_indenter() {
+	local -n _L_result=$2 _L_left=$3 _L_right=$4
+	local _L_max=0 _L_len _L_i
+	for _L_i in "${_L_left[@]}"; do
+		_L_i=${#_L_i}
+		((_L_max = _L_max < _L_i ? _L_i : _L_max))
+	done
+	((_L_max += 2))
+	for _L_i in "${!_L_left[@]}"; do
+		((_L_len = ${#_L_left[_L_i]} == 0 ? 0 : _L_max, 1))
+		printf -v _L_result "%s""  %-*s%s\n" "$_L_result" "$_L_len" "${_L_left[_L_i]}" "${_L_right[_L_i]}"
+	done
+
+}
+
 # shellcheck disable=2120
 # @description Print help or only usage for given parser or global parser.
 # @option -s --short print only usage, not full help
@@ -2194,16 +2292,15 @@ L_argparse_print_help() {
 	{
 		#
 		local _L_i=0
-		local -A _L_optspec
-		local _L_usage _L_dest _L_shortopt _L_options _L_arguments _L_tmp
-		local _L_usage_posargs _L_usage_options="" _L_usage_options_desc=() _L_usage_options_help=()
-		local -A _L_mainsettings="${_L_parser[0]}"
+		local _L_usage _L_dest
+		local -A _L_mainsettings="${_L_parser[0]}" _L_optspec=()
 		_L_usage="usage: ${_L_mainsettings[prog]:-${_L_name:-$0}}"
 	}
 	{
 		# Parse short options
-		local _L_usage_options_desc=() _L_usage_options_help=()
-		local _L_metavar _L_nargs _L_shortopt _L_longopt
+		local _L_usage_options_list=()  # holds '-a VAR' descriptions of options
+		local _L_usage_options_help=()  # holds help message of options
+		local _L_metavar _L_nargs _L_longopt _L_options
 		while _L_argparse_parser_next_optspec _L_i _L_optspec; do
 			_L_metavar=${_L_optspec[metavar]}
 			_L_nargs=${_L_optspec[nargs]}
@@ -2229,16 +2326,21 @@ L_argparse_print_help() {
 					_L_notrequired=
 				fi
 				_L_usage+=" ${_L_notrequired:+[}$_L_opt$_L_metavars${_L_notrequired:+]}"
-				local _L_desc _L_help
-				_L_help=${_L_optspec[help]:-}
-				_L_usage_options+="  ${_L_desc}${_L_help:+   ${_L_help}}"$'\n'
+				_L_usage_options_list+=("${_L_desc}")
+				_L_usage_options_help+=("${_L_optspec[help]:-}")
 			fi
 		done
 	}
 	{
+		# Indent _L_usage_options_list and _L_usage_options_help properly
+		local _L_usage_options=""  # holds options usage string
+		_L_argparse_print_help_indenter -v _L_usage_options _L_usage_options_list _L_usage_options_help
+	}
+	{
 		# Parse positional arguments
-		local _L_usage_posargs="" _L_i=1
+		local _L_usage_args_list=() _L_usage_args_help=()
 		local -A _L_optspec
+		local _L_i=1
 		while _L_argparse_parser_next_optspec _L_i _L_optspec; do
 			if _L_argparse_optspec_is_argument; then
 				local _L_metavar _L_nargs
@@ -2260,11 +2362,15 @@ L_argparse_print_help() {
 					L_fatal "not implemented"
 					;;
 				esac
-				local _L_help
-				_L_help=${_L_optspec[help]:-}
-				_L_usage_posargs+="  $_L_metavar${_L_help:+   ${_L_help}}"$'\n'
+				_L_usage_args_list+=("$_L_metavar")
+				_L_usage_args_help+=("${_L_optspec[help]:-}")
 			fi
 		done
+	}
+	{
+		# Indent _L_usage_args_list and _L_uasge_args_help properly
+		local _L_usage_args=""  # holds positional arguments usage string
+		_L_argparse_print_help_indenter -v _L_usage_args _L_usage_args_list _L_usage_args_help
 	}
 	{
 		# print usage
@@ -2274,11 +2380,11 @@ L_argparse_print_help() {
 		echo "$_L_usage"
 		if ((!_L_short)); then
 			local _L_help=""
-			_L_help+="${_L_mainsettings[description]+${_L_mainsettings[description]##$'\n'}}"
-			_L_help+="${_L_usage_posargs:+$'\npositional arguments:\n'${_L_usage_posargs##$'\n'}}"
-			_L_help+="${_L_usage_options:+$'\noptions:\n'${_L_usage_options##$'\n'}}"
-			_L_help+="${_L_mainsettings[epilog]:+$'\n'${_L_mainsettings[epilog]##$'\n'}}"
-			echo "$_L_help"
+			_L_help+="${_L_mainsettings[description]+$'\n'${_L_mainsettings[description]%%$'\n'}$'\n'}"
+			_L_help+="${_L_usage_args:+$'\npositional arguments:\n'${_L_usage_args%%$'\n'}$'\n'}"
+			_L_help+="${_L_usage_options:+$'\noptions:\n'${_L_usage_options%%$'\n'}$'\n'}"
+			_L_help+="${_L_mainsettings[epilog]:+$'\n'${_L_mainsettings[epilog]%%$'\n'}}"
+			echo "${_L_help%%$'\n'}"
 		fi
 	}
 }
@@ -2864,7 +2970,7 @@ L_argparse() {
 	local _L_parser=()
 	local _L_args=()
 	while (($#)); do
-		if [[ "$1" == "::" || "$1" == "::::" ]]; then
+		if [[ "$1" == "::" || "$1" == "::::" || "$1" == "--" || "$1" == "----" ]]; then
 			# echo "AA ${_L_args[@]} ${_L_parser[@]}"
 			if ((${#_L_parser[@]} == 0)); then
 				L_argparse_init _L_parser -- "${_L_args[@]}"
@@ -2872,7 +2978,7 @@ L_argparse() {
 				L_argparse_add_argument _L_parser -- "${_L_args[@]}"
 			fi
 			_L_args=()
-			if [[ "$1" == "::::" ]]; then
+			if [[ "$1" == "::::" || "$1" == "----" ]]; then
 				break
 			fi
 		else
@@ -2880,7 +2986,7 @@ L_argparse() {
 		fi
 		shift
 	done
-	L_assert2 "'::::' argument missing to ${FUNCNAME[0]}" test $# -ge 1
+	L_assert2 "'::::' argument missing to ${FUNCNAME[0]}" test "$#" -ge 1
 	shift 1
 	L_argparse_parse_args _L_parser -- "$@"
 }
@@ -3264,12 +3370,14 @@ _L_lib_main_cmd() {
 }
 
 _L_lib_main() {
-	local _L_mode="" OPTARG OPTING _L_opt
-	while getopts :Lah _L_opt; do
+	local _L_mode="" _L_sourced=0 OPTARG OPTING _L_opt
+	while getopts sLh _L_opt; do
 		case $_L_opt in
+		s) _L_sourced=1; ;;
 		L) _L_lib_drop_L_prefix ;;
 		h) _L_mode=help ;;
-		*) L_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt" ;;
+		?) _L_lib_fatal "$_L_lib_name: Invalid argument: -$OPTARG" ;;
+		*) _L_lib_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt" ;;
 		esac
 		shift
 	done
@@ -3277,17 +3385,20 @@ _L_lib_main() {
 	if (($#)); then
 		: "${_L_mode:=$1}"
 		shift 1
-	elif L_is_main; then
-		: "${_L_mode:="help"}"
 	fi
 	case "$_L_mode" in
-	"") ;;
+	"")
+		if ((!_L_sourced)); then
+			_L_lib_usage
+			_L_lib_fatal "missing command, or if sourced, missing -s option"
+		fi
+		;;
 	"eval") eval "$*" ;;
 	"exec") "$@" ;;
-	"help") _L_lib_usage ;;
+	"help") _L_lib_usage; exit 0; ;;
 	"test") _L_lib_run_tests "$@" ;;
 	"cmd") _L_lib_main_cmd ;;
-	*) if (($# != 0)); then _L_lib_fatal "too many arguments: ${*@Q}"; fi ;;
+	*) _L_lib_fatal "unknown command: $_L_mode" ;;
 	esac
 }
 
