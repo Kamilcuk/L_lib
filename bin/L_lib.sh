@@ -356,8 +356,7 @@ EOF
 
 L_FREE_SOFTWARE="\
 This is free software; see the source for copying conditions.  There is NO
-warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-"
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 
 L_free_software() {
 	cat <<EOF
@@ -1292,8 +1291,7 @@ L_print_traceback() {
 					'NR > line - around && NR < line + around {
 						printf "%s%-5d%s%3s%s%s%s\n", \
 							COLORLINE, NR, RESET, \
-							(NR == line ? ">> " : ""), \
-							(NR == line ? RED : ""), \
+							(NR == line ? ">> " RED : ""), \
 							$0, \
 							(NR == line ? RESET : "")
 					}' "$s" 2>/dev/null
@@ -1307,7 +1305,7 @@ L_print_traceback() {
 						if ((min+j+1==l)); then
 							cur=yes
 						fi
-						printf "%s%-5d%s%3s%s%s%s\n" \
+						printf "%s%-5d%s%3s%s%s\n" \
 							"$L_BLUE$L_BOLD" \
 							"$((min+j+1))" \
 							"$L_COLORRESET" \
@@ -3312,9 +3310,7 @@ Usage example of 'bash-completion' command:
   eval "\$(script.sh cmd --bash-completion)"
 
 L_lib.sh Copyright (C) 2024 Kamil Cukrowski
-This program comes with ABSOLUTELY NO WARRANTY; see the source for copying conditions.
-This is free software, and you are welcome to redistribute it
-under certain conditions; see the source for copying conditions.
+$L_FREE_SOFTWARE
 EOF
 }
 
@@ -3371,12 +3367,11 @@ _L_lib_main_cmd() {
 
 _L_lib_main() {
 	local _L_mode="" _L_sourced=0 OPTARG OPTING _L_opt
-	while getopts sLh _L_opt; do
+	while getopts Lh _L_opt; do
 		case $_L_opt in
-		s) _L_sourced=1; ;;
 		L) _L_lib_drop_L_prefix ;;
 		h) _L_mode=help ;;
-		?) _L_lib_fatal "$_L_lib_name: Invalid argument: -$OPTARG" ;;
+		?) exit 1 ;;
 		*) _L_lib_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt" ;;
 		esac
 		shift
@@ -3388,7 +3383,7 @@ _L_lib_main() {
 	fi
 	case "$_L_mode" in
 	"")
-		if ((!_L_sourced)); then
+		if L_is_main; then
 			_L_lib_usage
 			_L_lib_fatal "missing command, or if sourced, missing -s option"
 		fi
@@ -3406,6 +3401,11 @@ _L_lib_main() {
 # main [[[
 
 fi  # L_LIB_VERSION
-_L_lib_main "$@"
+
+if ((${#BASH_ARGV[@]} == 1)); then
+	_L_lib_main
+else
+	_L_lib_main "$@"
+fi
 
 # ]]]
