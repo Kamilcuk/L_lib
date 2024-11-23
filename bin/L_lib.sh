@@ -354,6 +354,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 EOF
 }
 
+# @description notice that the software is a free software.
 L_FREE_SOFTWARE_NOTICE="\
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
@@ -1055,9 +1056,11 @@ L_logrecord_stacklevel=2
 L_logrecord_loglevel=0
 
 # @description increase stacklevel of logging information
+# @noargs
 # @see L_fatal implementation
 L_log_stack_inc() { ((++L_logrecord_stacklevel)); }
 # @description decrease stacklevel of logging information
+# @noargs
 # @example
 #   func() {
 #       L_log_stack_inc
@@ -1789,8 +1792,8 @@ L_asa() {
 # @arg $1 var destination nameref
 # @arg $2 =
 # @arg $3 var associative array nameref to store
-# @see L_nested_asa_get
-L_nested_asa_set() {
+# @see L_nestedasa_get
+L_nestedasa_set() {
 	if [[ $1 != _L_dest ]]; then declare -n _L_dest="$1"; fi
 	_L_dest=$(declare -p "$3")
 	# _L_dest=${!3@A} # does not work
@@ -1801,8 +1804,8 @@ L_nested_asa_set() {
 # @arg $1 var associative array nameref to store
 # @arg $2 =
 # @arg $3 var source nameref
-# @see L_nested_asa_set
-L_nested_asa_get() {
+# @see L_nestedasa_set
+L_nestedasa_get() {
 	if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
 	if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
 	declare -A _L_tmpa="$_L_asa"
@@ -1847,11 +1850,11 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: nested asa"
 		local -A map2=([c]=d [e]=f)
-		L_nested_asa_set map[mapkey] = map2
+		L_nestedasa_set map[mapkey] = map2
 		L_asa_has map mapkey
 		L_asa_get map mapkey
 		local -A map3
-		L_nested_asa_get map3 = map[mapkey]
+		L_nestedasa_get map3 = map[mapkey]
 		L_asa_get -v v map3 c
 		L_unittest_eq "$v" d
 		L_asa_get -v v map3 e
@@ -2623,6 +2626,7 @@ _L_argparse_split() {
 	{
 		# parse args
 		declare -A _L_optspec=(["index"]=$_L_index)
+		local _L_options=()
 		while (($#)); do
 			case "$1" in
 			-- | ::)
@@ -2754,7 +2758,16 @@ _L_argparse_split() {
 	fi
 	{
 		# assign result
-		L_nested_asa_set _L_parser["$_L_index"] = _L_optspec
+		L_nestedasa_set _L_parser["$_L_index"] = _L_optspec
+	}
+	{
+		# create hashtable of options
+		# set -- ${_L_optspec["options"]:-}
+		# while (($#)); do
+		# 	L_nestedasa_set  _L_parser["$1"] = _L_optspec
+		# 	shift
+		# done
+		:
 	}
 }
 
@@ -2772,7 +2785,7 @@ _L_argparse_init() {
 	{
 		# add -h --help
 		declare -A _L_optspec
-		L_nested_asa_get _L_optspec = _L_parser[0]
+		L_nestedasa_get _L_optspec = _L_parser[0]
 		if L_is_true "${_L_optspec[add_help]:-true}"; then
 			_L_argparse_add_argument "$1" -- -h --help \
 				help="show this help and exit" \
@@ -2803,7 +2816,7 @@ _L_argparse_parser_next_optspec() {
 	if ((_L_nameref_idx++ >= ${#_L_parser[@]})); then
 		return 1
 	fi
-	L_nested_asa_get _L_nameref_data = "_L_parser[_L_nameref_idx - 1]"
+	L_nestedasa_get _L_nameref_data = "_L_parser[_L_nameref_idx - 1]"
 }
 
 # @description Iterate over all option settings.
@@ -3164,8 +3177,8 @@ _L_argparse_parse_args() {
 	{
 		# Parse options on command line.
 		local _L_opt _L_value _L_dest _L_c _L_onlyargs=0
-		local _L_arg_i=1  # position in _L_argparse_parser_next_optspec when itering over arguments
 		local _L_arg_assigned=0  # the number of arguments assigned currently to _L_optspec
+		local _L_arg_i=1  # position in _L_argparse_parser_next_optspec when itering over arguments
 		local _L_assigned_options=()
 		local -A _L_optspec=()
 		while (($#)); do
@@ -3191,21 +3204,19 @@ _L_argparse_parse_args() {
 				if L_asa_is_empty _L_optspec; then
 					_L_arg_assigned=0
 					if ! _L_argparse_parser_next_optspec_argument _L_arg_i _L_optspec; then
-						L_argparse_fatal "unrecognized arguments: $*"
+						L_argparse_fatal "unrecognized argument: $1"
 					fi
 				fi
 				if (($# == 1)); then
-					_L_argparse_optspec_gen_completion "$@"
+					_L_argparse_optspec_gen_completion "$1"
 				fi
 				local _L_dest _L_nargs
 				_L_dest=${_L_optspec["dest"]}
 				_L_nargs=${_L_optspec["nargs"]:-1}
 				case "$_L_nargs" in
 				[0-9]*)
-					if ((_L_arg_assigned < _L_nargs)); then
-						_L_argparse_optspec_execute_action "$1"
-					fi
-					if ((_L_arg_assigned == _L_nargs)); then
+					_L_argparse_optspec_execute_action "$1"
+					if ((_L_arg_assigned+1 == _L_nargs)); then
 						_L_optspec=()
 					fi
 					;;
@@ -3222,16 +3233,30 @@ _L_argparse_parse_args() {
 					_L_argparse_optspec_assign_array "$1"
 					;;
 				esac
+				((++_L_arg_assigned))
 			}
 			shift
 		done
 		# Check if all required arguments have value.
 		local _L_required_arguments=()
-		while _L_asa_is_empty _L_optspec || _L_argparse_parser_next_optspec_argument _L_arg_i _L_optspec; do
+		while
+			if L_asa_is_empty _L_optspec; then
+				_L_argparse_parser_next_optspec_argument _L_arg_i _L_optspec
+			fi
+		do
 			case "${_L_optspec["nargs"]:-1}" in
-				[0-9]* | "+") _L_required_arguments+=("${_L_optspec["index"]}")
+				[0-9]*)
+					if ((_L_arg_assigned != _L_optspec["nargs"])); then
+						_L_required_arguments+=("${_L_optspec["index"]}")
+					fi
+					;;
+				"+")
+					if ((_L_arg_assigned == 0)); then
+						_L_required_arguments+=("${_L_optspec["index"]}")
+					fi
 			esac
 			_L_optspec=()
+			_L_arg_assigned=0
 		done
 	}
 	{
@@ -3269,8 +3294,8 @@ _L_argparse_parse_args() {
 # The last group of arguments are command line arguments passed to `_L_argparse_parse_args`.
 # Note: the last separator `::::` is different to make it more clear and restrict parsing better.
 L_argparse() {
-	local _L_parser=()
-	local _L_args=()
+	local -a _L_parser=()
+	local -a _L_args=()
 	while (($#)); do
 		if [[ "$1" == "::" || "$1" == "::::" || "$1" == "--" || "$1" == "----" ]]; then
 			# echo "AA ${_L_args[@]} ${_L_parser[@]}"
@@ -3340,13 +3365,18 @@ _L_test_z_argparse() {
 	}
 	{
 		L_log "args"
-		local nargs
-		tmp=$(L_argparse prog=prog :: nargs nargs="+" :::: 2>&1) && ret=$? || ret=$?
+		local arg=()
+		tmp=$(L_argparse prog=prog :: arg nargs="+" :::: 2>&1) && ret=$? || ret=$?
 		L_unittest_ne "$ret" 0
 		L_unittest_contains "$tmp" "required"
 		#
-		L_argparse prog=prog :: nargs nargs="+" :::: 1 $'2\n3' $'4"\'5'
-		L_unittest_eq "${nargs[*]}" $'1 2\n3 4"\'5'
+		local arg=()
+		L_argparse prog=prog :: arg nargs="+" :::: 1
+		L_unittest_eq "${arg[*]}" '1'
+		#
+		local arg=()
+		L_argparse prog=prog :: arg nargs="+" :::: 1 $'2\n3' $'4"\'5'
+		L_unittest_eq "${arg[*]}" $'1 2\n3 4"\'5'
 	}
 	{
 		L_log "check help"
