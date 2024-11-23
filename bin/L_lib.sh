@@ -2007,13 +2007,14 @@ L_unittest_failure_capture() {
 	_L_unittest_internal "test exit of ${*@Q} is $_L_ret i.e. nonzero" "$_L_ret = 0: $_L_tmp" [ "$_L_ret" -ne 0 ]
 }
 
+# shellcheck disable=2016,2019,2021,2023,2093,1083,2059
 # @description capture exit code and stdout and stderr into variables without subshell
 # @arg $1 var exit code
 # @arg $2 var stdout and stderr output
 # @arg $@ command to execute
 L_unittest_capture_nofork() {
 	coproc { mapfile -t -d '' "$2"; printf "%s" "$2"; }
-	if "${@:3}" 2>&1 >"${COPROC[1]}"; then
+	if "${@:3}" 2>&1 >&"${COPROC[1]}"; then
 		printf -v "$1" 0
 	else
 		printf -v "$1" "$?"
