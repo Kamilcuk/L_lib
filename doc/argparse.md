@@ -2,6 +2,18 @@
 
 ## `_L_parser`
 
+An associative array of associative arrays. The array exists to achieve the following goals:
+- extract the mainsettings of the argparse
+- iterate over all --options optspec
+- find an --option or -o
+- iterate over all arguments optspec
+
+The array contains the following keys:
+- `mainsettings` - for the main settings of the option
+- `-o` or `--options` - the optspec of a particular option for fast lookup
+- `optionN` where N is a non-negative integer - the optspec of option number `N`
+- `argN` where N is a non-negative integer - the optspec of argument number `N`
+
 An array of associative arrays of values.
 - `0` index contains main settings of the parser
 - `N` further indexes contain options as specified by the user
