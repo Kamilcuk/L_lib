@@ -14,11 +14,13 @@ The work is split on sections, each section has separate documentation.
 
 - `L_*` prefix for public symbols
 - `_L_*` prefix for private symbols
-  - Local variables in functions taking namereference have to start with `_L_*` prefix
+- Local variables in functions taking namereference also start with `_L_*` prefix
 - UPPER CASE for readonly variables
-- lower snake case for everything else
-- Many functions are taking `-v <var>` that set variables, just like `printf -v <var>` without subshell
-  - For developers: use `_L_handle_v` to handle -v argument easily.
+- lower case for functions and mutable variables
+- snake case for everything
+- `-v <var>` option is used to store the result in a variable
+  - This is similar to `printf -v <var>`
+  - Without the -v option, the function outputs elements on lines.
 
 # License
 

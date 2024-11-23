@@ -1,7 +1,7 @@
 ARG VERSION=latest
 FROM bash:${VERSION} AS app
 COPY bin/L_lib.sh /bin
-RUN L_lib.sh
+RUN L_lib.sh --help
 
 FROM app AS test
 RUN L_lib.sh test

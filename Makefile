@@ -1,5 +1,6 @@
 MAKEFLAGS = -rR --warn-undefined-variables --no-print-directories
 SHELL = bash
+GNUMAKEFLAGS =
 export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
@@ -9,10 +10,12 @@ all: test doc
 	@echo SUCCESS all
 test:
 	./bin/L_lib.sh test $(ARGS)
-	docker build --build-arg VERSION=5.2 --target test .
-	docker build --build-arg VERSION=4.4 --target test .
+	$(MAKE) test_bash5.2
+	$(MAKE) test_bash4.4
 	$(MAKE) shellcheck
 	@echo SUCCESS test
+test_bash%:
+	docker build --build-arg VERSION=$* --target test .
 shellcheck:
 	docker build --target shellcheck .
 shdoc:
