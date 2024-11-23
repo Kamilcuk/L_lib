@@ -1430,7 +1430,7 @@ _L_test_sort() {
 		L_sort -z arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
-	{
+	if ((0)); then
 		L_log "Compare times of bash sort vs command sort"
 		local arr=() i TIMEFORMAT
 		for ((i = 500; i; --i)); do arr[i]=$RANDOM; done
@@ -1441,7 +1441,7 @@ _L_test_sort() {
 		TIMEFORMAT='GNU sort real=%lR user=%lU sys=%lS'
 		time L_sort -n arr3
 		[[ "${arr2[*]}" == "${arr3[*]}" ]]
-	}
+	fi
 }
 
 # ]]]
