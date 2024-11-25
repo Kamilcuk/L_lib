@@ -21,20 +21,22 @@ def cli():
 @click.argument("script")
 def profile(file: str, script: str):
     cmd = """
+LC_ALL=C
 exec {FD}>"$1"
 _trap_DEBUG() {
-    local txt=
-    while (($#)); do
-        txt+=" ${BASH_SOURCE[$1+1]}:${BASH_LINENO[$1]}:${FUNCNAME[$1]}"
-        shift
+    local i txt=""
+	for ((i = 1; i != ${#BASH_SOURCE[@]}; ++i)); do
+		txt+=" $i ${BASH_SOURCE[i]@Q} ${BASH_LINENO[i-1]} ${FUNCNAME[i]@Q}"
     done
-    echo "# ${EPOCHREALTIME//./} ${BASH_COMMAND@Q}$txt"
+    echo "${EPOCHREALTIME//./} ${BASH_COMMAND@Q} $txt"
+    L_print_traceback
 } >&$FD
 # exec {BASH_XTRACEFD}> >(,ts --nano >&$FD)
-trap '_trap_DEBUG ${!BASH_SOURCE[@]}' DEBUG
+trap '_trap_DEBUG' DEBUG
 set -T
+: START
 eval "$2"
-_trap_DEBUG
+: END
 """
     cmd = ["bash", "-c", cmd, "bash", file, script]
     print(f"+ {cmd}")
@@ -45,12 +47,17 @@ _trap_DEBUG
 @cli.command()
 @click.argument("file")
 def analyze(file: str):
+    @dataclass
+    class Line:
+        stamp: int
+        trace: list[str]
+
     with open(file, "rb") as f:
         for line in f:
             line = line.decode(errors="replace")
-            if re.match("^# [0-9]+ .+$", line):
-                pass
             if re.match(r"^[0-9]+ \++ .+$", line):
+                pass
+            if re.match("^# [0-9]+ .+$", line):
                 pass
 
 
