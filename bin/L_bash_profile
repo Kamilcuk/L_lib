@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import shlex
+from datetime import timedelta, datetime
 import tempfile
 import argparse
 import os
@@ -9,6 +11,7 @@ from typing import Optional, Tuple
 import subprocess
 import re
 from dataclasses import dataclass, field
+from tabulate import tabulate
 
 
 @click.group()
@@ -28,8 +31,8 @@ _trap_DEBUG() {
 	for ((i = 1; i != ${#BASH_SOURCE[@]}; ++i)); do
 		txt+=" $i ${BASH_SOURCE[i]@Q} ${BASH_LINENO[i-1]} ${FUNCNAME[i]@Q}"
     done
-    echo "${EPOCHREALTIME//./} ${BASH_COMMAND@Q} $txt"
-    L_print_traceback
+    echo "# ${EPOCHREALTIME//./} ${BASH_COMMAND@Q} $txt"
+    # L_print_traceback
 } >&$FD
 # exec {BASH_XTRACEFD}> >(,ts --nano >&$FD)
 trap '_trap_DEBUG' DEBUG
@@ -44,21 +47,145 @@ eval "$2"
     subprocess.run(["tail", "-n20", file])
 
 
+@dataclass
+class Trace:
+    level: int
+    source: str
+    lineno: int
+    funcname: str
+
+
+@dataclass
+class Record:
+    stamp_ms: int
+    cmd: str
+    trace: list[Trace]
+    spent_ms: int = 0
+
+
+@dataclass
+class FunctionCall:
+    function: str
+    timems: int = 0
+    starts: list[Record] = field(default_factory=list)
+    stops: list[Record] = field(default_factory=list)
+
+    def add_start(self, rr: Record):
+        self.starts.append(rr)
+
+    def add_stop(self, rr: Record):
+        self.stops.append(rr)
+        self.timems += self.stops[-1].stamp_ms - self.starts[-1].stamp_ms
+
+@dataclass
+class Longest:
+    spent_ms: timedelta
+    cmd: str
+    cnt: int
+    trace: str
+
+@dataclass
+class Analyzer:
+    file: str
+    records: list[Record] = field(default_factory=list)
+    functions: list[FunctionCall] = field(default_factory=list)
+
+    def read(self):
+        # read the data
+        self.records = []
+        with open(self.file, errors="replace") as f:
+            for line in f:
+                if re.match(r"^# [0-9]+ .+$", line):
+                    # Fix shlex.split not able to parse $'\''
+                    line = line.replace(r"\'", "")
+                    try:
+                        arr = shlex.split(line)
+                    except Exception as e:
+                        print("ERROR:", repr(line), e)
+                        raise
+                    assert (len(arr) - 3) % 4 == 0, f"{arr}"
+                    rr = Record(
+                        stamp_ms=int(arr[1]),
+                        cmd=arr[2],
+                        trace=[
+                            Trace(
+                                int(arr[i]),
+                                arr[i + 1],
+                                int(arr[i + 2]),
+                                arr[i + 3],
+                            )
+                            for x in range((len(arr) - 3) // 4)
+                            for i in [3 + 4 * x]
+                        ],
+                    )
+                    self.records.append(rr)
+
+    def extract_function_calls(self):
+        # Extract function calls
+        functions: dict[str, FunctionCall] = {}
+        prevfunctions: set[str] = set()
+        for idx, rr in enumerate(self.records):
+            if rr.trace:
+                currentfunctions = set(x.funcname for x in rr.trace)
+                for function in currentfunctions:
+                    if function not in prevfunctions:
+                        functions.setdefault(function, FunctionCall(function)).add_start(
+                            self.records[idx - 1]
+                        )
+                for function in prevfunctions:
+                    if function not in currentfunctions:
+                        functions[function].add_stop(self.records[idx - 1])
+                prevfunctions = currentfunctions
+        self.function = list(functions.values())
+
+    def convert_absolute_timestamp_to_relative(self):
+        # convert absolute timestamp to relative
+        for i in range(len(self.records) - 1):
+            self.records[i].spent_ms = self.records[i + 1].stamp_ms - self.records[i].stamp_ms
+        self.records.pop()
+
+    def print_top_longest_commands(self):
+        cmd_durations: dict[str, list[Record]] = {}
+        for r in self.records:
+            cmd_durations.setdefault(r.cmd, []).append(r)
+        longest: list[Longest] = [
+            Longest(
+                timedelta(microseconds=x[2]),
+                x[0][:40],
+                len(x[1]),
+                " ".join([f"{t.source}:{t.lineno}" for r in x[1] for t in r.trace]),
+            )
+            for x in sorted(
+                [(k, v, sum(r.spent_ms for r in v)) for k, v in cmd_durations.items()],
+                key=lambda x: -x[2],
+            )
+        ]
+        print()
+        print("Top 10 commands that took commulatively longest time:")
+        print(tabulate(longest[:10], headers="keys"))
+
+    def print_function_calls(self):
+        for fc in self.functions:
+            print(fc.timems, fc.function)
+            for a, b in zip(fc.starts, fc.stops):
+                print("   { ", a)
+                print("   } ", b)
+
+    def extract_callgraph(self):
+        # Create callgraph
+        callgraph: dict[Trace, list[Trace]] = {}
+        for r in self.records:
+
 @cli.command()
 @click.argument("file")
 def analyze(file: str):
-    @dataclass
-    class Line:
-        stamp: int
-        trace: list[str]
-
-    with open(file, "rb") as f:
-        for line in f:
-            line = line.decode(errors="replace")
-            if re.match(r"^[0-9]+ \++ .+$", line):
-                pass
-            if re.match("^# [0-9]+ .+$", line):
-                pass
+    ana = Analyzer(file)
+    ana.read()
+    ana.convert_absolute_timestamp_to_relative()
+    ana.print_top_longest_commands()
+    if 0:
+        ana.extract_function_calls()
+        ana.print_function_calls()
 
 
 @cli.command()
@@ -69,6 +196,7 @@ def profileandanalyze(file: Optional[str], script: str):
         file = file or f.name
         profile.main([file, script], standalone_mode=False)
         analyze.main([file])
+
 
 if __name__ == "__main__":
     cli.main()
