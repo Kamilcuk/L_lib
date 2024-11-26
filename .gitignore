@@ -2,3 +2,4 @@ shdoc
 build
 public
 profile.*
+*.dot

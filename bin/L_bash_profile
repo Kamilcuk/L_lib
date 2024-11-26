@@ -1,20 +1,401 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+import time
+from collections import Counter
+from functools import cached_property
 import shlex
 from datetime import timedelta, datetime
 import tempfile
 import argparse
 import os
+import clickdc
 import sys
 import click
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple, overload
 import subprocess
 import re
 from dataclasses import dataclass, field
+from graphviz import Digraph
 from tabulate import tabulate
+from typing import TypeVar
+
+T1 = TypeVar("T1")
+V1 = TypeVar("V1")
+V2 = TypeVar("V2")
+V3 = TypeVar("V3")
+
+
+@overload
+def zip_dicts(a: dict[T1, V1], /) -> dict[T1, tuple[V1]]: ...
+@overload
+def zip_dicts(a: dict[T1, V1], b: dict[T1, V2], /) -> dict[T1, tuple[V1, V2]]: ...
+@overload
+def zip_dicts(
+    a: dict[T1, V1], b: dict[T1, V2], c: dict[T1, V3], /
+) -> dict[T1, tuple[V1, V2, V3]]: ...
+def zip_dicts(*dicts):
+    return dict((k, tuple(d[k] for d in dicts)) for k in dicts[0])
+
+
+def dots_trim(v: str, width: int = 50) -> str:
+    return v if len(v) <= width else (v[: width - 2] + "..")
+
+
+@dataclass
+class Integer:
+    v: int = 0
+
+    def add(self, v):
+        self.v += v
+
+
+def click_help():
+    return click.help_option("-h", "--help")
+
+
+###############################################################################
+@dataclass
+class Trace:
+    level: int
+    source: str
+    lineno: int
+    funcname: str
+
+
+@dataclass
+class Record:
+    idx: int
+    stamp_us: int
+    cmd: str
+    trace: list[Trace]
+    spent_us: int = -1
+
+
+@dataclass
+class FunctionCall:
+    function: str
+    timeus: int = 0
+    starts: list[Record] = field(default_factory=list)
+    stops: list[Record] = field(default_factory=list)
+
+    def add_start(self, rr: Record):
+        self.starts.append(rr)
+
+    def add_stop(self, rr: Record):
+        self.stops.append(rr)
+        self.timeus += self.stops[-1].stamp_us - self.starts[-1].stamp_us
+
+
+@dataclass
+class Longest:
+    spent_us: timedelta
+    cmd: str
+    cnt: int
+    trace: str
+
+
+@dataclass
+class Call:
+    function: str
+    spent_us: int = 0
+    child_us: int = 0
+    childs: dict[str, Call] = field(default_factory=dict)
+
+
+class Records(list[Record]):
+    @property
+    def sum_spent_us(self):
+        return sum(x.spent_us for x in self)
+
+
+@dataclass
+class LongestFunction:
+    funcname: str
+    spent_us: int
+    called_nr: int
+    spent_per_call: float
+
+
+@dataclass
+class AnalyzeArgs:
+    linelimit: Optional[int] = clickdc.option(
+        help="From the input file, parse only that many lines from the top. This is used to reduce the numebr of analyzed lines for testing"
+    )
+    dotcallgraph: Optional[str] = clickdc.option(
+        "--dot", help="Output file for dot graph. Use xdot <file> to view."
+    )
+    dotcallgraph_limit: int = clickdc.option(
+        "--dot-limit",
+        default=3,
+        show_default=True,
+        help="When generating dot callgraph, limit the number of children of each point to max this number",
+    )
+    filterfunction: Optional[str] = clickdc.option(
+        help="Only filter execution time of this particular function. Usefull for analysis of a single bash function execution"
+    )
+    file: str = clickdc.argument()
+
+
+@dataclass
+class RecordsSpentInterface:
+    records: Records = field(default_factory=Records)
+    spent: int = 0
+
+    def addrecord(self, rr: Record):
+        self.records.append(rr)
+        self.spent += rr.spent_us
+
+    def get_example(self):
+        t = next(
+            (rr.trace[0] for rr in self.records if rr.trace),
+            None,
+        )
+        return f"{t.source}:{t.lineno}" if t else ""
+
+
+@dataclass
+class FunctionData(RecordsSpentInterface):
+    calls: int = 0
+
+    def add(self, rr: Record, called: bool):
+        self.addrecord(rr)
+        self.calls += called
+
+
+@dataclass
+class Timeit:
+    name: str = ""
+    start: float = 0
+    duration: float = 0
+
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, *_):
+        self.duration = time.time() - self.start
+        if self.name:
+            self.print()
+
+    def print(self):
+        print(f"{self.name} took {timedelta(self.duration)} seconds")
+
+
+@dataclass
+class Analyzer:
+    args: AnalyzeArgs
+    records: list[Record] = field(default_factory=list)
+    function: dict[str, FunctionData] = field(default_factory=dict)
+
+    def run(self):
+        with Timeit(f"Reading {self.args.file}"):
+            self.read()
+        with Timeit("Calculating time spent"):
+            self.calculate_spent_time()
+        with Timeit("Getting longest commands"):
+            self.print_top_longest_commands()
+        with Timeit("Getting longest functions"):
+            self.print_top_longest_functions()
+        if self.args.dotcallgraph:
+            with Timeit("Generating dot callgraph"):
+                self.extract_callgraph(self.args.dotcallgraph)
+        self.print_stats()
+
+    @cached_property
+    def execution_time_us(self):
+        return self.records[-1].stamp_us - self.records[0].stamp_us
+
+    def print_stats(self):
+        print()
+        print(
+            f"Command executed in {timedelta(microseconds=self.execution_time_us)}us, {len(self.records)} instructions, {len(self.functions)} functions."
+        )
+
+    def read(self):
+        # read the data
+        self.records = []
+        with open(self.args.file, errors="replace") as f:
+            for lineno, line in enumerate(f):
+                if self.args.linelimit and lineno == self.args.linelimit:
+                    break
+                if re.match(r"^# [0-9]+ .+$", line):
+                    # Fix shlex.split not able to parse $'\''
+                    line = line.replace(r"\'", "")
+                    try:
+                        arr = shlex.split(line)
+                    except Exception as e:
+                        print("ERROR:", repr(line), e)
+                        raise
+                    assert (len(arr) - 3) % 4 == 0, f"{arr}"
+                    rr = Record(
+                        idx=lineno,
+                        stamp_us=int(arr[1]),
+                        cmd=arr[2],
+                        trace=[
+                            Trace(
+                                int(arr[i]),
+                                arr[i + 1],
+                                int(arr[i + 2]),
+                                arr[i + 3],
+                            )
+                            for x in range((len(arr) - 3) // 4)
+                            for i in [3 + 4 * x]
+                        ],
+                    )
+                    if self.args.filterfunction:
+                        if not rr.trace or not re.match(
+                            self.args.filterfunction, rr.trace[0].funcname
+                        ):
+                            continue
+                    self.records.append(rr)
+
+    def extract_function_calls(self):
+        # Extract function calls
+        functions: dict[str, FunctionCall] = {}
+        prevfunctions: set[str] = set()
+        for idx, rr in enumerate(self.records):
+            if rr.trace:
+                currentfunctions = set(x.funcname for x in rr.trace)
+                for function in currentfunctions:
+                    if function not in prevfunctions:
+                        functions.setdefault(
+                            function, FunctionCall(function)
+                        ).add_start(self.records[idx - 1])
+                for function in prevfunctions:
+                    if function not in currentfunctions:
+                        functions[function].add_stop(self.records[idx - 1])
+                prevfunctions = currentfunctions
+
+    def calculate_spent_time(self):
+        # convert absolute timestamp to relative
+        for i in range(len(self.records) - 1):
+            self.records[i].spent_us = (
+                self.records[i + 1].stamp_us - self.records[i].stamp_us
+            )
+        self.records.pop()
+
+    def print_top_longest_commands(self):
+        @dataclass
+        class Data(RecordsSpentInterface):
+            callers: Counter[str] = field(default_factory=Counter)
+
+            def add(self, rr: Record):
+                self.addrecord(rr)
+                if rr.trace:
+                    self.callers.update([rr.trace[0].funcname])
+
+        cmd_to_data: dict[str, Data] = {}
+        for rr in self.records:
+            cmd_to_data.setdefault(rr.cmd, Data()).add(rr)
+
+        def form(x: tuple[str, int]):
+            return f"{x[0]} {x[1]}"
+
+        longest_commands: list[dict] = [
+            dict(
+                percent=v.spent / self.execution_time_us * 100,
+                spent_us=v.spent,
+                cmd=dots_trim(cmd),
+                calls=len(v.records),
+                spentPerCall=v.spent / len(v.records),
+                topCaller1=(
+                    form(v.callers.most_common()[0]) if len(v.callers) > 0 else ""
+                ),
+                topCaller2=(
+                    form(v.callers.most_common()[1]) if len(v.callers) > 1 else ""
+                ),
+                topCaller3=(
+                    form(v.callers.most_common()[2]) if len(v.callers) > 2 else ""
+                ),
+                example=v.get_example(),
+            )
+            for cmd, v in cmd_to_data.items()
+        ]
+        longest_commands = sorted(longest_commands, key=lambda x: -x["spent_us"])[:20]
+        print()
+        print(f"Top {len(longest_commands)} cummulatively longest commands:")
+        print(tabulate(longest_commands, headers="keys"))
+
+    def print_top_longest_functions(self):
+        self.functions = {}
+        prevfunctions: set[str] = set()
+        for r in self.records:
+            currentfunctions = set(t.funcname for t in r.trace)
+            if r.trace:
+                t = r.trace[0]
+                called = False
+                for f in currentfunctions:
+                    if f not in prevfunctions:
+                        called = True
+                self.functions.setdefault(t.funcname, FunctionData()).add(r, called)
+            prevfunctions = currentfunctions
+
+        longest_functions: list[dict] = [
+            dict(
+                percent=v.spent / self.execution_time_us * 100,
+                spent_us=v.spent,
+                funcname=func,
+                calls=v.calls,
+                spentPerCall=v.spent / v.calls,
+                instructions=len(v.records),
+                instructionsPerCall=len(v.records) / v.calls,
+                example=v.get_example(),
+            )
+            for func, v in self.functions.items()
+        ]
+        longest_functions = sorted(longest_functions, key=lambda x: -x["spent_us"])[:20]
+        print()
+        print(f"Top {len(longest_functions)} cummulatively longest functions:")
+        print(tabulate(longest_functions, headers="keys"))
+
+    def print_function_calls(self):
+        for fc in self.functions:
+            print(fc.timeus, fc.function)
+            for a, b in zip(fc.starts, fc.stops):
+                print("   { ", a)
+                print("   } ", b)
+
+    def extract_callgraph(self, outputfile: str):
+        # Create callgraph
+        callgraph: Call = Call("__entrypoint__")
+        for record in self.records:
+            call = callgraph
+            for t in reversed(record.trace):
+                call.child_us += record.spent_us
+                call = call.childs.setdefault(t.funcname, Call(t.funcname))
+            call.spent_us += record.spent_us
+        # print(callgraph)
+        dot = Digraph()
+
+        def printer(parents: str, x: Call, color: str = "#ffffff"):
+            me = f"{parents}_{x.function}"
+            dot.node(
+                me,
+                f"{x.function}\nspent={x.spent_us:_}us childs={x.child_us:_}us",
+                color=color,
+            )
+            inc = 255 / len(x.childs) if x.childs else -1
+            for idx, child in enumerate(
+                sorted(x.childs.values(), key=lambda x: -x.spent_us)[:self.args.dotcallgraph_limit]
+            ):
+                color = "#%2x%2x%2x" % (0xFF - int(inc * idx), 0x00, 0x00)
+                dot.edge(
+                    me,
+                    f"{me}_{child.function}",
+                    color=color,
+                )
+                printer(me, child, color)
+
+        printer("", callgraph)
+        with open(outputfile, "w") as f:
+            print(dot.source, file=f)
+
+
+###############################################################################
 
 
 @click.group()
+@click_help()
 def cli():
     pass
 
@@ -22,6 +403,7 @@ def cli():
 @cli.command()
 @click.argument("file")
 @click.argument("script")
+@click_help()
 def profile(file: str, script: str):
     cmd = """
 LC_ALL=C
@@ -42,160 +424,27 @@ eval "$2"
 : END
 """
     cmd = ["bash", "-c", cmd, "bash", file, script]
-    print(f"+ {cmd}")
+    print(f"PROFING: + {cmd}")
     subprocess.run(cmd)
-    subprocess.run(["tail", "-n20", file])
-
-
-@dataclass
-class Trace:
-    level: int
-    source: str
-    lineno: int
-    funcname: str
-
-
-@dataclass
-class Record:
-    stamp_ms: int
-    cmd: str
-    trace: list[Trace]
-    spent_ms: int = 0
-
-
-@dataclass
-class FunctionCall:
-    function: str
-    timems: int = 0
-    starts: list[Record] = field(default_factory=list)
-    stops: list[Record] = field(default_factory=list)
-
-    def add_start(self, rr: Record):
-        self.starts.append(rr)
-
-    def add_stop(self, rr: Record):
-        self.stops.append(rr)
-        self.timems += self.stops[-1].stamp_ms - self.starts[-1].stamp_ms
-
-@dataclass
-class Longest:
-    spent_ms: timedelta
-    cmd: str
-    cnt: int
-    trace: str
-
-@dataclass
-class Analyzer:
-    file: str
-    records: list[Record] = field(default_factory=list)
-    functions: list[FunctionCall] = field(default_factory=list)
-
-    def read(self):
-        # read the data
-        self.records = []
-        with open(self.file, errors="replace") as f:
-            for line in f:
-                if re.match(r"^# [0-9]+ .+$", line):
-                    # Fix shlex.split not able to parse $'\''
-                    line = line.replace(r"\'", "")
-                    try:
-                        arr = shlex.split(line)
-                    except Exception as e:
-                        print("ERROR:", repr(line), e)
-                        raise
-                    assert (len(arr) - 3) % 4 == 0, f"{arr}"
-                    rr = Record(
-                        stamp_ms=int(arr[1]),
-                        cmd=arr[2],
-                        trace=[
-                            Trace(
-                                int(arr[i]),
-                                arr[i + 1],
-                                int(arr[i + 2]),
-                                arr[i + 3],
-                            )
-                            for x in range((len(arr) - 3) // 4)
-                            for i in [3 + 4 * x]
-                        ],
-                    )
-                    self.records.append(rr)
-
-    def extract_function_calls(self):
-        # Extract function calls
-        functions: dict[str, FunctionCall] = {}
-        prevfunctions: set[str] = set()
-        for idx, rr in enumerate(self.records):
-            if rr.trace:
-                currentfunctions = set(x.funcname for x in rr.trace)
-                for function in currentfunctions:
-                    if function not in prevfunctions:
-                        functions.setdefault(function, FunctionCall(function)).add_start(
-                            self.records[idx - 1]
-                        )
-                for function in prevfunctions:
-                    if function not in currentfunctions:
-                        functions[function].add_stop(self.records[idx - 1])
-                prevfunctions = currentfunctions
-        self.function = list(functions.values())
-
-    def convert_absolute_timestamp_to_relative(self):
-        # convert absolute timestamp to relative
-        for i in range(len(self.records) - 1):
-            self.records[i].spent_ms = self.records[i + 1].stamp_ms - self.records[i].stamp_ms
-        self.records.pop()
-
-    def print_top_longest_commands(self):
-        cmd_durations: dict[str, list[Record]] = {}
-        for r in self.records:
-            cmd_durations.setdefault(r.cmd, []).append(r)
-        longest: list[Longest] = [
-            Longest(
-                timedelta(microseconds=x[2]),
-                x[0][:40],
-                len(x[1]),
-                " ".join([f"{t.source}:{t.lineno}" for r in x[1] for t in r.trace]),
-            )
-            for x in sorted(
-                [(k, v, sum(r.spent_ms for r in v)) for k, v in cmd_durations.items()],
-                key=lambda x: -x[2],
-            )
-        ]
-        print()
-        print("Top 10 commands that took commulatively longest time:")
-        print(tabulate(longest[:10], headers="keys"))
-
-    def print_function_calls(self):
-        for fc in self.functions:
-            print(fc.timems, fc.function)
-            for a, b in zip(fc.starts, fc.stops):
-                print("   { ", a)
-                print("   } ", b)
-
-    def extract_callgraph(self):
-        # Create callgraph
-        callgraph: dict[Trace, list[Trace]] = {}
-        for r in self.records:
-
-@cli.command()
-@click.argument("file")
-def analyze(file: str):
-    ana = Analyzer(file)
-    ana.read()
-    ana.convert_absolute_timestamp_to_relative()
-    ana.print_top_longest_commands()
-    if 0:
-        ana.extract_function_calls()
-        ana.print_function_calls()
+    print(f"PROFING ENDED, output in {file}")
+    # subprocess.run(["tail", "-n20", file])
 
 
 @cli.command()
-@click.option("-f", "--file")
+@click_help()
+@clickdc.adddc("args", AnalyzeArgs)
+def analyze(args: AnalyzeArgs):
+    Analyzer(args).run()
+
+
+@cli.command()
+@click_help()
+@clickdc.adddc("args", AnalyzeArgs)
 @click.argument("script", default=". bin/L_lib.sh test -r argparse")
-def profileandanalyze(file: Optional[str], script: str):
-    with tempfile.NamedTemporaryFile() as f:
-        file = file or f.name
-        profile.main([file, script], standalone_mode=False)
-        analyze.main([file])
+def profileandanalyze(args: AnalyzeArgs, script: str):
+    profile.main([args.file, script], standalone_mode=False)
+    print()
+    Analyzer(args).run()
 
 
 if __name__ == "__main__":

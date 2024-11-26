@@ -304,6 +304,20 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @section uncategorized
 # @description many functions without any particular grouping
 
+# @description Wrapper around =~ for contexts that require a function.
+# @arg $1 string to match
+# @arg $2 regex to match against
+L_regex_match() {
+	[[ "$1" =~ $2 ]]
+}
+
+# @description Wrapper around == for contexts that require a function.
+# @arg $1 string to match
+# @arg $2 glob to match against
+L_glob_match() {
+	[[ "$1" == $2 ]]
+}
+
 # @description wrapper function for handling -v argumnets to other functions
 # It calls a function called `_<caller>_v` with argumenst without `-v <var>`
 # The function `_<caller>_v` should set the variable nameref _L_v to the returned value
@@ -1697,6 +1711,7 @@ _L_test_version() {
 
 # @description Copy associative dictionary
 # Notice: the destination array is _not_ cleared.
+# This is potentially very slow, O(N)
 # @arg $1 var Source associative array
 # @arg $2 var Destination associative array
 # @arg [$3] str Filter only keys with this regex
@@ -1797,10 +1812,10 @@ L_asa() {
 # @arg $3 var associative array nameref to store
 # @see L_nestedasa_get
 L_nestedasa_set() {
-	if [[ $1 != _L_dest ]]; then declare -n _L_dest="$1"; fi
-	_L_dest=$(declare -p "$3")
+	L_assert2 '' L_var_is_associative "$3"
+	eval "$1=\$(declare -p \"\$3\")"
 	# _L_dest=${!3@A} # does not work
-	_L_dest=${_L_dest#*=}
+	# _L_dest=${_L_dest#*=}
 }
 
 # @description extract an associative array inside an associative array
@@ -1809,11 +1824,14 @@ L_nestedasa_set() {
 # @arg $3 var source nameref
 # @see L_nestedasa_set
 L_nestedasa_get() {
-	if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
-	if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
-	declare -A _L_tmpa="$_L_asa"
-	_L_asa_to=()
-	L_asa_copy _L_tmpa "$1"
+	L_assert2 '' L_is_valid_variable_name "$1"
+	L_assert2 '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
+	eval "$1=${!3#*=}"  # Is 1000 times faster, then the below, because L_asa_copy is slow.
+	# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
+	# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
+	# declare -A _L_tmpa="$_L_asa"
+	# _L_asa_to=()
+	# L_asa_copy _L_tmpa "$1"
 }
 
 _L_test_asa() {
@@ -2101,7 +2119,7 @@ L_unittest_ne() {
 L_unittest_regex() {
 	local -
 	set +x
-	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" eval "[[ ${1@Q} =~ $2 ]]"; then
+	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -2532,7 +2550,8 @@ L_argparse_print_help() {
 	{
 		#
 		local _L_usage _L_dest
-		local -A _L_mainsettings="${_L_parser[0]}" _L_optspec=()
+		local -A _L_mainsettings
+		L_nestedasa_get _L_mainsettings = "_L_parser[0]"
 		_L_usage="usage: ${_L_mainsettings[prog]:-${_L_name:-$0}}"
 	}
 	{
@@ -3197,7 +3216,8 @@ _L_argparse_parse_args() {
 	}
 	{
 		# Extract mainsettings
-		local -A _L_mainsettings="${_L_parser[0]}"
+		local -A _L_mainsettings
+		L_nestedasa_get _L_mainsettings = "_L_parser[0]"
 		# List of assigned metavars, used for checking required ones.
 		local _L_assigned_options=()
 	}
