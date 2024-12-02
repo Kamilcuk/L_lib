@@ -10,9 +10,14 @@ all: test doc
 	@echo SUCCESS all
 test:
 	./bin/L_lib.sh test $(ARGS)
+	$(MAKE) shellcheck
 	$(MAKE) test_bash5.2
 	$(MAKE) test_bash4.4
-	$(MAKE) shellcheck
+	$(MAKE) test_bash4.3
+	$(MAKE) test_bash4.2
+	$(MAKE) test_bash4.1
+	$(MAKE) test_bash4.0
+	# $(MAKE) test_bash3.2
 	@echo SUCCESS test
 test_bash%:
 	docker build --build-arg VERSION=$* --target test .

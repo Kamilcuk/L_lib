@@ -300,6 +300,192 @@ L_ansi_24bit_fg() { printf '\E[38;2;%d;%d;%dm' "$@"; }
 L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 
 # ]]]
+# has [[[
+# @section has
+# @description check if bash has specific feature
+
+# @description Bash 4.4 introduced function scoped `local -`
+L_has_local_dash() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4) )); }
+
+# @description Bash 4.4 introduced ${var@Q}
+L_has_at_Q() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4) )); }
+
+# @description Bash 4.3 introduced declare -n nameref
+L_has_nameref() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3) )); }
+
+# @description Bash 4.3 introduced -d option to mapfile
+L_has_mapfile_d() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3) )); }
+
+# @description Bash 4.1 introduced test/[/[[ -v variable unary operator
+L_has_test_v() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO == 4 && BASH_VERSINFO[1] >= 1) )); }
+
+# @description Bash 4.0 introduced declare -A var=([a]=b)
+L_has_associative_array() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 4.0 introduced mapfile
+L_has_mapfile() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 4.0 introduced readarray
+L_has_readarray() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 4.0 introduced case fallthrough ;& and ;;&
+L_has_case_fallthrough() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 4.0 introduced ${var,,} and ${var^^} expansions
+L_has_uppercase_expansion() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 4.0 introduced BASHPID variable
+L_has_BASHPID() { ((BASH_VERSINFO[0] >= 4)); }
+
+# @description Bash 3.2 introduced coproc
+L_has_coproc() { (( BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 2) )); }
+
+# @description Bash 2.4 introduced ${!prefix*} expansion
+L_has_prefix_expansion() { (( BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4) )); }
+
+# @description Bash 2.05 introduced <<<"string"
+L_has_here_string() { (( BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 5) )); }
+
+# @description Bash 2.0 introduced ${!var} expansion
+L_has_indirect_expansion() { (( BASH_VERSINFO[0] >= 2 )); }
+
+# @description Bash 1.14.7 introduced arrays
+# Bash 1.14.7 also introduced:
+# New variables: DIRSTACK, PIPESTATUS, BASH_VERSINFO, HOSTNAME, SHELLOPTS, MACHTYPE.  The first three are array variables.
+L_has_array() { L_version_cmp "$BASH_VERSION" -ge 1.14.7; }
+
+# ]]]
+# basic [[[
+# @section basic
+# @description Some base simple definitions for every occasion.
+
+# @description Assert the command starting from second arguments returns success.
+# Note: `[[` is a bash syntax sugar and is not a command.
+# As last resort, use `eval "[[ ${var@Q} = ${var@Q} ]]"` if you really want to use it,
+# Better prefer write and use wrapper functions, like `L_regex_match` or `L_glob_match`.
+# @arg $1 str assertiong string description
+# @arg $@ command to test
+# @example L_assert 'wrong number of arguments' [ "$#" = 0 ]
+L_assert() {
+	if ! "${@:2}"; then
+		L_print_traceback
+		printf "%s: assertion %s failed%s\n" "$L_NAME" "$(L_quote_setx "$@")" "${1:+: $1}" >&2
+		exit 249
+	fi
+}
+
+# @description Wrapper around =~ for contexts that require a function.
+# @arg $1 string to match
+# @arg $2 regex to match against
+L_regex_match() { [[ "$1" =~ $2 ]]; }
+
+_L_test_a_regex_match() {
+	L_unittest_cmd L_regex_match "(a)" "^[(].*[)]$"
+}
+
+# shellcheck disable=2053
+# @description Wrapper around == for contexts that require a function.
+# @arg $1 string to match
+# @arg $2 glob to match against
+L_glob_match() { [[ "$1" == $2 ]]; }
+
+# @description Return 0 if function exists.
+# @arg $1 function name
+L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
+
+# @description Return 0 if command exists.
+# @arg $1 command name
+L_command_exists() { command -v "$@" >/dev/null 2>&1; }
+
+# @description like hash command, but silenced output, to check if a command exists.
+# @arg $@ commands to check
+L_hash() { hash "$@" >/dev/null 2>&1; }
+
+# @description return true if current script sourced
+L_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
+
+# @description return true if current script is not sourced
+L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
+
+# @description return true if running in bash shell
+# Portable with POSIX shell.
+L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
+
+# @description return true if running in posix mode
+L_in_posix_mode() { case :$SHELLOPTS: in *:posix:*) ;; *) false ;; esac; }
+
+# @description
+# @arg $1 variable nameref
+# @exitcode 0 if variable is set, nonzero otherwise
+L_var_is_set() { eval "[[ -n \"\${$1+yes}\" ]]"; }
+
+# @description
+# @arg $1 variable nameref
+# @exitcode 0 if variable is an array, nonzero otherwise
+L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -a"* ]]; }
+
+# @description check if variable is an associative array
+# @arg $1 variable nameref
+L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -A"* ]]; }
+
+# @description check if variable is readonly
+# @arg $1 variable nameref
+L_var_is_readonly() { (eval "$1=") 2>/dev/null; }
+
+# @description Return 0 if the string happend to be something like true.
+# @arg $1 str
+L_is_true() { [[ "$1" =~ ^([+]|0*[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$ ]]; }
+
+# @description Return 0 if the string happend to be something like false.
+# @arg $1 str
+L_is_false() { [[ "$1" =~ ^(-|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$ ]]; }
+
+# @description Return 0 if the string happend to be something like true in locale.
+# @arg $1 str
+L_is_true_locale() {
+	local i
+	i=$(locale LC_MESSAGES)
+	# extract first line
+	i=${i%%$'\n'*}
+	[[ "$1" =~ $i ]]
+}
+
+# @description Return 0 if the string happend to be something like false in locale.
+# @arg $1 str
+L_is_false_locale() {
+	local i
+	i=$(locale LC_MESSAGES)
+	# extract second line
+	i=${i#*$'\n'}
+	i=${i%%$'\n'*}
+	[[ "$1" =~ $i ]]
+}
+
+# @description exit with success if argument could be a variable name
+# @arg $1 string to check
+L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
+
+# @description exits with success if all characters in string are printable
+# @arg $1 string to check
+L_isprint() { [[ "$*" =~ ^[[:print:]]*$ ]]; }
+
+# @description exits with success if all string characters are digits
+# @arg $1 string to check
+L_isdigit() { [[ "$*" =~ ^[0-9]+$ ]]; }
+
+# @description exits with success if the string characters is an integer
+# @arg $1 string to check
+L_isinteger() { [[ "$*" =~ ^[+-]?[0-9]+$ ]]; }
+
+# @description exits with success if the string characters is a float
+# @arg $1 string to check
+L_isfloat() { [[ "$*" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
+
+# @description send signal to itself
+# @arg $1 signal to send, see kill -l
+L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
+
+# ]]]
 # uncategorized [[[
 # @section uncategorized
 # @description many functions without any particular grouping
@@ -309,9 +495,10 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @arg $@ variable names to pretty print
 L_pretty_print() {
 	local OPTARG OPTIND _L_t _L_prefix=
-	while getopts p: _L_t; do
+	while getopts :p: _L_t; do
 		case $_L_t in
-			p) _L_prefix="$OPTARG " ;;
+		p) _L_prefix="$OPTARG " ;;
+		*) break ;;
 		esac
 	done
 	shift $((OPTIND-1))
@@ -351,21 +538,6 @@ L_pretty_print() {
 	done
 }
 
-# @description Wrapper around =~ for contexts that require a function.
-# @arg $1 string to match
-# @arg $2 regex to match against
-L_regex_match() {
-	[[ "$1" =~ $2 ]]
-}
-
-# shellcheck disable=2053
-# @description Wrapper around == for contexts that require a function.
-# @arg $1 string to match
-# @arg $2 glob to match against
-L_glob_match() {
-	[[ "$1" == $2 ]]
-}
-
 # @description wrapper function for handling -v argumnets to other functions
 # It calls a function called `_<caller>_v` with argumenst without `-v <var>`
 # The function `_<caller>_v` should set the variable nameref _L_v to the returned value
@@ -381,20 +553,31 @@ L_glob_match() {
 #    L_add() { _L_handle_v "$@"; }
 #    _L_add_v() { _L_v="$(($1 + $2))"; }
 _L_handle_v() {
-	if [[ $1 == -v?* ]]; then
-		set -- -v "${1#-v}" "${@:2}"
-	fi
-	if [[ $1 == -v ]]; then
-		if [[ $2 != _L_v ]]; then local -n _L_v="$2"; fi
-		_"${FUNCNAME[1]}"_v "${@:3}"
-	else
-		local _L_v
+	local _L_v=()
+	case $1 in
+	-v?*)
+		set -- -v "${1##-v}" "${@:2}"
+		if _"${FUNCNAME[1]}"_v "${@:3}"; then
+			eval "$2=(\"\${_L_v[@]:-}\")"
+		else
+			return $?
+		fi
+		;;
+	-v)
+		if _"${FUNCNAME[1]}"_v "${@:3}"; then
+			eval "$2=(\"\${_L_v[@]:-}\")"
+		else
+			return $?
+		fi
+		;;
+	*)
 		if _"${FUNCNAME[1]}"_v "$@"; then
 			printf "%s\n" "${_L_v[@]}"
 		else
 			return $?
 		fi
-	fi
+		;;
+	esac
 }
 
 L_copyright_gpl30orlater() {
@@ -429,48 +612,22 @@ EOF
 }
 
 # @description Output a string with the same quotating style as does bash in set -x
+# @option -v <var> variable to set
 # @arg $@ arguments to quote
-L_quote_setx() { local tmp; tmp=$({ set -x; : "$@"; } 2>&1); printf "%s\n" "${tmp:5}"; }
+L_quote_setx() { _L_handle_v "$@"; }
+_L_quote_setx_v() { _L_v=$({ set -x; : "$@"; } 2>&1); _L_v=${_L_v:5}; }
 
-# @description Eval the first argument - if it returns failure, then fatal.
-# @arg $1 string to evaluate
-# @arg $@ assertion message
-# @example '[[ $var = 0 ]]' "Value of var is invalid"
-L_assert() {
-	if eval '!' "$1"; then
-		L_print_traceback
-		local msg=$1
-		shift
-		msg="assertion $msg failed${1:+: ${*@Q}}"
-		echo "$L_NAME: $msg" >&2
-	fi
-}
+# @description Output a string with the same quotating style as does bash with printf
+# @option -v <var> variable to set
+# @arg $@ arguments to quote
+L_quote_printf() { _L_handle_v "$@"; }
+_L_quote_printf_v() { printf -v _L_v " %q" "$@"; _L_v=${_L_v:1}; }
 
-# @description Assert the command starting from second arguments returns success.
-# @arg $1 str assertiong string description
-# @arg $@ command to test
-# @example L_assert2 'wrong number of arguments' test "$#" = 0
-L_assert2() {
-	if ! "${@:2}"; then
-		L_print_traceback
-		local msg=$1
-		shift
-		msg="assertion ${*@Q} failed${msg:+: $msg}"
-		echo "$L_NAME: $msg" >&2
-	fi
-}
-
-# @description Return 0 if function exists.
-# @arg $1 function name
-L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
-
-# @description Return 0 if command exists.
-# @arg $1 command name
-L_command_exists() { command -v "$@" >/dev/null 2>&1; }
-
-# @description like hash, but silenced output, to check if command exists.
-# @arg $@ commands to check
-L_hash() { hash "$@" >/dev/null 2>&1; }
+# @description Output a string with the same quotating style as does /bin/printf
+# @option -v <var> variable to set
+# @arg $@ arguments to quote
+L_quote_bin_printf() { _L_handle_v "$@"; }
+_L_quote_bin_printf_v() { _L_v=$(/bin/printf " %q" "$@"); _L_v=${_L_v:1}; }
 
 # @description Convert a string to a number.
 L_strhash() { _L_handle_v "$*"; }
@@ -501,108 +658,10 @@ _L_strhash_bash_v() {
 	done
 }
 
-# @description return true if current script sourced
-L_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
-
-# @description return true if current script is not sourced
-L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
-
-# @description return true if running in bash shell
-# Portable with POSIX shell.
-L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
-
-# @description return true if running in posix mode
-L_in_posix_mode() { [[ :$SHELLOPTS: == *:posix:* ]]; }
-
-# @description Bash has declare -n var=$1 ?
-L_has_nameref() { L_version_cmp "$BASH_VERSION" -ge 4.2.46; }
-
-# @description Bash has declare -A var=[a]=b) ?
-L_has_associative_array() { L_version_cmp "$BASH_VERSION" -ge 4; }
-
-# @description Bash has ${!prefix*} expansion ?
-L_has_prefix_expansion() { L_version_cmp "$BASH_VERSION" -ge 2.4; }
-
-# @description Bash has ${!var} expansion ?
-L_has_indirect_expansion() { L_version_cmp "$BASH_VERSION" -ge 2.0; }
-
-# @description Bash has mapfile ?
-L_has_mapfile() { L_version_cmp "$BASH_VERSION" -ge 4; }
-
-# @description Bash has readarray ?
-L_has_readarray() { L_version_cmp "$BASH_VERSION" -ge 4; }
-
-# @description Has here string <<<"string" ?
-L_has_here_string() { L_version_cmp "$BASH_VERSION" -ge 2.05; }
-
-# @description does bash has arrays local -a arr=() ?
-L_has_array() { L_version_cmp "$BASH_VERSION" -ge 1.14.7; }
-
-# @description does bash has case a in a) ;& v) ;;& esac ?
-L_has_case_fallthrough() { L_version_cmp "$BASH_VERSION" -ge 4; }
-
-# @description test/[/[[ have a -v variable unary operator, which returns uccess if 'variable' has been set ?
-L_has_test_v() { L_version_cmp "$BASH_VERSION" -ge 4.1; }
-
-# @description bash has ${var@Q} ?
-L_has_at_Q() { L_version_cmp "$BASH_VERSION" -ge 4.4; }
-
-# @description
-L_has_coproc() { L_version_cmp "$BASH_VERSION" -ge 3.2; }
-
-# @description
-# @arg $1 variable nameref
-# @exitcode 0 if variable is set, nonzero otherwise
-L_var_is_set() { eval "[[ -n \"\${$1+yes}\" ]]"; }
-
-# @description
-# @arg $1 variable nameref
-# @exitcode 0 if variable is an array, nonzero otherwise
-L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -a"* ]]; }
-
-# @description check if variable is an associative array
-# @arg $1 variable nameref
-L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -A"* ]]; }
-
-# @description check if variable is readonly
-# @arg $1 variable nameref
-L_var_is_readonly() { (eval "$1=") 2>/dev/null; }
-
-# @description Return 0 if the string happend to be something like true.
-# @arg $1 str
-L_is_true() { [[ "${1,,}" =~ ^([+]|0*[1-9][0-9]*|t|true|y|yes)$ ]]; }
-
-# @description Return 0 if the string happend to be something like false.
-# @arg $1 str
-L_is_false() { [[ "${1,,}" =~ ^(-|0+|f|false|n|no)$ ]]; }
-
-# @description Return 0 if the string happend to be something like true in locale.
-# @arg $1 str
-L_is_true_locale() {
-	local i
-	i=$(locale LC_MESSAGES)
-	# extract first line
-	i=${i%%$'\n'*}
-	[[ "$1" =~ $i ]]
-}
-
-# @description Return 0 if the string happend to be something like false in locale.
-# @arg $1 str
-L_is_false_locale() {
-	local i
-	i=$(locale LC_MESSAGES)
-	# extract second line
-	i=${i#*$'\n'}
-	i=${i%%$'\n'*}
-	[[ "$1" =~ $i ]]
-}
-
 # @description list functions with prefix
 # @option -v <var> var
 # @arg $1 prefix
-L_list_functions_with_prefix() {
-	_L_handle_v "$@"
-}
+L_list_functions_with_prefix() { _L_handle_v "$@"; }
 _L_list_functions_with_prefix_v() {
 	_L_v=()
 	for _L_i in $(compgen -A function); do
@@ -625,30 +684,6 @@ L_wait_all_jobs() {
 		wait "%$j"
 	done <<<"$(jobs)"
 }
-
-# @description exit with success if argument could be a variable name
-# @arg $1 string to check
-L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
-
-# @description exits with success if all characters in string are printable
-# @arg $1 string to check
-L_isprint() { [[ "$*" =~ ^[[:print:]]*$ ]]; }
-
-# @description exits with success if all string characters are digits
-# @arg $1 string to check
-L_isdigit() { [[ "$*" =~ ^[0-9]+$ ]]; }
-
-# @description exits with success if the string characters is an integer
-# @arg $1 string to check
-L_isinteger() { [[ "$*" =~ ^[+-]?[0-9]+$ ]]; }
-
-# @description exits with success if the string characters is a float
-# @arg $1 string to check
-L_isfloat() { [[ "$*" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
-
-# @description send signal to itself
-# @arg $1 signal to send, see kill -l
-L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
 
 # @description An array to execute a command nicest way possible.
 # @example "${L_NICE[@]}" make -j $(nproc)
@@ -698,7 +733,7 @@ L_sudo() {
 L_arrayvar_contains() {
 	# shellcheck disable=2178
 	if [[ $1 != _L_array ]]; then declare -n _L_array="$1"; fi
-	L_assert2 "" test "$#" = 2
+	L_assert "" test "$#" = 2
 	L_args_contain "$2" "${_L_array[@]}"
 }
 
@@ -721,14 +756,14 @@ L_args_contain() {
 # @arg $1 array nameref
 # @arg $2 expression to `eval`uate with array element of index L_i and value $1
 L_arrayvar_filter_eval() {
-	local -n _L_array="$1"
-	shift
-	local L_i _L_cmd
-	_L_cmd="$*"
-	for ((L_i = ${#_L_array[@]}; L_i; --L_i)); do
-		set -- "${_L_array[L_i - 1]}"
+	local L_i _L_array _L_cmd
+	_L_array=$1
+	_L_cmd=${*:2}
+	eval "L_i=\${#$_L_array[@]}"
+	while ((L_i)); do
+		eval "set -- \"\${$_L_array[--L_i]}\""
 		if ! eval "$_L_cmd"; then
-			unset '_L_array[L_i-1]'
+			unset "$_L_array[L_i]"
 		fi
 	done
 }
@@ -769,7 +804,6 @@ _L_min_v() {
 # @arg $@ command to execute
 L_capture_exit() { _L_handle_v "$@"; }
 _L_capture_exit_v() { "$@" && _L_v=$? || _L_v=$?; }
-
 
 # @option -v <var> var
 # @arg $1 path
@@ -848,7 +882,7 @@ _L_kwargs_split() {
 		shift "$((OPTIND-1))"
 		if [[ $1 != _L_args ]]; then declare -n _L_args=$1; else declare -a _Largs=(); fi
 		if [[ $2 != _L_kwargs ]]; then declare -n _L_kwargs=$2; else declare -A _L_kwargs=(); fi
-		L_assert2 '3rd argument has to be --' test "$3" = '--'
+		L_assert '3rd argument has to be --' test "$3" = '--'
 		shift 3
 	}
 	{
@@ -861,7 +895,7 @@ _L_kwargs_split() {
 				local _L_opt
 				_L_opt=${1%%=*}
 				if [[ $_L_opt_allowed ]]; then
-					L_assert2 "invalid kw option: $_L_opt" L_args_contain "$_L_opt" "${_L_opt_allowed[@]}"
+					L_assert "invalid kw option: $_L_opt" L_args_contain "$_L_opt" "${_L_opt_allowed[@]}"
 				fi
 				_L_kwargs["$_L_opt"]=${1#*=}
 				;;
@@ -900,18 +934,21 @@ L_exit_to_1null() {
 	if "${@:2}"; then
 		printf -v "$1" "1"
 	else
-		printf -v "$1" ""
+		printf -v "$1" "%s" ""
 	fi
 }
 
 _L_test_exit_to_1null() {
 	{
-		local var
+		local var='blabla'
 		L_unittest_success L_exit_to_1null var true
+		L_unittest_eq "$var" 1
 		L_unittest_eq "${var:+SUCCESS}" "SUCCESS"
 		L_unittest_eq "${var:-0}" "1"
 		L_unittest_eq "$((var))" "1"
+		local var='blabla'
 		L_unittest_success L_exit_to_1null var false
+		L_unittest_eq "$var" ""
 		L_unittest_eq "${var:+SUCCESS}" ""
 		L_unittest_eq "${var:-0}" "0"
 		L_unittest_eq "$((var))" "0"
@@ -1067,7 +1104,7 @@ _L_log_conf_configured=0
 # @description int current global log level
 _L_log_conf_level=$L_LOGLEVEL_INFO
 # @description should we use the color for logging output
-_L_log_conf_color=1
+L_log_conf_color=1
 # @description if this regex is set, allow elements
 _L_log_conf_selecteval=true
 # @description default formatting function
@@ -1078,7 +1115,7 @@ _L_log_conf_outputeval='L_log_output_to_stderr "$@"'
 # @description configure L_log system
 # @option	-r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
 # @option -l <LOGLEVEL>    Set loglevel. Can be \$L_LOGLEVEL_INFO INFO or 30. Default: $_L_log_conf_level
-# @option	-c <BOOL>        Enable/disable the use of color. Default: $_L_log_conf_color
+# @option	-c <BOOL>        Enable/disable the use of color. Default: $L_log_conf_color
 # @option	-f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_log_conf_formateval
 # @option	-s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_log_conf_selecteval
 # @noargs
@@ -1095,14 +1132,14 @@ L_log_configure() {
 		case $_L_opt in
 			r) _L_log_conf_configured=0 ;;
 			l) if ((!_L_log_conf_configured)); then L_log_level_to_int _L_log_conf_level "$OPTARG"; fi ;;
-			c) if ((!_L_log_conf_configured)); then L_exit_to_1null _L_log_conf_color L_is_true "$OPTARG"; fi ;;
+			c) if ((!_L_log_conf_configured)); then L_exit_to_1null L_log_conf_color L_is_true "$OPTARG"; fi ;;
 			f) if ((!_L_log_conf_configured)); then _L_log_conf_formateval=$OPTARG; fi ;;
 			s) if ((!_L_log_conf_configured)); then _L_log_conf_selecteval=$OPTARG; fi ;;
 			*) L_fatal "invalid arguments" ;;
 		esac
 	done
 	shift $((OPTIND-1))
-	L_assert2 "invalid arguments" test $# -ne 0
+	L_assert "invalid arguments" test $# -ne 0
 	_L_log_conf_configured=1
 }
 
@@ -1116,8 +1153,8 @@ L_logrecord_stacklevel=2
 # @description int current log line log level
 # @example
 #     printf "%sHello%s\n" \
-#       "${_L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
-#       "${_L_log_conf_color:+$L_COLORRESET}"
+#       "${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+#       "${L_log_conf_color:+$L_COLORRESET}"
 L_logrecord_loglevel=0
 
 # @description increase stacklevel of logging information
@@ -1147,6 +1184,19 @@ L_log_level_to_int() {
 		printf -v "$1" "%d" "${!_L_i:-$L_LOGLEVEL_INFO}"
 	fi
 }
+if ! L_has_uppercase_expansion; then
+	L_log_level_to_int() {
+		if L_isdigit "$2"; then
+			printf -v "$1" "%d" "$2"
+		else
+			local _L_i
+			_L_i=${2##*_}
+			_L_i=$(tr '[:lower:]' '[:upper:]' <<<"${_L_i}")
+			_L_i=L_LOGLEVEL_${_L_i}
+			printf -v "$1" "%d" "${!_L_i:-$L_LOGLEVEL_INFO}"
+		fi
+	}
+fi
 
 # @description Check if loggin is enabled for specified level
 # @env _L_log_conf_level
@@ -1166,8 +1216,8 @@ L_log_select_source_regex() {
 }
 
 # @description Default logging formatting
-# @arg $1 var to set
-# @arg $@ log message
+# @arg $1 str log line printf format string
+# @arg $@ any log line printf arguments
 # @env L_logrecord_stacklevel
 # @env L_logrecord_loglevel
 # @set L_logrecord_msg
@@ -1178,16 +1228,18 @@ L_log_select_source_regex() {
 # @env L_NAME
 # @see L_log_configure
 L_log_format_default() {
-	printf -v L_logrecord_msg "%s%s:%s:%d:%s%s" \
-		"${_L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+	printf -v L_logrecord_msg "%s""%s:%s:%d:$1""%s" \
+		"${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		"$L_NAME" \
 		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
 		"${BASH_LINENO[L_logrecord_stacklevel]}" \
-		"$*" \
-		"${_L_log_conf_color:+$L_COLORRESET}"
+		"${@:2}" \
+		"${L_log_conf_color:+$L_COLORRESET}"
 }
 
 # @description Format logrecord with timestamp information.
+# @arg $1 str log line printf format string
+# @arg $@ any log line printf arguments
 # @env L_logrecord_stacklevel
 # @env L_logrecord_loglevel
 # @set L_logrecord_msg
@@ -1196,19 +1248,17 @@ L_log_format_default() {
 # @env BASH_LINENO
 # @env FUNCNAME
 # @env L_NAME
-# @arg $1 var to set
-# @arg $@ log message
 # @see L_log_configure
 L_log_format_long() {
-	printf -v L_logrecord_msg "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s %s""%s" \
-		"${_L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+	printf -v L_logrecord_msg "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s $1""%s" \
+		"${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		-1 \
 		"$L_NAME" \
 		"${FUNCNAME[L_logrecord_stacklevel]}" \
 		"${BASH_LINENO[L_logrecord_stacklevel]}" \
 		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
-		"$*" \
-		"${_L_log_conf_color:+$L_COLORRESET}"
+		"${@:2}" \
+		"${L_log_conf_color:+$L_COLORRESET}"
 }
 
 # @description Output formatted line to stderr
@@ -1252,7 +1302,8 @@ L_log_handle() {
 # @description main logging entrypoint
 # @option -s <int> Increment stacklevel by this much
 # @option -l <int|string> loglevel to print log line as
-# @arg $1 str logline
+# @arg $1 str log line printf format string
+# @arg $@ any log line printf arguments
 # @set L_logrecord_loglevel
 # @set L_logrecord_stacklevel
 L_log() {
@@ -1380,6 +1431,8 @@ _L_test_log() {
 # @section sort
 # @description sorting function
 
+if L_has_nameref; then
+
 _L_sort_bash_in() {
 	local _L_start=$1 _L_end=$2
 	if ((_L_start < _L_end)); then
@@ -1450,6 +1503,18 @@ L_sort_bash() {
 	_L_sort_bash_in 0 $((${#_L_array[@]} - 1))
 }
 
+fi
+
+# @description like L_sort but without mapfile.
+# @see L_sort
+L_sort_no_mapfile() {
+	local _L_array="${*: -1}[@]"
+	IFS=$'\n' read -d '' -r -a "${@: -1}" < <(
+		printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}"
+		printf "\0"
+	)
+}
+
 # @description sort an array using sort command
 # @option -z --zero-terminated use zero separated stream with sort -z
 # @option * any options are forwarded to sort command
@@ -1459,22 +1524,34 @@ L_sort_bash() {
 #    L_sort -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
 L_sort() {
-	if [[ "${*: -1}" != _L_array ]]; then declare -n _L_array="${*: -1}"; fi
+	local _L_array="${*: -1}[@]"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
-		mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${_L_array[@]}" | sort "${@:1:$#-1}")
+		mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}")
 	else
-		mapfile -t "${@: -1}" < <(printf "%s\n" "${_L_array[@]}" | sort "${@:1:$#-1}")
+		mapfile -t "${@: -1}" < <(printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}")
 	fi
 }
+if ! L_has_mapfile; then
+	L_sort() { L_sort_no_mapfile "$@"; }
+fi
 
 _L_test_sort() {
-	{
+	if L_has_nameref; then
 		L_log "test bash sorting of an array"
 		local arr=(9 4 1 3 4 5)
 		L_sort_bash -n arr
 		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
 		local arr=(g s b a c o)
 		L_sort_bash arr
+		L_unittest_eq "${arr[*]}" "a b c g o s"
+	fi
+	{
+		L_log "test sorting of an array"
+		local arr=(9 4 1 3 4 5)
+		L_sort_no_mapfile -n arr
+		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		local arr=(g s b a c o)
+		L_sort_no_mapfile arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
 	{
@@ -1486,7 +1563,7 @@ _L_test_sort() {
 		L_sort arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
-	{
+	if L_has_mapfile_d; then
 		L_log "test sorting of an array with zero separated stream"
 		local arr=(9 4 1 3 4 5)
 		L_sort -z -n arr
@@ -1494,7 +1571,7 @@ _L_test_sort() {
 		local arr=(g s b a c o)
 		L_sort -z arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
-	}
+	fi
 	if ((0)); then
 		L_log "Compare times of bash sort vs command sort"
 		local arr=() i TIMEFORMAT
@@ -1534,7 +1611,7 @@ L_print_traceback() {
 	local i s l tmp offset around=0
 	L_color_detect
 	echo
-	echo "${L_CYAN}Traceback from pid $BASHPID (most recent call last):${L_RESET}"
+	echo "${L_CYAN}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET}"
 	offset=${1:-0}
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
@@ -1544,22 +1621,7 @@ L_print_traceback() {
 			"${L_BLUE}${L_BOLD}" "$l" "$L_RESET" \
 			"${FUNCNAME[i]}"
 		if ((around >= 0)) && [[ -r "$s" ]]; then
-			if false; then
-				# shellcheck disable=1004
-				awk \
-					-v line="$l" \
-					-v around="$((around + 1))" \
-					-v RESET="$L_RESET" \
-					-v RED="$L_RED" \
-					-v COLORLINE="${L_BLUE}${L_BOLD}" \
-					'NR > line - around && NR < line + around {
-						printf "%s%-5d%s%3s%s%s%s\n", \
-							COLORLINE, NR, RESET, \
-							(NR == line ? ">> " RED : ""), \
-							$0, \
-							(NR == line ? RESET : "")
-					}' "$s" 2>/dev/null
-			else
+			if L_has_mapfile; then
 				local min j lines cur cnt
 				((min=l-around-1, min=min<0?0:min, cnt=around*2+1, cnt=cnt<0?0:cnt ,1))
 				if ((cnt)); then
@@ -1578,6 +1640,21 @@ L_print_traceback() {
 							"${cur:+"$L_COLORRESET"}"
 					done
 				fi
+			elif L_hash awk; then
+				# shellcheck disable=1004
+				awk \
+					-v line="$l" \
+					-v around="$((around + 1))" \
+					-v RESET="$L_RESET" \
+					-v RED="$L_RED" \
+					-v COLORLINE="${L_BLUE}${L_BOLD}" \
+					'NR > line - around && NR < line + around {
+						printf "%s%-5d%s%3s%s%s%s\n", \
+							COLORLINE, NR, RESET, \
+							(NR == line ? ">> " RED : ""), \
+							$0, \
+							(NR == line ? RESET : "")
+					}' "$s" 2>/dev/null
 			fi
 		fi
 	done
@@ -1666,12 +1743,13 @@ L_trap_err_disable() {
 }
 
 L_trap_init() {
-	L_trap_err_enable
+	if [[ $- == *e* ]]; then
+		L_trap_err_enable
+	fi
 }
 
 L_trap_init
 
-###############################################################################
 # ]]]
 # version [[[
 # @section version
@@ -1707,15 +1785,14 @@ L_version_cmp() {
 			return 2
 		esac
 		local res='=' i max a=() b=()
-		IFS='.-()' read -ra a <<EOF
-$1
-EOF
-		IFS='.-()' read -ra b <<EOF
-$3
-EOF
-		L_max -v max "${#a[@]}" "${#b[@]}"
-		L_min -v max "${4:-3}" "$max"
-		for ((i = 0; i < max; ++i)); do
+		IFS=' .-()' read -r -a a <<<$1
+		IFS=' .-()' read -r -a b <<<$3
+		for ((
+				i = 0, max = ${#a[@]} > ${#b[@]} ? ${#a[@]} : ${#b[@]},
+				max > ${4:-3} ? max = ${4:-3} : 0;
+				i < max;
+				++i
+		)); do
 			if ((a[i] > b[i])); then
 				res='>'
 				break
@@ -1753,6 +1830,7 @@ _L_test_version() {
 }
 
 # ]]]
+if L_has_associative_array; then
 # asa - Associative Array [[[
 # @section asa
 # @description collection of function to work on associative array
@@ -1764,13 +1842,14 @@ _L_test_version() {
 # @arg $2 var Destination associative array
 # @arg [$3] str Filter only keys with this regex
 L_asa_copy() {
-	if [[ $1 != _L_nameref_from ]]; then declare -n _L_nameref_from="$1"; fi
-	if [[ $1 != _L_nameref_to ]]; then declare -n _L_nameref_to="$2"; fi
-	L_assert2 "" test "$#" = 2 -o "$#" = 3
+	L_assert "" test "$#" = 2 -o "$#" = 3
+	L_assert "" L_var_is_associative "$1"
+	L_assert "" L_var_is_associative "$2"
 	local _L_key
-	for _L_key in "${!_L_nameref_from[@]}"; do
+	eval "_L_key=(\"\${!$1[@]}\")"
+	for _L_key in "${_L_key[@]}"; do
 		if (($# == 2)) || [[ "$_L_key" =~ $3 ]]; then
-			_L_nameref_to["$_L_key"]=${_L_nameref_from["$_L_key"]}
+			eval "$2[\"\$_L_key\"]=\${$1[\"\$_L_key\"]}"
 		fi
 	done
 }
@@ -1785,8 +1864,8 @@ L_asa_has() {
 # @description check if associative array is empty
 # @arg $1 associative array nameref
 L_asa_is_empty() {
-	if [[ $1 != _L_asa ]]; then declare -n _L_asa="$1"; fi
-	(( ${#_L_asa[@]} == 0 ))
+	L_assert "" L_var_is_associative "$1"
+	eval "(( \${#$1[@]} == 0 ))"
 }
 
 # @description Get value from associative array
@@ -1797,10 +1876,9 @@ L_asa_is_empty() {
 # @exitcode 1 if no key found and no default value
 L_asa_get() { _L_handle_v "$@"; }
 _L_asa_get_v() {
-	L_assert2 '' test "$#" = 2 -o "$#" = 3
+	L_assert '' test "$#" = 2 -o "$#" = 3
 	if L_asa_has "$1" "$2"; then
-		if [[ $1 != _L_asa ]]; then declare -n _L_asa="$1"; fi
-		_L_v=${_L_asa["$2"]}
+		eval "_L_v=\${$1[\"\$2\"]}"
 	else
 		if (($# == 3)); then
 			_L_v=$3
@@ -1814,25 +1892,20 @@ _L_asa_get_v() {
 # @description get the length of associative array
 # @option -v <var> var
 # @arg $1 associative array nameref
-L_asa_len() {
-	_L_handle_v "$@"
-}
+L_asa_len() { _L_handle_v "$@"; }
 _L_asa_len_v() {
-	if [[ $1 != _L_asa ]]; then declare -n _L_asa="$1"; fi
-	local _L_keys=("${!_L_asa[@]}")
-	_L_v=${#_L_keys[@]}
+	L_assert "" L_var_is_associative "$1"
+	eval "_L_v=(\"\${#$1[@]}\")"
 }
 
 # @description get keys of an associative array in a sorted
 # @option -v <var> var
 # @arg $1 associative array nameref
-L_asa_keys_sorted() {
-	_L_handle_v "$@"
-}
+L_asa_keys_sorted() { _L_handle_v "$@"; }
 _L_asa_keys_sorted_v() {
-	if [[ $1 != _L_asa ]]; then declare -n _L_asa="$1"; fi
-	L_assert2 '' test "$#" = 1
-	_L_v=("${!_L_asa[@]}")
+	L_assert "" test "$#" = 1
+	L_assert "" L_var_is_associative "$1"
+	eval "_L_v=(\"\${!$1[@]}\")"
 	L_sort _L_v
 }
 
@@ -1859,12 +1932,19 @@ L_asa() {
 # @arg $3 var associative array nameref to store
 # @see L_nestedasa_get
 L_nestedasa_set() {
-	L_assert2 '' L_var_is_associative "$3"
+	L_assert '' L_var_is_associative "$3"
 	eval "$1=\$(declare -p \"\$3\")"
 	eval "$1=\${$1#*=}"
-	# _L_dest=${!3@A} # does not work
-	# _L_dest=${_L_dest#*=}
 }
+if (( BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] <= 3 )); then
+	# bash version 4.3 outputs "declare -A _L_asa='([a]="1" [b]="2")'" __including__ the ' quotes.
+	L_nestedasa_set() {
+		L_assert '' L_var_is_associative "$3"
+		eval "$1=\$(declare -p \"\$3\")"
+		eval "$1=\${$1#*=\'}"
+		eval "$1=\${$1%\'}"
+	}
+fi
 
 # @description extract an associative array inside an associative array
 # @arg $1 var associative array nameref to store
@@ -1872,9 +1952,9 @@ L_nestedasa_set() {
 # @arg $3 var source nameref
 # @see L_nestedasa_set
 L_nestedasa_get() {
-	L_assert2 '' L_is_valid_variable_name "$1"
-	# L_assert2 '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert2 '' L_regex_match "${!3}" "^[(].*[)]$"
+	L_assert '' L_is_valid_variable_name "$1"
+	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
+	L_assert "Source nameref does not start with (: $3=${!3}" L_regex_match "${!3}" "^[(].*[)]$"
 	eval "$1=${!3}"  # Is 1000 times faster, then the below, because L_asa_copy is slow.
 	# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
 	# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
@@ -1884,7 +1964,7 @@ L_nestedasa_get() {
 }
 
 _L_test_asa() {
-	declare -A map
+	declare -A map=()
 	local v
 	{
 		L_info "_L_test_asa: check has"
@@ -1914,7 +1994,7 @@ _L_test_asa() {
 	}
 	{
 		L_info "_L_test_asa: copy"
-		local -A map2
+		local -A map2=()
 		L_asa_copy map map2
 	}
 	{
@@ -1938,6 +2018,7 @@ _L_test_asa() {
 }
 
 # ]]]
+fi
 # unittest [[[
 # @section unittest
 # @description testing library
@@ -1982,7 +2063,12 @@ _L_unittest_internal() {
 	fi
 } >&2
 
-L_unittest_run() {
+# @description execute all functions starting with prefix
+# @option -h help
+# @option -P <prefix> Get functions with this prefix to test
+# @option -r <regex> filter tests with regex
+# @option -E exit on error
+L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG _L_opt _L_tests=()
 	while getopts hr:EP: _L_opt; do
@@ -1998,11 +2084,11 @@ EOF
 			exit
 			;;
 		P)
-			L_log "Getting function with prefix ${OPTARG@Q}"
+			L_log "Getting function with prefix %q" "${OPTARG}"
 			L_list_functions_with_prefix -v _L_tests "$OPTARG"
 			;;
 		r)
-			L_log "filtering tests with ${OPTARG@Q}"
+			L_log "filtering tests with %q" "${OPTARG}"
 			L_arrayvar_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
 			;;
 		E)
@@ -2012,8 +2098,8 @@ EOF
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_assert2 'too many arguments' test "$#" = 0
-	L_assert2 'no tests matched' test "${#_L_tests[@]}" '!=' 0
+	L_assert 'too many arguments' test "$#" = 0
+	L_assert 'no tests matched' test "${#_L_tests[@]}" '!=' 0
 	local _L_test
 	for _L_test in "${_L_tests[@]}"; do
 		L_log "executing $_L_test"
@@ -2043,7 +2129,7 @@ L_unittest_checkexit() {
 	_L_shouldbe=$1
 	shift 1
 	"${@}" && _L_ret=$? || _L_ret=$?
-	_L_unittest_internal "${*@Q} exited with $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
+	_L_unittest_internal "$(L_quote_setx "$@") exited with $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
 }
 
 # @description Check if command exits with 0
@@ -2080,6 +2166,11 @@ _L_unittest_cmd_exit_trap() {
 	exit 1
 }
 
+_L_unittest_cmd_coproc() {
+	mapfile -t -d '' _L_very_unique_name
+	printf "%s" "${_L_very_unique_name[@]}"
+}
+
 # @description Test execution of a command and its output.
 # Local variables start with _L_u*. Options with _L_uopt_*.
 # @option -c Run in current execution environment shell using coproc, instead of subshell
@@ -2088,7 +2179,7 @@ _L_unittest_cmd_exit_trap() {
 # @option -e <int> Command should exit with this exit status (default: 0)
 # @arg $@ command to execute. Can start with `!`.
 L_unittest_cmd() {
-	local OPTARG OPTIND _L_uc _L_uopt_r= _L_uopt_o= _L_uopt_e=0 _L_uinv=0 _L_uret=0 _L_uout _L_uopt_c=0 _L_utrap=0
+	local OPTARG OPTIND _L_uc _L_uopt_r='' _L_uopt_o='' _L_uopt_e=0 _L_uinv=0 _L_uret=0 _L_uout _L_uopt_c=0 _L_utrap=0
 	while getopts cr:o:e: _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_c=1 ;;
@@ -2111,8 +2202,9 @@ L_unittest_cmd() {
 		if ((_L_utrap)); then
 			trap '_L_unittest_cmd_exit_trap $?' EXIT
 		fi
+		# shellcheck disable=2030,2093,1083
 		if [[ -n $_L_uopt_r || -n $_L_uopt_o ]]; then
-			coproc { mapfile -t -d '' tmp; printf "%s" "${tmp[@]}"; }
+			coproc _L_unittest_cmd_coproc
 			"$@" >&"${COPROC[1]}" 2>&1 || _L_uret=$?
 			exec {COPROC[1]}>&-
 			mapfile -t -d '' -u "${COPROC[0]}" _L_uout
@@ -2132,12 +2224,13 @@ L_unittest_cmd() {
 		fi
 	fi
 	#
+	# shellcheck disable=2035
 	# Invert exit code if !
 	if ((_L_uinv ? _L_uret = !_L_uret, 1 : 0)); then
 		# For nice output
 		set -- "!" "$@"
 	fi
-	_L_unittest_internal "${*@Q} exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output ${_L_uout@Q}}" [ "$_L_uret" -eq "$_L_uopt_e" ]
+	_L_unittest_internal "$(L_quote_setx "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(L_quote_setx "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
 	if [[ -n $_L_uopt_r ]]; then
 		if ! _L_unittest_internal "${*@Q} output ${_L_uout@Q} matches ${_L_uopt_r@Q}" "" L_regex_match "$_L_uout" "$_L_uopt_r"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_r"
@@ -2174,9 +2267,7 @@ L_unittest_cmpfiles() {
 }
 
 _L_unittest_showdiff() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
+	L_assert "" test $# = 2
 	if L_hash diff; then
 		if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
 			diff <(cat <<<"$1") - <<<"$2" | cat -vet
@@ -2192,9 +2283,8 @@ _L_unittest_showdiff() {
 # @arg $1 variable nameref
 # @arg $2 value
 L_unittest_vareq() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
+	L_assert "" test $# = 2
+	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: \$$1=${!1:+${!1@Q}} == ${2@Q}" "" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
@@ -2205,10 +2295,9 @@ L_unittest_vareq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_eq() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
-	if ! _L_unittest_internal "test: ${1@Q} == ${2@Q}" "" [ "$1" == "$2" ]; then
+	L_assert "" test $# = 2
+	if L_has_local_dash; then local -; set +x; fi
+	if ! _L_unittest_internal "$(printf "test: %q == %q" "$1" "$2")" "" [ "$1" == "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -2218,9 +2307,8 @@ L_unittest_eq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_ne() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
+	L_assert "" test $# = 2
+	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} != ${2@Q}" "" [ "$1" != "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2231,9 +2319,8 @@ L_unittest_ne() {
 # @arg $1 string
 # @arg $2 regex
 L_unittest_regex() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
+	L_assert "" test $# = 2
+	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2244,9 +2331,8 @@ L_unittest_regex() {
 # @arg $1 string
 # @arg $2 needle
 L_unittest_contains() {
-	L_assert2 "" test $# = 2
-	local -
-	set +x
+	L_assert "" test $# = 2
+	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2283,10 +2369,8 @@ _L_trap_to_number_v() {
 # @description convert trap number to trap name
 # @option -v <var> var
 # @arg $1 signal name or signal number
-# @example L_trap_to_name -v var 0 && L_assert2 '' test "$var" = EXIT
-L_trap_to_name() {
-	_L_handle_v "$@"
-}
+# @example L_trap_to_name -v var 0 && L_assert '' test "$var" = EXIT
+L_trap_to_name() { _L_handle_v "$@"; }
 _L_trap_to_name_v() {
 	if [[ "$1" == 0 ]]; then
 		_L_v=EXIT
@@ -2305,12 +2389,10 @@ _L_trap_to_name_v() {
 # @example
 #   trap 'echo hi' EXIT
 #   L_trap_get -v var EXIT
-#   L_assert2 '' test "$var" = 'echo hi'
-L_trap_get() {
-	_L_handle_v "$@"
-}
+#   L_assert '' test "$var" = 'echo hi'
+L_trap_get() { _L_handle_v "$@"; }
 _L_trap_get_v() {
-	L_trap_to_name -v _L_v "$@" &&
+	_L_trap_to_name_v "$@" &&
 	_L_v=$(trap -p "$_L_v") &&
 	if [[ -n "$_L_v" ]]; then
 		local -a _L_tmp="($_L_v)" &&
@@ -2400,8 +2482,8 @@ _L_test_trapchain() {
 # ]]]
 # Map [[[
 # @section map
-# @description key value store without associative array implementation
-# Deprecated, experimental, do not use.
+# @description key value store without associative array implementation.
+# Prefer to use bash arrays in newer bash versions.
 #
 # L_map consist of an empty initial newline.
 # Then follows map name, follows a spce, and then printf %q of the value.
@@ -2410,8 +2492,7 @@ _L_test_trapchain() {
 #     key $'value'
 #     key2 $'value2'
 #
-# This format matches the regexes used in L_map_get for easy extraction using bash
-# Variable substituation.
+# This format matches the regexes used in L_map_get for easy extraction using bash variable substitution.
 
 # @description Initializes a map
 # @arg $1 var variable name holding the map
@@ -2422,7 +2503,7 @@ L_map_init() {
 # @description Clear a key of a map
 # @arg $1 var map
 # @arg $2 str key
-L_map_clear() {
+L_map_remove() {
 	if ! _L_map_check "$1" "$2"; then return 2; fi
 	local _L_map_name
 	_L_map_name=${!1}
@@ -2445,7 +2526,7 @@ L_map_setdefault() {
 # @arg $2 str key
 # @arg $3 str value
 L_map_set() {
-	L_map_clear "$1" "$2"
+	L_map_remove "$1" "$2"
 	local _L_map_name _L_map_name2
 	_L_map_name=${!1}
 	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
@@ -2460,8 +2541,8 @@ L_map_set() {
 # @arg $2 str key
 # @arg $3 str value to append
 L_map_append() {
-	local _L_map_name
-	if L_map_get_v _L_map_name "$1" "$2"; then
+	local _L_v
+	if _L_map_get_v "$1" "$2"; then
 		L_map_set "$1" "$2" "$_L_map_name${*:3}"
 	else
 		L_map_set "$1" "$2" "$3"
@@ -2475,14 +2556,11 @@ L_map_append() {
 # @arg $1 var map
 # @arg $2 str key
 # @arg [$3] str default
-L_map_get() {
-	_L_handle_v "$@"
-}
+L_map_get() { _L_handle_v "$@"; }
 _L_map_get_v() {
-	local _L_map_name
+	local _L_map_name _L_map_name2
 	_L_map_name=${!1}
-	local _L_map_name2
-	_L_map_name2="$_L_map_name"
+	_L_map_name2=$_L_map_name
 	# Remove anything in front of the newline followed by key followed by space.
 	# Because the key can't have newline not space, it's fine.
 	_L_map_name2=${_L_map_name2##*$'\n'"$2 "}
@@ -2514,25 +2592,56 @@ L_map_has() {
 }
 
 # @description List all keys in the map.
-L_map_keys() {
-	local _L_map_name
+# @option -v <var> variable to set
+# @arg $1 var map
+L_map_keys() { _L_handle_v "$@"; }
+_L_map_keys_v() {
+	local _L_map_name IFS=' ' _L_key _L_val
 	_L_map_name=${!1}
-	local IFS=' ' key val
-	while read -r key val; do
-		if [[ -z "$key" ]]; then continue; fi
-		printf "%s\n" "$key"
+	_L_v=()
+	while read -r _L_key _L_val; do
+		if [[ -n "$_L_key" ]]; then
+			_L_v+=("$_L_key")
+		fi
 	done <<<"$_L_map_name"
 }
 
-# @description List items with tab separated key and value.
-# Value is the output from printf %q - it needs to be eval-ed.
-L_map_items() {
-	local _L_map_name
+# @description List all values in the map.
+# @option -v <var> variable to set
+# @arg $1 var map
+L_map_values() { _L_handle_v "$@"; }
+_L_map_values_v() {
+	local _L_map_name IFS=' ' _L_key _L_val
 	_L_map_name=${!1}
-	local key val
-	while read -r key val; do
-		if [[ -z "$key" ]]; then continue; fi
-		printf "%s\t%s\n" "$key" "$val"
+	_L_v=()
+	while read -r _L_key _L_val; do
+		if [[ -n "$_L_key" ]]; then
+			eval "_L_v+=($_L_val)"
+		fi
+	done <<<"$_L_map_name"
+}
+
+
+# @description List items on newline separated key value pairs.
+# @option -v <var> variable to set
+# @arg $1 var map
+# @example
+#   L_map_init var
+#   L_map_set var a 1
+#   L_map_set var b 2
+#   L_map_items -v tmp var
+#   for ((i=0;i<${#tmp[@]};i+=2)); do
+#      echo "${tmp[i]} ${tmp[i+1]}"  # outputs: 'a 1' 'b 2'
+#   done
+L_map_items() { _L_handle_v "$@"; }
+_L_map_items_v() {
+	local _L_map_name _L_key _L_val IFS=' '
+	_L_map_name=${!1}
+	while read -r _L_key _L_val; do
+		if [[ -n "$_L_key" ]]; then
+			_L_v+=("$_L_key")
+			eval "_L_v+=($_L_val)"
+		fi
 	done <<<"$_L_map_name"
 }
 
@@ -2540,6 +2649,12 @@ L_map_items() {
 # @arg $1 map variable
 # @arg $2 prefix
 # @arg $@ Optional list of keys to load. If not set, all are loaded.
+# @example
+#	L_map_init var
+#	L_map_set var a 1
+#	L_map_set var b 2
+#	L_map_load var s_
+#	echo "$s_a $s_b"  # outputs: 1 2
 L_map_load() {
 	if ! _L_map_check "$@"; then return 2; fi
 	local _L_map_name
@@ -2561,12 +2676,12 @@ L_map_load() {
 }
 
 _L_map_check() {
-	local i
-	for i in "$@"; do
-		if ! L_is_valid_variable_name "$i"; then
-			L_error "L_map:${FUNCNAME[1]}:${BASH_LINENO[2]}: ${i@Q} is not valid variable name"
+	while (($#)); do
+		if ! L_is_valid_variable_name "$1"; then
+			L_error "L_map:${FUNCNAME[1]}:${BASH_LINENO[2]}: ${1@Q} is not valid variable name"
 			return 1
 		fi
+		shift
 	done
 }
 
@@ -2589,19 +2704,36 @@ _L_test_map() {
 	L_unittest_checkexit 1 L_map_has var c
 	L_unittest_checkexit 0 L_map_has var a
 	L_map_set var allchars "$_L_allchars"
-	L_unittest_eq "$(L_map_get var allchars)" "$(printf %s "$_L_allchars")" "L_map_get var allchars"
-	L_map_clear var allchars
+	L_unittest_eq "$(L_map_get var allchars)" "$(printf %s "$_L_allchars")"
+	L_map_remove var allchars
 	L_unittest_checkexit 1 L_map_get var allchars
 	L_map_set var allchars "$_L_allchars"
 	local s_a s_b s_allchars
-	L_unittest_eq "$(L_map_keys var | sort)" "$(printf "%s\n" b a allchars | sort)" "L_map_keys check"
+	L_unittest_eq "$(L_map_keys var | sort)" "$(printf "%s\n" b a allchars | sort)"
 	L_map_load var s_
-	L_unittest_vareq s_a 3
-	L_unittest_vareq s_b 2
+	L_unittest_eq "$s_a" 3
+	L_unittest_eq "$s_b" 2
 	L_unittest_eq "$s_allchars" "$_L_allchars"
+	#
+	local tmp=()
+	L_map_keys -v tmp var
+	L_unittest_eq "${tmp[*]}" "b a allchars"
+	local tmp=()
+	L_map_values -v tmp var
+	L_unittest_eq "${#tmp[@]}" 3
+	L_unittest_eq "${tmp[0]}" 2
+	L_unittest_eq "${tmp[1]}" 3
+	if (( BASH_VERSINFO[0] >= 4 )); then
+		# I have no idea why does this not work on bash 3.2
+		L_unittest_eq "${tmp[2]}" "$_L_allchars"
+		local tmp=()
+		L_map_items -vtmp var
+		L_unittest_eq "${tmp[*]}" "b 2 a 3 allchars $_L_allchars"
+	fi
 }
 
 # ]]]
+if L_has_at_Q; then
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
@@ -2661,7 +2793,7 @@ L_argparse_print_help() {
 			local -n _L_parser="$1"
 			shift
 		fi
-		L_assert2 "" test "$#" == 0
+		L_assert "" test "$#" == 0
 	}
 	{
 		#
@@ -2712,8 +2844,8 @@ L_argparse_print_help() {
 			_L_usage+=" ${_L_notrequired:+[}$_L_opt$_L_metavars${_L_notrequired:+]}"
 			_L_usage_options_list+=("${_L_desc}")
 			local _L_help=${_L_optspec[help]:-}
-			_L_help=${_L_help//%(prog)s/$_L_prog}
-			_L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
+			# _L_help=${_L_help//%(prog)s/$_L_prog}
+			# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
 			_L_usage_options_help+=("$_L_help")
 		done
 	}
@@ -2755,8 +2887,8 @@ L_argparse_print_help() {
 				;;
 			esac
 			_L_usage_args_list+=("$_L_metavar")
-			_L_help=${_L_help//%(prog)s/$_L_prog}
-			_L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
+			# _L_help=${_L_help//%(prog)s/$_L_prog}
+			# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
 			_L_usage_args_help+=("$_L_help")
 		done
 	}
@@ -2767,8 +2899,8 @@ L_argparse_print_help() {
 	}
 	{
 		# print usage
-		if [[ -n "${_L_mainsettings["usage"]:-}" ]]; then
-			_L_usage="usage: ${_L_mainsettings["usage"]//%(prog)s/$_L_prog}"
+		if [ -v "_L_mainsettings[usage]" ]; then
+			_L_usage="usage: ${_L_mainsettings["usage"]}"
 		else
 			_L_usage="usage: $_L_prog$_L_usage"
 		fi
@@ -2805,7 +2937,7 @@ _L_argparse_split() {
 		if [[ $1 != _L_parser ]]; then declare -n _L_parser="$1"; fi
 		local _L_index
 		_L_index=$2
-		L_assert2 "" test "$3" = --
+		L_assert "" test "$3" = --
 		shift 3
 	}
 	{
@@ -2827,7 +2959,7 @@ _L_argparse_split() {
 			*=*)
 				local _L_opt
 				_L_opt=${1%%=*}
-				L_assert2 "invalid kv option: $_L_opt" L_args_contain "$_L_opt" "${_L_allowed[@]}"
+				L_assert "invalid kv option: $_L_opt" L_args_contain "$_L_opt" "${_L_allowed[@]}"
 				_L_optspec["$_L_opt"]=${1#*=}
 				;;
 			*' '*) L_fatal "argument may not contain space: ${1@Q}" ;;
@@ -2856,7 +2988,7 @@ _L_argparse_split() {
 	}
 	if ((_L_index)); then
 		{
-			L_assert2 "$(declare -p _L_optspec)" L_var_is_set _L_optspec[dest]
+			L_assert "$(declare -p _L_optspec)" L_var_is_set _L_optspec[dest]
 			# Convert - to _
 			_L_optspec["dest"]=${_L_optspec["dest"]//[#@%!~^-]/_}
 			# infer metavar from dest
@@ -2989,7 +3121,7 @@ _L_argparse_split() {
 _L_argparse_init() {
 	if [[ $1 != _L_parser ]]; then declare -n _L_parser="$1"; fi
 	_L_parser=()
-	L_assert2 "" test "$2" = --
+	L_assert "" test "$2" = --
 	_L_argparse_split "$1" 0 -- "${@:3}"
 	{
 		# add -h --help
@@ -3009,7 +3141,7 @@ _L_argparse_init() {
 # @arg $@ parameters
 _L_argparse_add_argument() {
 	if [[ $1 != _L_parser ]]; then declare -n _L_parser="$1"; fi
-	L_assert2 "" test "$2" = --
+	L_assert "" test "$2" = --
 	_L_argparse_split "$1" "${#_L_parser[@]}" -- "${@:3}"
 }
 
@@ -3048,7 +3180,7 @@ _L_argparse_parser_get_long_option() {
 # @arg $1 index nameref, should be initialized at 0
 # @arg $2 settings nameref
 _L_argparse_parser_next_option() {
-	[[ -v _L_parser[option${!1}] ]] &&
+	[ -v "_L_parser[option${!1}]" ] &&
 	eval "$2=${_L_parser[option$(($1++))]}"
 }
 
@@ -3057,7 +3189,7 @@ _L_argparse_parser_next_option() {
 # @arg $1 index nameref, should be initialized at 1
 # @arg $2 settings nameref
 _L_argparse_parser_next_argument() {
-	[[ -v _L_parser[arg${!1}] ]] &&
+	[ -v "_L_parser[arg${!1}]" ] &&
 	eval "$2=${_L_parser[arg$(($1++))]}"
 }
 
@@ -3327,7 +3459,7 @@ _L_argparse_parse_args_short_option() {
 		if ! _L_argparse_parser_get_short_option _L_optspec "-$_L_c"; then
 			L_argparse_fatal "unrecognized arguments: -$_L_c"
 		fi
-		L_assert2 "-$_L_c $(declare -p _L_optspec)" L_var_is_set _L_optspec[nargs]
+		L_assert "-$_L_c $(declare -p _L_optspec)" L_var_is_set _L_optspec[nargs]
 		local _L_values=() _L_nargs=${_L_optspec["nargs"]}
 		case "$_L_nargs" in
 		0) ;;
@@ -3365,7 +3497,7 @@ _L_argparse_parse_args_short_option() {
 # @arg $@ arguments
 _L_argparse_parse_args() {
 	if [[ "$1" != "_L_parser" ]]; then declare -n _L_parser=$1; fi
-	L_assert2 "" test "$2" = --
+	L_assert "" test "$2" = --
 	shift 2
 	#
 	{
@@ -3525,7 +3657,7 @@ L_argparse() {
 		fi
 		shift
 	done
-	L_assert2 "'::::' argument missing to ${FUNCNAME[0]}" test "$#" -ge 1
+	L_assert "'::::' argument missing to ${FUNCNAME[0]}" test "$#" -ge 1
 	shift 1
 	_L_argparse_parse_args _L_parser -- "$@"
 }
@@ -3698,7 +3830,7 @@ options:
   -h, --help  show this help message and exit"
 	}
 	{
-		tmp=$(L_argparse prog="myprogram" -- --foo help="foo of the %(prog)s program" ---- -h)
+		tmp=$(L_argparse prog="myprogram" -- --foo help="foo of the myprogram program" ---- -h)
 		L_unittest_eq "$tmp" "\
 usage: myprogram [-h] [--foo FOO]
 
@@ -3707,7 +3839,7 @@ options:
   --foo FOO   foo of the myprogram program"
 	}
 	{
-		tmp=$(L_argparse prog=PROG usage="%(prog)s [options]" \
+		tmp=$(L_argparse prog=PROG usage="PROG [options]" \
 			-- --foo nargs="?" help="foo help" \
 			-- bar nargs="+" help="bar help" \
 			---- -h)
@@ -3745,25 +3877,25 @@ usage: PROG [-h] [--foobar] [--foonley]
 PROG: error: unrecognized arguments: --foon"
 	}
 	{
-		local foo= bar=
+		local foo='' bar=''
 		L_argparse prog=PROG -- -f --foo -- bar ---- BAR
 		L_unittest_eq "$bar" BAR
 		L_unittest_eq "$foo" ""
-		local foo= bar=
+		local foo='' bar=''
 		L_argparse prog=PROG -- -f --foo -- bar ---- BAR --foo FOO
 		L_unittest_eq "$bar" BAR
 		L_unittest_eq "$foo" "FOO"
-		local foo= bar= out=
+		local foo='' bar='' out=''
 		L_unittest_failure_capture out -- L_argparse prog=PROG -- -f --foo -- bar ---- --foo FOO
 		L_unittest_eq "$out" "\
 usage: PROG [-h] [-f FOO] bar
 PROG: error: the following arguments are required: bar"
 	}
 	{
-		local foo=
+		local foo=''
 		L_argparse -- --foo action=store_const const=42 ---- --foo
 		L_unittest_eq "$foo" 42
-		local foo= bar= baz=
+		local foo='' bar='' baz=''
 		L_argparse -- --foo action=store_true -- --bar action=store_false -- --baz action=store_false ---- --foo --bar
 		L_unittest_eq "$foo" true
 		L_unittest_eq "$bar" false
@@ -3781,19 +3913,19 @@ PROG: error: the following arguments are required: bar"
 		L_unittest_eq "$verbose" 3
 	}
 	{
-		local foo=() bar=
+		local foo=() bar=''
 		L_argparse -- --foo nargs=2 -- bar nargs=1 ---- c --foo a b
 		L_unittest_eq "$bar" "c"
 		L_unittest_eq "${foo[*]}" "a b"
-		local foo= bar=
+		local foo='' bar=''
 		L_argparse -- --foo nargs="?" const=c default=d -- bar nargs="?" default=d ---- XX --foo YY
 		L_unittest_eq "$foo" YY
 		L_unittest_eq "$bar" XX
-		local foo= bar=
+		local foo='' bar=''
 		L_argparse -- --foo nargs="?" const=c default=d -- bar nargs="?" default=d ---- XX --foo
 		L_unittest_eq "$foo" c
 		L_unittest_eq "$bar" XX
-		local foo= bar=
+		local foo='' bar=''
 		L_argparse -- --foo nargs="?" const=c default=d -- bar nargs="?" default=d ----
 		L_unittest_eq "$foo" d
 		L_unittest_eq "$bar" d
@@ -3801,16 +3933,16 @@ PROG: error: the following arguments are required: bar"
 			tmpf1=$(mktemp)
 			tmpf2=$(mktemp)
 			trap 'rm "$tmpf1" "$tmpf2"' EXIT
-			local outfile= infile=
+			local outfile='' infile=''
 			L_argparse -- infile nargs="?" type=file_r default=/dev/stdin -- outfile nargs="?" type=file_w default=/dev/stdout ---- "$tmpf1" "$tmpf2"
 			L_unittest_eq "$infile" "$tmpf1"
 			L_unittest_eq "$outfile" "$tmpf2"
-			local outfile= infile=
+			local outfile='' infile=''
 			L_argparse -- infile nargs="?" type=file_r default=/dev/stdin -- outfile nargs="?" type=file_w default=/dev/stdout ---- "$tmpf1"
 			L_unittest_eq "$infile" "$tmpf1"
 			L_unittest_eq "$outfile" "/dev/stdout"
 		)
-		local outfile= infile=
+		local outfile='' infile=''
 		L_argparse -- infile nargs="?" type=file_r default=/dev/stdin -- outfile nargs="?" type=file_w default=/dev/stdout ----
 		L_unittest_eq "$infile" "/dev/stdin"
 		L_unittest_eq "$outfile" "/dev/stdout"
@@ -3818,14 +3950,14 @@ PROG: error: the following arguments are required: bar"
 		local foo=()
 		L_argparse prog=PROG -- foo nargs="+" ---- a b
 		L_unittest_eq "${foo[*]}" "a b"
-		local out=
+		local out=''
 		L_unittest_failure_capture out -- L_argparse prog=PROG -- foo nargs="+" ----
 		L_unittest_eq "$out" "\
 usage: PROG [-h] foo [foo ...]
 PROG: error: the following arguments are required: foo"
 	}
 	{
-		local foo=
+		local foo=''
 		L_argparse -- --foo default=42 ---- --foo 2
 		L_unittest_eq "$foo" 2
 		L_argparse -- --foo default=42 ----
@@ -3834,10 +3966,10 @@ PROG: error: the following arguments are required: foo"
 		L_unittest_cmd -c L_argparse -- --length default=10 type=int -- --width default=10.5 type=int ----
 		L_unittest_eq "$length" 10
 		L_unittest_eq "$width" 10.5
-		local foo=
+		local foo=''
 		L_unittest_cmd -c L_argparse -- foo nargs="?" default=42 ---- a
 		L_unittest_eq "$foo" a
-		local foo=
+		local foo=''
 		L_unittest_cmd -c L_argparse -- foo nargs="?" default=42 ----
 		L_unittest_eq "$foo" 42
 		local foo=321
@@ -3845,7 +3977,7 @@ PROG: error: the following arguments are required: foo"
 		L_unittest_eq "$foo" ""
 	}
 	{
-		local move=
+		local move=''
 		L_unittest_cmd -c L_argparse prog=game.py -- move choices="rock paper scissors" ---- rock
 		L_unittest_vareq move rock
 		L_unittest_cmd -o "\
@@ -3854,7 +3986,7 @@ game.py: error: argument move: invalid choice: 'fire' (choose from 'rock' 'paper
 			-- ! L_argparse prog=game.py -- move choices="rock paper scissors" ---- fire
 	}
 	{
-		local foo=
+		local foo=''
 		L_unittest_cmd -c L_argparse prog=PROG -- --foo required=1 ---- --foo BAR
 		L_unittest_vareq foo BAR
 		L_unittest_cmd -o "\
@@ -3872,7 +4004,7 @@ positional arguments:
 options:
   -h, --help  show this help message and exit" \
 			-- L_argparse prog=frobble -- bar nargs="?" type=int default=42 \
-				help="the bar to %(prog)s (default: %(default)s)" ---- -h
+				help="the bar to frobble (default: 42)" ---- -h
 		L_unittest_cmd -o "\
 usage: frobble [-h]
 
@@ -3898,6 +4030,7 @@ options:
 }
 
 # ]]]
+fi
 # private lib functions [[[
 # @section lib
 # @description internal functions and section.
@@ -4028,7 +4161,7 @@ _L_lib_bash_completion() {
 }
 
 _L_lib_run_tests() {
-	L_unittest_run -P _L_test_ "$@"
+	L_unittest_main -P _L_test_ "$@"
 }
 
 _L_lib_usage() {
@@ -4143,14 +4276,22 @@ _L_lib_main() {
 		;;
 	eval) eval "$*" ;;
 	exec) "$@" ;;
-	--help | help) _L_lib_usage; exit 0; ;;
+	--help | help)
+		if L_is_main; then
+			set -euo pipefail
+			L_trap_err_enable
+			trap 'L_trap_err $?' EXIT
+		fi
+		_L_lib_usage
+		exit 0
+		;;
 	test)
 		set -euo pipefail
 		L_trap_err_enable
 		trap 'L_trap_err $?' EXIT
 		_L_lib_run_tests "$@"
 		;;
-	cmd) _L_lib_main_cmd ;;
+	cmd) _L_lib_main_cmd "$@" ;;
 	*) _L_lib_fatal "unknown command: $_L_mode" ;;
 	esac
 }
