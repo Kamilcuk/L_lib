@@ -304,55 +304,66 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @section has
 # @description check if bash has specific feature
 
+((
+L_HAS_BASH4_4=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4),
+L_HAS_BASH4_3=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3),
+L_HAS_BASH4_2=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 2),
+L_HAS_BASH4_1=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 1),
+L_HAS_BASH4=BASH_VERSINFO[0] >= 4,
+L_HAS_BASH3_2=BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 2),
+L_HAS_BASH3_1=BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 1),
+L_HAS_BASH3=BASH_VERSINFO[0] >= 3,
+L_HAS_BASH2_5=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 5),
+L_HAS_BASH2_4=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
+L_HAS_BASH2_3=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
+L_HAS_BASH2_1=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
+L_HAS_BASH2_2=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
+L_HAS_BASH2=BASH_VERSINFO[0] >= 2,
+L_HAS_BASH1_14_7=BASH_VERSINFO[0] > 1 || (BASH_VERSINFO[0] == 1 && BASH_VERSINFO[1] > 14) || (BASH_VERSINFO[0] == 1 && BASH_VERSINFO[1] == 14 && BASH_VERSINFO[2] >= 7),
+1))
+
 # @description Bash 4.4 introduced function scoped `local -`
-L_has_local_dash() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4) )); }
-
+L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced ${var@Q}
-L_has_at_Q() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4) )); }
-
+L_HAS_AT_Q=$L_HAS_BASH4_4
 # @description Bash 4.3 introduced declare -n nameref
-L_has_nameref() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3) )); }
-
+L_HAS_NAMEREF=$L_HAS_BASH4_3
 # @description Bash 4.3 introduced -d option to mapfile
-L_has_mapfile_d() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3) )); }
-
+L_HAS_MAPFILE_D=$L_HAS_BASH4_3
 # @description Bash 4.1 introduced test/[/[[ -v variable unary operator
-L_has_test_v() { (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO == 4 && BASH_VERSINFO[1] >= 1) )); }
-
-# @description Bash 4.0 introduced declare -A var=([a]=b)
-L_has_associative_array() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_TEST_V=$L_HAS_BASH4_1
+# @description Bash 4.0 introduced declare -A var=$([a]=b)
+L_HAS_ASSOCIATIVE_ARRAY=$L_HAS_BASH4
 # @description Bash 4.0 introduced mapfile
-L_has_mapfile() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_MAPFILE=$L_HAS_BASH4
 # @description Bash 4.0 introduced readarray
-L_has_readarray() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_READARRAY=$L_HAS_BASH4
 # @description Bash 4.0 introduced case fallthrough ;& and ;;&
-L_has_case_fallthrough() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_CASE_FALLTHROUGH=$L_HAS_BASH4
 # @description Bash 4.0 introduced ${var,,} and ${var^^} expansions
-L_has_uppercase_expansion() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_LOWERCASE_UPPERCASE_EXPANSION=$L_HAS_BASH4
 # @description Bash 4.0 introduced BASHPID variable
-L_has_BASHPID() { ((BASH_VERSINFO[0] >= 4)); }
-
+L_HAS_BASHPID=$L_HAS_BASH4
 # @description Bash 3.2 introduced coproc
-L_has_coproc() { (( BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 2) )); }
-
+L_HAS_COPROC=$L_HAS_BASH3_2
+# @description [[ =~ has to be quoted or not, no one knows.
+# Bash4.0 change: The shell now has the notion of a `compatibility level', controlled by
+# new variables settable by `shopt'.  Setting this variable currently
+# restores the bash-3.1 behavior when processing quoted strings on the rhs
+# of the `=~' operator to the `[[' command.
+# Bash3.2 change: Quoting the string argument to the [[ command's
+# =~ operator now forces string matching, as with the other pattern-matching operators.
+L_HAS_QUOTED_REGEX=$L_HAS_BASH4_0  # TODO: shopt
 # @description Bash 2.4 introduced ${!prefix*} expansion
-L_has_prefix_expansion() { (( BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4) )); }
-
+L_HAS_PREFIX_EXPANSION=$L_HAS_BASH2_4
 # @description Bash 2.05 introduced <<<"string"
-L_has_here_string() { (( BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 5) )); }
-
+L_HAS_HERE_STRING=$L_HAS_BASH2_05
 # @description Bash 2.0 introduced ${!var} expansion
-L_has_indirect_expansion() { (( BASH_VERSINFO[0] >= 2 )); }
-
+L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2
 # @description Bash 1.14.7 introduced arrays
 # Bash 1.14.7 also introduced:
 # New variables: DIRSTACK, PIPESTATUS, BASH_VERSINFO, HOSTNAME, SHELLOPTS, MACHTYPE.  The first three are array variables.
-L_has_array() { L_version_cmp "$BASH_VERSION" -ge 1.14.7; }
+L_HAS_ARRAY=$L_HAS_BASH1_14_7
 
 # ]]]
 # basic [[[
@@ -374,10 +385,14 @@ L_assert() {
 	fi
 }
 
+if ((!L_HAS_QUOTED_REGEX)); then
 # @description Wrapper around =~ for contexts that require a function.
 # @arg $1 string to match
 # @arg $2 regex to match against
 L_regex_match() { [[ "$1" =~ $2 ]]; }
+else
+L_regex_match() { [[ "$1" =~ "$2" ]]; }
+fi
 
 _L_test_a_regex_match() {
 	L_unittest_cmd L_regex_match "(a)" "^[(].*[)]$"
@@ -434,11 +449,11 @@ L_var_is_readonly() { (eval "$1=") 2>/dev/null; }
 
 # @description Return 0 if the string happend to be something like true.
 # @arg $1 str
-L_is_true() { [[ "$1" =~ ^([+]|0*[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$ ]]; }
+L_is_true() { case "$1" in +|[1-9]|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS]) ;; *) false ;; esac; }
 
 # @description Return 0 if the string happend to be something like false.
 # @arg $1 str
-L_is_false() { [[ "$1" =~ ^(-|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$ ]]; }
+L_is_false() { case "$1" in -|0|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO]) ;; *) false ;; esac; }
 
 # @description Return 0 if the string happend to be something like true in locale.
 # @arg $1 str
@@ -461,6 +476,7 @@ L_is_false_locale() {
 	[[ "$1" =~ $i ]]
 }
 
+if ((L_HAS_QUOTED_REGEX)); then eval '
 # @description exit with success if argument could be a variable name
 # @arg $1 string to check
 L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
@@ -480,10 +496,42 @@ L_isinteger() { [[ "$*" =~ ^[+-]?[0-9]+$ ]]; }
 # @description exits with success if the string characters is a float
 # @arg $1 string to check
 L_isfloat() { [[ "$*" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
+'; else
+	L_is_valid_variable_name() { [[ "$1" =~ '^[a-zA-Z_][a-zA-Z0-9_]*$' ]]; }
+	L_isprint() { [[ "$*" =~ '^[[:print:]]*$' ]]; }
+	L_isdigit() { [[ "$*" =~ '^[0-9]+$' ]]; }
+	L_isinteger() { [[ "$*" =~ '^[+-]?[0-9]+$' ]]; }
+	L_isfloat() { [[ "$*" =~ '^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$' ]]; }
+fi
 
 # @description send signal to itself
 # @arg $1 signal to send, see kill -l
 L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
+
+_L_test_basic() {
+	{
+		L_isdigit 5
+		L_isdigit 1235567890
+		L_isdigit 1235567890a
+		! L_isdigit x
+	}
+	{
+		L_unittest_checkexit 0 L_isfloat -1
+		L_unittest_checkexit 0 L_isfloat -1.
+		L_unittest_checkexit 0 L_isfloat -1.2
+		L_unittest_checkexit 0 L_isfloat -.2
+		L_unittest_checkexit 0 L_isfloat +1
+		L_unittest_checkexit 0 L_isfloat +1.
+		L_unittest_checkexit 0 L_isfloat +1.2
+		L_unittest_checkexit 0 L_isfloat +.2
+		L_unittest_checkexit 0 L_isfloat 1
+		L_unittest_checkexit 0 L_isfloat 1.
+		L_unittest_checkexit 0 L_isfloat 1.2
+		L_unittest_checkexit 0 L_isfloat .2
+		L_unittest_checkexit 1 L_isfloat -.
+		L_unittest_checkexit 1 L_isfloat abc
+	}
+}
 
 # ]]]
 # uncategorized [[[
@@ -1042,22 +1090,6 @@ _L_test_other() {
 			t "! ${_L_allchars::127}"
 		fi
 	}
-	{
-		L_unittest_checkexit 0 L_isfloat -1
-		L_unittest_checkexit 0 L_isfloat -1.
-		L_unittest_checkexit 0 L_isfloat -1.2
-		L_unittest_checkexit 0 L_isfloat -.2
-		L_unittest_checkexit 0 L_isfloat +1
-		L_unittest_checkexit 0 L_isfloat +1.
-		L_unittest_checkexit 0 L_isfloat +1.2
-		L_unittest_checkexit 0 L_isfloat +.2
-		L_unittest_checkexit 0 L_isfloat 1
-		L_unittest_checkexit 0 L_isfloat 1.
-		L_unittest_checkexit 0 L_isfloat 1.2
-		L_unittest_checkexit 0 L_isfloat .2
-		L_unittest_checkexit 1 L_isfloat -.
-		L_unittest_checkexit 1 L_isfloat abc
-	}
 }
 
 # ]]]
@@ -1171,6 +1203,7 @@ L_log_stack_inc() { ((++L_logrecord_stacklevel)); }
 #   }
 L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 
+if ((L_HAS_LOWERCASE_UPPERCASE_EXPANSION)); then
 # @description Convert log string to number
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
@@ -1184,7 +1217,7 @@ L_log_level_to_int() {
 		printf -v "$1" "%d" "${!_L_i:-$L_LOGLEVEL_INFO}"
 	fi
 }
-if ! L_has_uppercase_expansion; then
+else
 	L_log_level_to_int() {
 		if L_isdigit "$2"; then
 			printf -v "$1" "%d" "$2"
@@ -1431,7 +1464,7 @@ _L_test_log() {
 # @section sort
 # @description sorting function
 
-if L_has_nameref; then
+if ((L_HAS_NAMEREF)); then
 
 _L_sort_bash_in() {
 	local _L_start=$1 _L_end=$2
@@ -1515,6 +1548,7 @@ L_sort_no_mapfile() {
 	)
 }
 
+if ((L_HAS_MAPFILE)); then
 # @description sort an array using sort command
 # @option -z --zero-terminated use zero separated stream with sort -z
 # @option * any options are forwarded to sort command
@@ -1531,12 +1565,12 @@ L_sort() {
 		mapfile -t "${@: -1}" < <(printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}")
 	fi
 }
-if ! L_has_mapfile; then
+else
 	L_sort() { L_sort_no_mapfile "$@"; }
 fi
 
 _L_test_sort() {
-	if L_has_nameref; then
+	if ((L_HAS_NAMEREF)); then
 		L_log "test bash sorting of an array"
 		local arr=(9 4 1 3 4 5)
 		L_sort_bash -n arr
@@ -1563,7 +1597,7 @@ _L_test_sort() {
 		L_sort arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
-	if L_has_mapfile_d; then
+	if ((L_HAS_MAPFILE_D)); then
 		L_log "test sorting of an array with zero separated stream"
 		local arr=(9 4 1 3 4 5)
 		L_sort -z -n arr
@@ -1621,7 +1655,7 @@ L_print_traceback() {
 			"${L_BLUE}${L_BOLD}" "$l" "$L_RESET" \
 			"${FUNCNAME[i]}"
 		if ((around >= 0)) && [[ -r "$s" ]]; then
-			if L_has_mapfile; then
+			if ((L_HAS_MAPFILE)); then
 				local min j lines cur cnt
 				((min=l-around-1, min=min<0?0:min, cnt=around*2+1, cnt=cnt<0?0:cnt ,1))
 				if ((cnt)); then
@@ -1830,7 +1864,7 @@ _L_test_version() {
 }
 
 # ]]]
-if L_has_associative_array; then
+if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 # asa - Associative Array [[[
 # @section asa
 # @description collection of function to work on associative array
@@ -2179,6 +2213,7 @@ _L_unittest_cmd_coproc() {
 # @option -e <int> Command should exit with this exit status (default: 0)
 # @arg $@ command to execute. Can start with `!`.
 L_unittest_cmd() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	local OPTARG OPTIND _L_uc _L_uopt_r='' _L_uopt_o='' _L_uopt_e=0 _L_uinv=0 _L_uret=0 _L_uout _L_uopt_c=0 _L_utrap=0
 	while getopts cr:o:e: _L_uc; do
 		case $_L_uc in
@@ -2242,7 +2277,6 @@ L_unittest_cmd() {
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_o"
 			return 1
 		fi
-
 	fi
 } <&-
 
@@ -2283,8 +2317,8 @@ _L_unittest_showdiff() {
 # @arg $1 variable nameref
 # @arg $2 value
 L_unittest_vareq() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: \$$1=${!1:+${!1@Q}} == ${2@Q}" "" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
@@ -2295,8 +2329,8 @@ L_unittest_vareq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_eq() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "$(printf "test: %q == %q" "$1" "$2")" "" [ "$1" == "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2307,8 +2341,8 @@ L_unittest_eq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_ne() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} != ${2@Q}" "" [ "$1" != "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2319,8 +2353,8 @@ L_unittest_ne() {
 # @arg $1 string
 # @arg $2 regex
 L_unittest_regex() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2331,8 +2365,8 @@ L_unittest_regex() {
 # @arg $1 string
 # @arg $2 needle
 L_unittest_contains() {
+	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if L_has_local_dash; then local -; set +x; fi
 	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -2366,21 +2400,33 @@ _L_trap_to_number_v() {
 	fi
 }
 
+
+# @description an array of trap number to trap name extracted from trap -l output.
+_L_TRAPS=
+
+# @description initialize _L_TRAPS variable
+# @set _L_TRAPS
+L_trap_traps_init() {
+	# Convert the output of trap -l into list of trap names.
+	_L_TRAPS=$(trap -l)
+	_L_TRAPS=${_L_TRAPS//[0-9][0-9]) /}
+	_L_TRAPS=${_L_TRAPS//[0-9]) /}
+	declare -a _L_tmp="(EXIT $_L_TRAPS)"
+	_L_TRAPS=("${_L_tmp[@]}")
+	L_trap_traps_init() { :; }
+}
+
 # @description convert trap number to trap name
 # @option -v <var> var
 # @arg $1 signal name or signal number
 # @example L_trap_to_name -v var 0 && L_assert '' test "$var" = EXIT
 L_trap_to_name() { _L_handle_v "$@"; }
 _L_trap_to_name_v() {
-	if [[ "$1" == 0 ]]; then
-		_L_v=EXIT
-	elif L_isdigit "$1"; then
-		_L_v=$(trap -l) &&
-			[[ "$_L_v" =~ [^0-9]$1\)\ ([^[:space:]]+) ]] &&
-			_L_v=${BASH_REMATCH[1]}
-	else
-		_L_v="$1"
-	fi
+	L_trap_traps_init
+	case "$1" in
+	[0-9]*) _L_v=${_L_TRAPS[$1]} ;;
+	*) _L_v="$1" ;;
+	esac
 }
 
 # @description Get the current value of trap
@@ -2394,10 +2440,8 @@ L_trap_get() { _L_handle_v "$@"; }
 _L_trap_get_v() {
 	_L_trap_to_name_v "$@" &&
 	_L_v=$(trap -p "$_L_v") &&
-	if [[ -n "$_L_v" ]]; then
-		local -a _L_tmp="($_L_v)" &&
-		_L_v=${_L_tmp[2]}
-	fi
+	local -a _L_tmp="($_L_v)" &&
+	_L_v=${_L_tmp[2]:-}
 }
 
 # @description internal callback called when trap fires
@@ -2420,9 +2464,9 @@ _L_trapchain_callback() {
 #   L_trapchain 'echo -n hello' EXIT
 #   # will print 'hello world' on exit
 L_trapchain() {
-	local _L_name &&
-		L_trap_to_name -v _L_name "$2" &&
-		trap "_L_trapchain_callback $_L_name" "$_L_name" &&
+	local _L_v &&
+		_L_trap_to_name_v "$2" &&
+		trap "_L_trapchain_callback $_L_v" "$_L_v" &&
 		eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
 }
 
@@ -2456,6 +2500,17 @@ _L_test_trapchain() {
 			L_trapchain 'echo -n hello' EXIT
 		)
 		L_unittest_eq "$tmp" "hello world!"
+	}
+	if ((L_HAS_BASHPID)); then
+		tmp=$(
+			L_trapchain 'echo -n " 1"' EXIT
+			L_trapchain 'echo -n " 2"' SIGUSR2
+			L_trapchain 'echo -n " 3"' SIGUSR1
+			L_trapchain 'echo -n "4"' SIGUSR1
+			L_raise SIGUSR1
+			L_raise SIGUSR2
+		)
+		L_unittest_eq "$tmp" "4 3 2 1"
 		allchars="$_L_allchars"
 		tmp=$(
 			printf -v tmp %q "$allchars"
@@ -2470,9 +2525,9 @@ _L_test_trapchain() {
 		local res
 		res="$allchars"$'\n'"hello world!"
 		L_unittest_eq "$tmp" "$res"
-	}
+	fi
 	(
-		L_log "Check if extracting all charactesr from trap works"
+		L_log "Check if extracting all characters from trap works"
 		trap ": $_L_allchars" SIGUSR1
 		L_trap_get -v tmp SIGUSR1
 		L_unittest_eq "$tmp" ": $_L_allchars"
@@ -2733,7 +2788,7 @@ _L_test_map() {
 }
 
 # ]]]
-if L_has_at_Q; then
+if ((L_HAS_AT_Q)); then
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash

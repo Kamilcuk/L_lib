@@ -31,9 +31,11 @@ doc: shdoc
 	$(MAKE) doc_test
 	@echo SUCCESS doc
 doc_test:
-	grep -q L_LOGLEVEL_CRITICAL public/index.md
-	grep -q L_dryrun public/index.md
-	grep -q L_log_level public/index.md
+	grep -qw L_LOGLEVEL_CRITICAL public/index.md
+	grep -qw L_dryrun public/index.md
+	grep -qw _L_log_conf_level public/index.md
+	grep -qw L_sort public/index.md
+	grep -qw L_log_level_to_int public/index.md
 	ls -la public
 	test $$(find public -type f | wc -l) = 2
 doc_open: doc
