@@ -304,22 +304,27 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @section has
 # @description check if bash has specific feature
 
+
 ((
-L_HAS_BASH4_4=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4),
-L_HAS_BASH4_3=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 3),
-L_HAS_BASH4_2=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 2),
-L_HAS_BASH4_1=BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 1),
-L_HAS_BASH4=BASH_VERSINFO[0] >= 4,
-L_HAS_BASH3_2=BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 2),
-L_HAS_BASH3_1=BASH_VERSINFO[0] > 3 || (BASH_VERSINFO[0] == 3 && BASH_VERSINFO[1] >= 1),
-L_HAS_BASH3=BASH_VERSINFO[0] >= 3,
-L_HAS_BASH2_5=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 5),
-L_HAS_BASH2_4=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
-L_HAS_BASH2_3=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
-L_HAS_BASH2_1=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
-L_HAS_BASH2_2=BASH_VERSINFO[0] > 2 || (BASH_VERSINFO[0] == 2 && BASH_VERSINFO[1] >= 4),
-L_HAS_BASH2=BASH_VERSINFO[0] >= 2,
-L_HAS_BASH1_14_7=BASH_VERSINFO[0] > 1 || (BASH_VERSINFO[0] == 1 && BASH_VERSINFO[1] > 14) || (BASH_VERSINFO[0] == 1 && BASH_VERSINFO[1] == 14 && BASH_VERSINFO[2] >= 7),
+L_BASH_VERSION=BASH_VERSINFO[0] << 24 | BASH_VERSINFO[1] << 16 | BASH_VERSINFO[2] << 8 | BASH_VERSINFO[3],
+L_HAS_BASH5_2=L_BASH_VERSION >= 0x05020000,
+L_HAS_BASH5_1=L_BASH_VERSION >= 0x05010000,
+L_HAS_BASH5=L_BASH_VERSION >= 0x05000000,
+L_HAS_BASH4_4=L_BASH_VERSION >= 0x04040000,
+L_HAS_BASH4_3=L_BASH_VERSION >= 0x04030000,
+L_HAS_BASH4_2=L_BASH_VERSION >= 0x04020000,
+L_HAS_BASH4_1=L_BASH_VERSION >= 0x04010000,
+L_HAS_BASH4=L_BASH_VERSION >= 0x04000000,
+L_HAS_BASH3_2=L_BASH_VERSION >= 0x03020000,
+L_HAS_BASH3_1=L_BASH_VERSION >= 0x03010000,
+L_HAS_BASH3=L_BASH_VERSION >= 0x03000000,
+L_HAS_BASH2_5=L_BASH_VERSION >= 0x02050000,
+L_HAS_BASH2_4=L_BASH_VERSION >= 0x02040000,
+L_HAS_BASH2_3=L_BASH_VERSION >= 0x02030000,
+L_HAS_BASH2_1=L_BASH_VERSION >= 0x02010000,
+L_HAS_BASH2_2=L_BASH_VERSION >= 0x02020000,
+L_HAS_BASH2=L_BASH_VERSION >= 0x02000000,
+L_HAS_BASH1_14_7=L_BASH_VERSION >= 0x010E0700,
 1))
 
 # @description Bash 4.4 introduced function scoped `local -`
@@ -353,7 +358,7 @@ L_HAS_COPROC=$L_HAS_BASH3_2
 # of the `=~' operator to the `[[' command.
 # Bash3.2 change: Quoting the string argument to the [[ command's
 # =~ operator now forces string matching, as with the other pattern-matching operators.
-L_HAS_QUOTED_REGEX=$L_HAS_BASH4_0  # TODO: shopt
+L_HAS_UNQUOTED_REGEX=$L_HAS_BASH3_2  # TODO: shopt
 # @description Bash 2.4 introduced ${!prefix*} expansion
 L_HAS_PREFIX_EXPANSION=$L_HAS_BASH2_4
 # @description Bash 2.05 introduced <<<"string"
@@ -385,7 +390,7 @@ L_assert() {
 	fi
 }
 
-if ((!L_HAS_QUOTED_REGEX)); then
+if ((L_HAS_UNQUOTED_REGEX)); then
 # @description Wrapper around =~ for contexts that require a function.
 # @arg $1 string to match
 # @arg $2 regex to match against
@@ -449,11 +454,14 @@ L_var_is_readonly() { (eval "$1=") 2>/dev/null; }
 
 # @description Return 0 if the string happend to be something like true.
 # @arg $1 str
-L_is_true() { case "$1" in +|[1-9]|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS]) ;; *) false ;; esac; }
+L_is_true() { L_regex_match "$1" "^([+]|[1-9]+|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$"; }
 
 # @description Return 0 if the string happend to be something like false.
 # @arg $1 str
-L_is_false() { case "$1" in -|0|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO]) ;; *) false ;; esac; }
+L_is_false() { L_regex_match "$1" "^([-]|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$"; }
+
+# L_is_true() { case "$1" in +|[1-9]|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS]) ;; *) false ;; esac; }
+# L_is_false() { case "$1" in -|0|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO]) ;; *) false ;; esac; }
 
 # @description Return 0 if the string happend to be something like true in locale.
 # @arg $1 str
@@ -476,7 +484,9 @@ L_is_false_locale() {
 	[[ "$1" =~ $i ]]
 }
 
-if ((L_HAS_QUOTED_REGEX)); then eval '
+if ((L_HAS_UNQUOTED_REGEX)); then
+	# This is evaled, because older bash versions get syntax error
+	eval '
 # @description exit with success if argument could be a variable name
 # @arg $1 string to check
 L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
@@ -496,7 +506,8 @@ L_isinteger() { [[ "$*" =~ ^[+-]?[0-9]+$ ]]; }
 # @description exits with success if the string characters is a float
 # @arg $1 string to check
 L_isfloat() { [[ "$*" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
-'; else
+	'
+else
 	L_is_valid_variable_name() { [[ "$1" =~ '^[a-zA-Z_][a-zA-Z0-9_]*$' ]]; }
 	L_isprint() { [[ "$*" =~ '^[[:print:]]*$' ]]; }
 	L_isdigit() { [[ "$*" =~ '^[0-9]+$' ]]; }
@@ -512,7 +523,7 @@ _L_test_basic() {
 	{
 		L_isdigit 5
 		L_isdigit 1235567890
-		L_isdigit 1235567890a
+		! L_isdigit 1235567890a
 		! L_isdigit x
 	}
 	{
@@ -800,6 +811,25 @@ L_args_contain() {
 	return 1
 }
 
+# @description get index number of argument equal to the first argument
+# @option -v <var>
+# @arg $1 needle
+# @arg $@ heystack
+L_args_index() { _L_handle_v "$@"; }
+_L_args_index_v() {
+	local _L_needle=$1 _L_start=$#
+	shift
+	while (($#)); do
+		if [[ "$1" == "$_L_needle" ]]; then
+			_L_v=$((_L_start-1-$#))
+			return 0
+		fi
+		shift
+	done
+	return 1
+}
+
+
 # @description Remove elements from array for which expression evaluates to failure.
 # @arg $1 array nameref
 # @arg $2 expression to `eval`uate with array element of index L_i and value $1
@@ -1038,6 +1068,8 @@ _L_test_other() {
 		L_unittest_checkexit 0 L_is_true 123
 		L_unittest_checkexit 1 L_is_true 0
 		L_unittest_checkexit 1 L_is_true 00
+		L_unittest_checkexit 1 L_is_true 010
+		L_unittest_checkexit 1 L_is_true atruea
 		#
 		L_unittest_checkexit 1 L_is_false true
 		L_unittest_checkexit 0 L_is_false false
@@ -1046,6 +1078,8 @@ _L_test_other() {
 		L_unittest_checkexit 1 L_is_false 123
 		L_unittest_checkexit 0 L_is_false 0
 		L_unittest_checkexit 0 L_is_false 00
+		L_unittest_checkexit 1 L_is_false 101
+		L_unittest_checkexit 1 L_is_false afalsea
 	}
 	{
 		local min=-1
@@ -1986,7 +2020,7 @@ fi
 # @arg $3 var source nameref
 # @see L_nestedasa_set
 L_nestedasa_get() {
-	L_assert '' L_is_valid_variable_name "$1"
+	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
 	L_assert "Source nameref does not start with (: $3=${!3}" L_regex_match "${!3}" "^[(].*[)]$"
 	eval "$1=${!3}"  # Is 1000 times faster, then the below, because L_asa_copy is slow.
@@ -2213,7 +2247,13 @@ _L_unittest_cmd_coproc() {
 # @option -e <int> Command should exit with this exit status (default: 0)
 # @arg $@ command to execute. Can start with `!`.
 L_unittest_cmd() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_HAS_LOCAL_DASH)) && [[ $- = *x* ]]; then
+		local -
+		set +x
+		local _L_ux=1
+	else
+		local _L_ux=
+	fi
 	local OPTARG OPTIND _L_uc _L_uopt_r='' _L_uopt_o='' _L_uopt_e=0 _L_uinv=0 _L_uret=0 _L_uout _L_uopt_c=0 _L_utrap=0
 	while getopts cr:o:e: _L_uc; do
 		case $_L_uc in
@@ -2240,22 +2280,26 @@ L_unittest_cmd() {
 		# shellcheck disable=2030,2093,1083
 		if [[ -n $_L_uopt_r || -n $_L_uopt_o ]]; then
 			coproc _L_unittest_cmd_coproc
+			${_L_ux+set -x}
 			"$@" >&"${COPROC[1]}" 2>&1 || _L_uret=$?
+			${_L_ux+set +x}
 			exec {COPROC[1]}>&-
 			mapfile -t -d '' -u "${COPROC[0]}" _L_uout
 			exec {COPROC[0]}>&-
 			wait "$COPROC_PID"
 		else
+			${_L_ux:+set -x}
 			"$@" || _L_uret=$?
+			${_L_ux:+set +x}
 		fi
 		if ((_L_utrap)); then
 			trap - EXIT
 		fi
 	else
 		if [[ -n $_L_uopt_r || -n $_L_uopt_o ]]; then
-			_L_uout=$("$@" 2>&1) || _L_uret=$?
+			_L_uout=$(${_L_ux:+set -x}; "$@" 2>&1) || _L_uret=$?
 		else
-			( "$@" ) || _L_uret=$?
+			(${_L_ux:+set -x}; "$@" ) || _L_uret=$?
 		fi
 	fi
 	#
@@ -2382,25 +2426,6 @@ L_unittest_contains() {
 # Generated by: printf "%q" "$(seq 255 | xargs printf "%02x\n" | xxd -r -p)"
 _L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
-# @description Convert trap name to number
-# @option -v <var> var
-# @arg $1 trap name or trap number
-L_trap_to_number() {
-	_L_handle_v "$@"
-}
-_L_trap_to_number_v() {
-	if [[ "$1" == EXIT ]]; then
-		_L_v=0
-	elif L_isdigit "$1"; then
-		_L_v=$1
-	else
-		_L_v=$(trap -l) &&
-			[[ "$_L_v" =~ [^0-9]([0-9]*)\)\ $1[[:space:]] ]] &&
-			_L_v=${BASH_REMATCH[1]}
-	fi
-}
-
-
 # @description an array of trap number to trap name extracted from trap -l output.
 _L_TRAPS=
 
@@ -2409,12 +2434,27 @@ _L_TRAPS=
 L_trap_traps_init() {
 	# Convert the output of trap -l into list of trap names.
 	_L_TRAPS=$(trap -l)
-	_L_TRAPS=${_L_TRAPS//[0-9][0-9]) /}
-	_L_TRAPS=${_L_TRAPS//[0-9]) /}
+	_L_TRAPS=${_L_TRAPS//[0-9][0-9]) /[&]=}
+	_L_TRAPS=${_L_TRAPS//[0-9]) /[&]=}
+	_L_TRAPS=${_L_TRAPS//) }
+	set -x
 	declare -a _L_tmp="(EXIT $_L_TRAPS)"
 	_L_TRAPS=("${_L_tmp[@]}")
 	L_trap_traps_init() { :; }
 }
+
+# @description Convert trap name to number
+# @option -v <var> var
+# @arg $1 trap name or trap number
+L_trap_to_number() { _L_handle_v "$@"; }
+_L_trap_to_number_v() {
+	L_trap_traps_init
+	case "$1" in
+	[0-9]*) _L_v=$1 ;;
+	*) _L_args_index_v "$1" "${_L_TRAPS[@]}" ;;
+	esac
+}
+
 
 # @description convert trap number to trap name
 # @option -v <var> var
