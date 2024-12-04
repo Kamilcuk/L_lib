@@ -26,7 +26,7 @@ Bash library. Collection of functions and libraries that I deem usefull for writ
 ## Various useful functionsand variables
 
 The generated documentation on github pages contains a list of all functions and variables available at
-[https://kamilcuk.github.io/L_lib.sh/](https://kamilcuk.github.io/L_lib.sh) .
+[https://kamilcuk.github.io/L_lib/](https://kamilcuk.github.io/L_lib/) .
 
 Variables `$L_NAME` is the name of the executable `$0` and `L_DIR` has the directory of the `$0` executable.
 It is typical to start scripts with `cd "$(dirname "$(readlink -f "$0")")"` to get the full path of the script and then `cd` to the directory of the script.
