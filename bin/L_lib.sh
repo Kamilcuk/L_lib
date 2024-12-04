@@ -255,9 +255,6 @@ L_COLOR_BG_WHITE=$'\E[107m'
 L_COLOR_COLORRESET=$'\E[m'
 L_COLOR_RESET=$'\E[m'
 
-# Detect colors here.
-L_color_detect
-
 # ]]]
 # Ansi [[[
 # @section ansi
@@ -304,37 +301,37 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @section has
 # @description check if bash has specific feature
 
-
+# note: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
 ((
-L_BASH_VERSION=BASH_VERSINFO[0] << 24 | BASH_VERSINFO[1] << 16 | BASH_VERSINFO[2] << 8 | BASH_VERSINFO[3],
-L_HAS_BASH5_2=L_BASH_VERSION >= 0x05020000,
-L_HAS_BASH5_1=L_BASH_VERSION >= 0x05010000,
-L_HAS_BASH5=L_BASH_VERSION >= 0x05000000,
-L_HAS_BASH4_4=L_BASH_VERSION >= 0x04040000,
-L_HAS_BASH4_3=L_BASH_VERSION >= 0x04030000,
-L_HAS_BASH4_2=L_BASH_VERSION >= 0x04020000,
-L_HAS_BASH4_1=L_BASH_VERSION >= 0x04010000,
-L_HAS_BASH4=L_BASH_VERSION >= 0x04000000,
-L_HAS_BASH3_2=L_BASH_VERSION >= 0x03020000,
-L_HAS_BASH3_1=L_BASH_VERSION >= 0x03010000,
-L_HAS_BASH3=L_BASH_VERSION >= 0x03000000,
-L_HAS_BASH2_5=L_BASH_VERSION >= 0x02050000,
-L_HAS_BASH2_4=L_BASH_VERSION >= 0x02040000,
-L_HAS_BASH2_3=L_BASH_VERSION >= 0x02030000,
-L_HAS_BASH2_1=L_BASH_VERSION >= 0x02010000,
-L_HAS_BASH2_2=L_BASH_VERSION >= 0x02020000,
-L_HAS_BASH2=L_BASH_VERSION >= 0x02000000,
-L_HAS_BASH1_14_7=L_BASH_VERSION >= 0x010E0700,
+L_BASH_VERSION=(${BASH_VERSINFO[0]} << 16 | ${BASH_VERSINFO[1]} << 8 | ${BASH_VERSINFO[2]}),
+L_HAS_BASH5_2=    L_BASH_VERSION >= 0x050200,
+L_HAS_BASH5_1=    L_BASH_VERSION >= 0x050100,
+L_HAS_BASH5=      L_BASH_VERSION >= 0x050000,
+L_HAS_BASH4_4=    L_BASH_VERSION >= 0x040400,
+L_HAS_BASH4_3=    L_BASH_VERSION >= 0x040300,
+L_HAS_BASH4_2=    L_BASH_VERSION >= 0x040200,
+L_HAS_BASH4_1=    L_BASH_VERSION >= 0x040100,
+L_HAS_BASH4=      L_BASH_VERSION >= 0x040000,
+L_HAS_BASH3_2=    L_BASH_VERSION >= 0x030200,
+L_HAS_BASH3_1=    L_BASH_VERSION >= 0x030100,
+L_HAS_BASH3=      L_BASH_VERSION >= 0x030000,
+L_HAS_BASH2_5=    L_BASH_VERSION >= 0x020500,
+L_HAS_BASH2_4=    L_BASH_VERSION >= 0x020400,
+L_HAS_BASH2_3=    L_BASH_VERSION >= 0x020300,
+L_HAS_BASH2_1=    L_BASH_VERSION >= 0x020100,
+L_HAS_BASH2_2=    L_BASH_VERSION >= 0x020200,
+L_HAS_BASH2=      L_BASH_VERSION >= 0x020000,
+L_HAS_BASH1_14_7= L_BASH_VERSION >= 0x010E07,
 1))
 
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
+# @description The `mapfile' builtin now has a -d option
+L_HAS_MAPFILE_D=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced ${var@Q}
 L_HAS_AT_Q=$L_HAS_BASH4_4
 # @description Bash 4.3 introduced declare -n nameref
 L_HAS_NAMEREF=$L_HAS_BASH4_3
-# @description Bash 4.3 introduced -d option to mapfile
-L_HAS_MAPFILE_D=$L_HAS_BASH4_3
 # @description Bash 4.1 introduced test/[/[[ -v variable unary operator
 L_HAS_TEST_V=$L_HAS_BASH4_1
 # @description Bash 4.0 introduced declare -A var=$([a]=b)
@@ -597,46 +594,46 @@ L_pretty_print() {
 	done
 }
 
-# @description wrapper function for handling -v argumnets to other functions
-# It calls a function called `_<caller>_v` with argumenst without `-v <var>`
-# The function `_<caller>_v` should set the variable nameref _L_v to the returned value
-#   just: _L_v=$value
-#   or: _L_v=(a b c)
-# When the caller function is called without -v, the value of _L_v is printed to stdout with a newline..
+# @description wrapper function for handling -v arguments to other functions
+# It calls a function called `<caller>_v` with arguments without `-v <var>`
+# The function `<caller>_v` should set the variable nameref L_v to the returned value
+#   just: L_v=$value
+#   or: L_v=(a b c)
+# When the caller function is called without -v, the values of L_v is printed to stdout with a newline.
 # Otherwise, the value is a nameref to user requested variable and nothing is printed.
 # @arg $@ arbitrary function arguments
-# @exitcode Whatever exitcode does the `_<caller>_v` funtion exits with.
-# @see L_basename
-# @see L_dirname
+# @exitcode Whatever exitcode does the `<caller>_v` funtion exits with.
 # @example:
-#    L_add() { _L_handle_v "$@"; }
-#    _L_add_v() { _L_v="$(($1 + $2))"; }
-_L_handle_v() {
-	local _L_v=()
+#    L_add() { L_handle_v "$@"; }
+#    L_add_v() { L_v="$(($1 + $2))"; }
+L_handle_v() {
+	local L_v=() _L_r=0
 	case $1 in
 	-v?*)
-		set -- -v "${1##-v}" "${@:2}"
-		if _"${FUNCNAME[1]}"_v "${@:3}"; then
-			eval "$2=(\"\${_L_v[@]:-}\")"
+		if [[ $2 == -- ]]; then
+			set -- -v "${1##-v}" "${@:3}"
 		else
-			return $?
+			set -- -v "${1##-v}" "${@:2}"
 		fi
+		"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
+		eval "$2=(\"\${L_v[@]:-}\")"
 		;;
 	-v)
-		if _"${FUNCNAME[1]}"_v "${@:3}"; then
-			eval "$2=(\"\${_L_v[@]:-}\")"
-		else
-			return $?
+		if [[ $3 == -- ]]; then
+			set -- -v "${1##-v}" "${@:3}"
 		fi
+		"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
+		eval "$2=(\"\${L_v[@]:-}\")"
+		;;
+	--)
+		"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
+		printf "%s\n" "${L_v[@]:-}"
 		;;
 	*)
-		if _"${FUNCNAME[1]}"_v "$@"; then
-			printf "%s\n" "${_L_v[@]}"
-		else
-			return $?
-		fi
-		;;
+		"${FUNCNAME[1]}"_v "$@" || _L_r=$?
+		printf "%s\n" "${L_v[@]:-}"
 	esac
+	return "$_L_r"
 }
 
 L_copyright_gpl30orlater() {
@@ -673,59 +670,59 @@ EOF
 # @description Output a string with the same quotating style as does bash in set -x
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
-L_quote_setx() { _L_handle_v "$@"; }
-_L_quote_setx_v() { _L_v=$({ set -x; : "$@"; } 2>&1); _L_v=${_L_v:5}; }
+L_quote_setx() { L_handle_v "$@"; }
+L_quote_setx_v() { L_v=$({ set -x; : "$@"; } 2>&1); L_v=${L_v:5}; }
 
 # @description Output a string with the same quotating style as does bash with printf
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
-L_quote_printf() { _L_handle_v "$@"; }
-_L_quote_printf_v() { printf -v _L_v " %q" "$@"; _L_v=${_L_v:1}; }
+L_quote_printf() { L_handle_v "$@"; }
+L_quote_printf_v() { printf -v L_v " %q" "$@"; L_v=${L_v:1}; }
 
 # @description Output a string with the same quotating style as does /bin/printf
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
-L_quote_bin_printf() { _L_handle_v "$@"; }
-_L_quote_bin_printf_v() { _L_v=$(/bin/printf " %q" "$@"); _L_v=${_L_v:1}; }
+L_quote_bin_printf() { L_handle_v "$@"; }
+L_quote_bin_printf_v() { L_v=$(/bin/printf " %q" "$@"); L_v=${L_v:1}; }
 
 # @description Convert a string to a number.
-L_strhash() { _L_handle_v "$*"; }
-_L_strhash_v() {
+L_strhash() { L_handle_v "$*"; }
+L_strhash_v() {
 	if L_hash cksum; then
-		_L_v=$(cksum <<<"$*")
-		_L_v=${_L_v%% *}
+		L_v=$(cksum <<<"$*")
+		L_v=${L_v%% *}
 	elif L_hash sum; then
-		_L_v=$(sum <<<"$*")
-		_L_v=${_L_v%% *}
+		L_v=$(sum <<<"$*")
+		L_v=${L_v%% *}
 	elif L_hash shasum; then
-		_L_v=$(shasum <<<"$*")
-		_L_v=${_L_v::15}
-		_L_v=$((0x1$_L_v))
+		L_v=$(shasum <<<"$*")
+		L_v=${L_v::15}
+		L_v=$((0x1$L_v))
 	else
-		L_strhash_bash -v _L_v "$*"
+		L_strhash_bash -v L_v "$*"
 	fi
 }
 
 # @description Convert a string to a number in pure bash.
-L_strhash_bash() { _L_handle_v "$*"; }
-_L_strhash_bash_v() {
+L_strhash_bash() { L_handle_v "$*"; }
+L_strhash_bash_v() {
 	local _L_i
-	_L_v=0
+	L_v=0
 	for ((_L_i=${#1};_L_i;--_L_i)); do
 		printf -v _L_a %d "'${1:_L_i-1:1}"
-		((_L_v += _L_a, 1))
+		((L_v += _L_a, 1))
 	done
 }
 
 # @description list functions with prefix
 # @option -v <var> var
 # @arg $1 prefix
-L_list_functions_with_prefix() { _L_handle_v "$@"; }
-_L_list_functions_with_prefix_v() {
-	_L_v=()
+L_list_functions_with_prefix() { L_handle_v "$@"; }
+L_list_functions_with_prefix_v() {
+	L_v=()
 	for _L_i in $(compgen -A function); do
 		if [[ $_L_i == "$1"* ]]; then
-			_L_v+=("$_L_i")
+			L_v+=("$_L_i")
 		fi
 	done
 }
@@ -759,18 +756,17 @@ L_nice() {
 	"${L_NICE[@]}" "$@"
 }
 
-_L_sudo_args_get() {
-	declare -n ret="$1"
-	ret=()
-	local envs
-	envs=
+_L_sudo_args_get_v() {
+	local envs=""
 	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
 		if [[ -n "${!i:-}" ]]; then
 			envs="${envs:---preserve-env=}${envs:+,}$i"
 		fi
 	done
 	if ((${#envs})); then
-		ret=("$envs")
+		L_v=("$envs")
+	else
+		L_v=()
 	fi
 }
 
@@ -779,9 +775,9 @@ _L_sudo_args_get() {
 L_sudo() {
 	local sudo=()
 	if ((UID != 0)) && hash sudo 2>/dev/null; then
-		local sudo_args
-		_L_sudo_args_get sudo_args
-		sudo=(sudo -n "${sudo_args[@]}")
+		local -a L_v=()
+		_L_sudo_args_get
+		sudo=(sudo -n "${L_v[@]}")
 	fi
 	L_run "${sudo[@]}" "$@"
 }
@@ -791,9 +787,9 @@ L_sudo() {
 # @arg $2 needle
 L_arrayvar_contains() {
 	# shellcheck disable=2178
-	if [[ $1 != _L_array ]]; then declare -n _L_array="$1"; fi
+	local _L_array=$1[@]
 	L_assert "" test "$#" = 2
-	L_args_contain "$2" "${_L_array[@]}"
+	L_args_contain "$2" "${!_L_array}"
 }
 
 # @description check if arguments starting from second contain the first argument
@@ -815,13 +811,13 @@ L_args_contain() {
 # @option -v <var>
 # @arg $1 needle
 # @arg $@ heystack
-L_args_index() { _L_handle_v "$@"; }
-_L_args_index_v() {
+L_args_index() { L_handle_v "$@"; }
+L_args_index_v() {
 	local _L_needle=$1 _L_start=$#
 	shift
 	while (($#)); do
 		if [[ "$1" == "$_L_needle" ]]; then
-			_L_v=$((_L_start-1-$#))
+			L_v=$((_L_start-1-$#))
 			return 0
 		fi
 		shift
@@ -850,13 +846,14 @@ L_arrayvar_filter_eval() {
 # @option -v <var> var
 # @arg $@ int arguments
 # @example L_max -v max 1 2 3 4
-L_max() { _L_handle_v "$@"; }
+L_max() { L_handle_v "$@"; }
 # shellcheck disable=1105,2094,2035
-_L_max_v() {
-	_L_v=$1
+# @set L_v
+L_max_v() {
+	L_v=$1
 	shift
 	while (($#)); do
-		(("$1" > _L_v ? _L_v = "$1" : 0, 1))
+		(("$1" > L_v ? L_v = "$1" : 0, 1))
 		shift
 	done
 }
@@ -866,13 +863,14 @@ _L_max_v() {
 # @option -v <var> var
 # @arg $@ int arguments
 # @example L_min -v min 1 2 3 4
-L_min() { _L_handle_v "$@"; }
+L_min() { L_handle_v "$@"; }
 # shellcheck disable=1105,2094,2035
-_L_min_v() {
-	_L_v=$1
+# @set L_v
+L_min_v() {
+	L_v=$1
 	shift
 	while (($#)); do
-		(("$1" < _L_v ? _L_v = "$1" : 0, 1))
+		(("$1" < L_v ? L_v = "$1" : 0, 1))
 		shift
 	done
 }
@@ -880,18 +878,18 @@ _L_min_v() {
 # @description capture exit code of a command to a variable
 # @option -v <var> var
 # @arg $@ command to execute
-L_capture_exit() { _L_handle_v "$@"; }
-_L_capture_exit_v() { "$@" && _L_v=$? || _L_v=$?; }
+L_capture_exit() { L_handle_v "$@"; }
+L_capture_exit_v() { "$@" && L_v=$? || L_v=$?; }
 
 # @option -v <var> var
 # @arg $1 path
-L_basename() { _L_handle_v "$@"; }
-_L_basename_v() { _L_v=${*##*/}; }
+L_basename() { L_handle_v "$@"; }
+L_basename_v() { L_v=${*##*/}; }
 
 # @option -v <var> var
 # @arg $1 path
-L_dirname() { _L_handle_v "$@"; }
-_L_dirname_v() { _L_v=${*%/*}; }
+L_dirname() { L_handle_v "$@"; }
+L_dirname_v() { L_v=${*%/*}; }
 
 # @description Produces a string properly quoted for JSON inclusion
 # Poor man's jq
@@ -900,45 +898,45 @@ _L_dirname_v() { _L_v=${*%/*}; }
 # @example
 #    L_json_escape -v tmp "some string"
 #    echo "{\"key\":$tmp}" | jq .
-L_json_escape() { _L_handle_v "$@"; }
-_L_json_escape_v() {
-	_L_v=$*
-	_L_v=${_L_v//\\/\\\\}
-	_L_v=${_L_v//\"/\\\"}
-	# _L_v=${_L_v//\//\\\/}
-	_L_v=${_L_v//$'\x01'/\\u0001}
-	_L_v=${_L_v//$'\x02'/\\u0002}
-	_L_v=${_L_v//$'\x03'/\\u0003}
-	_L_v=${_L_v//$'\x04'/\\u0004}
-	_L_v=${_L_v//$'\x05'/\\u0005}
-	_L_v=${_L_v//$'\x06'/\\u0006}
-	_L_v=${_L_v//$'\x07'/\\u0007}
-	_L_v=${_L_v//$'\b'/\\b}
-	_L_v=${_L_v//$'\t'/\\t}
-	_L_v=${_L_v//$'\n'/\\n}
-	_L_v=${_L_v//$'\x0B'/\\u000B}
-	_L_v=${_L_v//$'\f'/\\f}
-	_L_v=${_L_v//$'\r'/\\r}
-	_L_v=${_L_v//$'\x0E'/\\u000E}
-	_L_v=${_L_v//$'\x0F'/\\u000F}
-	_L_v=${_L_v//$'\x10'/\\u0010}
-	_L_v=${_L_v//$'\x11'/\\u0011}
-	_L_v=${_L_v//$'\x12'/\\u0012}
-	_L_v=${_L_v//$'\x13'/\\u0013}
-	_L_v=${_L_v//$'\x14'/\\u0014}
-	_L_v=${_L_v//$'\x15'/\\u0015}
-	_L_v=${_L_v//$'\x16'/\\u0016}
-	_L_v=${_L_v//$'\x17'/\\u0017}
-	_L_v=${_L_v//$'\x18'/\\u0018}
-	_L_v=${_L_v//$'\x19'/\\u0019}
-	_L_v=${_L_v//$'\x1A'/\\u001A}
-	_L_v=${_L_v//$'\x1B'/\\u001B}
-	_L_v=${_L_v//$'\x1C'/\\u001C}
-	_L_v=${_L_v//$'\x1D'/\\u001D}
-	_L_v=${_L_v//$'\x1E'/\\u001E}
-	_L_v=${_L_v//$'\x1F'/\\u001F}
-	_L_v=${_L_v//$'\x7F'/\\u007F}
-	_L_v=\"$_L_v\"
+L_json_escape() { L_handle_v "$@"; }
+L_json_escape_v() {
+	L_v=$*
+	L_v=${L_v//\\/\\\\}
+	L_v=${L_v//\"/\\\"}
+	# L_v=${L_v//\//\\\/}
+	L_v=${L_v//$'\x01'/\\u0001}
+	L_v=${L_v//$'\x02'/\\u0002}
+	L_v=${L_v//$'\x03'/\\u0003}
+	L_v=${L_v//$'\x04'/\\u0004}
+	L_v=${L_v//$'\x05'/\\u0005}
+	L_v=${L_v//$'\x06'/\\u0006}
+	L_v=${L_v//$'\x07'/\\u0007}
+	L_v=${L_v//$'\b'/\\b}
+	L_v=${L_v//$'\t'/\\t}
+	L_v=${L_v//$'\n'/\\n}
+	L_v=${L_v//$'\x0B'/\\u000B}
+	L_v=${L_v//$'\f'/\\f}
+	L_v=${L_v//$'\r'/\\r}
+	L_v=${L_v//$'\x0E'/\\u000E}
+	L_v=${L_v//$'\x0F'/\\u000F}
+	L_v=${L_v//$'\x10'/\\u0010}
+	L_v=${L_v//$'\x11'/\\u0011}
+	L_v=${L_v//$'\x12'/\\u0012}
+	L_v=${L_v//$'\x13'/\\u0013}
+	L_v=${L_v//$'\x14'/\\u0014}
+	L_v=${L_v//$'\x15'/\\u0015}
+	L_v=${L_v//$'\x16'/\\u0016}
+	L_v=${L_v//$'\x17'/\\u0017}
+	L_v=${L_v//$'\x18'/\\u0018}
+	L_v=${L_v//$'\x19'/\\u0019}
+	L_v=${L_v//$'\x1A'/\\u001A}
+	L_v=${L_v//$'\x1B'/\\u001B}
+	L_v=${L_v//$'\x1C'/\\u001C}
+	L_v=${L_v//$'\x1D'/\\u001D}
+	L_v=${L_v//$'\x1E'/\\u001E}
+	L_v=${L_v//$'\x1F'/\\u001F}
+	L_v=${L_v//$'\x7F'/\\u007F}
+	L_v=\"$L_v\"
 }
 
 # @description WIP
@@ -988,17 +986,40 @@ _L_kwargs_split() {
 # @option -v <var> Store the result in the array var.
 # @arg $1 prefix
 # @arg $@ elements
-L_abbreviation() { _L_handle_v "$@"; }
-_L_abbreviation_v() {
+# @see L_abbreviation_newline
+L_abbreviation() { L_handle_v "$@"; }
+# @set L_v
+L_abbreviation_v() {
 	local cur
 	cur=$1
 	shift
-	_L_v=()
+	L_v=()
 	while (($#)); do
 		if [[ "$1" == "$cur"* ]]; then
-			_L_v+=("$1")
+			L_v+=("$1")
 		fi
 		shift
+	done
+}
+
+# @description Choose newline separated elements matching prefix
+# This is a faster version of L_abbreviation with the limitation
+# that elements are separated by newline.
+# @option -v <var> Store the result in the array var.
+# @arg $1 prefix
+# @arg $@ elements, arguments are joined with newline.
+L_abbreviation_newline() { L_handle_v "$@"; }
+# @set L_v
+L_abbreviation_newline_v() {
+	local _L_prefix _L_cur IFS=$'\n' _L_tmp
+	_L_cur=$'\n'"${*:2}"$'\n'
+	L_v=()
+	while
+		_L_tmp=${_L_cur#*$'\n'$1}
+		[[ "$_L_tmp" != "$_L_cur" ]]
+	do
+		_L_cur=$_L_tmp
+		L_v+=("$1${_L_tmp%%$'\n'*}")
 	done
 }
 
@@ -1053,11 +1074,20 @@ _L_test_other() {
 	}
 	{
 		local a
-		L_abbreviation -v a ev eval shooter
+		L_abbreviation -va ev eval shooter
 		L_unittest_eq "${a[*]}" "eval"
-		L_abbreviation -v a e eval eshooter
-		L_unittest_eq "${a[*]}" "eval eshooter"
+		L_abbreviation_v e eval eshooter
+		L_unittest_eq "${L_v[*]}" "eval eshooter"
 		L_abbreviation -v a none eval eshooter
+		L_unittest_eq "${a[*]}" ""
+	}
+	{
+		local a
+		L_abbreviation_newline -v a ev eval shooter
+		L_unittest_eq "${a[*]}" "eval"
+		L_abbreviation_newline -v a e eval eshooter
+		L_unittest_eq "${a[*]}" "eval eshooter"
+		L_abbreviation_newline -v a none eval eshooter
 		L_unittest_eq "${a[*]}" ""
 	}
 	{
@@ -1498,8 +1528,7 @@ _L_test_log() {
 # @section sort
 # @description sorting function
 
-if ((L_HAS_NAMEREF)); then
-
+# @see L_sort_bash
 _L_sort_bash_in() {
 	local _L_start=$1 _L_end=$2
 	if ((_L_start < _L_end)); then
@@ -1552,29 +1581,31 @@ _L_sort_bash_in() {
 # @description quicksort an array in place in pure bash
 # Sorting using sort program is faster. Prefer L_sort
 # @see L_sort
-# @option -n --numeric-sort numeric sort, otherwise lexical
+# @option -n numeric sort, otherwise lexical
+# @option -z ignored. Always zero sorting
 # @arg $1 array
-# @arg [$2] starting index
-# @arg [$3] ending index
 L_sort_bash() {
-	local _L_sort_numeric=0
-	if [[ $1 = -n || $1 = --numeric-sort ]]; then
-		_L_sort_numeric=1
-		shift
-	fi
-	if [[ $1 = -- ]]; then
-		shift
-	fi
+	local _L_sort_numeric=0 _L_array OPTARG OPTIND _L_c
+	while getopts nz _L_c; do
+		case $_L_c in
+			n) _L_sort_numeric=1 ;;
+			z) ;;
+			*) L_fatal "invalid argument" ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	L_assert "wrong number of arguments" test "$#" = 1
+	L_assert "invalid argument: $1" L_is_valid_variable_name "$1"
 	#
-	if [[ $1 != _L_array ]]; then declare -n _L_array="$1"; fi
+	_L_array="$1[@]"
+	_L_array=("${!_L_array}")
 	_L_sort_bash_in 0 $((${#_L_array[@]} - 1))
+	eval "$1=(\"\${_L_array[@]}\")"
 }
-
-fi
 
 # @description like L_sort but without mapfile.
 # @see L_sort
-L_sort_no_mapfile() {
+_L_sort_no_mapfile() {
 	local _L_array="${*: -1}[@]"
 	IFS=$'\n' read -d '' -r -a "${@: -1}" < <(
 		printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}"
@@ -1582,7 +1613,16 @@ L_sort_no_mapfile() {
 	)
 }
 
-if ((L_HAS_MAPFILE)); then
+_L_sort_no_mapfile_d() {
+	local _L_array="${*: -1}[@]" _L_i=0
+	while IFS= read -d '' -r "${@: -1}[$((_L_i++))]"; do
+		:
+	done < <(
+		printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}"
+	)
+	unset "${@: -1}[$((_L_i-1))]"
+}
+
 # @description sort an array using sort command
 # @option -z --zero-terminated use zero separated stream with sort -z
 # @option * any options are forwarded to sort command
@@ -1594,32 +1634,28 @@ if ((L_HAS_MAPFILE)); then
 L_sort() {
 	local _L_array="${*: -1}[@]"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
-		mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}")
+		if ((L_HAS_MAPFILE_D)); then
+			mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}")
+		else
+			_L_sort_no_mapfile_d "$@"
+		fi
 	else
-		mapfile -t "${@: -1}" < <(printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}")
+		if ((L_HAS_MAPFILE)); then
+			mapfile -t "${@: -1}" < <(printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}")
+		else
+			_L_sort_no_mapfile "$@"
+		fi
 	fi
 }
-else
-	L_sort() { L_sort_no_mapfile "$@"; }
-fi
 
 _L_test_sort() {
-	if ((L_HAS_NAMEREF)); then
+	{
 		L_log "test bash sorting of an array"
 		local arr=(9 4 1 3 4 5)
 		L_sort_bash -n arr
 		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
 		local arr=(g s b a c o)
 		L_sort_bash arr
-		L_unittest_eq "${arr[*]}" "a b c g o s"
-	fi
-	{
-		L_log "test sorting of an array"
-		local arr=(9 4 1 3 4 5)
-		L_sort_no_mapfile -n arr
-		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
-		local arr=(g s b a c o)
-		L_sort_no_mapfile arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
 	{
@@ -1631,7 +1667,7 @@ _L_test_sort() {
 		L_sort arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
-	if ((L_HAS_MAPFILE_D)); then
+	{
 		L_log "test sorting of an array with zero separated stream"
 		local arr=(9 4 1 3 4 5)
 		L_sort -z -n arr
@@ -1639,19 +1675,29 @@ _L_test_sort() {
 		local arr=(g s b a c o)
 		L_sort -z arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
-	fi
-	if ((0)); then
-		L_log "Compare times of bash sort vs command sort"
-		local arr=() i TIMEFORMAT
-		for ((i = 500; i; --i)); do arr[i]=$RANDOM; done
-		local arr2=("${arr[@]}")
-		TIMEFORMAT='L_sort   real=%lR user=%lU sys=%lS'
-		time L_sort_bash -n arr2
-		local arr3=("${arr[@]}")
-		TIMEFORMAT='GNU sort real=%lR user=%lU sys=%lS'
-		time L_sort -n arr3
-		[[ "${arr2[*]}" == "${arr3[*]}" ]]
-	fi
+	}
+	{
+		local -a nums=(
+			10 99 7 33 97 68 100 83 80 51 74 24 85 71 64 36 72 67 60 73 54 5 63
+			50 40 27 30 44 1 37 86 14 52 15 81 78 46 90 39 79 65 47 28 77 62 22
+			98 76 41 49 89 48 32 21 92 70 11 96 58 55 56 45 17 66 57 42 31 23 26
+			35 3 6 13 25 8 82 84 61 75 12 2 9 53 94 69 93 38 87 59 16 20 95 43 34
+			91 88 4 18 19 29 -52444  46793   63644   23950   -24008  -8219 -34362
+			59930 -13817 -30880 59270 43982 -1901 53069 -24481 -21592 811 -4132
+			65052 -5629 19149 17827 17051 -22462 8842 53592 -49750 -18064 -8324
+			-23371 42055 -24291 -54302 3207 4580 -10132 -33922 -14613 41633 36787
+		)
+		timeit() {
+			local TIMEFORMAT="TIME: $(printf "%-40s" "$*")   real=%lR user=%lU sys=%lS"
+			time "$@"
+		}
+		for opt in "" "-n" "-z" "-n -z"; do
+			local sort_bash=("${nums[@]}") sort=("${nums[@]}")
+			timeit L_sort_bash $opt sort_bash
+			timeit L_sort $opt sort
+			L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
+		done
+	}
 }
 
 # ]]]
@@ -1816,13 +1862,11 @@ L_trap_init() {
 	fi
 }
 
-L_trap_init
-
 # ]]]
 # version [[[
 # @section version
 
-# shellcheck disable=1105,2053
+# shellcheck disable=1105,2053,1009,1073,1072
 # @description compare version numbers
 # This function is used to detect bash features. It should handle any bash version.
 # @see https://peps.python.org/pep-0440/
@@ -1855,12 +1899,7 @@ L_version_cmp() {
 		local res='=' i max a=() b=()
 		IFS=' .-()' read -r -a a <<<$1
 		IFS=' .-()' read -r -a b <<<$3
-		for ((
-				i = 0, max = ${#a[@]} > ${#b[@]} ? ${#a[@]} : ${#b[@]},
-				max > ${4:-3} ? max = ${4:-3} : 0;
-				i < max;
-				++i
-		)); do
+		for (( i = 0, max = ${#a[@]} > ${#b[@]} ? ${#a[@]} : ${#b[@]}, max > ${4:-3} ? max = ${4:-3} : 0; i < max; ++i )); do
 			if ((a[i] > b[i])); then
 				res='>'
 				break
@@ -1874,7 +1913,7 @@ L_version_cmp() {
 	esac
 }
 
-_L_test_version() {
+L_test_version() {
 	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
 	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
 	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
@@ -1942,16 +1981,16 @@ L_asa_is_empty() {
 # @arg $2 key
 # @arg [$3] optional default value
 # @exitcode 1 if no key found and no default value
-L_asa_get() { _L_handle_v "$@"; }
-_L_asa_get_v() {
+L_asa_get() { L_handle_v "$@"; }
+L_asa_get_v() {
 	L_assert '' test "$#" = 2 -o "$#" = 3
 	if L_asa_has "$1" "$2"; then
-		eval "_L_v=\${$1[\"\$2\"]}"
+		eval "L_v=\${$1[\"\$2\"]}"
 	else
 		if (($# == 3)); then
-			_L_v=$3
+			L_v=$3
 		else
-			_L_v=
+			L_v=
 			return 1
 		fi
 	fi
@@ -1960,21 +1999,21 @@ _L_asa_get_v() {
 # @description get the length of associative array
 # @option -v <var> var
 # @arg $1 associative array nameref
-L_asa_len() { _L_handle_v "$@"; }
-_L_asa_len_v() {
+L_asa_len() { L_handle_v "$@"; }
+L_asa_len_v() {
 	L_assert "" L_var_is_associative "$1"
-	eval "_L_v=(\"\${#$1[@]}\")"
+	eval "L_v=(\"\${#$1[@]}\")"
 }
 
 # @description get keys of an associative array in a sorted
 # @option -v <var> var
 # @arg $1 associative array nameref
-L_asa_keys_sorted() { _L_handle_v "$@"; }
-_L_asa_keys_sorted_v() {
+L_asa_keys_sorted() { L_handle_v "$@"; }
+L_asa_keys_sorted_v() {
 	L_assert "" test "$#" = 1
 	L_assert "" L_var_is_associative "$1"
-	eval "_L_v=(\"\${!$1[@]}\")"
-	L_sort _L_v
+	eval "L_v=(\"\${!$1[@]}\")"
+	L_sort L_v
 }
 
 # @description Move the 3rd argument to the first and call
@@ -2427,31 +2466,31 @@ L_unittest_contains() {
 _L_allchars=$'\001\002\003\004\005\006\a\b\t\n\v\f\r\016\017\020\021\022\023\024\025\026\027\030\031\032\E\034\035\036\037 !"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
 # @description an array of trap number to trap name extracted from trap -l output.
-_L_TRAPS=
+_L_TRAP_L=
 
-# @description initialize _L_TRAPS variable
-# @set _L_TRAPS
-L_trap_traps_init() {
+# @description initialize _L_TRAP_L variable
+# @set _L_TRAP_L
+_L_trap_l_init() {
 	# Convert the output of trap -l into list of trap names.
-	_L_TRAPS=$(trap -l)
-	_L_TRAPS=${_L_TRAPS//[0-9][0-9]) /[&]=}
-	_L_TRAPS=${_L_TRAPS//[0-9]) /[&]=}
-	_L_TRAPS=${_L_TRAPS//) }
-	set -x
-	declare -a _L_tmp="(EXIT $_L_TRAPS)"
-	_L_TRAPS=("${_L_tmp[@]}")
-	L_trap_traps_init() { :; }
+	_L_TRAP_L=$(trap -l)
+	_L_TRAP_L=${_L_TRAP_L//)}
+	# _L_TRAP_L=${_L_TRAP_L// }
+	_L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } "
+	_L_trap_l_init() { :; }
 }
 
 # @description Convert trap name to number
 # @option -v <var> var
 # @arg $1 trap name or trap number
-L_trap_to_number() { _L_handle_v "$@"; }
-_L_trap_to_number_v() {
-	L_trap_traps_init
+L_trap_to_number() { L_handle_v "$@"; }
+L_trap_to_number_v() {
 	case "$1" in
-	[0-9]*) _L_v=$1 ;;
-	*) _L_args_index_v "$1" "${_L_TRAPS[@]}" ;;
+	[0-9]*) L_v=$1 ;;
+	*)
+		_L_trap_l_init
+		L_v=${_L_TRAP_L%% $1 *}
+		L_v=${L_v##* }
+		;;
 	esac
 }
 
@@ -2460,12 +2499,15 @@ _L_trap_to_number_v() {
 # @option -v <var> var
 # @arg $1 signal name or signal number
 # @example L_trap_to_name -v var 0 && L_assert '' test "$var" = EXIT
-L_trap_to_name() { _L_handle_v "$@"; }
-_L_trap_to_name_v() {
-	L_trap_traps_init
+L_trap_to_name() { L_handle_v "$@"; }
+L_trap_to_name_v() {
 	case "$1" in
-	[0-9]*) _L_v=${_L_TRAPS[$1]} ;;
-	*) _L_v="$1" ;;
+	[0-9]*)
+		_L_trap_l_init
+		L_v=${_L_TRAP_L##* $1 }
+		L_v=${L_v%% *}
+		;;
+	*) L_v="$1" ;;
 	esac
 }
 
@@ -2476,12 +2518,12 @@ _L_trap_to_name_v() {
 #   trap 'echo hi' EXIT
 #   L_trap_get -v var EXIT
 #   L_assert '' test "$var" = 'echo hi'
-L_trap_get() { _L_handle_v "$@"; }
-_L_trap_get_v() {
-	_L_trap_to_name_v "$@" &&
-	_L_v=$(trap -p "$_L_v") &&
-	local -a _L_tmp="($_L_v)" &&
-	_L_v=${_L_tmp[2]:-}
+L_trap_get() { L_handle_v "$@"; }
+L_trap_get_v() {
+	L_trap_to_name_v "$@" &&
+	L_v=$(trap -p "$L_v") &&
+	local -a _L_tmp="($L_v)" &&
+	L_v=${_L_tmp[2]:-}
 }
 
 # @description internal callback called when trap fires
@@ -2504,9 +2546,9 @@ _L_trapchain_callback() {
 #   L_trapchain 'echo -n hello' EXIT
 #   # will print 'hello world' on exit
 L_trapchain() {
-	local _L_v &&
-		_L_trap_to_name_v "$2" &&
-		trap "_L_trapchain_callback $_L_v" "$_L_v" &&
+	local L_v &&
+		L_trap_to_name_v "$2" &&
+		trap "_L_trapchain_callback $L_v" "$L_v" &&
 		eval "_L_trapchain_data_$2=\"\$1\"\$'\\n'\"\${_L_trapchain_data_$2:-}\""
 }
 
@@ -2636,8 +2678,8 @@ L_map_set() {
 # @arg $2 str key
 # @arg $3 str value to append
 L_map_append() {
-	local _L_v
-	if _L_map_get_v "$1" "$2"; then
+	local L_v
+	if L_map_get_v "$1" "$2"; then
 		L_map_set "$1" "$2" "$_L_map_name${*:3}"
 	else
 		L_map_set "$1" "$2" "$3"
@@ -2651,8 +2693,8 @@ L_map_append() {
 # @arg $1 var map
 # @arg $2 str key
 # @arg [$3] str default
-L_map_get() { _L_handle_v "$@"; }
-_L_map_get_v() {
+L_map_get() { L_handle_v "$@"; }
+L_map_get_v() {
 	local _L_map_name _L_map_name2
 	_L_map_name=${!1}
 	_L_map_name2=$_L_map_name
@@ -2662,7 +2704,7 @@ _L_map_get_v() {
 	# If nothing was removed, then the key does not exists.
 	if [[ "$_L_map_name2" == "$_L_map_name" ]]; then
 		if (($# >= 3)); then
-			_L_v="${*:3}"
+			L_v="${*:3}"
 			return 0
 		else
 			return 1
@@ -2671,7 +2713,7 @@ _L_map_get_v() {
 	# Remove from the newline until the end and print with eval.
 	# The key was inserted with printf %q, so it has to go through eval now.
 	_L_map_name2=${_L_map_name2%%$'\n'*}
-	eval "_L_v=$_L_map_name2"
+	eval "L_v=$_L_map_name2"
 }
 
 
@@ -2689,14 +2731,14 @@ L_map_has() {
 # @description List all keys in the map.
 # @option -v <var> variable to set
 # @arg $1 var map
-L_map_keys() { _L_handle_v "$@"; }
-_L_map_keys_v() {
+L_map_keys() { L_handle_v "$@"; }
+L_map_keys_v() {
 	local _L_map_name IFS=' ' _L_key _L_val
 	_L_map_name=${!1}
-	_L_v=()
+	L_v=()
 	while read -r _L_key _L_val; do
 		if [[ -n "$_L_key" ]]; then
-			_L_v+=("$_L_key")
+			L_v+=("$_L_key")
 		fi
 	done <<<"$_L_map_name"
 }
@@ -2704,14 +2746,14 @@ _L_map_keys_v() {
 # @description List all values in the map.
 # @option -v <var> variable to set
 # @arg $1 var map
-L_map_values() { _L_handle_v "$@"; }
-_L_map_values_v() {
+L_map_values() { L_handle_v "$@"; }
+L_map_values_v() {
 	local _L_map_name IFS=' ' _L_key _L_val
 	_L_map_name=${!1}
-	_L_v=()
+	L_v=()
 	while read -r _L_key _L_val; do
 		if [[ -n "$_L_key" ]]; then
-			eval "_L_v+=($_L_val)"
+			eval "L_v+=($_L_val)"
 		fi
 	done <<<"$_L_map_name"
 }
@@ -2728,14 +2770,14 @@ _L_map_values_v() {
 #   for ((i=0;i<${#tmp[@]};i+=2)); do
 #      echo "${tmp[i]} ${tmp[i+1]}"  # outputs: 'a 1' 'b 2'
 #   done
-L_map_items() { _L_handle_v "$@"; }
-_L_map_items_v() {
+L_map_items() { L_handle_v "$@"; }
+L_map_items_v() {
 	local _L_map_name _L_key _L_val IFS=' '
 	_L_map_name=${!1}
 	while read -r _L_key _L_val; do
 		if [[ -n "$_L_key" ]]; then
-			_L_v+=("$_L_key")
-			eval "_L_v+=($_L_val)"
+			L_v+=("$_L_key")
+			eval "L_v+=($_L_val)"
 		fi
 	done <<<"$_L_map_name"
 }
@@ -4346,9 +4388,10 @@ _L_lib_main_cmd() {
 }
 
 _L_lib_main() {
-	local _L_mode="" _L_sourced=0 OPTARG OPTING _L_opt
+	local _L_mode="" _L_sourced=0 OPTARG OPTING _L_opt _L_init=1
 	while getopts sLh-: _L_opt; do
 		case $_L_opt in
+		n) _L_init=0 ;;
 		s) _L_sourced=1 ;;
 		L) _L_lib_drop_L_prefix ;;
 		h) _L_mode=help ;;
@@ -4357,10 +4400,14 @@ _L_lib_main() {
 		*) _L_lib_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt" ;;
 		esac
 	done
+	if ((_L_init)); then
+		L_color_detect
+		L_trap_init
+	fi
 	shift "$((OPTIND-1))"
 	if (($#)); then
 		: "${_L_mode:=$1}"
-		shift 1
+		shift
 	fi
 	case "$_L_mode" in
 	"")
@@ -4387,6 +4434,7 @@ _L_lib_main() {
 		_L_lib_run_tests "$@"
 		;;
 	cmd) _L_lib_main_cmd "$@" ;;
+	nop) ;;
 	*) _L_lib_fatal "unknown command: $_L_mode" ;;
 	esac
 }

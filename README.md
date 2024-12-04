@@ -143,9 +143,10 @@ eval "$(./script.sh --bash-completion)"
 - UPPER CASE for readonly variables
 - lower case for functions and mutable variables
 - snake case for everything
-- `-v <var>` option is used to store the result in a variable
+- `-v <var>` option is used to store the result in a variable instead of printing it
   - This is similar to `printf -v <var>`
   - Without the -v option, the function outputs elements on lines.
+- Function ending with `_v` store the result in a hardcoded scratch variable `L_v`.
 - subshell usage is minimum
 
 # License
