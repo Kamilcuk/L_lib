@@ -20,12 +20,13 @@ Bash library. Collection of functions and libraries that I deem usefull for writ
 
 # Features
 
+- compatible bash 3.2, except where associative arrays are required
+- subshell usage is minimized
+
+## Various useful functionsand variables
+
 The generated documentation on github pages contains a list of all functions and variables available at
-[https://kamilcuk.github.io/L_lib.sh/](https://kamilcuk.github.io/L_lib.sh).
-
-The work is split on sections, each section has separate documentation.
-
-## Globals
+[https://kamilcuk.github.io/L_lib.sh/](https://kamilcuk.github.io/L_lib.sh) .
 
 Variables `$L_NAME` is the name of the executable `$0` and `L_DIR` has the directory of the `$0` executable.
 It is typical to start scripts with `cd "$(dirname "$(readlink -f "$0")")"` to get the full path of the script and then `cd` to the directory of the script.
@@ -52,7 +53,7 @@ echo "${L_RED}Red text${L_RESET}"
 
 The function `L_color_detect` is used to detect if the terminal supports colors and sets the variables accordingly to empty or to ANSI escape sequence.
 
-The variables `L_COLOR_*` are constants always set to the ANSI escape sequence for the color.
+The variables `L_ANSI_*` like `L_ANSI_RED` are constants always set to the ANSI escape sequence for the color.
 
 See list of variables at https://kamilcuk.github.io/L_lib/#colors .
 
@@ -147,7 +148,6 @@ eval "$(./script.sh --bash-completion)"
   - This is similar to `printf -v <var>`
   - Without the -v option, the function outputs elements on lines.
 - Function ending with `_v` store the result in a hardcoded scratch variable `L_v`.
-- subshell usage is minimum
 
 # License
 

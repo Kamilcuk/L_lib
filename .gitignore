@@ -3,3 +3,4 @@ build
 public
 profile.*
 *.dot
+.bash_history

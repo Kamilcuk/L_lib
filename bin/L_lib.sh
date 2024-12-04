@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vim: foldmethod=marker foldmarker=[[[,]]]
+# vim: foldmethod=marker foldmarker=[[[,]]] ft=bash
 # shellcheck disable=2034,2178,2016,2128,2329
 # SPDX-License-Identifier: LGPL-3.0
 #    L_lib.sh
@@ -28,7 +28,7 @@ if test -z "${L_LIB_VERSION:-}"; then
 
 shopt -s extglob
 # @description version of the library
-L_LIB_VERSION=0.1.0
+L_LIB_VERSION=0.1.1
 # @description The basename part of $0
 L_NAME=${0##*/}
 # @description The directory part of $0
@@ -43,6 +43,9 @@ L_DIR=${0%/*}
 # Use L_color_detect to detect if the terimnla is supposed to support colors.
 # @example:
 #    echo "$L_RED""hello world""$L_RESET"
+
+# @description Text to be evaled to enable colors.
+_L_COLOR_SWITCH="
 
 L_BOLD=$'\E[1m'
 L_BRIGHT=$'\E[1m'
@@ -126,45 +129,48 @@ L_BG_WHITE=$'\E[107m'
 L_COLORRESET=$'\E[m'
 L_RESET=$'\E[m'
 
-# @description keeps track if the colors are enabled or not.
-_L_color_enabled=1
+"
 
 # @description
 # @noargs
 L_color_enable() {
-	if ((!_L_color_enabled)); then
-		_L_color_enabled=1
-		set -- "${!L_COLOR_@}"
-		while (($#)); do
-			eval "L_${1#L_COLOR_}=\$$1"
-			shift
-		done
-	fi
+	eval "$_L_COLOR_SWITCH"
 }
 
 # @description
 # @noargs
 L_color_disable() {
-	if ((_L_color_enabled)); then
-		_L_color_enabled=0
-		set -- "${!L_COLOR_@}"
-		while (($#)); do
-			eval "L_${1#L_COLOR_}="
-			shift
-		done
-	fi
+	eval "${_L_COLOR_SWITCH//=/= #}"
 }
 
 # @description Detect if colors should be used on the terminal.
+# @exitcode 0 if colors should be used, nonzero otherwise
+# @arg [$1] file descriptor to check, default 1
 # @see https://no-color.org/
+# @env TERM
+# @env NO_COLOR
+L_term_has_color() {
+	[[ -n "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" && -t "${1:-1}" ]]
+}
+
+# @description Detect if colors should be used on the terminal.
 # @see https://en.wikipedia.org/wiki/ANSI_escape_code#Unix_environment_variables_relating_to_color_support
-# @noargs
+# @arg [$1] file descriptor to check, default 1
 L_color_detect() {
-	if [[ -n "${NO_COLOR+x}" || "${TERM:-dumb}" == "dumb" || ! -t 1 ]]; then
-		L_color_disable
-	else
+	if L_term_has_color "$@"; then
 		L_color_enable
+	else
+		L_color_disable
 	fi
+}
+
+_L_test_color() {
+	{
+		L_color_enable
+		L_unittest_eq "$L_RED" "$L_ANSI_RED"
+		L_color_disable
+		L_unittest_eq "$L_RED" ""
+	}
 }
 
 # ]]]
@@ -172,88 +178,88 @@ L_color_detect() {
 # @section color constants
 # @description color constants. Prefer to use colors above with color usage detection.
 
-L_COLOR_BOLD=$'\E[1m'
-L_COLOR_BRIGHT=$'\E[1m'
-L_COLOR_DIM=$'\E[2m'
-L_COLOR_FAINT=$'\E[2m'
-L_COLOR_STANDOUT=$'\E[3m'
-L_COLOR_UNDERLINE=$'\E[4m'
-L_COLOR_BLINK=$'\E[5m'
-L_COLOR_REVERSE=$'\E[7m'
-L_COLOR_CONCEAL=$'\E[8m'
-L_COLOR_HIDDEN=$'\E[8m'
-L_COLOR_CROSSEDOUT=$'\E[9m'
+L_ANSI_BOLD=$'\E[1m'
+L_ANSI_BRIGHT=$'\E[1m'
+L_ANSI_DIM=$'\E[2m'
+L_ANSI_FAINT=$'\E[2m'
+L_ANSI_STANDOUT=$'\E[3m'
+L_ANSI_UNDERLINE=$'\E[4m'
+L_ANSI_BLINK=$'\E[5m'
+L_ANSI_REVERSE=$'\E[7m'
+L_ANSI_CONCEAL=$'\E[8m'
+L_ANSI_HIDDEN=$'\E[8m'
+L_ANSI_CROSSEDOUT=$'\E[9m'
 
-L_COLOR_FONT0=$'\E[10m'
-L_COLOR_FONT1=$'\E[11m'
-L_COLOR_FONT2=$'\E[12m'
-L_COLOR_FONT3=$'\E[13m'
-L_COLOR_FONT4=$'\E[14m'
-L_COLOR_FONT5=$'\E[15m'
-L_COLOR_FONT6=$'\E[16m'
-L_COLOR_FONT7=$'\E[17m'
-L_COLOR_FONT8=$'\E[18m'
-L_COLOR_FONT9=$'\E[19m'
+L_ANSI_FONT0=$'\E[10m'
+L_ANSI_FONT1=$'\E[11m'
+L_ANSI_FONT2=$'\E[12m'
+L_ANSI_FONT3=$'\E[13m'
+L_ANSI_FONT4=$'\E[14m'
+L_ANSI_FONT5=$'\E[15m'
+L_ANSI_FONT6=$'\E[16m'
+L_ANSI_FONT7=$'\E[17m'
+L_ANSI_FONT8=$'\E[18m'
+L_ANSI_FONT9=$'\E[19m'
 
-L_COLOR_FRAKTUR=$'\E[20m'
-L_COLOR_DOUBLE_UNDERLINE=$'\E[21m'
-L_COLOR_NODIM=$'\E[22m'
-L_COLOR_NOSTANDOUT=$'\E[23m'
-L_COLOR_NOUNDERLINE=$'\E[24m'
-L_COLOR_NOBLINK=$'\E[25m'
-L_COLOR_NOREVERSE=$'\E[27m'
-L_COLOR_NOHIDDEN=$'\E[28m'
-L_COLOR_REVEAL=$'\E[28m'
-L_COLOR_NOCROSSEDOUT=$'\E[29m'
+L_ANSI_FRAKTUR=$'\E[20m'
+L_ANSI_DOUBLE_UNDERLINE=$'\E[21m'
+L_ANSI_NODIM=$'\E[22m'
+L_ANSI_NOSTANDOUT=$'\E[23m'
+L_ANSI_NOUNDERLINE=$'\E[24m'
+L_ANSI_NOBLINK=$'\E[25m'
+L_ANSI_NOREVERSE=$'\E[27m'
+L_ANSI_NOHIDDEN=$'\E[28m'
+L_ANSI_REVEAL=$'\E[28m'
+L_ANSI_NOCROSSEDOUT=$'\E[29m'
 
-L_COLOR_BLACK=$'\E[30m'
-L_COLOR_RED=$'\E[31m'
-L_COLOR_GREEN=$'\E[32m'
-L_COLOR_YELLOW=$'\E[33m'
-L_COLOR_BLUE=$'\E[34m'
-L_COLOR_MAGENTA=$'\E[35m'
-L_COLOR_CYAN=$'\E[36m'
-L_COLOR_LIGHT_GRAY=$'\E[37m'
-L_COLOR_DEFAULT=$'\E[39m'
-L_COLOR_FOREGROUND_DEFAULT=$'\E[39m'
+L_ANSI_BLACK=$'\E[30m'
+L_ANSI_RED=$'\E[31m'
+L_ANSI_GREEN=$'\E[32m'
+L_ANSI_YELLOW=$'\E[33m'
+L_ANSI_BLUE=$'\E[34m'
+L_ANSI_MAGENTA=$'\E[35m'
+L_ANSI_CYAN=$'\E[36m'
+L_ANSI_LIGHT_GRAY=$'\E[37m'
+L_ANSI_DEFAULT=$'\E[39m'
+L_ANSI_FOREGROUND_DEFAULT=$'\E[39m'
 
-L_COLOR_BG_BLACK=$'\E[40m'
-L_COLOR_BG_BLUE=$'\E[44m'
-L_COLOR_BG_CYAN=$'\E[46m'
-L_COLOR_BG_GREEN=$'\E[42m'
-L_COLOR_BG_LIGHT_GRAY=$'\E[47m'
-L_COLOR_BG_MAGENTA=$'\E[45m'
-L_COLOR_BG_RED=$'\E[41m'
-L_COLOR_BG_YELLOW=$'\E[43m'
+L_ANSI_BG_BLACK=$'\E[40m'
+L_ANSI_BG_BLUE=$'\E[44m'
+L_ANSI_BG_CYAN=$'\E[46m'
+L_ANSI_BG_GREEN=$'\E[42m'
+L_ANSI_BG_LIGHT_GRAY=$'\E[47m'
+L_ANSI_BG_MAGENTA=$'\E[45m'
+L_ANSI_BG_RED=$'\E[41m'
+L_ANSI_BG_YELLOW=$'\E[43m'
 
-L_COLOR_FRAMED=$'\E[51m'
-L_COLOR_ENCIRCLED=$'\E[52m'
-L_COLOR_OVERLINED=$'\E[53m'
-L_COLOR_NOENCIRCLED=$'\E[54m'
-L_COLOR_NOFRAMED=$'\E[54m'
-L_COLOR_NOOVERLINED=$'\E[55m'
+L_ANSI_FRAMED=$'\E[51m'
+L_ANSI_ENCIRCLED=$'\E[52m'
+L_ANSI_OVERLINED=$'\E[53m'
+L_ANSI_NOENCIRCLED=$'\E[54m'
+L_ANSI_NOFRAMED=$'\E[54m'
+L_ANSI_NOOVERLINED=$'\E[55m'
 
-L_COLOR_DARK_GRAY=$'\E[90m'
-L_COLOR_LIGHT_RED=$'\E[91m'
-L_COLOR_LIGHT_GREEN=$'\E[92m'
-L_COLOR_LIGHT_YELLOW=$'\E[93m'
-L_COLOR_LIGHT_BLUE=$'\E[94m'
-L_COLOR_LIGHT_MAGENTA=$'\E[95m'
-L_COLOR_LIGHT_CYAN=$'\E[96m'
-L_COLOR_WHITE=$'\E[97m'
+L_ANSI_DARK_GRAY=$'\E[90m'
+L_ANSI_LIGHT_RED=$'\E[91m'
+L_ANSI_LIGHT_GREEN=$'\E[92m'
+L_ANSI_LIGHT_YELLOW=$'\E[93m'
+L_ANSI_LIGHT_BLUE=$'\E[94m'
+L_ANSI_LIGHT_MAGENTA=$'\E[95m'
+L_ANSI_LIGHT_CYAN=$'\E[96m'
+L_ANSI_WHITE=$'\E[97m'
 
-L_COLOR_BG_DARK_GRAY=$'\E[100m'
-L_COLOR_BG_LIGHT_BLUE=$'\E[104m'
-L_COLOR_BG_LIGHT_CYAN=$'\E[106m'
-L_COLOR_BG_LIGHT_GREEN=$'\E[102m'
-L_COLOR_BG_LIGHT_MAGENTA=$'\E[105m'
-L_COLOR_BG_LIGHT_RED=$'\E[101m'
-L_COLOR_BG_LIGHT_YELLOW=$'\E[103m'
-L_COLOR_BG_WHITE=$'\E[107m'
+L_ANSI_BG_DARK_GRAY=$'\E[100m'
+L_ANSI_BG_LIGHT_BLUE=$'\E[104m'
+L_ANSI_BG_LIGHT_CYAN=$'\E[106m'
+L_ANSI_BG_LIGHT_GREEN=$'\E[102m'
+L_ANSI_BG_LIGHT_MAGENTA=$'\E[105m'
+L_ANSI_BG_LIGHT_RED=$'\E[101m'
+L_ANSI_BG_LIGHT_YELLOW=$'\E[103m'
+L_ANSI_BG_WHITE=$'\E[107m'
 
 # It resets color and font.
-L_COLOR_COLORRESET=$'\E[m'
-L_COLOR_RESET=$'\E[m'
+L_ANSI_COLORRESET=$'\E[m'
+L_ANSI_RESET=$'\E[m'
 
 # ]]]
 # Ansi [[[
@@ -268,7 +274,7 @@ L_ansi_next_line() { printf '\E[%dE' "$@"; }
 L_ansi_prev_line() { printf '\E[%dF' "$@"; }
 L_ansi_set_column() { printf '\E[%dG' "$@"; }
 L_ansi_set_position() { printf '\E[%d;%dH' "$@"; }
-L_ansi_set_title() { printf '\E]0;%s' "$*"; }
+L_ansi_set_title() { printf '\E]0;%s\a' "$*"; }
 L_ANSI_CLEAR_SCREEN_UNTIL_END=$'\E[0J'
 L_ANSI_CLEAR_SCREEN_UNTIL_BEGINNING=$'\E[1J'
 L_ANSI_CLEAR_SCREEN=$'\E[2J'
@@ -291,9 +297,25 @@ L_ansi_print_on_line_above() {
 
 L_ansi_8bit_fg() { printf '\E[37;5;%dm' "$@"; }
 L_ansi_8bit_bg() { printf '\E[47;5;%dm' "$@"; }
-L_ansi_8bit_fg_rgb() { printf '\E[37;5;%dm' "$((16 + 36 * $1 + 6 * $2 + $3))"; }
-L_ansi_8bit_bg_rgb() { printf '\E[47;5;%dm' "$((16 + 36 * $1 + 6 * $2 + $3))"; }
+# @description Set foreground color to 8bit RGB
+# @arg $1 red
+# @arg $2 green
+# @arg $3 blue
+L_ansi_8bit_fg_rgb() { L_ansi_8bit_fg "$((16 + 36 * $1 + 6 * $2 + $3))"; }
+# @description Set foreground color to 8bit RGB
+# @arg $1 red
+# @arg $2 green
+# @arg $3 blue
+L_ansi_8bit_bg_rgb() { L_ansi_8bit_bg "$((16 + 36 * $1 + 6 * $2 + $3))"; }
+# @description Set foreground color to 24bit RGB
+# @arg $1 red
+# @arg $2 green
+# @arg $3 blue
 L_ansi_24bit_fg() { printf '\E[38;2;%d;%d;%dm' "$@"; }
+# @description Set background color to 24bit RGB
+# @arg $1 red
+# @arg $2 green
+# @arg $3 blue
 L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 
 # ]]]
@@ -330,6 +352,10 @@ L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 L_HAS_MAPFILE_D=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced ${var@Q}
 L_HAS_AT_Q=$L_HAS_BASH4_4
+# @description The declare builtin no longer displays array variables using the compound
+# assignment syntax with quotes; that will generate warnings when re-used as
+# input, and isn't necessary.
+L_HAS_DECLARE_WITH_NO_QUOTES=$L_HAS_BASH4_4
 # @description Bash 4.3 introduced declare -n nameref
 L_HAS_NAMEREF=$L_HAS_BASH4_3
 # @description Bash 4.1 introduced test/[/[[ -v variable unary operator
@@ -481,9 +507,6 @@ L_is_false_locale() {
 	[[ "$1" =~ $i ]]
 }
 
-if ((L_HAS_UNQUOTED_REGEX)); then
-	# This is evaled, because older bash versions get syntax error
-	eval '
 # @description exit with success if argument could be a variable name
 # @arg $1 string to check
 L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
@@ -503,14 +526,6 @@ L_isinteger() { [[ "$*" =~ ^[+-]?[0-9]+$ ]]; }
 # @description exits with success if the string characters is a float
 # @arg $1 string to check
 L_isfloat() { [[ "$*" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
-	'
-else
-	L_is_valid_variable_name() { [[ "$1" =~ '^[a-zA-Z_][a-zA-Z0-9_]*$' ]]; }
-	L_isprint() { [[ "$*" =~ '^[[:print:]]*$' ]]; }
-	L_isdigit() { [[ "$*" =~ '^[0-9]+$' ]]; }
-	L_isinteger() { [[ "$*" =~ '^[+-]?[0-9]+$' ]]; }
-	L_isfloat() { [[ "$*" =~ '^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$' ]]; }
-fi
 
 # @description send signal to itself
 # @arg $1 signal to send, see kill -l
@@ -546,50 +561,50 @@ _L_test_basic() {
 # @section uncategorized
 # @description many functions without any particular grouping
 
+_L_pretty_print_printf() {
+	printf ${_L_v:+-v "${_L_v}"} "%s%s$1" "${_L_v:+${!_L_v}}" "$_L_prefix" "${@:2}"
+}
+
 # @description Prints values with declare, but array values are on separate lines.
 # @option -p <str> prefix each line with this prefix
+# @option -v <var>
+# @option -w <int> set width
 # @arg $@ variable names to pretty print
 L_pretty_print() {
-	local OPTARG OPTIND _L_t _L_prefix=
-	while getopts :p: _L_t; do
+	local OPTARG OPTIND _L_t _L_prefix='' _L_v _L_w=${COLUMNS:-80}
+	while getopts :p:v: _L_t; do
 		case $_L_t in
 		p) _L_prefix="$OPTARG " ;;
+		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
+		l) _L_w=$OPTARG ;;
 		*) break ;;
 		esac
 	done
 	shift $((OPTIND-1))
+	#
 	while (($#)); do
-		if ! _L_t=$(declare -p "$1"); then
-			printf "%s%s\n" "$_L_prefix" "$1"
-			shift
-			continue
+		if L_is_valid_variable_name "$1" && _L_t=$(declare -p "$1" 2>/dev/null); then
+			case "$_L_t" in
+			"declare -A"*) local -A _L_pretty_print="${_L_t#*=}" ;;
+			"declare -a"*) local -a _L_pretty_print="${_L_t#*=}" ;;
+			esac
+			if L_var_is_set _L_pretty_print; then
+				if ((${#_L_pretty_print[@]} > 1 && ${#_L_t} > _L_w)); then
+					_L_pretty_print_printf "%s\n" "${_L_t%%=*}=("
+					for _L_t in "${!_L_pretty_print[@]}"; do
+						_L_pretty_print_printf "  [%q]=%q\n" "$_L_t" "${_L_pretty_print["$_L_t"]}"
+					done
+					_L_pretty_print_printf "  )\n"
+				else
+					_L_pretty_print_printf "%s\n" "$_L_t"
+				fi
+				unset _L_pretty_print
+			else
+				_L_pretty_print_printf "%s\n" "$_L_t"
+			fi
+		else
+			_L_pretty_print_printf "%s\n" "$1"
 		fi
-		case "$_L_t" in
-		"declare -A"*)
-			local -n _L_pretty_print="$1"
-			if ((${#_L_pretty_print[@]} > 1)); then
-				printf "%s%s\n" "$_L_prefix" "${_L_t%%(*}("
-				for _L_t in "${!_L_pretty_print[@]}"; do
-					printf "%s  [%s]=%s\n" "$_L_prefix" "${_L_t@Q}" "${_L_pretty_print["$_L_t"]@Q}"
-				done
-				printf "%s  )\n" "$_L_prefix"
-				shift
-				continue
-			fi
-			;;
-		"declare -a"*)
-			local -n _L_pretty_print="$1"
-			if ((${#_L_pretty_print[@]} > 1)); then
-				printf "%s\n" "${_L_t%%(*}("
-				for _L_t in "${!_L_pretty_print[@]}"; do
-					printf "%s  [%s]=%s\n" "$_L_prefix" "$_L_t" "${_L_pretty_print["$_L_t"]@Q}"
-				done
-				printf "%s  )\n" "$_L_prefix"
-				shift
-				continue
-			fi
-		esac
-		printf "%s%s\n" "$_L_prefix" "$_L_t"
 		shift
 	done
 }
@@ -1154,6 +1169,18 @@ _L_test_other() {
 			t "! ${_L_allchars::127}"
 		fi
 	}
+	{
+		local name=1 tmp
+		L_pretty_print -v tmp name 2
+		L_unittest_eq "$tmp" $'declare -- name="1"\n2\n'
+		local name=(1 2)
+		L_pretty_print -v tmp name 2
+		if ((L_HAS_BASH4_4)); then
+			L_unittest_eq "$tmp" $'declare -a name=([0]="1" [1]="2")\n2\n'
+		else
+			L_unittest_eq "$tmp" $'declare -a name=\'([0]="1" [1]="2")\'\n2\n'
+		fi
+	}
 }
 
 # ]]]
@@ -1186,7 +1213,7 @@ L_LOGLEVEL_NAMES=(
 )
 # @description get color associated with particular loglevel
 L_LOGLEVEL_COLORS=(
-	[L_LOGLEVEL_CRITICAL]="${L_BOLD}${L_RED}"
+	[L_LOGLEVEL_CRITICAL]="${L_STANDOUT}${L_BOLD}${L_RED}"
 	[L_LOGLEVEL_ERROR]="${L_BOLD}${L_RED}"
 	[L_LOGLEVEL_WARNING]="${L_BOLD}${L_YELLOW}"
 	[L_LOGLEVEL_NOTICE]="${L_BOLD}${L_CYAN}"
@@ -1196,24 +1223,25 @@ L_LOGLEVEL_COLORS=(
 )
 
 # @description was log system configured?
-_L_log_conf_configured=0
+_L_logconf_configured=0
 # @description int current global log level
-_L_log_conf_level=$L_LOGLEVEL_INFO
+_L_logconf_level=$L_LOGLEVEL_INFO
 # @description should we use the color for logging output
-L_log_conf_color=1
+L_logconf_color=1
 # @description if this regex is set, allow elements
-_L_log_conf_selecteval=true
+_L_logconf_selecteval=true
 # @description default formatting function
-_L_log_conf_formateval='L_log_format_default "$@"'
+_L_logconf_formateval='L_log_format_default "$@"'
 # @description default outputting function
-_L_log_conf_outputeval='L_log_output_to_stderr "$@"'
+_L_logconf_outputeval='L_log_output_to_stderr "$@"'
 
 # @description configure L_log system
-# @option	-r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
-# @option -l <LOGLEVEL>    Set loglevel. Can be \$L_LOGLEVEL_INFO INFO or 30. Default: $_L_log_conf_level
-# @option	-c <BOOL>        Enable/disable the use of color. Default: $L_log_conf_color
-# @option	-f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_log_conf_formateval
-# @option	-s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_log_conf_selecteval
+# @option -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
+# @option -l <LOGLEVEL>    Set loglevel. Can be \$L_LOGLEVEL_INFO INFO or 30. Default: $_L_logconf_level
+# @option -c <BOOL>        Enable/disable the use of color. Default: $L_logconf_color
+# @option -f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_logconf_formateval
+# @option -s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_logconf_selecteval
+# @option -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: $_L_logconf_outputeval
 # @noargs
 # @example
 # 	L_log_configure \
@@ -1224,19 +1252,28 @@ _L_log_conf_outputeval='L_log_output_to_stderr "$@"'
 # 		-s 'L_log_select_source_regex ".*/script.sh"'
 L_log_configure() {
 	local OPTARG OPTIND _L_opt
-	while getopt hrl:c:f:s: _L_opt; do
-		case $_L_opt in
-			r) _L_log_conf_configured=0 ;;
-			l) if ((!_L_log_conf_configured)); then L_log_level_to_int _L_log_conf_level "$OPTARG"; fi ;;
-			c) if ((!_L_log_conf_configured)); then L_exit_to_1null L_log_conf_color L_is_true "$OPTARG"; fi ;;
-			f) if ((!_L_log_conf_configured)); then _L_log_conf_formateval=$OPTARG; fi ;;
-			s) if ((!_L_log_conf_configured)); then _L_log_conf_selecteval=$OPTARG; fi ;;
-			*) L_fatal "invalid arguments" ;;
-		esac
+	while getopt rl:c:f:s:o: _L_opt; do
+		if ((_L_logconf_configured)); then
+			case $_L_opt in
+				r) _L_logconf_configured=0 ;;
+				[lcfso]) ;;
+				*) L_fatal "invalid arguments: $_L_opt $OPTARG" ;;
+			esac
+		else
+			case $_L_opt in
+				r) _L_logconf_configured=0 ;;
+				l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
+				c) L_exit_to_1null L_logconf_color L_is_true "$OPTARG" ;;
+				f) _L_logconf_formateval=$OPTARG ;;
+				s) _L_logconf_selecteval=$OPTARG ;;
+				o) _L_logconf_outputeval=$OPTARG ;;
+				*) L_fatal "invalid arguments: $_L_opt $OPTARG" ;;
+			esac
+		fi
 	done
 	shift $((OPTIND-1))
 	L_assert "invalid arguments" test $# -ne 0
-	_L_log_conf_configured=1
+	_L_logconf_configured=1
 }
 
 # @description int positive stack level to omit when printing caller information
@@ -1249,8 +1286,8 @@ L_logrecord_stacklevel=2
 # @description int current log line log level
 # @example
 #     printf "%sHello%s\n" \
-#       "${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
-#       "${L_log_conf_color:+$L_COLORRESET}"
+#       "${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+#       "${L_logconf_color:+$L_COLORRESET}"
 L_logrecord_loglevel=0
 
 # @description increase stacklevel of logging information
@@ -1267,42 +1304,41 @@ L_log_stack_inc() { ((++L_logrecord_stacklevel)); }
 #   }
 L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 
-if ((L_HAS_LOWERCASE_UPPERCASE_EXPANSION)); then
 # @description Convert log string to number
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
 L_log_level_to_int() {
-	if L_isdigit "$2"; then
-		printf -v "$1" "%d" "$2"
-	else
-		local _L_i
-		_L_i=${2##*_}
-		_L_i=L_LOGLEVEL_${_L_i^^}
-		printf -v "$1" "%d" "${!_L_i:-$L_LOGLEVEL_INFO}"
-	fi
-}
-else
-	L_log_level_to_int() {
-		if L_isdigit "$2"; then
-			printf -v "$1" "%d" "$2"
+	local L_v
+	case "$2" in
+	[0-9]*) L_v=$2 ;;
+	*[cC][rR][iI][tT]*) L_v=$L_LOGLEVEL_CRITICAL ;;
+	*[eE][rR][rR]*) L_v=$L_LOGLEVEL_ERROR ;;
+	*[wW][aA][rR][nN]*) L_v=$L_LOGLEVEL_WARNING ;;
+	*[nN][oO][tT][iI][cC][eE]) L_v=$L_LOGLEVEL_NOTICE ;;
+	*[iI][nN][fF][oO]) L_v=$L_LOGLEVEL_INFO ;;
+	*[dD][eE][bB][uU][gG]) L_v=$L_LOGLEVEL_DEBUG ;;
+	*[tT][rR][aA][cC][eE]) L_v=$L_LOGLEVEL_TRACE ;;
+	*)
+		L_v=${2##*_}
+		if ((L_HAS_LOWERCASE_UPPERCASE_EXPANSION)); then
+			L_v=L_LOGLEVEL_${L_v^^}
 		else
-			local _L_i
-			_L_i=${2##*_}
-			_L_i=$(tr '[:lower:]' '[:upper:]' <<<"${_L_i}")
-			_L_i=L_LOGLEVEL_${_L_i}
-			printf -v "$1" "%d" "${!_L_i:-$L_LOGLEVEL_INFO}"
+			L_v=$(tr '[:lower:]' '[:upper:]' <<<"${_L_v}")
 		fi
-	}
-fi
+		L_v=${!L_v:$L_LOGLEVEL_INFO}
+		;;
+	esac
+	printf -v "$1" "%d" "$L_v"
+}
 
 # @description Check if loggin is enabled for specified level
-# @env _L_log_conf_level
+# @env _L_logconf_level
 # @set L_logrecord_loglevel
 # @arg $1 str|int loglevel or log string
 L_log_is_enabled_for() {
 	L_log_level_to_int L_logrecord_loglevel "$1"
 	# echo "$L_logrecord_loglevel $L_log_level"
-	((_L_log_conf_level <= L_logrecord_loglevel))
+	((_L_logconf_level <= L_logrecord_loglevel))
 }
 
 # @description Finction that can be passed to filtereval to filter specific bash source name.
@@ -1326,12 +1362,12 @@ L_log_select_source_regex() {
 # @see L_log_configure
 L_log_format_default() {
 	printf -v L_logrecord_msg "%s""%s:%s:%d:$1""%s" \
-		"${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		"$L_NAME" \
 		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
 		"${BASH_LINENO[L_logrecord_stacklevel]}" \
 		"${@:2}" \
-		"${L_log_conf_color:+$L_COLORRESET}"
+		"${L_logconf_color:+$L_COLORRESET}"
 }
 
 # @description Format logrecord with timestamp information.
@@ -1348,14 +1384,14 @@ L_log_format_default() {
 # @see L_log_configure
 L_log_format_long() {
 	printf -v L_logrecord_msg "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s $1""%s" \
-		"${L_log_conf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		-1 \
 		"$L_NAME" \
 		"${FUNCNAME[L_logrecord_stacklevel]}" \
 		"${BASH_LINENO[L_logrecord_stacklevel]}" \
 		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
 		"${@:2}" \
-		"${L_log_conf_color:+$L_COLORRESET}"
+		"${L_logconf_color:+$L_COLORRESET}"
 }
 
 # @description Output formatted line to stderr
@@ -1385,13 +1421,13 @@ L_log_output_to_logger() {
 # @env L_logrecord_stacklevel
 # @warning Users could overwrite this function.
 L_log_handle() {
-	if L_log_is_enabled_for "$L_logrecord_loglevel" && eval "$_L_log_conf_selecteval"; then
+	if L_log_is_enabled_for "$L_logrecord_loglevel" && eval "$_L_logconf_selecteval"; then
 		local L_logrecord_msg=
 		# Should set L_logrecord_msg from "$@"
-		eval "$_L_log_conf_formateval"
+		eval "$_L_logconf_formateval"
 		set -- "$L_logrecord_msg"
 		# Should output "$@"
-		eval "$_L_log_conf_outputeval"
+		eval "$_L_logconf_outputeval"
 	fi
 }
 
@@ -1406,11 +1442,11 @@ L_log_handle() {
 L_log() {
 	local OPTARG OPTIND _L_opt
 	L_logrecord_loglevel=$L_LOGLEVEL_INFO
-	while getopts s:l: _L_opt; do
+	while getopts :s:l: _L_opt; do
 		case "$_L_opt" in
 		s) ((L_logrecord_stacklevel += OPTARG, 1)) ;;
 		l) L_log_level_to_int L_logrecord_loglevel "$OPTARG" ;;
-		*) L_fatal "invalid argument $_L_opt" ;;
+		*) break ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -1425,6 +1461,7 @@ L_critical() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_CRITICAL" "$@"
 }
+
 # @description output a error message
 # @option -s <int> stacklevel increase
 # @arg $1 message
@@ -1432,6 +1469,7 @@ L_error() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_ERROR" "$@"
 }
+
 # @description output a warning message
 # @option -s <int> stacklevel increase
 # @arg $1 message
@@ -1439,6 +1477,7 @@ L_warning() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_WARNING" "$@"
 }
+
 # @description output a notice
 # @option -s <int> stacklevel increase
 # @arg $1 message
@@ -1446,6 +1485,7 @@ L_notice() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_NOTICE" "$@"
 }
+
 # @description output a information message
 # @option -s <int> stacklevel increase
 # @arg $1 message
@@ -1453,12 +1493,21 @@ L_info() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_INFO" "$@"
 }
+
 # @description output a debugging message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_debug() {
 	L_log_stack_inc
 	L_log -l "$L_LOGLEVEL_DEBUG" "$@"
+}
+
+# @description output a tracing message
+# @option -s <int> stacklevel increase
+# @arg $1 message
+L_trace() {
+	L_log_stack_inc
+	L_log -l "$L_LOGLEVEL_TRACE" "$@"
 }
 
 # @description Output a critical message and exit the script with 2.
