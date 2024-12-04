@@ -64,7 +64,7 @@ doc: shdoc
 doctest:
 	grep -qw L_LOGLEVEL_CRITICAL public/index.md
 	grep -qw L_dryrun public/index.md
-	grep -qw _L_log_conf_level public/index.md
+	grep -qw _L_logconf_level public/index.md
 	grep -qw L_sort public/index.md
 	grep -qw L_log_level_to_int public/index.md
 	ls -la public
