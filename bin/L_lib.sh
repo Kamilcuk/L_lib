@@ -1962,7 +1962,7 @@ L_version_cmp() {
 	esac
 }
 
-L_test_version() {
+_L_test_version() {
 	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
 	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
 	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
