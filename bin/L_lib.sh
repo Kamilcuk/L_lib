@@ -686,7 +686,7 @@ EOF
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
 L_quote_setx() { L_handle_v "$@"; }
-L_quote_setx_v() { L_v=$({ set -x; : "$@"; } 2>&1); L_v=${L_v:5}; }
+L_quote_setx_v() { L_v=$({ set -x; } 2>/dev/null; { : "$@"; } 2>&1); L_v=${L_v:5}; }
 
 # @description Output a string with the same quotating style as does bash with printf
 # @option -v <var> variable to set
@@ -2185,6 +2185,8 @@ fi
 L_unittest_fails=0
 # @description set to 1 to exit immediately when a test fails
 L_unittest_exit_on_error=0
+# @description set to 1 to disable set -x inside L_unittest functions, set to 0 to dont
+: "${L_UNITTEST_UNSET_X:=$L_HAS_LOCAL_DASH}"
 
 # @description internal unittest function
 # @env L_unittest_fails
@@ -2263,11 +2265,13 @@ EOF
 	done
 	L_log "done testing: ${_L_tests[*]}"
 	if ((L_unittest_fails)); then
-		L_error "testing failed"
+		L_error "${L_RED}testing failed"
 	else
 		L_log "${L_GREEN}testing success"
 	fi
-	exit "$L_unittest_fails"
+	if ((L_unittest_fails)); then
+		exit "$L_unittest_fails"
+	fi
 }
 
 # @description Test is eval of a string return success.
@@ -2335,7 +2339,7 @@ _L_unittest_cmd_coproc() {
 # @option -e <int> Command should exit with this exit status (default: 0)
 # @arg $@ command to execute. Can start with `!`.
 L_unittest_cmd() {
-	if ((L_HAS_LOCAL_DASH)) && [[ $- = *x* ]]; then
+	if ((L_UNITTEST_UNSET_X)) && [[ $- = *x* ]]; then
 		local -
 		set +x
 		local _L_ux=1
@@ -2449,7 +2453,7 @@ _L_unittest_showdiff() {
 # @arg $1 variable nameref
 # @arg $2 value
 L_unittest_vareq() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
 	if ! _L_unittest_internal "test: \$$1=${!1:+${!1@Q}} == ${2@Q}" "" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
@@ -2461,7 +2465,7 @@ L_unittest_vareq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_eq() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
 	if ! _L_unittest_internal "$(printf "test: %q == %q" "$1" "$2")" "" [ "$1" == "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
@@ -2473,7 +2477,7 @@ L_unittest_eq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_ne() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
 	if ! _L_unittest_internal "test: ${1@Q} != ${2@Q}" "" [ "$1" != "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
@@ -2485,7 +2489,7 @@ L_unittest_ne() {
 # @arg $1 string
 # @arg $2 regex
 L_unittest_regex() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
 	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
@@ -2497,7 +2501,7 @@ L_unittest_regex() {
 # @arg $1 string
 # @arg $2 needle
 L_unittest_contains() {
-	if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
 	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
 		_L_unittest_showdiff "$1" "$2"
