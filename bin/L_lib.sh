@@ -408,7 +408,7 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 L_assert() {
 	if ! "${@:2}"; then
 		L_print_traceback
-		printf "%s: assertion %s failed%s\n" "$L_NAME" "$(L_quote_setx "$@")" "${1:+: $1}" >&2
+		printf "%s: assertion %s failed%s\n" "$L_NAME" "$(L_quote_printf "$@")" "${1:+: $1}" >&2
 		exit 249
 	fi
 }
@@ -734,12 +734,8 @@ L_strhash_bash_v() {
 # @arg $1 prefix
 L_list_functions_with_prefix() { L_handle_v "$@"; }
 L_list_functions_with_prefix_v() {
-	L_v=()
-	for _L_i in $(compgen -A function); do
-		if [[ $_L_i == "$1"* ]]; then
-			L_v+=("$_L_i")
-		fi
-	done
+	local IFS=$'\n'
+	L_v=($(compgen -A function "$1"))
 }
 
 L_kill_all_jobs() {
@@ -894,7 +890,7 @@ L_min_v() {
 # @option -v <var> var
 # @arg $@ command to execute
 L_capture_exit() { L_handle_v "$@"; }
-L_capture_exit_v() { "$@" && L_v=$? || L_v=$?; }
+L_capture_exit_v() { if "$@"; then L_v=$?; else L_v=$?; fi; }
 
 # @option -v <var> var
 # @arg $1 path
@@ -2289,7 +2285,7 @@ L_unittest_checkexit() {
 	_L_shouldbe=$1
 	shift 1
 	"${@}" && _L_ret=$? || _L_ret=$?
-	_L_unittest_internal "$(L_quote_setx "$@") exited with $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
+	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
 }
 
 # @description Check if command exits with 0
@@ -2401,7 +2397,7 @@ L_unittest_cmd() {
 		# For nice output
 		set -- "!" "$@"
 	fi
-	_L_unittest_internal "$(L_quote_setx "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(L_quote_setx "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
+	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(L_quote_printf "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
 	if [[ -n $_L_uopt_r ]]; then
 		if ! _L_unittest_internal "${*@Q} output ${_L_uout@Q} matches ${_L_uopt_r@Q}" "" L_regex_match "$_L_uout" "$_L_uopt_r"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_r"
