@@ -150,7 +150,7 @@ L_color_disable() {
 # @env TERM
 # @env NO_COLOR
 L_term_has_color() {
-	[[ -n "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" && -t "${1:-1}" ]]
+	[[ -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" && -t "${1:-1}" ]]
 }
 
 # @description Detect if colors should be used on the terminal.
@@ -163,6 +163,7 @@ L_color_detect() {
 		L_color_disable
 	fi
 }
+L_color_detect
 
 _L_test_color() {
 	{
@@ -323,9 +324,10 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @section has
 # @description check if bash has specific feature
 
+if [ -n "${BASH_VERSINFO:-}" ]; then
 # note: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
 ((
-L_BASH_VERSION=(${BASH_VERSINFO[0]} << 16 | ${BASH_VERSINFO[1]} << 8 | ${BASH_VERSINFO[2]}),
+L_BASH_VERSION=${BASH_VERSINFO[0]} << 16 | ${BASH_VERSINFO[1]} << 8 | ${BASH_VERSINFO[2]},
 L_HAS_BASH5_2=    L_BASH_VERSION >= 0x050200,
 L_HAS_BASH5_1=    L_BASH_VERSION >= 0x050100,
 L_HAS_BASH5=      L_BASH_VERSION >= 0x050000,
@@ -340,11 +342,12 @@ L_HAS_BASH3=      L_BASH_VERSION >= 0x030000,
 L_HAS_BASH2_5=    L_BASH_VERSION >= 0x020500,
 L_HAS_BASH2_4=    L_BASH_VERSION >= 0x020400,
 L_HAS_BASH2_3=    L_BASH_VERSION >= 0x020300,
-L_HAS_BASH2_1=    L_BASH_VERSION >= 0x020100,
 L_HAS_BASH2_2=    L_BASH_VERSION >= 0x020200,
+L_HAS_BASH2_1=    L_BASH_VERSION >= 0x020100,
 L_HAS_BASH2=      L_BASH_VERSION >= 0x020000,
 L_HAS_BASH1_14_7= L_BASH_VERSION >= 0x010E07,
 1))
+fi
 
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
@@ -385,7 +388,7 @@ L_HAS_UNQUOTED_REGEX=$L_HAS_BASH3_2  # TODO: shopt
 # @description Bash 2.4 introduced ${!prefix*} expansion
 L_HAS_PREFIX_EXPANSION=$L_HAS_BASH2_4
 # @description Bash 2.05 introduced <<<"string"
-L_HAS_HERE_STRING=$L_HAS_BASH2_05
+L_HAS_HERE_STRING=$L_HAS_BASH2_5
 # @description Bash 2.0 introduced ${!var} expansion
 L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2
 # @description Bash 1.14.7 introduced arrays
@@ -455,7 +458,7 @@ L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
 L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
 
 # @description return true if running in posix mode
-L_in_posix_mode() { case :$SHELLOPTS: in *:posix:*) ;; *) false ;; esac; }
+L_in_posix_mode() { case ":$SHELLOPTS:" in *:posix:*) ;; *) false ;; esac; }
 
 # @description
 # @arg $1 variable nameref
@@ -1898,11 +1901,11 @@ L_trap_err_enable() {
 }
 
 L_trap_err_disable() {
-	trap '' ERR
+	trap - ERR
 }
 
 L_trap_init() {
-	if [[ $- == *e* ]]; then
+	if [[ $- == *e* ]] && [[ -z "$(trap -p ERR)" ]]; then
 		L_trap_err_enable
 	fi
 }
@@ -2919,7 +2922,7 @@ _L_test_map() {
 }
 
 # ]]]
-if ((L_HAS_AT_Q)); then
+if ((L_HAS_AT_Q && L_HAS_ASSOCIATIVE_ARRAY)); then
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
@@ -2935,8 +2938,12 @@ L_argparse_fatal() {
 		return
 	fi
 	L_argparse_print_usage >&2
-	echo "${_L_mainsettings["prog"]:-${L_NAME:-$0}}: error: $*" >&2
-	exit 1
+	echo "${_L_mainsettings["prog"]:-${L_NAME:-$0}}: error: $1" >&2
+	if "${_L_mainsettings["exit_on_error"]:-true}"; then
+		exit 1
+	else
+		return "${2:-1}"
+	fi
 }
 
 # @description given two lists indent them properly
@@ -4450,7 +4457,6 @@ _L_lib_main() {
 		esac
 	done
 	if ((_L_init)); then
-		L_color_detect
 		L_trap_init
 	fi
 	shift "$((OPTIND-1))"
