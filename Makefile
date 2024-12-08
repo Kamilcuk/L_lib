@@ -5,7 +5,7 @@ export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
 ARGS ?=
-DOCKERTERM = $(shell test -t 0 && printf -- -ti) -eTERM
+DOCKERTERM = $(value MAKE_TERMOUT, -ti -eTERM)
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
 
@@ -29,7 +29,7 @@ test_local:
 test_bash%:
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		bash:$* ./bin/L_lib.sh test
+		bash:$* ./bin/L_lib.sh test $(ARGS)
 # docker build --build-arg VERSION=$* --target test .
 shellcheck:
 	docker build --target shellcheck .
