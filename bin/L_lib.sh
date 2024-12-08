@@ -564,6 +564,105 @@ _L_test_basic() {
 # @section uncategorized
 # @description many functions without any particular grouping
 
+# @description Make a table
+# @option -v <var> variable to set
+# @option -s <separator> IFS column separator to use
+# @option -o <str> Output separator to use
+# @option -R <list[int]> Right align columns with these indexes
+# @arg $@ lines to print
+# @example
+#     L_table -R1-2 "name1 name2 name3" "a b c" "d e f"'
+#     name1 name2 name3
+#         a     b c
+#         d     e f
+L_table() {
+	local OPTARG OPTIND IFS=" " _L_i _L_s=$' \t' _L_v='' _L_arr=() _L_tmp='' _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R=""
+	while getopts v:s:o:R: _L_i; do
+		case $_L_i in
+		v) _L_v=$OPTARG ;;
+		s) _L_s=$OPTARG ;;
+		o) _L_o=$OPTARG ;;
+		R) _L_R=$OPTARG ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	# Fill the array, find number of columns and rows.
+	while IFS="$_L_s" read -r -a _L_tmp; do
+		for _L_column in "${!_L_tmp[@]}"; do
+			_L_arr[100 * _L_rows + _L_column]=${_L_tmp[_L_column]}
+			(( _L_widths[_L_column] < ${#_L_tmp[_L_column]} ?
+				_L_widths[_L_column] = ${#_L_tmp[_L_column]} : 0, 1 ))
+		done
+		(( _L_column > _L_columns ? _L_columns = _L_column + 1 : 0, ++_L_rows ))
+	done < <(printf "%s\n" "$@")
+	#
+	L_parse_range_list -v _L_R "$_L_columns" "$_L_R"
+	#
+	for ((_L_row = 0; _L_row < _L_rows; _L_row++)); do
+		for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
+			_L_tmp=${_L_arr[100 * _L_row + _L_column]:-}
+			if [[ " ${_L_R[@]} " == *" $((_L_column+1)) "* ]]; then
+				printf "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
+			else
+				printf "%-*s" "${_L_widths[_L_column]}" "$_L_tmp"
+			fi
+			if ((_L_column + 1 < _L_columns)); then
+				printf "%s" "$_L_o"
+			fi
+		done
+		printf "\n"
+	done
+}
+
+# @description
+# Each LIST is made up of one range, or many ranges separated by commas.
+# Selected input is written in the same order that it is read, and is written exactly once.
+# Each range is one of:
+#     N      N'th byte, character or field, counted from 1
+#     N-     from N'th byte, character or field, to end of line
+#     N-M    from N'th to M'th (included) byte, character or field
+#     -M     from first to M'th (included) byte, character or field
+# @option -v <var> variable to set
+# @arg $1 max number of fields
+# @arg $2 list of fields
+# @example
+#     $ L_parse_range_list 100 1-4,3-5
+#     1
+#     2
+#     3
+#     4
+#     5
+#     $ L_parse_range_list -v tmp 100 '1-4 3-5'
+#     $ echo "${tmp[@]}"
+#     1 2 3 4 5
+L_parse_range_list() { L_handle_v "$@"; }
+L_parse_range_list_v() {
+	local _L_max=$1 _L_list _L_i _L_j _L_k _L_t
+	shift
+	L_assert 'not enough argumenst' test $# -gt 0
+	IFS=$' \t\n' read -r -a _L_list <<<${*//[^0-9-]/ }
+	L_v=()
+	for _L_i in "${_L_list[@]}"; do
+		if [[ $_L_i == *-* ]]; then
+			_L_j=${_L_i%-*}
+			_L_k=${_L_i#*-}
+			: "${_L_j:=1}"
+			: "${_L_k:=$_L_max}"
+			if ((_L_j > _L_k)); then
+				_L_t=$_L_j
+				_L_j=$_L_k
+				_L_k=$_L_t
+			fi
+			for ((_L_t = _L_j; _L_t <= _L_k; _L_t++)); do
+				L_v[$_L_t]=$_L_t
+			done
+		else
+			L_v[$_L_i]=$_L_i
+		fi
+	done
+}
+
+# @description L_pretty_print helper
 _L_pretty_print_printf() {
 	printf ${_L_v:+-v "${_L_v}"} "%s%s$1" "${_L_v:+${!_L_v}}" "$_L_prefix" "${@:2}"
 }
@@ -653,6 +752,23 @@ L_handle_v() {
 	esac
 	return "$_L_r"
 }
+
+# _L_handle_v_is_slower() {
+# 	local L_v=() _L_v_r= _L_v_v= OPTARG OPTIND
+# 	while getopts :v: _L_v_r; do
+# 		case "$_L_v_r" in
+# 		v) _L_v_v=$OPTARG ;;
+# 		*) break ;;
+# 		esac
+# 	done
+# 	if "${FUNCNAME[1]}"_v "${@:OPTIND-1}"; then _L_v_r=0; else _L_v_r=$?; fi
+# 	if [[ -n "$_L_v_v" ]]; then
+# 		eval "$_L_v_v=(\"\${L_v[@]:-}\")"
+# 	else
+# 		printf "%s\n" "${L_v[@]:-}"
+# 	fi
+# 	return "$_L_v_r"
+# }
 
 L_copyright_gpl30orlater() {
 	cat <<EOF
