@@ -970,7 +970,7 @@ _L_kwargs_split() {
 			esac
 		done
 		shift "$((OPTIND-1))"
-		if [[ $1 != _L_args ]]; then declare -n _L_args=$1; else declare -a _Largs=(); fi
+		if [[ $1 != _L_args ]]; then declare -n _L_args=$1; else declare -a _L_args=(); fi
 		if [[ $2 != _L_kwargs ]]; then declare -n _L_kwargs=$2; else declare -A _L_kwargs=(); fi
 		L_assert '3rd argument has to be --' test "$3" = '--'
 		shift 3
@@ -1577,63 +1577,87 @@ _L_test_log() {
 # @description sorting function
 
 # @see L_sort_bash
-_L_sort_bash_in() {
-	local _L_start=$1 _L_end=$2
-	if ((_L_start < _L_end)); then
-		local _L_left=$((_L_start + 1)) _L_right=$_L_end _L_pivot=${_L_array[_L_start]}
-		while ((_L_left < _L_right)); do
-			if
-				if ((_L_sort_numeric)); then
-					((_L_pivot > _L_array[_L_left]))
-				else
-					[[ "$_L_pivot" > "${_L_array[_L_left]}" ]]
-				fi
-			then
-				((_L_left++))
-			elif
-				if ((_L_sort_numeric)); then
-					((_L_pivot < _L_array[_L_right]))
-				else
-					[[ "$_L_pivot" < "${_L_array[_L_right]}" ]]
-				fi
-			then
-				((_L_right--, 1))
+_L_sort_bash_in_numeric() {
+	local _L_start _L_end _L_left _L_right _L_pivot _L_tmp
+	if ((
+			_L_start=$1, _L_end=$2,
+			_L_start < _L_end ? _L_left=_L_start+1, _L_right=_L_end, _L_pivot=_L_array[_L_start], 1 : 0
+	)); then
+		while (( _L_left < _L_right )); do
+			((
+				(
+					_L_pivot > _L_array[_L_left] ?
+						++_L_left :
+					_L_pivot < _L_array[_L_right] ?
+						--_L_right : (
+							_L_tmp=_L_array[_L_left],
+							_L_array[_L_left]=_L_array[_L_right],
+							_L_array[_L_right]=_L_tmp
+						)
+				), 1
+			))
+		done
+		((
+			_L_array[_L_left] < _L_pivot ? (
+				_L_tmp=_L_array[_L_left],
+				_L_array[_L_left]=_L_array[_L_start],
+				_L_array[_L_start]=_L_tmp,
+				_L_left--
+			) : (
+				_L_left--,
+				_L_tmp=_L_array[_L_left],
+				_L_array[_L_left]=_L_array[_L_start],
+				_L_array[_L_start]=_L_tmp
+			)
+		))
+		_L_sort_bash_in_numeric "$_L_start" "$_L_left"
+		_L_sort_bash_in_numeric "$_L_right" "$_L_end"
+	fi
+}
+
+# @see L_sort_bash
+_L_sort_bash_in_nonnumeric() {
+	local _L_start _L_end _L_left _L_right _L_pivot _L_tmp
+	if ((
+			_L_start=$1, _L_end=$2,
+			_L_start < _L_end ? _L_left=_L_start+1, _L_right=_L_end, 1 : 0
+	)); then
+		_L_pivot=${_L_array[_L_start]}
+		while (( _L_left < _L_right )); do
+			if [[ "$_L_pivot" > "${_L_array[_L_left]}" ]]; then
+				(( ++_L_left, 1 ))
+			elif [[ "$_L_pivot" < "${_L_array[_L_right]}" ]]; then
+				(( --_L_right, 1 ))
 			else
-				local _L_tmp=${_L_array[_L_left]}
+				_L_tmp=${_L_array[_L_left]}
 				_L_array[_L_left]=${_L_array[_L_right]}
 				_L_array[_L_right]=$_L_tmp
 			fi
 		done
-		if
-			if ((_L_sort_numeric)); then
-				((_L_array[_L_left] < _L_pivot))
-			else
-				[[ "${_L_array[_L_left]}" < "$_L_pivot" ]]
-			fi
-		then
-			local _L_tmp=${_L_array[_L_left]}
+		if [[ "${_L_array[_L_left]}" < "$_L_pivot" ]]; then
+			_L_tmp=${_L_array[_L_left]}
 			_L_array[_L_left]=${_L_array[_L_start]}
 			_L_array[_L_start]=$_L_tmp
-			((_L_left--, 1))
+			(( --_L_left, 1 ))
 		else
-			((_L_left--, 1))
-			local _L_tmp=${_L_array[_L_left]}
+			(( --_L_left, 1 ))
+			_L_tmp=${_L_array[_L_left]}
 			_L_array[_L_left]=${_L_array[_L_start]}
 			_L_array[_L_start]=$_L_tmp
 		fi
-		_L_sort_bash_in "$_L_start" "$_L_left"
-		_L_sort_bash_in "$_L_right" "$_L_end"
+		_L_sort_bash_in_nonnumeric "$_L_start" "$_L_left"
+		_L_sort_bash_in_nonnumeric "$_L_right" "$_L_end"
 	fi
 }
 
 # @description quicksort an array in place in pure bash
-# Sorting using sort program is faster. Prefer L_sort
+# Is faster then sort and redirection.
 # @see L_sort
 # @option -n numeric sort, otherwise lexical
 # @option -z ignored. Always zero sorting
-# @arg $1 array
+# @arg $1 array nameref
 L_sort_bash() {
-	local _L_sort_numeric=0 _L_array OPTARG OPTIND _L_c
+	local _L_sort_numeric=0 OPTARG OPTIND _L_c _L_array
 	while getopts nz _L_c; do
 		case $_L_c in
 			n) _L_sort_numeric=1 ;;
@@ -1647,7 +1671,11 @@ L_sort_bash() {
 	#
 	_L_array="$1[@]"
 	_L_array=("${!_L_array}")
-	_L_sort_bash_in 0 $((${#_L_array[@]} - 1))
+	if ((_L_sort_numeric)); then
+		_L_sort_bash_in_numeric 0 $((${#_L_array[@]} - 1))
+	else
+		_L_sort_bash_in_nonnumeric 0 $((${#_L_array[@]} - 1))
+	fi
 	eval "$1=(\"\${_L_array[@]}\")"
 }
 
@@ -1679,7 +1707,7 @@ _L_sort_no_mapfile_d() {
 #    arr=(5 2 5 1)
 #    L_sort -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
-L_sort() {
+L_sort_sort() {
 	local _L_array="${*: -1}[@]"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
 		if ((L_HAS_MAPFILE_D)); then
@@ -1696,7 +1724,37 @@ L_sort() {
 	fi
 }
 
+# @description sort an array
+# @see L_sort_bash
+L_sort() {
+	L_sort_bash "$@"
+}
+
 _L_test_sort() {
+	export LC_ALL=C
+	timeit() {
+		local TIMEFORMAT="TIME: $(printf "%-40s" "$*")   real=%lR user=%lU sys=%lS"
+		echo "+ $*" >&2
+		time "$@"
+	}
+	{
+		for opt in "-n" "" "-z" "-n -z"; do
+			for data in "1 2 3" "3 2 1" "1 3 2" "2 3 1" "6 5 4 3 2 1" "6 1 5 2 4 3" "-1 -2 4 6 -4"; do
+				local -a sort_bash="($data)" sort="($data)"
+				timeit L_sort_sort $opt sort
+				timeit L_sort_bash $opt sort_bash
+				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
+			done
+		done
+		for opt in "" "-z"; do
+			for data in "a b" "b a" "a b c" "c b a" "a c b" "b c a" "f d s a we r t gf d fg vc s"; do
+				local -a sort_bash="($data)" sort="($data)"
+				timeit L_sort_sort $opt sort
+				timeit L_sort_bash $opt sort_bash
+				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
+			done
+		done
+	}
 	{
 		L_log "test bash sorting of an array"
 		local arr=(9 4 1 3 4 5)
@@ -1709,19 +1767,19 @@ _L_test_sort() {
 	{
 		L_log "test sorting of an array"
 		local arr=(9 4 1 3 4 5)
-		L_sort -n arr
+		L_sort_sort -n arr
 		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
 		local arr=(g s b a c o)
-		L_sort arr
+		L_sort_sort arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
 	{
 		L_log "test sorting of an array with zero separated stream"
 		local arr=(9 4 1 3 4 5)
-		L_sort -z -n arr
+		L_sort_sort -z -n arr
 		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
 		local arr=(g s b a c o)
-		L_sort -z arr
+		L_sort_sort -z arr
 		L_unittest_eq "${arr[*]}" "a b c g o s"
 	}
 	{
@@ -1735,16 +1793,24 @@ _L_test_sort() {
 			65052 -5629 19149 17827 17051 -22462 8842 53592 -49750 -18064 -8324
 			-23371 42055 -24291 -54302 3207 4580 -10132 -33922 -14613 41633 36787
 		)
-		timeit() {
-			local TIMEFORMAT="TIME: $(printf "%-40s" "$*")   real=%lR user=%lU sys=%lS"
-			time "$@"
-		}
 		for opt in "" "-n" "-z" "-n -z"; do
 			local sort_bash=("${nums[@]}") sort=("${nums[@]}")
 			timeit L_sort_bash $opt sort_bash
-			timeit L_sort $opt sort
+			timeit L_sort_sort $opt sort
 			L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 		done
+	}
+	{
+		local -a words=(
+			"curl moor" "knowing glossy" $'lick\npen' "hammer languid"
+			pigs available gainful black-and-white grateful
+			fetch screw sail marked seed delicious tenuous bow
+			plants loaf handsome page ice misty innate slip
+		)
+		local sort_bash=("${words[@]}") sort=("${words[@]}")
+		timeit L_sort_bash -z sort_bash
+		timeit L_sort_sort -z sort
+		L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 	}
 }
 
