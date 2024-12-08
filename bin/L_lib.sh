@@ -564,6 +564,11 @@ _L_test_basic() {
 # @section uncategorized
 # @description many functions without any particular grouping
 
+# @description newline
+L_NL=$'\n'
+# @description tab
+L_TAB=$'\t'
+
 # @description Make a table
 # @option -v <var> variable to set
 # @option -s <separator> IFS column separator to use
@@ -601,7 +606,7 @@ L_table() {
 	for ((_L_row = 0; _L_row < _L_rows; _L_row++)); do
 		for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
 			_L_tmp=${_L_arr[100 * _L_row + _L_column]:-}
-			if [[ " ${_L_R[@]} " == *" $((_L_column+1)) "* ]]; then
+			if L_args_contain_nonewline "$((_L_column+1))" "${_L_R[@]}"; then
 				printf "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
 			else
 				printf "%-*s" "${_L_widths[_L_column]}" "$_L_tmp"
@@ -614,7 +619,7 @@ L_table() {
 	done
 }
 
-# @description
+# @description Parse cut range list into an array.
 # Each LIST is made up of one range, or many ranges separated by commas.
 # Selected input is written in the same order that it is read, and is written exactly once.
 # Each range is one of:
@@ -635,6 +640,10 @@ L_table() {
 #     $ L_parse_range_list -v tmp 100 '1-4 3-5'
 #     $ echo "${tmp[@]}"
 #     1 2 3 4 5
+#     $ if L_args_contain_nonewline 3 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
+#     yes
+#     $ if L_args_contain_nonewline 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
+#     no
 L_parse_range_list() { L_handle_v "$@"; }
 L_parse_range_list_v() {
 	local _L_max=$1 _L_list _L_i _L_j _L_k _L_t
@@ -937,6 +946,16 @@ L_args_contain() {
 	return 1
 }
 
+# @description check if arguments starting from second contain the first argument
+# Much faster than L_args_contain, but arguments may not contain newlines.
+# Usefull for checking for example array of numbers.
+# @arg $1 needle
+# @arg $@ heystack
+L_args_contain_nonewline() {
+	local IFS=$'\n'
+	[[ $'\n'"${*:2}"$'\n' == *$'\n'"$1"$'\n'* ]]
+}
+
 # @description get index number of argument equal to the first argument
 # @option -v <var>
 # @arg $1 needle
@@ -1116,7 +1135,7 @@ _L_kwargs_split() {
 # @option -v <var> Store the result in the array var.
 # @arg $1 prefix
 # @arg $@ elements
-# @see L_abbreviation_newline
+# @see L_abbreviation_nonewline
 L_abbreviation() { L_handle_v "$@"; }
 # @set L_v
 L_abbreviation_v() {
@@ -1138,9 +1157,9 @@ L_abbreviation_v() {
 # @option -v <var> Store the result in the array var.
 # @arg $1 prefix
 # @arg $@ elements, arguments are joined with newline.
-L_abbreviation_newline() { L_handle_v "$@"; }
+L_abbreviation_nonewline() { L_handle_v "$@"; }
 # @set L_v
-L_abbreviation_newline_v() {
+L_abbreviation_nonewline_v() {
 	local _L_prefix _L_cur IFS=$'\n' _L_tmp
 	_L_cur=$'\n'"${*:2}"$'\n'
 	L_v=()
@@ -1213,11 +1232,11 @@ _L_test_other() {
 	}
 	{
 		local a
-		L_abbreviation_newline -v a ev eval shooter
+		L_abbreviation_nonewline -v a ev eval shooter
 		L_unittest_eq "${a[*]}" "eval"
-		L_abbreviation_newline -v a e eval eshooter
+		L_abbreviation_nonewline -v a e eval eshooter
 		L_unittest_eq "${a[*]}" "eval eshooter"
-		L_abbreviation_newline -v a none eval eshooter
+		L_abbreviation_nonewline -v a none eval eshooter
 		L_unittest_eq "${a[*]}" ""
 	}
 	{
@@ -2376,7 +2395,7 @@ L_unittest_exit_on_error=0
 # @arg $2 message to print on failure
 # @arg $@ command to execute, can start with '!' to invert exit status
 _L_unittest_internal() {
-	local _L_tmp=0 _L_invert=0
+	local _L_tmp=0 _L_invert=0 IFS=' '
 	if [[ "$3" == "!" ]]; then
 		_L_invert=1
 		shift
@@ -2466,10 +2485,15 @@ L_unittest_eval() {
 # @arg $1 exit code
 # @arg $@ command to execute
 L_unittest_checkexit() {
-	local _L_ret _L_shouldbe
+	local _L_ret=0 _L_shouldbe _L_invert=0
 	_L_shouldbe=$1
-	shift 1
-	"${@}" && _L_ret=$? || _L_ret=$?
+	shift
+	if [[ "$1" == "!" ]]; then
+		_L_invert=1
+		shift
+	fi
+	"${@}" || _L_ret=$?
+	(( _L_invert ? _L_ret = !_L_ret, 1 : 1 ))
 	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_ret" "$_L_ret != $_L_shouldbe" [ "$_L_ret" -eq "$_L_shouldbe" ]
 }
 
@@ -2652,6 +2676,33 @@ L_unittest_eq() {
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
+}
+
+# @description test if array is equal to elements
+# @arg $1 array variable
+# @arg $@ values
+L_unittest_arreq() {
+	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
+	L_assert "" test $# -gt 1
+	local _L_arr _L_n _L_i IFS=' '
+	_L_n=$1
+	_L_i=$1[@]
+	_L_arr=("${!_L_i}")
+	shift
+	if ! _L_unittest_internal "$(printf "test: \${#%s[@]}=%q == %q" "$_L_n" "${#_L_arr[@]}" "$#")" "" \
+			[ "${#_L_arr[@]}" == "$#" ]; then
+		return 1
+	fi
+	_L_i=0
+	while (($#)); do
+		if ! _L_unittest_internal "$(printf "test: %s[%d]=%q == %q" "$_L_n" "$_L_i" "${_L_arr[_L_i]}" "$1")" "" \
+				[ "${_L_arr[_L_i]}" == "$1" ]; then
+			_L_unittest_showdiff "$1" "$2"
+			return 1
+		fi
+		((++_L_i))
+		shift
+	done
 }
 
 # @description test two strings are not equal
@@ -2853,20 +2904,23 @@ _L_test_trapchain() {
 # ]]]
 # Map [[[
 # @section map
-# @description key value store without associative array implementation.
-# Prefer to use bash arrays in newer bash versions.
-#
-# L_map consist of an empty initial newline.
-# Then follows map name, follows a spce, and then printf %q of the value.
+# @description Key value store without associative array support
+# L_map consist of an null initial value.
+# L_map stores keys and values separated by a tab, with an empty leading newline.
+# Value is qouted by printf %q . Map key may not contain newline or tab characters.
 #
 #                     # empty initial newline
-#     key $'value'
-#     key2 $'value2'
+#     key<TAB>$'value'
+#     key2<TAB>$'value2' # no trailing newline
 #
 # This format matches the regexes used in L_map_get for easy extraction using bash variable substitution.
+# The map depends on printf %q never outputting a newline or a tab character, instead using $'\t\n' form.
 
 # @description Initializes a map
 # @arg $1 var variable name holding the map
+# @example
+#    local var
+#    L_map_init var
 L_map_init() {
 	printf -v "$1" "%s" ""
 }
@@ -2874,12 +2928,88 @@ L_map_init() {
 # @description Clear a key of a map
 # @arg $1 var map
 # @arg $2 str key
+# @example
+#     L_map_init var
+#     L_map_set var a 1
+#     L_map_remove var a
+#     if L_map_has var a; then
+#       echo "a is set"
+#     else
+#       echo "a is not set"
+#     fi
 L_map_remove() {
-	if ! _L_map_check "$1" "$2"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	_L_map_name="${_L_map_name/$'\n'"$2 "+([!$'\n'])/}"
-	printf -v "$1" %s "$_L_map_name"
+	if L_map_has "$@"; then
+		local _L_map _L_key
+		_L_map=${!1}$'\n'
+		printf -v _L_key "%q" "$2"
+		printf -v "$1" "\n%s%s" "${_L_map#*$'\n'"$_L_key"$'\t'*$'\n'}" "${_L_map%%$'\n'"$_L_key"$'\t'*}"
+	fi
+}
+
+# @description Set a key in a map to value
+# @arg $1 var map
+# @arg $2 str key
+# @arg $3 str value
+# @example
+#   L_map_init var
+#   L_map_set var a 1
+#   L_map_set var b 2
+L_map_set() {
+	L_map_remove "$1" "$2"
+	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
+	# I add key-value pairs in chunks with preeceeding newline.
+	printf -v "$1" "%s\n%q\t%q" "${!1}" "$2" "${*:3}"
+}
+
+# @description Assigns the value of key in map.
+# If the key is not set, then assigns default if given and returns with 1.
+# You want to prefer this version of L_map_get
+# @option -v <var> var
+# @arg $1 var map
+# @arg $2 str key
+# @arg [$3] str default
+# @example
+#    L_map_init var
+#    L_map_set var a 1
+#    L_map_get -v tmp var a
+#    echo "$tmp"  # outputs: 1
+L_map_get() { L_handle_v "$@"; }
+L_map_get_v() {
+	local _L_map _L_key _L_map2
+	_L_map=${!1}
+	printf -v _L_key "%q" "$2"
+	# Remove anything in front of the newline followed by key followed by space.
+	# Because the key can't have newline not space, it's fine.
+	_L_map=${_L_map##*$'\n'"$_L_key"$'\t'}
+	# If nothing was removed, then the key does not exists.
+	if [[ "$_L_map" == "${!1}" ]]; then
+		if (($# >= 3)); then
+			L_v="${*:3}"
+			return 0
+		else
+			return 1
+		fi
+	fi
+	# Remove from the newline until the end and print with eval.
+	# The key was inserted with printf %q, so it has to go through eval now.
+	_L_map=${_L_map%%$'\n'*}
+	eval "L_v=$_L_map"
+}
+
+# @description
+# @arg $1 var map
+# @arg $2 str key
+# @exitcode 0 if map contains key, nonzero otherwise
+# @example
+#     L_map_init var
+#     L_map_set var a 1
+#     if L_map_has var a; then
+#       echo "a is set"
+#     fi
+L_map_has() {
+	local _L_key
+	printf -v _L_key "%q" "$2"
+	[[ "${!1}" == *$'\n'"$_L_key"$'\t'* ]]
 }
 
 # @description set value of a map if not set
@@ -2892,21 +3022,6 @@ L_map_setdefault() {
 	fi
 }
 
-# @description Set a key in a map to value
-# @arg $1 var map
-# @arg $2 str key
-# @arg $3 str value
-L_map_set() {
-	L_map_remove "$1" "$2"
-	local _L_map_name _L_map_name2
-	_L_map_name=${!1}
-	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
-	# I add key-value pairs in chunks with preeceeding newline.
-	printf -v _L_map_name2 %q "${*:3}"
-	_L_map_name+=$'\n'"$2 $_L_map_name2"
-	printf -v "$1" %s "$_L_map_name"
-}
-
 # @description Append value to an existing key in map
 # @arg $1 var map
 # @arg $2 str key
@@ -2914,84 +3029,48 @@ L_map_set() {
 L_map_append() {
 	local L_v
 	if L_map_get_v "$1" "$2"; then
-		L_map_set "$1" "$2" "$_L_map_name${*:3}"
+		L_map_set "$1" "$2" "$L_v${*:3}"
 	else
 		L_map_set "$1" "$2" "$3"
 	fi
 }
 
-# @description Assigns the value of key in map.
-# If the key is not set, then assigns default if given and returns with 1.
-# You want to prefer this version of L_map_get
-# @option -v <var> var
-# @arg $1 var map
-# @arg $2 str key
-# @arg [$3] str default
-L_map_get() { L_handle_v "$@"; }
-L_map_get_v() {
-	local _L_map_name _L_map_name2
-	_L_map_name=${!1}
-	_L_map_name2=$_L_map_name
-	# Remove anything in front of the newline followed by key followed by space.
-	# Because the key can't have newline not space, it's fine.
-	_L_map_name2=${_L_map_name2##*$'\n'"$2 "}
-	# If nothing was removed, then the key does not exists.
-	if [[ "$_L_map_name2" == "$_L_map_name" ]]; then
-		if (($# >= 3)); then
-			L_v="${*:3}"
-			return 0
-		else
-			return 1
-		fi
-	fi
-	# Remove from the newline until the end and print with eval.
-	# The key was inserted with printf %q, so it has to go through eval now.
-	_L_map_name2=${_L_map_name2%%$'\n'*}
-	eval "L_v=$_L_map_name2"
-}
-
-
-# @description
-# @arg $1 var map
-# @arg $2 str key
-# @exitcode 0 if map contains key, nonzero otherwise
-L_map_has() {
-	if ! _L_map_check "$1" "$2"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	[[ "$_L_map_name" == *$'\n'"$2 "* ]]
-}
-
 # @description List all keys in the map.
 # @option -v <var> variable to set
 # @arg $1 var map
+# @example
+#   L_map_init var
+#   L_map_set var a 1
+#   L_map_set var b 2
+#   L_map_keys -v tmp var
+#   echo "${tmp[@]}"  # outputs: 'a b'
 L_map_keys() { L_handle_v "$@"; }
 L_map_keys_v() {
-	local _L_map_name IFS=' ' _L_key _L_val
-	_L_map_name=${!1}
-	L_v=()
-	while read -r _L_key _L_val; do
-		if [[ -n "$_L_key" ]]; then
-			L_v+=("$_L_key")
-		fi
-	done <<<"$_L_map_name"
+	local _L_map
+	_L_map=${!1}
+	_L_map=${_L_map//$'\t'/ # }$'\n'
+	local -a _L_tmp="($_L_map)"
+	L_v=("${_L_tmp[@]}")
 }
 
 # @description List all values in the map.
 # @option -v <var> variable to set
 # @arg $1 var map
+# @example
+#    L_map_init var
+#    L_map_set var a 1
+#    L_map_set var b 2
+#    L_map_values -v tmp var
+#    echo "${tmp[@]}"  # outputs: '1 2'
 L_map_values() { L_handle_v "$@"; }
 L_map_values_v() {
-	local _L_map_name IFS=' ' _L_key _L_val
-	_L_map_name=${!1}
-	L_v=()
-	while read -r _L_key _L_val; do
-		if [[ -n "$_L_key" ]]; then
-			eval "L_v+=($_L_val)"
-		fi
-	done <<<"$_L_map_name"
+	local _L_map
+	_L_map=${!1}
+	_L_map=${_L_map//$'\n'/ # }
+	_L_map=${_L_map//$'\t'/$'\n'}
+	local -a _L_tmp="($_L_map)"
+	L_v=("${_L_tmp[@]}")
 }
-
 
 # @description List items on newline separated key value pairs.
 # @option -v <var> variable to set
@@ -3001,19 +3080,11 @@ L_map_values_v() {
 #   L_map_set var a 1
 #   L_map_set var b 2
 #   L_map_items -v tmp var
-#   for ((i=0;i<${#tmp[@]};i+=2)); do
-#      echo "${tmp[i]} ${tmp[i+1]}"  # outputs: 'a 1' 'b 2'
-#   done
+#   echo "${tmp[@]}"  # outputs: 'a 1 b 2'
 L_map_items() { L_handle_v "$@"; }
 L_map_items_v() {
-	local _L_map_name _L_key _L_val IFS=' '
-	_L_map_name=${!1}
-	while read -r _L_key _L_val; do
-		if [[ -n "$_L_key" ]]; then
-			L_v+=("$_L_key")
-			eval "L_v+=($_L_val)"
-		fi
-	done <<<"$_L_map_name"
+	local -a _L_tmp="(${!1})"
+	L_v=("${_L_tmp[@]}")
 }
 
 # @description Load all keys to variables with the name of $prefix$key.
@@ -3021,86 +3092,210 @@ L_map_items_v() {
 # @arg $2 prefix
 # @arg $@ Optional list of keys to load. If not set, all are loaded.
 # @example
-#	L_map_init var
-#	L_map_set var a 1
-#	L_map_set var b 2
-#	L_map_load var s_
-#	echo "$s_a $s_b"  # outputs: 1 2
+#     L_map_init var
+#     L_map_set var a 1
+#     L_map_set var b 2
+#     L_map_load var PREFIX_
+#     echo "$PREFIX_a $PREFIX_b"  # outputs: 1 2
 L_map_load() {
-	if ! _L_map_check "$@"; then return 2; fi
-	local _L_map_name
-	_L_map_name=${!1}
-	local IFS=' ' _L_key _L_val
+	local IFS=$'\t' _L_key _L_val _L_tmp
 	while read -r _L_key _L_val; do
-		if [[ -z "$_L_key" ]]; then continue; fi
-		if (($# > 2)); then
-			for _L_tmp in "${@:3}"; do
-				if [[ "$_L_tmp" == "$_L_key" ]]; then
-					eval "printf -v \"\$2\$_L_key\" %s $_L_val"
-					break
-				fi
-			done
-		else
-			eval "printf -v \"\$2\$_L_key\" %s $_L_val"
+		if [[ -n "$_L_key" ]]; then
+			if (($# == 2)) || [[ $'\t'"${*:3}"$'\t' == *$'\t'"$_L_key"$'\t'* ]]; then
+				eval "printf -v \"\$2\$_L_key\" %s $_L_val"
+			fi
 		fi
-	done <<<"$_L_map_name"
+	done <<<"${!1}"
 }
 
-_L_map_check() {
-	while (($#)); do
-		if ! L_is_valid_variable_name "$1"; then
-			L_error "L_map:${FUNCNAME[1]}:${BASH_LINENO[2]}: ${1@Q} is not valid variable name"
-			return 1
-		fi
-		shift
+# @description Save all variables with prefix to a map.
+# @arg $1 map variable
+# @arg $2 prefix
+# @example
+#    L_map_init var
+#    PREFIX_a=1
+#    PREFIX_b=2
+#    L_map_save var PREFIX_
+#    L_map_items -v tmp var
+#    echo "${tmp[@]}"  # outputs: 'a 1 b 2'
+L_map_save() {
+	local _L_i IFS=$'\n'
+	for _L_i in $(compgen -v "$2"); do
+		L_map_set "$1" "${_L_i#$2}" "${!_L_i}"
 	done
 }
 
 # shellcheck disable=2018
 _L_test_map() {
-	local var tmp
-	var=123
-	tmp=123
-	L_map_init var
-	L_map_set var a 1
-	# L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
-	L_unittest_eq "$(L_map_get var b "")" ""
-	L_map_set var b 2
-	L_unittest_eq "$(L_map_get var a)" "1"
-	L_unittest_eq "$(L_map_get var b)" "2"
-	L_map_set var a 3
-	L_unittest_eq "$(L_map_get var a)" "3"
-	L_unittest_eq "$(L_map_get var b)" "2"
-	L_unittest_checkexit 1 L_map_get var c
-	L_unittest_checkexit 1 L_map_has var c
-	L_unittest_checkexit 0 L_map_has var a
-	L_map_set var allchars "$_L_allchars"
-	L_unittest_eq "$(L_map_get var allchars)" "$(printf %s "$_L_allchars")"
-	L_map_remove var allchars
-	L_unittest_checkexit 1 L_map_get var allchars
-	L_map_set var allchars "$_L_allchars"
-	local s_a s_b s_allchars
-	L_unittest_eq "$(L_map_keys var | sort)" "$(printf "%s\n" b a allchars | sort)"
-	L_map_load var s_
-	L_unittest_eq "$s_a" 3
-	L_unittest_eq "$s_b" 2
-	L_unittest_eq "$s_allchars" "$_L_allchars"
-	#
-	local tmp=()
-	L_map_keys -v tmp var
-	L_unittest_eq "${tmp[*]}" "b a allchars"
-	local tmp=()
-	L_map_values -v tmp var
-	L_unittest_eq "${#tmp[@]}" 3
-	L_unittest_eq "${tmp[0]}" 2
-	L_unittest_eq "${tmp[1]}" 3
-	if (( BASH_VERSINFO[0] >= 4 )); then
-		# I have no idea why does this not work on bash 3.2
-		L_unittest_eq "${tmp[2]}" "$_L_allchars"
+	local IFS=" "
+	{
+		local map map2 tmp
+		{
+			L_map_init map
+			L_map_set map a 1
+			L_map_has map a
+			L_map_set map b 2
+			L_map_has map b
+			L_map_set map c 3
+			L_map_has map c
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 1
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 2
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 3
+			L_map_items -v tmp map
+			L_unittest_eq "${tmp[*]}" "a 1 b 2 c 3"
+			L_map_keys -v tmp map
+			L_unittest_eq "${tmp[*]}" "a b c"
+			L_map_values -v tmp map
+			L_unittest_eq "${tmp[*]}" "1 2 3"
+		}
+		{
+			L_map_set map a 4
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 4
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 2
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 3
+		}
+		{
+			L_map_set map b 5
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 4
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 5
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 3
+		}
+		{
+			L_map_set map c 6
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 4
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 5
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 6
+		}
+		{
+			map2="$map"
+			L_map_remove map a
+			L_unittest_failure L_map_get map a
+			L_unittest_failure L_map_has map a
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 5
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 6
+			map="$map2"
+		}
+		{
+			map2="$map"
+			L_map_remove map b
+			L_unittest_failure L_map_get map b
+			L_unittest_failure L_map_has map b
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 4
+			L_map_get -v tmp map c
+			L_unittest_eq "$tmp" 6
+			map="$map2"
+		}
+		{
+			map2="$map"
+			L_map_remove map c
+			L_unittest_failure L_map_get map c
+			L_unittest_failure L_map_has map c
+			L_map_get -v tmp map a
+			L_unittest_eq "$tmp" 4
+			L_map_get -v tmp map b
+			L_unittest_eq "$tmp" 5
+			map="$map2"
+		}
+	}
+	{
+		local map tmp oldifs=$IFS IFS=bc
+		L_map_init map
+		L_map_set map "/bin/ba*" "/dev/*"
+		L_map_set map "b " "2 "
+		L_map_set map " c" " 3"
+		L_map_get -v tmp map "/bin/ba*"
+		L_unittest_eq "$tmp" "/dev/*"
+		L_map_get -v tmp map "b "
+		L_unittest_eq "$tmp" "2 "
+		L_map_get -v tmp map " c"
+		L_unittest_eq "$tmp" " 3"
+		tmp=()
+		L_map_keys -v tmp map
+		L_unittest_arreq tmp "/bin/ba*" "b " " c"
+		L_map_items -v tmp map
+		L_unittest_arreq tmp "/bin/ba*" "/dev/*" "b " "2 " " c" " 3"
+		L_map_values -v tmp map
+		L_unittest_arreq tmp "/dev/*" "2 " " 3"
+	}
+	{
+		local map tmp
+		L_unittest_success L_map_init map
+		L_unittest_success L_map_set map '${var:?error}$(echo hello)' '${var:?error}$(echo hello)value'
+		L_unittest_success L_map_has map '${var:?error}$(echo hello)'
+		L_unittest_success L_map_get -v tmp map '${var:?error}$(echo hello)'
+		L_unittest_eq "$tmp" '${var:?error}$(echo hello)value'
+		L_unittest_success L_map_items -v tmp map
+		L_unittest_arreq tmp '${var:?error}$(echo hello)' '${var:?error}$(echo hello)value'
+	}
+	{
+		local PREFIX_a PREFIX_b var tmp
+		L_map_init var
+		PREFIX_a=1
+		PREFIX_b=2
+		L_map_save var PREFIX_
+		L_map_items -v tmp var
+		L_unittest_arreq tmp a 1 b 2
+	}
+	{
+		local var tmp
+		var=123
+		tmp=123
+		L_map_init var
+		L_map_set var a 1
+		# L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
+		L_unittest_eq "$(L_map_get var b "")" ""
+		L_map_set var b 2
+		L_unittest_eq "$(L_map_get var a)" "1"
+		L_unittest_eq "$(L_map_get var b)" "2"
+		L_map_set var a 3
+		L_unittest_eq "$(L_map_get var a)" "3"
+		L_unittest_eq "$(L_map_get var b)" "2"
+		L_unittest_checkexit 1 L_map_get var c
+		L_unittest_checkexit 1 L_map_has var c
+		L_unittest_checkexit 0 L_map_has var a
+		L_map_set var allchars "$_L_allchars"
+		L_unittest_eq "$(L_map_get var allchars)" "$(printf %s "$_L_allchars")"
+		L_map_remove var allchars
+		L_unittest_checkexit 1 L_map_get var allchars
+		L_map_set var allchars "$_L_allchars"
+		local s_a s_b s_allchars
+		L_unittest_eq "$(L_map_keys var | sort)" "$(printf "%s\n" b a allchars | sort)"
+		L_map_load var s_
+		L_unittest_eq "$s_a" 3
+		L_unittest_eq "$s_b" 2
+		L_unittest_eq "$s_allchars" "$_L_allchars"
+		#
 		local tmp=()
-		L_map_items -vtmp var
-		L_unittest_eq "${tmp[*]}" "b 2 a 3 allchars $_L_allchars"
-	fi
+		L_map_keys -v tmp var
+		L_unittest_arreq tmp b a allchars
+		local tmp=()
+		L_map_values -v tmp var
+		L_unittest_eq "${#tmp[@]}" 3
+		L_unittest_eq "${tmp[0]}" 2
+		L_unittest_eq "${tmp[1]}" 3
+		if (( BASH_VERSINFO[0] >= 4 )); then
+			# I have no idea why does this not work on bash 3.2
+			L_unittest_eq "${tmp[2]}" "$_L_allchars"
+			local tmp=() IFS=' '
+			L_map_items -vtmp var
+			L_unittest_eq "${tmp[*]}" "b 2 a 3 allchars $_L_allchars"
+		fi
+	}
 }
 
 # ]]]
