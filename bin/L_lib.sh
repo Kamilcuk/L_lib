@@ -476,7 +476,7 @@ L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -A"* ]]
 
 # @description check if variable is readonly
 # @arg $1 variable nameref
-L_var_is_readonly() { (eval "$1=") 2>/dev/null; }
+L_var_is_readonly() { ! (eval "$1=") 2>/dev/null; }
 
 # @description Return 0 if the string happend to be something like true.
 # @arg $1 str
@@ -556,6 +556,12 @@ _L_test_basic() {
 		L_unittest_checkexit 0 L_isfloat .2
 		L_unittest_checkexit 1 L_isfloat -.
 		L_unittest_checkexit 1 L_isfloat abc
+	}
+	{
+		local a=
+		L_unittest_checkexit 1 L_var_is_readonly a
+		local -r b=
+		L_unittest_checkexit 0 L_var_is_readonly b
 	}
 }
 
