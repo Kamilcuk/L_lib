@@ -411,7 +411,8 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 L_assert() {
 	if ! "${@:2}"; then
 		L_print_traceback
-		printf "%s: assertion %s failed%s\n" "$L_NAME" "$(L_quote_printf "$@")" "${1:+: $1}" >&2
+		local IFS=' '
+		printf "%s: assertion %q failed%s\n" "$L_NAME" "${*:2}" "${1:+: $1}" >&2
 		exit 249
 	fi
 }
@@ -440,10 +441,12 @@ L_glob_match() { [[ "$1" == $2 ]]; }
 L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
 
 # @description Return 0 if command exists.
+# Consider using L_hash instead.
 # @arg $1 command name
+# @see L_hash
 L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 
-# @description like hash command, but silenced output, to check if a command exists.
+# @description Like hash Bash builtin, but silenced output, to check if a command exists.
 # @arg $@ commands to check
 L_hash() { hash "$@" >/dev/null 2>&1; }
 
@@ -562,6 +565,16 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_var_is_readonly a
 		local -r b=
 		L_unittest_checkexit 0 L_var_is_readonly b
+	}
+	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+		L_unittest_checkexit 1 L_var_is_associative a
+		local -A c=()
+		L_unittest_checkexit 0 L_var_is_associative c
+	fi
+	{
+		L_unittest_checkexit 1 L_var_is_array a
+		local -a d=()
+		L_unittest_checkexit 0 L_var_is_array d
 	}
 }
 
