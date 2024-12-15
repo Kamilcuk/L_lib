@@ -426,6 +426,12 @@ else
 L_regex_match() { [[ "$1" =~ "$2" ]]; }
 fi
 
+# @description Produce a string that is a regex escaped version of the input.
+# @option -v <var> variable to set
+# @arg $@ string to escape
+L_regex_escape() { L_handle_v "$@"; }
+L_regex_escape_v() { L_v=${*//?/[&]}; }
+
 _L_test_a_regex_match() {
 	L_unittest_cmd L_regex_match "(a)" "^[(].*[)]$"
 }
@@ -435,6 +441,12 @@ _L_test_a_regex_match() {
 # @arg $1 string to match
 # @arg $2 glob to match against
 L_glob_match() { [[ "$1" == $2 ]]; }
+
+# @description Produce a string that is a glob escaped version of the input.
+# @option -v <var> variable to set
+# @arg $@ string to escape
+L_glob_escape() { L_handle_v "$@"; }
+L_glob_escape_v() { L_v="${*//[[?*\]/[&]}"; }  # $[
 
 # @description Return 0 if function exists.
 # @arg $1 function name
@@ -836,6 +848,8 @@ L_quote_setx() { L_handle_v "$@"; }
 L_quote_setx_v() { L_v=$({ set -x; } 2>/dev/null; { : "$@"; } 2>&1); L_v=${L_v:5}; }
 
 # @description Output a string with the same quotating style as does bash with printf
+# For single argument, just use `printf -v var "%q" "$var"`.
+# Use this for more arguments, like `printf -v var "%q " "$@"` results in a trailing space.
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
 L_quote_printf() { L_handle_v "$@"; }
@@ -874,6 +888,13 @@ L_strhash_bash_v() {
 		printf -v _L_a %d "'${1:_L_i-1:1}"
 		((L_v += _L_a, 1))
 	done
+}
+
+# @description Check if string contains substring.
+# @arg $1 string
+# @arg $2 substring
+L_strstr() {
+	[[ "$1" == *"$2"* ]]
 }
 
 # @description list functions with prefix
@@ -2801,7 +2822,7 @@ L_unittest_cmd() {
 		# For nice output
 		set -- "!" "$@"
 	fi
-	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(L_quote_printf "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
+	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(printf %q "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
 	if [[ -n $_L_uopt_r ]]; then
 		if ! _L_unittest_internal "$(L_quote_printf "$@") output $(printf %q "$_L_uout") matches $(printf %q "$_L_uopt_r")" "" L_regex_match "$_L_uout" "$_L_uopt_r"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_r"
@@ -2855,7 +2876,7 @@ _L_unittest_showdiff() {
 L_unittest_vareq() {
 	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if ! _L_unittest_internal "test: \$$1=${!1:+${!1@Q}} == ${2@Q}" "" [ "${!1:-}" == "$2" ]; then
+	if ! _L_unittest_internal "test: \$$1=${!1:+$(printf %q "${!1}")} == $(printf %q "$2")" "" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
 	fi
@@ -2906,7 +2927,7 @@ L_unittest_arreq() {
 L_unittest_ne() {
 	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if ! _L_unittest_internal "test: ${1@Q} != ${2@Q}" "" [ "$1" != "$2" ]; then
+	if ! _L_unittest_internal "test: $(printf %q "$1") != $(printf %q "$2")" "" [ "$1" != "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -2918,7 +2939,7 @@ L_unittest_ne() {
 L_unittest_regex() {
 	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if ! _L_unittest_internal "test: ${1@Q} =~ ${2@Q}" "" L_regex_match "$1" "$2"; then
+	if ! _L_unittest_internal "test: $(printf %q "$1") =~ $(printf %q "$2")" "" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -2930,7 +2951,7 @@ L_unittest_regex() {
 L_unittest_contains() {
 	if ((L_UNITTEST_UNSET_X)); then local -; set +x; fi
 	L_assert "" test $# = 2
-	if ! _L_unittest_internal "test: ${1@Q} == *${2@Q}*" "" eval "[[ ${1@Q} == *${2@Q}* ]]"; then
+	if ! _L_unittest_internal "test: $(printf %q "$1") == *$(printf %q "$2")*" "" L_strstr "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
