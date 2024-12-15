@@ -1234,6 +1234,41 @@ L_exit_to() {
 	fi
 }
 
+# @description compare two float numbers
+# The '<=>' operator returns 9 when $1 < $2, 10 when $1 == $2 and 11 when $1 > $2.
+# @arg $1 <float> one number
+# @arg $2 <str> operator, one of -lt -le -eq -ne -gt -ge > >= == != <= < <=>
+# @arg $3 <float> second number
+# @example
+#    L_float_cmp 123.234 -le 234.345
+#    echo $?  # outputs 0
+#    L_exit_to ret L_float_cmp 123.234 -le 234.345
+#    echo "$ret"  # outputs 0
+L_float_cmp() {
+	local a1 a2 b1 b2 _ IFS=',.' r
+	read -r a1 a2 _ <<<"$1"
+	read -r b1 b2 _ <<<"$3"
+	if ((${#a2} < ${#b2})); then
+		printf -v a2 "%-*s" "${#b2}" "$a2"
+		a2=${a2// /0}
+	elif ((${#a2} > ${#b2})); then
+		printf -v b2 "%-*s" "${#a2}" "$b2"
+		b2=${b2// /0}
+	fi
+	local r=$(( a1 < b1 ? -1 : a1 > b1 ? 1 : a2 < b2 ? -1 : a2 > b2 ? 1 : 0 ))
+	# echo "$a1.$a2 $2 $b1.$b2 = $r"
+	case "$2" in
+	-lt|'<')  ((r == -1));;
+	-le|'<=') ((r <= 0));;
+	-eq|'==') ((r == 0));;
+	-ne|'!=') ((r));;
+	-ge|'>=') ((r >= 0));;
+	-gt|'>') ((r > 0));;
+	'<=>') return $((r + 10));;
+	*) return 255;;
+	esac
+}
+
 _L_test_other() {
 	{
 		local max=-1
@@ -1333,6 +1368,47 @@ _L_test_other() {
 		else
 			L_unittest_eq "$tmp" $'declare -a name=\'([0]="1" [1]="2")\'\n2\n'
 		fi
+	}
+	{
+		L_unittest_cmd -e 0 L_float_cmp 1.1 -eq 1.1
+		L_unittest_cmd -e 0 L_float_cmp 1.1 -le 1.1
+		L_unittest_cmd -e 0 L_float_cmp 1.1 -ge 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.1 -gt 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.1 -lt 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.1 -ne 1.1
+		L_unittest_cmd -e 10 L_float_cmp 1.1 '<=>' 1.1
+		#
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -lt 1.1
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -le 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -eq 1.1
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -ne 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -gt 1.1
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -ge 1.1
+		L_unittest_cmd -e 9 L_float_cmp 1.02 '<=>' 1.1
+		#
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -lt 1.0000
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -le 1.0000
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -eq 1.0000
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -ne 1.0000
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -gt 1.0000
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -ge 1.0000
+		L_unittest_cmd -e 11 L_float_cmp 1.02 '<=>' 1.0000
+		#
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -lt 1
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -le 1
+		L_unittest_cmd -e 1 L_float_cmp 1.02 -eq 1
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -ne 1
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -gt 1
+		L_unittest_cmd -e 0 L_float_cmp 1.02 -ge 1
+		L_unittest_cmd -e 11 L_float_cmp 1.02 '<=>' 1
+		#
+		L_unittest_cmd -e 1 L_float_cmp 1 -lt 1
+		L_unittest_cmd -e 0 L_float_cmp 1 -le 1
+		L_unittest_cmd -e 0 L_float_cmp 1 -eq 1
+		L_unittest_cmd -e 1 L_float_cmp 1 -ne 1
+		L_unittest_cmd -e 1 L_float_cmp 1 -gt 1
+		L_unittest_cmd -e 0 L_float_cmp 1 -ge 1
+		L_unittest_cmd -e 10 L_float_cmp 1 '<=>' 1
 	}
 }
 
