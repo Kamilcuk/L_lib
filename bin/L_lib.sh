@@ -1796,10 +1796,11 @@ L_run() {
 		esac
 	done
 	shift "$((OPTIND-1))"
+	printf -v _L_opt " %q" "$@"
 	if ((L_dryrun)); then
-		_L_logargs+=("DRYRUN: +${*@Q}")
+		_L_logargs+=("DRYRUN: +$_L_opt")
 	else
-		_L_logargs+=("+${*@Q}")
+		_L_logargs+=("+$_L_opt")
 	fi
 	L_log_stack_inc
 	L_log "${_L_logargs[@]}"
@@ -2738,12 +2739,12 @@ L_unittest_failure_capture() {
 	else
 		_L_ret=$?
 	fi
-	_L_unittest_internal "test exit of ${*@Q} is $_L_ret i.e. nonzero" "$_L_ret = 0: $_L_tmp" [ "$_L_ret" -ne 0 ]
+	_L_unittest_internal "test exit of $(L_quote_printf "$@") is $_L_ret i.e. nonzero" "$_L_ret = 0: $_L_tmp" [ "$_L_ret" -ne 0 ]
 }
 
 # @description helper function executed in exit trap
 _L_unittest_cmd_exit_trap() {
-	echo "unittested command running in current shell ${BASH_COMMAND@Q} exited with $1. It should not exit" >&2
+	printf "unittested command running in current shell %q exited with $1. It should not exit" "$BASH_COMMAND" >&2
 	exit 1
 }
 
@@ -3531,7 +3532,7 @@ L_argparse_fatal() {
 		return
 	fi
 	L_argparse_print_usage >&2
-	echo "${_L_mainsettings["prog"]:-${L_NAME:-$0}}: error: $1" >&2
+	printf "${_L_mainsettings["prog"]:-${L_NAME:-$0}}: error: $1" "${@:2}" >&2
 	if "${_L_mainsettings["exit_on_error"]:-true}"; then
 		exit 1
 	else
@@ -3741,14 +3742,14 @@ _L_argparse_split() {
 		while (($#)); do
 			case "$1" in
 			-- | ::) L_fatal "error: encountered: $1" ;;
-			*' '*=*) L_fatal "kv option may not contain a space: ${1@Q}" ;;
+			*' '*=*) L_fatal "kv option may not contain a space: %q" "$1" ;;
 			*=*)
 				local _L_opt
 				_L_opt=${1%%=*}
 				L_assert "invalid kv option: $_L_opt" L_args_contain "$_L_opt" "${_L_allowed[@]}"
 				_L_optspec["$_L_opt"]=${1#*=}
 				;;
-			*' '*) L_fatal "argument may not contain space: ${1@Q}" ;;
+			*' '*) L_fatal "argument may not contain space: %q" "$1" ;;
 			[-+]?)
 				_L_options+=("$1")
 				_L_optspec["options"]+=" $1 "
@@ -3999,7 +4000,10 @@ _L_argparse_optspec_validate_value() {
 	local -a _L_choices="(${_L_optspec["choices"]:-})"
 	if ((${#_L_choices[@]})); then
 		if ! L_args_contain "$1" "${_L_choices[@]}"; then
-			L_argparse_fatal "argument ${_L_optspec[metavar]}: invalid choice: '$1' (choose from ${_L_choices[*]@Q})"
+			local _L_tmp
+			printf -v _L_tmp ", %q" "${_L_choices[@]}"
+			_L_tmp=${_L_tmp:2}
+			L_argparse_fatal "argument ${_L_optspec[metavar]}: invalid choice: %q (choose from %s)" "$1" "$_L_tmp"
 		fi
 	fi
 	local _L_validator=${_L_optspec["validator"]:-}
@@ -4008,9 +4012,9 @@ _L_argparse_optspec_validate_value() {
 		if ! eval "$_L_validator"; then
 			local _L_type=${_L_optspec["type"]:-}
 			if [[ -n "$_L_type" ]]; then
-				L_argparse_fatal "argument ${_L_optspec["metavar"]}: invalid ${_L_type} value: ${1@Q}"
+				L_argparse_fatal "argument ${_L_optspec["metavar"]}: invalid ${_L_type} value: %q" "$1"
 			else
-				L_argparse_fatal "argument ${_L_optspec["metavar"]}: invalid value: ${1@Q}, validator: ${_L_validator@Q}"
+				L_argparse_fatal "argument ${_L_optspec["metavar"]}: invalid value: %q, validator: %q" "$1" "$_L_validator"
 			fi
 		fi
 	fi
@@ -4090,7 +4094,6 @@ _L_argparse_optspec_gen_completion() {
 	if ((!_L_in_complete)); then
 		return
 	fi
-	echo "# completion ${1@Q} for $(declare -p _L_optspec)"
 	local _L_completor=${_L_optspec["completor"]:-}
 	case "$_L_completor" in
 	"")
@@ -4210,7 +4213,7 @@ _L_argparse_parse_args_long_option() {
 		;;
 	0)
 		if [[ "$_L_opt" == *=* ]]; then
-			L_argparse_fatal "argument $_L_opt: ignored explicit argument ${_L_value@Q}"
+			L_argparse_fatal "argument $_L_opt: ignored explicit argument %q" "$_L_value"
 		fi
 		;;
 	[0-9]*)
@@ -4768,7 +4771,7 @@ PROG: error: the following arguments are required: foo"
 		L_unittest_vareq move rock
 		L_unittest_cmd -o "\
 usage: game.py [-h] {rock,paper,scissors}
-game.py: error: argument move: invalid choice: 'fire' (choose from 'rock' 'paper' 'scissors')" \
+game.py: error: argument move: invalid choice: fire (choose from rock, paper, scissors)" \
 			-- ! L_argparse prog=game.py -- move choices="rock paper scissors" ---- fire
 	}
 	{
