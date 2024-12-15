@@ -1807,6 +1807,7 @@ _L_test_log() {
 # @description sorting function
 
 if ((L_HAS_BASH4_2)); then
+# shellcheck disable=1009,1073,1072
 # @see L_sort_bash
 # @description quicksort an array in numeric order
 _L_sort_bash_in_numeric() {
@@ -1845,6 +1846,7 @@ _L_sort_bash_in_numeric() {
 	fi
 }
 else
+# shellcheck disable=1009,1073,1072
 # There is some bug in bash before 4.2 that makes the expression (( ?: with ternary take __both__ branches.
 # Fix that.
 _L_sort_bash_in_numeric() {
@@ -1886,6 +1888,7 @@ _L_sort_bash_in_numeric() {
 }
 fi
 
+# shellcheck disable=1009,1073,1072
 # @see L_sort_bash
 _L_sort_bash_in_nonnumeric() {
 	local _L_start _L_end _L_left _L_right _L_pivot _L_tmp
@@ -2800,13 +2803,13 @@ L_unittest_cmd() {
 	fi
 	_L_unittest_internal "$(L_quote_printf "$@") exited with $_L_uret =? $_L_uopt_e" "${_L_uout+output $(L_quote_printf "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_e" ]
 	if [[ -n $_L_uopt_r ]]; then
-		if ! _L_unittest_internal "${*@Q} output ${_L_uout@Q} matches ${_L_uopt_r@Q}" "" L_regex_match "$_L_uout" "$_L_uopt_r"; then
+		if ! _L_unittest_internal "$(L_quote_printf "$@") output $(printf %q "$_L_uout") matches $(printf %q "$_L_uopt_r")" "" L_regex_match "$_L_uout" "$_L_uopt_r"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_r"
 			return 1
 		fi
 	fi
 	if [[ -n $_L_uopt_o ]]; then
-		if ! _L_unittest_internal "${*@Q} output ${_L_uout@Q} equal ${_L_uopt_o@Q}" "" [ "$_L_uout" = "$_L_uopt_o" ]; then
+		if ! _L_unittest_internal "$(L_quote_printf "$@") output $(printf %q "$_L_uout") equal $(printf %q "$_L_uopt_o")" "" [ "$_L_uout" = "$_L_uopt_o" ]; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_o"
 			return 1
 		fi
