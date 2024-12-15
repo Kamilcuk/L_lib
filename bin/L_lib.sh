@@ -1739,9 +1739,9 @@ _L_sort_bash_in_numeric() {
 		while (( _L_left < _L_right )); do
 			((
 				(
-					_L_pivot > _L_array[_L_left] ?
+					$_L_sort_reverse( _L_pivot > _L_array[_L_left] ) ?
 						++_L_left :
-					_L_pivot < _L_array[_L_right] ?
+					$_L_sort_reverse( _L_pivot < _L_array[_L_right] ) ?
 						--_L_right : (
 							_L_tmp=_L_array[_L_left],
 							_L_array[_L_left]=_L_array[_L_right],
@@ -1751,7 +1751,7 @@ _L_sort_bash_in_numeric() {
 			))
 		done
 		((
-			(_L_array[_L_left] < _L_pivot) ? (
+			$_L_sort_reverse( _L_array[_L_left] < _L_pivot ) ? (
 				(_L_tmp = _L_array[_L_left]),
 				(_L_array[_L_left] = _L_array[_L_start]),
 				(_L_array[_L_start] = _L_tmp),
@@ -1777,9 +1777,9 @@ _L_sort_bash_in_numeric() {
 		while (( _L_left < _L_right )); do
 			((
 				(
-					_L_pivot > _L_array[_L_left] ?
+					$_L_sort_reverse( _L_pivot > _L_array[_L_left] ) ?
 						++_L_left :
-					_L_pivot < _L_array[_L_right] ?
+					$_L_sort_reverse( _L_array[_L_right] > _L_pivot ) ?
 						--_L_right : (
 							_L_tmp=_L_array[_L_left],
 							_L_array[_L_left]=_L_array[_L_right],
@@ -1788,7 +1788,7 @@ _L_sort_bash_in_numeric() {
 				), 1
 			))
 		done
-		if (( _L_array[_L_left] < _L_pivot )); then
+		if (( $_L_sort_reverse( _L_pivot > _L_array[_L_left] ) )); then
 			((
 				(_L_tmp = _L_array[_L_left]),
 				(_L_array[_L_left] = _L_array[_L_start]),
@@ -1819,9 +1819,9 @@ _L_sort_bash_in_nonnumeric() {
 	)); then
 		_L_pivot=${_L_array[_L_start]}
 		while (( _L_left < _L_right )); do
-			if [[ "$_L_pivot" > "${_L_array[_L_left]}" ]]; then
+			if $_L_sort_reverse "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
 				(( ++_L_left, 1 ))
-			elif [[ "$_L_pivot" < "${_L_array[_L_right]}" ]]; then
+			elif $_L_sort_reverse "$_L_sort_compare" "${_L_array[_L_right]}" "$_L_pivot"; then
 				(( --_L_right, 1 ))
 			else
 				_L_tmp=${_L_array[_L_left]}
@@ -1829,7 +1829,7 @@ _L_sort_bash_in_nonnumeric() {
 				_L_array[_L_right]=$_L_tmp
 			fi
 		done
-		if [[ "${_L_array[_L_left]}" < "$_L_pivot" ]]; then
+		if $_L_sort_reverse "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
 			_L_tmp=${_L_array[_L_left]}
 			_L_array[_L_left]=${_L_array[_L_start]}
 			_L_array[_L_start]=$_L_tmp
@@ -1845,33 +1845,73 @@ _L_sort_bash_in_nonnumeric() {
 	fi
 }
 
+# @description default nonnumeric compare function
+_L_sort_compare() {
+	[[ "$1" > "$2" ]]
+}
+
 # @description quicksort an array in place in pure bash
 # Is faster then sort and redirection.
 # @see L_sort
-# @option -n numeric sort, otherwise lexical
 # @option -z ignored. Always zero sorting
-# @arg $1 array nameref
+# @option -n optimized sort for numeric array values, otherwise lexical
+# @option -r reverse sort
+# @option -a the argument is not an array, but the arguments themselves will be sorted and printed to stdout or assigned to variable
+# @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
+# @option -v <var> store sorted array in var instead of modyfing the original array
+# @arg $1 array nameref or arguments to sort depending on `-a` flag
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTARG OPTIND _L_c _L_array
-	while getopts nz _L_c; do
+	local _L_sort_numeric=0 OPTARG OPTIND _L_c _L_array _L_sort_compare=_L_sort_compare _L_sort_reverse=0 _L_sort_v='' _L_sort_arguments=0 _L_sort_zero=0
+	while getopts znrac:v: _L_c; do
 		case $_L_c in
+			z) _L_sort_zero=1 ;;
 			n) _L_sort_numeric=1 ;;
-			z) ;;
+			r) _L_sort_reverse=1 ;;
+			a) _L_sort_arguments=1 ;;
+			c) _L_sort_numeric=0 _L_sort_compare=$OPTARG ;;
+			v)
+				_L_sort_v=$OPTARG
+				L_assert "invalid argument: $_L_sort_v" L_is_valid_variable_name "$_L_sort_v"
+				;;
 			*) L_fatal "invalid argument" ;;
 		esac
 	done
 	shift $((OPTIND-1))
-	L_assert "wrong number of arguments" test "$#" = 1
-	L_assert "invalid argument: $1" L_is_valid_variable_name "$1"
+	if ((_L_sort_arguments)); then
+		_L_array=("$@")
+	else
+		L_assert "wrong number of arguments" test "$#" = 1
+		_L_array="${_L_sort_v:=$1}[@]"
+		_L_array=("${!_L_array}")
+	fi
 	#
-	_L_array="$1[@]"
-	_L_array=("${!_L_array}")
+	# Initialize _L_sort_reverse
+	if ((_L_sort_reverse)); then
+		if ((_L_sort_numeric)); then
+			_L_sort_reverse="!"
+		else
+			_L_sort_reverse() { ! "$@"; }
+			_L_sort_reverse=_L_sort_reverse
+		fi
+	else
+		_L_sort_reverse=""
+	fi
+	#
 	if ((_L_sort_numeric)); then
 		_L_sort_bash_in_numeric 0 $((${#_L_array[@]} - 1))
 	else
 		_L_sort_bash_in_nonnumeric 0 $((${#_L_array[@]} - 1))
 	fi
-	eval "$1=(\"\${_L_array[@]}\")"
+	#
+	if [[ -z "$_L_sort_v" ]]; then
+		if ((_L_sort_zero)); then
+			printf "%s\0" "${_L_array[@]}"
+		else
+			printf "%s\n" "${_L_array[@]}"
+		fi
+	else
+		eval "$_L_sort_v=(\"\${_L_array[@]}\")"
+	fi
 }
 
 # @description like L_sort but without mapfile.
@@ -2011,6 +2051,17 @@ _L_test_sort() {
 		timeit L_sort_bash -z sort_bash
 		timeit L_sort_cmd -z sort
 		L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
+	}
+	{
+		L_unittest_cmd -o $'1\n2\n3\n4\n5' L_sort_bash -a -n 3 2 1 4 5
+		L_sort_bash -a -n -v var 3 2 1 4 5
+		L_unittest_arreq var 1 2 3 4 5
+		L_sort_bash -a -r -n -v var 3 2 1 4 5
+		L_unittest_arreq var 5 4 3 2 1
+		L_sort_bash -a -v var c b a e d
+		L_unittest_arreq var a b c d e
+		L_sort_bash -a -r -v var c b a e d
+		L_unittest_arreq var e d c b a
 	}
 }
 
