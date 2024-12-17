@@ -1,0 +1,2 @@
+eval "$(./completetest.sh --L_argparse_bash_complete)"
+eval "$(./completetest2.sh --L_argparse_bash_complete)"

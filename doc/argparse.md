@@ -107,16 +107,16 @@ Main settings take only the following key-value arguments:
 - `default` - store this default value into `dest`
   - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`.
 - `type` - The type to which the command-line argument should be converted.
-  - `int` - set `validator` to assert value is a number
-  - `float` - set `validator` to assert value is a float number
-  - `nonnegative` - set `validator` to assert value is a non-negative integer number
-  - `positive` - set `validator` to assert value is a positive integer number
-  - `file` - set `completor=filenames`
-  - `file_r` - set `validator` to assert file exists and is readable and set `completor=filenames`
-  - `file_r` - set `validator` to assert file exists and is writable and set `completor=filenames`
-  - `dir` - set `completor=dirnames`
-  - `dir_r` - set `validator` to assert directory exist and is readable and set `completor=dirnames`
-  - `dir_r` - set `validator` to assert directory exist and is writable and set `completor=dirnames`
+  - `int` - set `validate` to assert value is a number
+  - `float` - set `validate` to assert value is a float number
+  - `nonnegative` - set `validate` to assert value is a non-negative integer number
+  - `positive` - set `validate` to assert value is a positive integer number
+  - `file` - set `complete=file`
+  - `file_r` - set `validate` to assert file exists and is readable and set `complete=filenames`
+  - `file_r` - set `validate` to assert file exists and is writable and set `complete=filenames`
+  - `dir` - set `complete=dir`
+  - `dir_r` - set `validate` to assert directory exist and is readable and set `complete=dirnames`
+  - `dir_r` - set `validate` to assert directory exist and is writable and set `complete=dirnames`
 - `choices` - A sequence of the allowable values for the argument.
 - `required` - Whether or not the command-line option may be omitted (optionals only).
 - `help` - Brief description of what the argument does.
@@ -124,19 +124,29 @@ Main settings take only the following key-value arguments:
 - `choices` - A sequence of the allowable values for the argument.
 - `dest` - The name of the variable variable that is assigned as the result of the option.
 - `show_default` - append the text `(default: <default>)` to the help text of the option.
-- `completor` - The expression that completes on the command line.
-  - any of the `compopt -o` argument:
-	  - `bashdefault` `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
-	- any other `<string>`
-	  - evaluate the `<string>` to generate completion
-	  - completion expression should repeatedly output two lines:
-	    - first line containing the string `plain`
-	    - followed by a line with completion value
-	- example: `complete_my_arg() { printf "plain\n%s\n" a b c; }; ... completor='complete_my_arg'`
-- `validator` - The expression that evaluates if the value is valid.
-  - the variable `$1` is exposed with the value of the argument
-  - example: `validator='[[ "$1" =~ (a|b) ]]'`
-  - example: `validate_my_arg() { echo "Checking is $1 is correct... it is not!"; return 1; }; ... validator='validate_my_arg "$1"'`
+- `complete` - The expression that completes on the command line. Might be assigned:
+	- Most of the `complete -F` arguments:
+    - `command` `function` `file` `directory` `hostname` `export` `user` `group` `service` `signal`
+  - Any of the `compopt -o` argument, but I do not think they work:
+    - `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
+	- Any other `<string>`:
+	  - `eval <string>` generates the completion
+	  - The variable `$1` is exposed with the value of the argument
+	  - The associative array variable `_L_optspec` is exposed with the argument specification
+	  - Example: `complete='compgen -P "plain " -W "a b c" -- "$1"'`
+	  - The completion expression should output a lines of:
+      - Any of the `compopt -o` argument:
+        - `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
+      - The string in the format `plain <completion value>` where `<completion value>` is the value to complete
+        - It is "plain" followed by a single space and the value to complete
+	- example: `complete_my_arg() { compgen -P 'plain ' -W 'a b c' -- "$1"; }; ... complete='complete_my_arg "$1"'`
+- `validate` - The expression that evaluates if the value is valid.
+  - The variable `$1` is exposed with the value of the argument
+	- The associative array variable `_L_optspec` is exposed with the argument specification
+  - Example: `validate='[[ "$1" =~ (a|b) ]]'`
+  - Example: `validate='L_regex_match "$1" "(a|b)"`
+  - Example: `validate='grep -q "(a|b)" <<<"$1"`
+  - Example: `validate_my_arg() { echo "Checking is $1 is correct... it is not!"; return 1; }; ... validate='validate_my_arg "$1"'`
 
 # Implementation documentation
 
