@@ -31,10 +31,12 @@ echo "$count $verbose $filename" # outputs: 5 1 ./file1
 
 # Features
 
+- requires bash with associative arrays, so bash 4.0 or newer
 - sets Bash variable values inline in the script
-- TODO support fully all settings as python argparse
-- TODO support bash completion properly
-- requires bash with associative arrays
+- supports `argparse.ArgumentParser` options
+- supports `argparse.add_argument` options
+- support bash completion
+- TODO support fully some edge cases like --option nargs='*' and --option nargs='?' and --option nargs='+'
 
 # Specification
 
@@ -55,13 +57,23 @@ Then each next each chain of arguments attaches individual argument specificatio
 
 See https://docs.python.org/3/library/argparse.html .
 
+## Reserved options
+
+Options starting what `--L_argparse_` are reserved for internal use. In particuler:
+
+- `--L_argparse_get_completion` - generate completion for given arguments
+- `--L_argparse_bash_complete` - print bash completion script and exit
+- `--L_argparse_print_completion` - print a helpy message how to use bash completion
+- `--L_argparse_print_usage` - print usage and exit
+- `--L_argparse_print_help` - print help and exit
+
 ## Main settings parameters
 
 Main settings take only the following key-value arguments:
 
 - `prog` - The name of the program (default: `${0##*/}`)
 - `usage` - The string describing the program usage (default: generated from arguments added to parser).
-  - The string `%(prog)s` is replaced by the program name in usage messages.
+  - The string `%(prog)s` is __not__ replaced by the program name in usage messages.
 - `description` - Text to display before the argument help (by default, no text)
 - `epilog` - Text to display after the argument help (by default, no text)
 - `add_help` - Add a -h/--help option to the parser (default: True)

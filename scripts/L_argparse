@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+. "$(dirname "$(readlink -f "$0")")"/../bin/L_lib.sh
+if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+	declare -A Adest=()
+fi
+f() {
+	unset BASH_REMATCH SUPER _ FUNCNAME SUPER2
+	declare -p | grep -Ev "^declare (-a|-r) (SHELLOPTS|BASH_LINENO)="
+}
+SUPER=$(f)
+L_argparse "$@"
+diff - <<<"$SUPER" <(f) || :
