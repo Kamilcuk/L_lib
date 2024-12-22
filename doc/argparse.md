@@ -36,7 +36,7 @@ echo "$count $verbose $filename" # outputs: 5 1 ./file1
 - sets Bash variable values inline in the script
 - supports `argparse.ArgumentParser` options
 - supports `argparse.add_argument` options
-- support bash completion
+- support Bash, Zsh and Fish completion
 - TODO: support fully some edge cases like --option nargs='*' or --option nargs='?' or --option nargs='+'
 
 # Specification
@@ -62,8 +62,10 @@ See https://docs.python.org/3/library/argparse.html .
 
 Options starting what `--L_argparse_` are reserved for internal use. In particuler:
 
-- `--L_argparse_get_completion` - generate completion for given arguments
-- `--L_argparse_bash_complete` - print bash completion script and exit
+- `--L_argparse_get_completion` - output completion stream for given arguments
+- `--L_argparse_complete_bash` - print Bash completion script and exit
+- `--L_argparse_complete_zsh` - print Zsh completion script and exit
+- `--L_argparse_complete_fish` - print Fish completion script and exit
 - `--L_argparse_print_completion` - print a helpy message how to use bash completion
 - `--L_argparse_print_usage` - print usage and exit
 - `--L_argparse_print_help` - print help and exit
@@ -101,8 +103,8 @@ Main settings take only the following key-value arguments:
   - `1`. Argument from the command line will be assigned to variable `dest`.
   - `N` (an integer). `N` arguments from the command line will be gathered together into a array.
   - `?`. One argument will be consumed from the command line if possible.
-  - `+`. All command-line arguments present are gathered into a list.
-  - `*`. Just like '*', all command-line `args` present are gathered into a list. Additionally, an error message will be generated if there was not at least one command-line argument present.
+  - `*`. All command-line arguments present are gathered into a list.
+  - `+`. Just like `*`, all command-line `args` present are gathered into a list. Additionally, an error message will be generated if there was not at least one command-line argument present.
   - `remainder` - After first non-option argument, collect all remaining command line arguments into a list.
 - `const` - the value to store into `dest` depending on `action`
 - `default` - store this default value into `dest`
@@ -125,29 +127,35 @@ Main settings take only the following key-value arguments:
 - `choices` - A sequence of the allowable values for the argument.
 - `dest` - The name of the variable variable that is assigned as the result of the option.
 - `show_default` - append the text `(default: <default>)` to the help text of the option.
-- `complete` - The expression that completes on the command line. Might be assigned:
-	- Most of the `complete -F` arguments:
-    - `command` `function` `file` `directory` `hostname` `export` `user` `group` `service` `signal`
-  - Any of the `compopt -o` argument, but I do not think they work:
-    - `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
-	- Any other `<string>`:
-	  - `eval <string>` generates the completion
-	  - The variable `$1` is exposed with the value of the argument
-	  - The associative array variable `_L_optspec` is exposed with the argument specification
-	  - Example: `complete='compgen -P "plain " -W "a b c" -- "$1"'`
-	  - The completion expression should output a lines of:
-      - Any of the `compopt -o` argument:
-        - `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
-      - The string in the format `plain <completion value>` where `<completion value>` is the value to complete
-        - It is "plain" followed by a single space and the value to complete
-	- example: `complete_my_arg() { compgen -P 'plain ' -W 'a b c' -- "$1"; }; ... complete='complete_my_arg "$1"'`
+- `complete` - The expression that completes on the command line. List of comma separated items consisting of:
+  - Any of the `compopt -o` argument.
+		- `bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs`
+		- `default|dirnames|filenames` are handled in zsh and fish.
+	- Any of `compgen -A` argument:
+	  - `alias|arrayvar|binding|builtin|command|directory|disabled|enabled|export|file|function|group|helptopic|hostname|job|keyword|running|service|setopt|shopt|signal|stopped|user|variable`
+	- Any other string containing a space:
+	  - The string will be `eval`ed and should generate standard output consisting of:
+	    - Lines with tab separated elements:
+	      - The keyword `plain`
+	      - The generated completion word.
+	      - Optionally, the description of the completion.
+	    - Or lines with tab separated elements:
+	      - First field is any of the `compopt -o` or `compgen -A` argument
+	      - Empty second field.
+	      - Description of the completion. Relevant for ZSH only.
+	  - Example: `complete='compgen -P "plain${L_TAB}" -W "a b c" -- "$1"'`
+	  - Example: `complete='nospace,compgen -P "plain${L_TAB}" -S "${L_TAB}Completion description" -W "a b c" -- "$1"'`
+	  - The function `L_argparse_compgen` automatically adds `-P` `-S` arguments based on `help` of an option.
+	    - Example: `complete='L_argparse_compgen -W "a b c" -- "$1"'`
+	  - The function `L_argparse_optspec_get_complete_description` can be used to generate completion description of an option.
+	  - Note: the expression may not contain a comma. If you need comma, delegate completion to a function.
 - `validate` - The expression that evaluates if the value is valid.
   - The variable `$1` is exposed with the value of the argument
 	- The associative array variable `_L_optspec` is exposed with the argument specification
   - Example: `validate='[[ "$1" =~ (a|b) ]]'`
   - Example: `validate='L_regex_match "$1" "(a|b)"`
   - Example: `validate='grep -q "(a|b)" <<<"$1"`
-  - Example: `validate_my_arg() { echo "Checking is $1 is correct... it is not!"; return 1; }; ... validate='validate_my_arg "$1"'`
+  - Example: `validate_my_arg() { echo "Checking is $1 of type ${_L_optspec[type]} is correct... it is not!"; return 1; }; ... validate='validate_my_arg "$1"'`
 
 # Implementation documentation
 
@@ -174,19 +182,6 @@ Additional keys set internally in `_L_optspec` when parsing arguments:
 - `index` - index of the `optspec` into an array, used to uniquely identify the option
 - `isarray` - if `dest` is assigned an array, 0 or 1
 - `mainoption` - used in error messages to signify which option is the main one
-
-## Completion protocol specification
-
-Given the option `--L_argparse_get_completion` the program completes the last argument.
-
-The completion protocol is line based.
-
-- read a line
-  - if line = 
-
-- lines in the form 
-- lines in the form `plain <completion value>` where `<completion value>` is the value to complete
-- lines in the form `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
 
 # Reason it exists
 

@@ -8,6 +8,11 @@ ARGS ?=
 DOCKERTERM = $(value MAKE_TERMOUT, -ti -eTERM)
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
+define NL
+
+
+endef
+
 
 all: test doc
 	@echo SUCCESS all
@@ -36,7 +41,7 @@ shellcheck:
 
 term-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
+	docker run --rm -eTERM -ti -u $(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
@@ -51,8 +56,36 @@ termnoload-%:
 run-%:
 	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
-		bash:$* -lc 'L_lib.sh "$$@"' bash $(ARGS)
+		bash:$* -lc 'L_lib.sh $(ARGS)' bash
 
+5.2test: test-5.2
+4.4test: test-4.4
+4.3test: test-4.3
+4.2test: test-4.2
+4.1test: test-4.1
+4.0test: test-4.0
+3.2test: test-3.2
+5.2term: term-5.2
+4.4term: term-4.4
+4.3term: term-4.3
+4.2term: term-4.2
+4.1term: term-4.1
+4.0term: term-4.0
+3.2term: term-3.2
+5.2termnoload: termnoload-5.2
+4.4termnoload: termnoload-4.4
+4.3termnoload: termnoload-4.3
+4.2termnoload: termnoload-4.2
+4.1termnoload: termnoload-4.1
+4.0termnoload: termnoload-4.0
+3.2termnoload: termnoload-3.2
+5.2run: run-5.2
+4.4run: run-4.4
+4.3run: run-4.3
+4.2run: run-4.2
+4.1run: run-4.1
+4.0run: run-4.0
+3.2run: run-3.2
 
 shdoc:
 	if [[ ! -e shdoc ]]; then git clone https://github.com/kamilcuk/shdoc.git; fi
