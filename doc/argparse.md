@@ -31,12 +31,13 @@ echo "$count $verbose $filename" # outputs: 5 1 ./file1
 
 # Features
 
+- no code generation or similar
 - requires bash with associative arrays, so bash 4.0 or newer
 - sets Bash variable values inline in the script
 - supports `argparse.ArgumentParser` options
 - supports `argparse.add_argument` options
 - support bash completion
-- TODO support fully some edge cases like --option nargs='*' and --option nargs='?' and --option nargs='+'
+- TODO: support fully some edge cases like --option nargs='*' or --option nargs='?' or --option nargs='+'
 
 # Specification
 
@@ -173,6 +174,19 @@ Additional keys set internally in `_L_optspec` when parsing arguments:
 - `index` - index of the `optspec` into an array, used to uniquely identify the option
 - `isarray` - if `dest` is assigned an array, 0 or 1
 - `mainoption` - used in error messages to signify which option is the main one
+
+## Completion protocol specification
+
+Given the option `--L_argparse_get_completion` the program completes the last argument.
+
+The completion protocol is line based.
+
+- read a line
+  - if line = 
+
+- lines in the form 
+- lines in the form `plain <completion value>` where `<completion value>` is the value to complete
+- lines in the form `default` `dirnames` `filenames` `noquote` `nosort` `nospace` `plusdirs`
 
 # Reason it exists
 
