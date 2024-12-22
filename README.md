@@ -35,7 +35,7 @@ The variables do not resolve `readlink`.
 Example:
 
 ```
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh
 cd "$L_DIR" || exit 1
 fail() {

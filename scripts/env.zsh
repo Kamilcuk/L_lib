@@ -1,1 +1,1 @@
-env.fish
+env.sh
