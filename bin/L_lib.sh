@@ -4758,12 +4758,12 @@ _L_argparse_parse_args() {
 }
 
 # @description Parse command line aruments according to specification.
-# This command takes groups of command line arguments separated by `::`  with sentinel `::::` .
+# This command takes groups of command line arguments separated by `--`  with sentinel `----` .
 # The first group of arguments are arguments to `_L_argparse_init` .
 # The next group of arguments are arguments to `_L_argparse_add_argument` .
 # The last group of arguments are command line arguments passed to `_L_argparse_parse_args`.
-# Note: the last separator `::::` is different to make it more clear and restrict parsing better.
-# @require BASH4.4 with associative array
+# Note: the last separator `----` is different to make it more clear and restrict parsing better.
+# @require associative arrays, i.e. Bash4.0. We could make it work with Bash3.2.
 L_argparse() {
 	local -A _L_parser=() _L_mainsettings=()
 	local -a _L_args=()
