@@ -81,8 +81,8 @@ Main settings take only the following key-value arguments:
 - `epilog` - Text to display after the argument help (by default, no text)
 - `add_help` - Add a -h/--help option to the parser (default: True)
 - `allow_abbrev` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: True)
-- `Adest` - Store all values as keys into this associated dictionary. (TODO)
-  If the result is an array it is properly quoted and can be deserialized with `declare -a var="($value)"`.
+- `Adest` - Store all values as keys into this associated dictionary.
+  If the result is an array, it is properly quoted and can be deserialized with `declare -a var="(${Adest[key]})"`.
 
 ## argument parameters
 

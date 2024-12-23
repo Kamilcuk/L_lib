@@ -5167,9 +5167,9 @@ _L_test_z_argparse4() {
 	{
 		declare -A Adest=()
 		L_argparse prog=python.py Adest=Adest -- --asome -- -a action=append -- dest nargs=3 ---- 1 1 123 --asome 1123 -a 1 -a 2 -a 3
-		local -a arr="( ${Adest[dest]} )"
+		local -a arr="(${Adest[dest]})"
 		L_unittest_arreq arr 1 1 123
-		local -a arr="( ${Adest[a]} )"
+		local -a arr="(${Adest[a]})"
 		L_unittest_arreq arr 1 2 3
 		L_unittest_eq "${Adest[asome]}" 1123
 	}
