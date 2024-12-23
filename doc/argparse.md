@@ -83,6 +83,7 @@ Main settings take only the following key-value arguments:
 - `allow_abbrev` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: True)
 - `Adest` - Store all values as keys into this associated dictionary.
   If the result is an array, it is properly quoted and can be deserialized with `declare -a var="(${Adest[key]})"`.
+- `show_default` - default value of `show_default` property of all options. Example `show_default=1`.
 
 ## argument parameters
 
@@ -110,22 +111,21 @@ Main settings take only the following key-value arguments:
 - `default` - store this default value into `dest`
   - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`.
 - `type` - The type to which the command-line argument should be converted.
-  - `int` - set `validate` to assert value is a number
-  - `float` - set `validate` to assert value is a float number
-  - `nonnegative` - set `validate` to assert value is a non-negative integer number
-  - `positive` - set `validate` to assert value is a positive integer number
-  - `file` - set `complete=file`
-  - `file_r` - set `validate` to assert file exists and is readable and set `complete=filenames`
-  - `file_r` - set `validate` to assert file exists and is writable and set `complete=filenames`
-  - `dir` - set `complete=dir`
-  - `dir_r` - set `validate` to assert directory exist and is readable and set `complete=dirnames`
-  - `dir_r` - set `validate` to assert directory exist and is writable and set `complete=dirnames`
-- `choices` - A sequence of the allowable values for the argument.
+  - `int` - set `validate='L_is_integer "$1"'`
+  - `float` - set `validate='L_is_float "$1"'`
+  - `nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
+  - `positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
+  - `file` - set `validate='[[ -f "$1" ]]' complete=file`
+  - `file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
+  - `file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
+  - `dir` - set `validate='[[ -d "$1" ]]' complete=dir`
+  - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
+  - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
+- `choices` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_optspec[choices]})"`. Example: `choices="a b c 'with space'"`
 - `required` - Whether or not the command-line option may be omitted (optionals only).
-- `help` - Brief description of what the argument does.
+- `help` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar` - A name for the argument in usage messages.
-- `choices` - A sequence of the allowable values for the argument.
-- `dest` - The name of the variable variable that is assigned as the result of the option.
+- `dest` - The name of the variable variable that is assigned as the result of the option. Default: argument name or first long option without dashes or first short option.
 - `show_default` - append the text `(default: <default>)` to the help text of the option.
 - `complete` - The expression that completes on the command line. List of comma separated items consisting of:
   - Any of the `compopt -o` argument.

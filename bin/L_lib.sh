@@ -2482,6 +2482,7 @@ L_trap_push() {
 		trap "$L_v"$'\n'"$1" "$2"
 }
 
+# shellcheck disable=SC2064
 # @description remove a command from trap up until the last newline
 # @arg $1 str signal to handle
 L_trap_pop() {
@@ -3678,6 +3679,22 @@ _L_argparse_print_help_indenter() {
 	done
 }
 
+# @description Get help of an option.
+# @env _L_mainsettings
+# @env _L_optspec
+# @set _L_help
+_L_argparse_optspec_get_help() {
+	_L_help=${_L_optspec[help]:-}
+	if [[ $_L_help == SUPPRESS ]]; then
+		return 1
+	fi
+	# _L_help=${_L_help//%(prog)s/$_L_prog}
+	# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
+	if L_is_true "${_L_optspec[show_default]:-${_L_mainsettings[show_default]:-0}}" && L_var_is_set "_L_optspec[default]"; then
+		printf -v _L_help "%s(default: %q)" "${_L_help:+ }" "${_L_optspec[default]:-}"
+	fi
+}
+
 # shellcheck disable=2120
 # @description Print help or only usage for given parser or global parser.
 # @option -s --short print only usage, not full help
@@ -3714,8 +3731,8 @@ L_argparse_print_help() {
 		local _L_longopt _L_options
 		local -A _L_optspec
 		while _L_argparse_parser_next_option _L_i _L_optspec; do
-			local _L_help=${_L_optspec[help]:-}
-			if [[ $_L_help == SUPPRESS ]]; then
+			local _L_help
+			if ! _L_argparse_optspec_get_help; then
 				continue
 			fi
 			#
@@ -3748,9 +3765,6 @@ L_argparse_print_help() {
 			fi
 			_L_usage+=" ${_L_notrequired:+[}$_L_opt$_L_metavars${_L_notrequired:+]}"
 			_L_usage_options_list+=("${_L_desc}")
-			local _L_help=${_L_optspec[help]:-}
-			# _L_help=${_L_help//%(prog)s/$_L_prog}
-			# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
 			_L_usage_options_help+=("$_L_help")
 		done
 	}
@@ -3765,8 +3779,8 @@ L_argparse_print_help() {
 		local -A _L_optspec
 		local _L_i=0
 		while _L_argparse_parser_next_argument _L_i _L_optspec; do
-			local _L_help=${_L_optspec[help]:-}
-			if [[ $_L_help == SUPPRESS ]]; then
+			local _L_help
+			if ! _L_argparse_optspec_get_help; then
 				continue
 			fi
 			local _L_metavar _L_nargs
@@ -3790,8 +3804,6 @@ L_argparse_print_help() {
 			*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
 			esac
 			_L_usage_args_list+=("$_L_metavar")
-			# _L_help=${_L_help//%(prog)s/$_L_prog}
-			# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
 			_L_usage_args_help+=("$_L_help")
 		done
 	}
@@ -3841,9 +3853,9 @@ _L_argparse_split() {
 	{
 		local _L_allowed
 		if ((_L_index == 0)); then
-			_L_allowed=(prog usage description epilog formatter add_help allow_abbrev Adest)
+			_L_allowed=(prog usage description epilog formatter add_help allow_abbrev Adest show_default)
 		else
-			_L_allowed=(action nargs const default type choices required help metavar dest deprecated validate complete)
+			_L_allowed=(action nargs const default type choices required help metavar dest deprecated validate complete show_default)
 		fi
 	}
 	{
