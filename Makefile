@@ -36,8 +36,20 @@ test_bash%:
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		bash:$* ./bin/L_lib.sh test $(ARGS)
 # docker build --build-arg VERSION=$* --target test .
+
 shellcheck:
 	docker build --target shellcheck .
+shellcheckall:
+	docker build --target shellcheckall .
+shellchecklocal:
+	# shellcheck $(ARGS) bin/L_lib.sh
+	scripts/shellcheckparser_off.sh bin/L_lib.sh | shellcheck $(ARGS) -
+shellcheckvim:
+	scripts/shellcheckparser_off.sh bin/L_lib.sh | shellcheck -fgcc $(ARGS) - | sed 's@^-:@bin/L_lib.sh:@'
+shellcheckvimstyle: ARGS = -Sstyle
+shellcheckvimstyle: shellcheckvim
+shellcheckvimall: ARGS = -oall -Sstyle
+shellcheckvimall: shellcheckvim
 
 term-%:
 	@touch .bash_history

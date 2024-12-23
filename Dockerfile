@@ -6,8 +6,14 @@ RUN L_lib.sh --help
 FROM app AS test
 RUN L_lib.sh test
 
+FROM busybox AS shellcheck_prepare
+COPY bin/L_lib.sh scripts/shellcheckparser_off.sh .
+# This function is unparsable by shellcheck.
+RUN set -x && \
+  ./shellcheckparser_off.sh L_lib.sh >L_lib.sh.tmp && \
+  mv -v L_lib.sh.tmp L_lib.sh
 FROM koalaman/shellcheck AS shellcheck
-COPY bin/L_lib.sh .
+COPY --from=shellcheck_prepare L_lib.sh .
 RUN ["shellcheck", "L_lib.sh"]
 
 FROM alpine AS md1
