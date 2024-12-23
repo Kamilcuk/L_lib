@@ -5,14 +5,15 @@ Bash library. Collection of functions and libraries that I deem usefull for writ
 <!-- vim-markdown-toc GFM -->
 
 * [Features](#features)
-  * [Globals](#globals)
+  * [Various useful functionsand variables](#various-useful-functionsand-variables)
   * [Color](#color)
   * [Logging](#logging)
   * [Argument parsing](#argument-parsing)
   * [Unittest](#unittest)
   * [Version](#version)
-  * [Trapchain](#trapchain)
+  * [Trap](#trap)
   * [Map](#map)
+  * [Simple subcommand utility](#simple-subcommand-utility)
 * [Conventions](#conventions)
 * [License](#license)
 
@@ -79,17 +80,21 @@ if L_version_cmp "$BASH_VERSION" -gt 4; then
 fi
 ```
 
-## Trapchain
+## Trap
 
-Trapchain library allows to accumulate traps.
+Trap library allows to get properly quoted trap value from `trap -l` script and append to the trap.
 
 ```
 (
   tmpf=$(mktemp)
-  L_trapchain 'rm "$tmpf"' EXIT
+  L_trap_push 'rm "$tmpf"' EXIT
   tmpf2=$(mktemp)
-  L_trapchain 'rm "$tmpf2"' EXIT
-  # will remove both files on EXIT
+  L_trap_push 'rm "$tmpf2"' EXIT
+  exit # will remove both files on EXIT
+  L_trap_pop
+  exit # will remove only $tmpf on EXIT
+  L_trap_pop
+  exit # will not remove any files
 )
 ```
 
