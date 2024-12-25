@@ -1370,7 +1370,58 @@ L_float_cmp() {
 	esac
 }
 
+# @descripriont print a string with percent format
+# A simple implementation of percent formatting in bash using regex and printf.
+# @arg $1 format string
+# @arg $@ arguments
+# @example
+#   name=John
+#   declare -A age=([John]=42)
+#   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
+L_percent_format() {
+	local _L_fmt=$1 _L_args=()
+	while [[ "$_L_fmt" =~ ^(.*[^%])?%\(([^\)]+)\)(.*)$ ]]; do
+		# declare -p BASH_REMATCH >&2
+		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[3]}"
+		if [[ -z "${BASH_REMATCH[2]+var}" ]]; then
+			printf "$(FUNCNAME[0]): Variable %s is not set.\n" "${BASH_REMATCH[2]}" >&2
+		fi
+		_L_args=("${!BASH_REMATCH[2]:-}" "${_L_args[@]}")
+	done
+	printf "$_L_fmt" "${_L_args[@]}"
+}
+
+# @description print a string with f-string format
+# A simple implementation of f-strings in bash using regex and printf.
+# @arg $1 format string
+# @example
+#  name=John
+#  age=21
+#  fstring 'Hello, {$name}! You are {$age:10s} years old.\n'
+L_fstring() {
+	local _L_fmt=$1 _L_args=() _L_tmp
+	_L_fmt="${_L_fmt//"{{"/$'\x01'}"
+	_L_fmt="${_L_fmt//"}}"/$'\x02'}"
+	while [[ "$_L_fmt" =~ ^(.*[^\{])?\{([^:\}]+)(:([^\}]*))?\}(.*)$ ]]; do
+		# declare -p BASH_REMATCH
+		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]:-s}${BASH_REMATCH[5]}"
+		eval "_L_tmp=${BASH_REMATCH[2]}"
+		_L_args=("$_L_tmp" "${_L_args[@]}")
+	done
+	_L_fmt="${_L_fmt//$'\x01'/\{}"
+	_L_fmt="${_L_fmt//$'\x02'/\}}"
+	printf "$_L_fmt" "${_L_args[@]}"
+}
+
 _L_test_other() {
+	{
+		local name=John
+		local age=21
+		L_unittest_cmd -o "Hello, John! You are         21 years old." \
+			L_percent_format "Hello, %(name)s! You are %(age)10s years old.\n"
+		L_unittest_cmd -o "Hello, John! You are         21 years old." \
+			L_fstring 'Hello, {$name}! You are {$age:10s} years old.\n'
+	}
 	{
 		local max=-1
 		L_max -v max 1 2 3 4
