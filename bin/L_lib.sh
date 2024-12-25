@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # vim: foldmethod=marker foldmarker=[[[,]]] ft=bash
-# shellcheck disable=2034,2178,2016,2128,2329
+# shellcheck disable=SC2034,SC2178,SC2016,SC2128
 # SPDX-License-Identifier: LGPL-3.0
 #    L_lib.sh
 #    Copyright (C) 2024 Kamil Cukrowski
@@ -2476,6 +2476,7 @@ L_trap_err_init() {
 # @description an array of trap number to trap name extracted from trap -l output.
 _L_TRAP_L=
 
+# shellcheck disable=SC2329
 # @description initialize _L_TRAP_L variable
 # @set _L_TRAP_L
 _L_trap_l_init() {
@@ -5286,7 +5287,7 @@ _L_lib_drop_L_prefix() {
 }
 
 _L_lib_list_prefix_functions() {
-	L_list_functions_with_prefix "$L_prefix"
+	L_list_functions_with_prefix "$L_prefix" | sed "s/^$L_prefix//"
 }
 
 if ! L_function_exists L_cb_usage_usage; then L_cb_usage_usage() {
@@ -5322,7 +5323,7 @@ _L_lib_their_usage() {
 			echo "-h --help"$'\01'"print this help and exit"
 			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
 		} | {
-			if L_cmd_exists column && column -V 2>/dev/null | grep -q util-linux; then
+			if L_command_exists column && column -V 2>/dev/null | grep -q util-linux; then
 				column -t -s $'\01' -o '   '
 			else
 				sed 's/#/    /'
@@ -5450,9 +5451,9 @@ _L_lib_main_cmd() {
 		--bash-completion)
 			_L_lib_bash_completion
 			if L_is_main; then
-				exit
+				exit 0
 			else
-				return
+				return 0
 			fi
 			;;
 		-h | --help)
