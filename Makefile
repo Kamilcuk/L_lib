@@ -70,13 +70,13 @@ run-%:
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
 		bash:$* -lc 'L_lib.sh $(ARGS)' bash
 
-5.2test: test-5.2
-4.4test: test-4.4
-4.3test: test-4.3
-4.2test: test-4.2
-4.1test: test-4.1
-4.0test: test-4.0
-3.2test: test-3.2
+5.2test: test_bash5.2
+4.4test: test_bash4.4
+4.3test: test_bash4.3
+4.2test: test_bash4.2
+4.1test: test_bash4.1
+4.0test: test_bash4.0
+3.2test: test_bash3.2
 5.2term: term-5.2
 4.4term: term-4.4
 4.3term: term-4.3
