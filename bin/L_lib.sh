@@ -1370,6 +1370,7 @@ L_float_cmp() {
 	esac
 }
 
+# shellcheck disable=SC2059
 # @descripriont print a string with percent format
 # A simple implementation of percent formatting in bash using regex and printf.
 # @arg $1 format string
@@ -1380,17 +1381,18 @@ L_float_cmp() {
 #   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
 L_percent_format() {
 	local _L_fmt=$1 _L_args=()
-	while [[ "$_L_fmt" =~ ^(.*[^%])?%\(([^\)]+)\)(.*)$ ]]; do
+	while [[ "$_L_fmt" =~ ^(.*[^%](%%)*)?%\(([^\)]+)\)(.*)$ ]]; do
 		# declare -p BASH_REMATCH >&2
-		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[3]}"
-		if [[ -z "${BASH_REMATCH[2]+var}" ]]; then
-			printf "$(FUNCNAME[0]): Variable %s is not set.\n" "${BASH_REMATCH[2]}" >&2
+		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]}"
+		if [[ -z "${BASH_REMATCH[3]+var}" ]]; then
+			printf "${FUNCNAME[0]}: Variable %s is not set.\n" "${BASH_REMATCH[2]}" >&2
 		fi
-		_L_args=("${!BASH_REMATCH[2]:-}" "${_L_args[@]}")
+		_L_args=("${!BASH_REMATCH[3]:-}" "${_L_args[@]}")
 	done
 	printf "$_L_fmt" "${_L_args[@]}"
 }
 
+# shellcheck disable=SC2059
 # @description print a string with f-string format
 # A simple implementation of f-strings in bash using regex and printf.
 # @arg $1 format string
@@ -1401,7 +1403,6 @@ L_percent_format() {
 L_fstring() {
 	local _L_fmt=$1 _L_args=() _L_tmp
 	_L_fmt="${_L_fmt//"{{"/$'\x01'}"
-	_L_fmt="${_L_fmt//"}}"/$'\x02'}"
 	while [[ "$_L_fmt" =~ ^(.*[^\{])?\{([^:\}]+)(:([^\}]*))?\}(.*)$ ]]; do
 		# declare -p BASH_REMATCH
 		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]:-s}${BASH_REMATCH[5]}"
@@ -1409,7 +1410,7 @@ L_fstring() {
 		_L_args=("$_L_tmp" "${_L_args[@]}")
 	done
 	_L_fmt="${_L_fmt//$'\x01'/\{}"
-	_L_fmt="${_L_fmt//$'\x02'/\}}"
+	_L_fmt="${_L_fmt//\}\}/\}}"
 	printf "$_L_fmt" "${_L_args[@]}"
 }
 
@@ -1419,8 +1420,12 @@ _L_test_other() {
 		local age=21
 		L_unittest_cmd -o "Hello, John! You are         21 years old." \
 			L_percent_format "Hello, %(name)s! You are %(age)10s years old.\n"
+		L_unittest_cmd -o "Hello, %John! You are %%        21 years old." \
+			L_percent_format "Hello, %%%(name)s! You are %%%%%(age)10s years old.\n"
 		L_unittest_cmd -o "Hello, John! You are         21 years old." \
 			L_fstring 'Hello, {$name}! You are {$age:10s} years old.\n'
+		L_unittest_cmd -o "Hello, {John}! You are {{        21}} years old." \
+			L_fstring 'Hello, {{{$name}}}! You are {{{{{$age:10s}}}}} years old.\n'
 	}
 	{
 		local max=-1
