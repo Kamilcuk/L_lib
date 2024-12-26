@@ -115,7 +115,7 @@ doctest:
 	ls -la public
 	test $$(find public -type f | wc -l) = 2
 docopen: doc
-	xdg-open public/index.html
+	xdg-open "file://$$(readlink -f public/index.html)#l_asa_get"
 md: shdoc
 	rm -f public/index.md
 	docker build --target md --output public .

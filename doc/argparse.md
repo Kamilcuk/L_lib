@@ -94,19 +94,23 @@ Main settings take only the following key-value arguments:
   - `store_const` - when option is used, assign the value of `const` to variable `dest`
   - `store_0` - set `action=store_const` `const=0` `default=1`
   - `store_1` - set `action=store_const` `const=1` `default=0`
+  - `store_1null` - set `action=store_const` `const=1` `default=`
+    - useful for `${var:+var is set}` pattern
   - `store_true` - set `action=store_const` `const=true` `default=false`
   - `store_false` - set `action=store_const` `const=false` `default=true`
-  - `append_const` - when option is used, append the value of `const` to array variable `dest`
   - `append` - append the option value to array variable `dest`
+  - `append_const` - when option is used, append the value of `const` to array variable `dest`
   - `count` - every time option is used, `dest` is incremented, starting from if unset
-  - `eval:*` - evaluate the string after `eval:` whenever option is set.
+  - `eval:<expr>` - evaluate the string after `eval:` whenever option is set.
+  - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
+  - `func:<prefix>` - (TODO) The functions with prefix contain another `L_argparse` call.
+  - `subparser` - (TODO) Parse the next command line into a separate subparser.
 - `nargs` - The number of command-line arguments that should be consumed.
   - `1`. Argument from the command line will be assigned to variable `dest`.
   - `N` (an integer). `N` arguments from the command line will be gathered together into a array.
   - `?`. One argument will be consumed from the command line if possible.
   - `*`. All command-line arguments present are gathered into a list.
   - `+`. Just like `*`, all command-line `args` present are gathered into a list. Additionally, an error message will be generated if there was not at least one command-line argument present.
-  - `remainder` - After first non-option argument, collect all remaining command line arguments into a list.
 - `const` - the value to store into `dest` depending on `action`
 - `default` - store this default value into `dest`
   - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`.
@@ -115,10 +119,10 @@ Main settings take only the following key-value arguments:
   - `float` - set `validate='L_is_float "$1"'`
   - `nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
   - `positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
-  - `file` - set `validate='[[ -f "$1" ]]' complete=file`
+  - `file` - set `validate='[[ -f "$1" ]]' complete=filenames`
   - `file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
   - `file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
-  - `dir` - set `validate='[[ -d "$1" ]]' complete=dir`
+  - `dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
   - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
   - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
 - `choices` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_optspec[choices]})"`. Example: `choices="a b c 'with space'"`
