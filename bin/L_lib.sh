@@ -491,7 +491,7 @@ L_in_posix_mode() { case ":$SHELLOPTS:" in *:posix:*) ;; *) false ;; esac; }
 # @description
 # @arg $1 variable nameref
 # @exitcode 0 if variable is set, nonzero otherwise
-L_var_is_set() { eval "[[ -n \"\${$1+yes}\" ]]"; }
+L_var_is_set() { [[ -n "${!1+yes}" ]]; }
 
 # @description
 # @arg $1 variable nameref
@@ -600,6 +600,20 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_var_is_array a
 		local -a d=()
 		L_unittest_checkexit 0 L_var_is_array d
+	}
+	{
+		L_unittest_checkexit 1 L_var_is_set _L_variable
+		local _L_variable
+		if ((L_HAS_BASH4)); then
+			# In bash 3.2 local sets the variable to empty. On newers it doesn't set.
+			L_unittest_checkexit 1 L_var_is_set _L_variable
+		fi
+		_L_variable=
+		L_unittest_checkexit 0 L_var_is_set _L_variable
+		_L_variable=""
+		L_unittest_checkexit 0 L_var_is_set _L_variable
+		_L_variable="a"
+		L_unittest_checkexit 0 L_var_is_set _L_variable
 	}
 }
 
