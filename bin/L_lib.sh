@@ -2347,11 +2347,10 @@ _L_test_sort() {
 #     File ./bin/L_lib.sh, line 1391, in _L_unittest_showdiff()
 #   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
 L_print_traceback() {
-	local i s l tmp offset around=0
+	local i s l tmp offset=${1:-0} around=${2:-0}
 	L_color_detect
 	echo
 	echo "${L_CYAN}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET}"
-	offset=${1:-0}
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
 		l=${BASH_LINENO[i - 1]}
@@ -2397,71 +2396,22 @@ L_print_traceback() {
 			fi
 		fi
 	done
-} >&2
-
-# @description Outputs Front-Mater formatted failures for functions not returning 0
-# Use the following line after sourcing this file to set failure trap
-#    `trap 'failure "LINENO" "BASH_LINENO" "${BASH_COMMAND}" "${?}"' ERR`
-# @see https://unix.stackexchange.com/questions/39623/trap-err-and-echoing-the-error-line
-L_trap_err_failure() {
-	local -n _lineno="LINENO"
-	local -n _bash_lineno="BASH_LINENO"
-	local _last_command="${2:-$BASH_COMMAND}"
-	local _code="${1:-0}"
-
-	## Workaround for read EOF combo tripping traps
-	if ! ((_code)); then
-		return "$_code"
-	fi
-
-	local _last_command_height
-	_last_command_height="$(wc -l <<<"$_last_command")"
-
-	local -a _output_array=()
-	_output_array+=(
-		'---'
-		"lines_history: [${_lineno} ${_bash_lineno[*]}]"
-		"function_trace: [${FUNCNAME[*]}]"
-		"exit_code: ${_code}"
-	)
-
-	if [[ "${#BASH_SOURCE[@]}" -gt '1' ]]; then
-		_output_array+=('source_trace:')
-		for _item in "${BASH_SOURCE[@]}"; do
-			_output_array+=("  - ${_item}")
-		done
-	else
-		_output_array+=("source_trace: [${BASH_SOURCE[*]}]")
-	fi
-
-	if [[ "$_last_command_height" -gt '1' ]]; then
-		_output_array+=(
-			'last_command: ->'
-			"$_last_command"
-		)
-	else
-		_output_array+=("last_command: ${_last_command}")
-	fi
-
-	_output_array+=('---')
-	printf '%s\n' "${_output_array[@]}" >&2
-	exit "$_code"
 }
 
-L_trap_err_show_source() {
-	local idx=${1:-0}
-	echo "Traceback:"
-	awk -v L="${BASH_LINENO[idx]}" -v M=3 \
-		'NR>L-M && NR<L+M { printf "%-5d%3s%s\n",NR,(NR==L?">> ":""),$0 }' "${BASH_SOURCE[idx + 1]}"
-	L_critical "command returned with non-zero exit status"
-}
-
+# @description Callback to be exectued on ERR trap that prints just the caller.
+# @example
+#   trap 'L_trap_err_small' ERR
 L_trap_err_small() {
-	L_error "fatal error on $(caller)"
+	L_critical "fatal error on $(caller)"
 }
 
+# description Callback to be exectued on ERR trap that prints a traceback and exits.
+# @arg $1 int exit code
+# @example
+#    trap 'L_trap_err $?' ERR
+#    trap 'L_trap_err $?' EXIT
 L_trap_err() {
-	## Workaround for read EOF combo tripping traps
+	# Workaround for read EOF combo tripping traps
 	if ((!$1)); then
 		return "$1"
 	fi
@@ -2469,37 +2419,52 @@ L_trap_err() {
 		L_print_traceback 1
 		L_critical "Command returned with non-zero exit status: $1"
 	} >&2 || :
+	L_trap_get_v EXIT
+	case "$L_v" in 'L_trap_err $?'|'L_trap_err "$?"')
+		trap - EXIT
+	esac
 	exit "$1"
 }
 
+# @description Enable ERR trap with L_trap_err as callback
+# @example
+#  L_trap_err_enable
 L_trap_err_enable() {
 	set -eEo functrace
 	trap 'L_trap_err $?' ERR
 }
 
+# @description Disable ERR trap
+# @example
+#   L_trap_err_disable
 L_trap_err_disable() {
 	trap - ERR
 }
 
+# @description If set -e is set and ERR trap is not set, enable ERR trap with L_trap_err as callback
+# @example
+#    L_trap_err_init
 L_trap_err_init() {
 	if [[ $- == *e* ]] && [[ -z "$(trap -p ERR)" ]]; then
 		L_trap_err_enable
 	fi
 }
 
-# @description an array of trap number to trap name extracted from trap -l output.
+# @description String of trap number and name separated by spaces
+# extracted from trap -l output.
+# @see _L_TRAP_L_init
 _L_TRAP_L=
 
 # shellcheck disable=SC2329
 # @description initialize _L_TRAP_L variable
 # @set _L_TRAP_L
-_L_trap_l_init() {
+_L_TRAP_L_init() {
 	# Convert the output of trap -l into list of trap names.
 	_L_TRAP_L=$(trap -l)
 	_L_TRAP_L=${_L_TRAP_L//)}
 	# _L_TRAP_L=${_L_TRAP_L// }
 	_L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } "
-	_L_trap_l_init() { :; }
+	_L_TRAP_L_init() { :; }
 }
 
 # @description Convert trap name to number
@@ -2510,7 +2475,7 @@ L_trap_to_number_v() {
 	case "$1" in
 	[0-9]*) L_v=$1 ;;
 	*)
-		_L_trap_l_init
+		_L_TRAP_L_init
 		L_v=${_L_TRAP_L%%" $1 "*}
 		L_v=${L_v##* }
 		;;
@@ -2526,7 +2491,7 @@ L_trap_to_name() { L_handle_v "$@"; }
 L_trap_to_name_v() {
 	case "$1" in
 	[0-9]*)
-		_L_trap_l_init
+		_L_TRAP_L_init
 		L_v=${_L_TRAP_L##*" $1 "}
 		L_v=${L_v%% *}
 		;;
