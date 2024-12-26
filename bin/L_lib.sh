@@ -2194,7 +2194,7 @@ _L_sort_cmd_no_mapfile_d() {
 
 # @description sort an array using sort command
 # @option -z --zero-terminated use zero separated stream with sort -z
-# @option * any options are forwarded to sort command
+# @arg $* any options are forwarded to sort command
 # @arg $-1 last argument is the array nameref
 # @example
 #    arr=(5 2 5 1)
@@ -2329,8 +2329,9 @@ _L_test_sort() {
 # trap [[[
 # @section trap
 
-# @description prints traceback
-# @arg [$1] stack offset to start from
+# @description Prints traceback
+# @arg [$1] int stack offset to start from (default: 0)
+# @arg [$2] int number of lines to show around the line (default: 0)
 # @example:
 #   Example traceback:
 #   Traceback from pid 3973390 (most recent call last):
@@ -2697,16 +2698,13 @@ L_asa_is_empty() {
 # @exitcode 1 if no key found and no default value
 L_asa_get() { L_handle_v "$@"; }
 L_asa_get_v() {
-	L_assert '' test "$#" = 2 -o "$#" = 3
-	if L_asa_has "$1" "$2"; then
+	if L_var_is_set "$1[$2]"; then
 		eval "L_v=\${$1[\"\$2\"]}"
+	elif (($# >= 3)); then
+		L_v=$3
 	else
-		if (($# == 3)); then
-			L_v=$3
-		else
-			L_v=
-			return 1
-		fi
+		L_v=
+		return 1
 	fi
 }
 
@@ -2751,9 +2749,9 @@ L_asa() {
 # @arg $1 var destination nameref
 # @arg $2 =
 # @arg $3 var associative array nameref to store
-# @see L_nestedasa_get
-L_nestedasa_set() {
-	L_assert '' L_var_is_associative "$3"
+# @see L_asa_get_asa
+L_asa_set_asa() {
+	L_assert "not an associative array: $3" L_var_is_associative "$3"
 	eval "$1=\$(declare -p \"\$3\")"
 	eval "$1=\${$1#*=}"
 }
@@ -2763,9 +2761,9 @@ if ((L_HAS_BASH4_4)); then
 # @arg $1 var associative array nameref to store
 # @arg $2 =
 # @arg $3 var source nameref
-# @see L_nestedasa_set
-L_nestedasa_get() {
-	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
+# @see L_asa_set_asa
+L_asa_get_asa() {
+	L_assert "not an associative array: $1" L_var_is_associative "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
 	L_assert "Source nameref does not match '(*)': $3=${!3:-}" \
 		L_glob_match "${!3:-}" "(*)"
@@ -2779,8 +2777,8 @@ L_nestedasa_get() {
 }
 else
 	# Bash version 4.3 outputs "declare -A _L_asa='([a]="1" [b]="2")'" __including__ the ' quotes.
-	L_nestedasa_get() {
-		L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
+	L_asa_get_asa() {
+		L_assert "not an associative array: $1" L_var_is_associative "$1"
 		L_assert "Source nameref does not match \"'(*)'\": $3=${!3:-}" \
 			L_glob_match "${!3:-}" "'(*)'"
 		# Godspeed.
@@ -2789,7 +2787,6 @@ else
 		eval "eval \$1=${!3}"
 	}
 fi
-
 
 _L_test_asa() {
 	declare -A map=()
@@ -2828,11 +2825,11 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: nested asa"
 		local -A map2=([c]=d [e]=f)
-		L_nestedasa_set "map[mapkey]" = map2
+		L_asa_set_asa "map[mapkey]" = map2
 		L_asa_has map mapkey
 		L_asa_get map mapkey
-		local -A map3
-		L_nestedasa_get map3 = "map[mapkey]"
+		local -A map3=()
+		L_asa_get_asa map3 = "map[mapkey]"
 		L_asa_get -v v map3 c
 		L_unittest_eq "$v" d
 		L_asa_get -v v map3 e
@@ -2846,8 +2843,8 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: nested asa with quotes"
 		local -A map3 map2=([a]="='='=")
-		L_nestedasa_set "map[mapkey]" = map2
-		L_nestedasa_get map3 = "map[mapkey]"
+		L_asa_set_asa "map[mapkey]" = map2
+		L_asa_get_asa map3 = "map[mapkey]"
 		L_unittest_eq "${map2[a]}" "${map3[a]}"
 	}
 }
@@ -3724,7 +3721,7 @@ _L_argparse_print_help_indenter() {
 # @set _L_help
 _L_argparse_optspec_get_help() {
 	_L_help=${_L_optspec[help]:-}
-	if [[ $_L_help == SUPPRESS ]]; then
+	if [[ "$_L_help" == "SUPPRESS" ]]; then
 		return 1
 	fi
 	# _L_help=${_L_help//%(prog)s/$_L_prog}
@@ -3758,8 +3755,8 @@ L_argparse_print_help() {
 	{
 		#
 		local _L_usage _L_dest _L_prog
-		local -A _L_mainsettings
-		L_nestedasa_get _L_mainsettings = "_L_parser[0]"
+		local -A _L_mainsettings=()
+		L_asa_get_asa _L_mainsettings = "_L_parser[0]"
 		_L_prog=${_L_mainsettings[prog]:-${_L_name:-$0}}
 	}
 	{
@@ -3768,7 +3765,7 @@ L_argparse_print_help() {
 		local _L_usage_options_list=()  # holds '-a VAR' descriptions of options
 		local _L_usage_options_help=()  # holds help message of options
 		local _L_longopt _L_options
-		local -A _L_optspec
+		local -A _L_optspec=()
 		while _L_argparse_parser_next_option _L_i _L_optspec; do
 			local _L_help
 			if ! _L_argparse_optspec_get_help; then
@@ -3815,7 +3812,7 @@ L_argparse_print_help() {
 	{
 		# Parse positional arguments
 		local _L_usage_args_list=() _L_usage_args_help=()
-		local -A _L_optspec
+		local -A _L_optspec=()
 		local _L_i=0
 		while _L_argparse_parser_next_argument _L_i _L_optspec; do
 			local _L_help
@@ -4002,38 +3999,47 @@ _L_argparse_split() {
 				: "${_L_optspec["nargs"]:=1}"
 				;;
 			store_const)
-				_L_argparse_optspec_validate_value "${_L_optspec["const"]}"
+				L_assert "const is not set $(declare -p _L_optspec)" L_var_is_set "_L_optspec[const]"
 				;;
 			store_true)
-				_L_optspec["default"]=false
-				_L_optspec["const"]=true
+				_L_optspec["action"]=store_const
+				: "${_L_optspec["default"]:=false}"
+				: "${_L_optspec["const"]:=true}"
 				;;
 			store_false)
-				_L_optspec["default"]=true
-				_L_optspec["const"]=false
+				_L_optspec["action"]=store_const
+				: "${_L_optspec["default"]:=true}"
+				: "${_L_optspec["const"]:=false}"
 				;;
 			store_0)
-				_L_optspec["default"]=1
-				_L_optspec["const"]=0
+				_L_optspec["action"]=store_const
+				: "${_L_optspec["default"]:=1}"
+				: "${_L_optspec["const"]:=0}"
 				;;
 			store_1)
-				_L_optspec["default"]=0
-				_L_optspec["const"]=1
+				_L_optspec["action"]=store_const
+				: "${_L_optspec["default"]:=0}"
+				: "${_L_optspec["const"]:=1}"
 				;;
 			store_1null)
-				_L_optspec["default"]=
-				_L_optspec["const"]=1
+				_L_optspec["action"]=store_const
+				: "${_L_optspec["default"]:=}"
+				: "${_L_optspec["const"]:=1}"
 				;;
 			append)
 				_L_optspec["isarray"]=1
 				: "${_L_optspec["nargs"]:=1}"
 				;;
 			append_const)
-				_L_argparse_optspec_validate_value "${_L_optspec["const"]}"
+				L_assert "const is not set $(declare -p _L_optspec)" L_var_is_set "_L_optspec[const]"
 				_L_optspec["isarray"]=1
 				;;
 			count) ;;
 			eval:*) ;;
+			'remainder')
+				L_assert "nargs=remainder can be used with positional args only: $(declare -p _L_optspec)" test "${#_L_options[@]}" -eq 0
+				: "${_L_optspec["nargs"]=*}"
+				;;
 			*)
 				L_fatal "invalid action: $(declare -p _L_optspec)"
 				;;
@@ -4042,9 +4048,11 @@ _L_argparse_split() {
 		{
 			# assert nargs value is valid, assign isarray
 			case "${_L_optspec["nargs"]:=0}" in
-			'?'|'*'|'+') ;;
-			'remainder')
-				L_assert "nargs=remainder can be used with positional args only: $(declare -p _L_optspec)" test "${#_L_options[@]}" -eq 0
+			'?'|0|1)
+				;;
+			'*'|'+'|[2-9]|[1-9]*)
+				_L_optspec["isarray"]=1
+				: "${_L_optspec["action"]=append}"
 				;;
 			*)
 				L_assert "nargs option is wrong: $(declare -p _L_optspec)" test "${_L_optspec[nargs]}" -ge 0
@@ -4076,14 +4084,14 @@ _L_argparse_split() {
 	{
 		# assign result
 		if ((_L_index == 0)); then
-			L_nestedasa_set "_L_parser[0]" = _L_optspec
+			L_asa_set_asa "_L_parser[0]" = _L_optspec
 		else
 			if ((${#_L_options[@]} != 0)); then
 				local _L_tmp=${_L_parser["options_cnt"]:-}
 				_L_tmp=${#_L_tmp}
 				_L_parser["options_cnt"]+=X
 				_L_optspec["index"]="option${_L_tmp}"
-				L_nestedasa_set "_L_parser[option$_L_tmp]" = _L_optspec
+				L_asa_set_asa "_L_parser[option$_L_tmp]" = _L_optspec
 				#
 				local _L_i
 				for _L_i in "${_L_options[@]}"; do
@@ -4094,7 +4102,7 @@ _L_argparse_split() {
 				_L_tmp=${#_L_tmp}
 				_L_parser["args_cnt"]+=X
 				_L_optspec["index"]="arg${_L_tmp}"
-				L_nestedasa_set "_L_parser[arg$_L_tmp]" = _L_optspec
+				L_asa_set_asa "_L_parser[arg$_L_tmp]" = _L_optspec
 			fi
 		fi
 	}
@@ -4107,7 +4115,7 @@ _L_argparse_split() {
 _L_argparse_init() {
 	_L_argparse_split 0 -- "$@"
 	# Extract mainsettings
-	L_nestedasa_get _L_mainsettings = "_L_parser[0]"
+	L_asa_get_asa _L_mainsettings = "_L_parser[0]"
 	{
 		# add -h --help
 		if L_is_true "${_L_mainsettings[add_help]:-true}"; then
@@ -4131,7 +4139,7 @@ _L_argparse_add_argument() {
 # @arg $1 variable to set with optspec
 # @arg $2 short option ex. -a
 _L_argparse_parser_get_short_option() {
-	L_asa_has _L_parser "$2" && L_nestedasa_get "$1" = "_L_parser[$2]"
+	L_asa_has _L_parser "$2" && L_asa_get_asa "$1" = "_L_parser[$2]"
 }
 
 # @description
@@ -4140,14 +4148,14 @@ _L_argparse_parser_get_short_option() {
 # @arg $2 long option ex. --option
 _L_argparse_parser_get_long_option() {
 	if L_asa_has _L_parser "$2"; then
-		L_nestedasa_get "$1" = "_L_parser[$2]"
+		L_asa_get_asa "$1" = "_L_parser[$2]"
 	elif L_is_true "${_L_mainsettings["allow_abbrev"]:-true}"; then
 		local IFS=$'\n' _L_abbrev_matches
 		_L_abbrev_matches=$(compgen -W "${!_L_parser[*]}" -- "$2")
 		mapfile -t _L_abbrev_matches <<<"$_L_abbrev_matches"
 		# L_abbreviation -v _L_abbrev_matches "$2" "${!_L_parser[@]}"
 		if (( ${#_L_abbrev_matches[@]} == 1 )); then
-			L_nestedasa_get "$1" = "_L_parser[${_L_abbrev_matches[0]}]"
+			L_asa_get_asa "$1" = "_L_parser[${_L_abbrev_matches[0]}]"
 		elif (( ${#_L_abbrev_matches[@]} > 1 )); then
 			local IFS=' '
 			L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches[*]}"
@@ -4165,7 +4173,7 @@ _L_argparse_parser_get_long_option() {
 # @arg $2 settings nameref
 _L_argparse_parser_next_option() {
 	[[ -n ${_L_parser[option$(($1))]:-} ]] &&
-	L_nestedasa_get "$2" = "_L_parser[option$(($1++))]"
+	L_asa_get_asa "$2" = "_L_parser[option$(($1++))]"
 }
 
 # @description Iterate over all arguments optspec.
@@ -4174,7 +4182,7 @@ _L_argparse_parser_next_option() {
 # @arg $2 settings nameref
 _L_argparse_parser_next_argument() {
 	[[ -n ${_L_parser[arg$(($1))]:-} ]] &&
-	L_nestedasa_get "$2" = "_L_parser[arg$(($1++))]"
+	L_asa_get_asa "$2" = "_L_parser[arg$(($1++))]"
 }
 
 # @env _L_optspec
@@ -4248,7 +4256,7 @@ _L_argparse_optspec_execute_action() {
 			# echo printf -v "$_L_dest" "%s" "$1" >/dev/tty
 		fi
 		;;
-	store_const | store_true | store_false | store_1 | store_0)
+	store_const)
 		if ((L_HAS_BASH4_1)); then
 			printf -v "$_L_dest" "%s" "${_L_optspec["const"]}"
 		else
@@ -4263,7 +4271,12 @@ _L_argparse_optspec_execute_action() {
 		;;
 	count)
 		# shellcheck disable=2004
-		(($_L_dest=$_L_dest+1))
+		(($_L_dest=$_L_dest+1, 1))
+		;;
+	remainder)
+		L_assert '' L_var_is_set _L_onlyargs
+		_L_onlyargs=1
+		_L_argparse_optspec_assign_array "$@"
 		;;
 	eval:*)
 		eval "${_L_optspec["action"]#"eval:"}"
@@ -4278,8 +4291,7 @@ _L_argparse_optspec_execute_action() {
 # @arg $1 variable that will store the option help for completion
 # @env _L_optspec
 L_argparse_optspec_get_complete_description() {
-	local _L_v
-	_L_v="${_L_optspec["help"]:-}"
+	local _L_v="${_L_optspec["help"]:-}"
 	printf -v "$1" "%s" "${_L_v//[$'\t\n']/ }"
 }
 
@@ -4287,6 +4299,7 @@ L_argparse_optspec_get_complete_description() {
 # With option description prefixed with the 'plain' prefix.
 # Any compgen option is accepted, arguments are forwareded to compgen.
 # @option -P <str> Prefix the options
+# @arg $@ arguments to compgen
 L_argparse_compgen() {
 	local _L_desc _L_prefix="" _L_tmp
 	if [[ "$1" == -P ]]; then
@@ -4324,8 +4337,8 @@ _L_argparse_choices_complete() {
 # @description Generate completions for given element.
 # @stdout first line is the type
 # if the type is plain, the second line contains the value to complete.
-# @arg $1 incomplete
-# @option $2 <str> additional prefix
+# @arg $1 <str> incomplete
+# @arg $2 <str> additional prefix
 # @env _L_optspec
 # @env _L_parser
 # @env _L_in_complete
@@ -4504,7 +4517,7 @@ EOF
 # @description assign defaults to all options
 _L_argparse_parse_args_set_defaults() {
 	local _L_i=0 _L_j=0
-	local -A _L_optspec
+	local -A _L_optspec=()
 	while _L_argparse_parser_next_option _L_i _L_optspec; do
 		if L_var_is_set "_L_optspec[default]"; then
 			if ((${_L_optspec["isarray"]:-0})); then
@@ -4559,7 +4572,7 @@ _L_argparse_parse_args_long_option() {
 			_L_argparse_gen_option_names_completion "$1"
 		fi
 	fi
-	local -A _L_optspec
+	local -A _L_optspec=()
 	if ! _L_argparse_parser_get_long_option _L_optspec "$_L_opt"; then
 		L_argparse_fatal "unrecognized argument: $1"
 		if (($# == 1)); then
@@ -4616,7 +4629,7 @@ _L_argparse_parse_args_short_option() {
 	for ((_L_i = 0; _L_i < ${#_L_opt}; ++_L_i)); do
 		local _L_c
 		_L_c=${_L_opt:_L_i:1}
-		local -A _L_optspec
+		local -A _L_optspec=()
 		if ! _L_argparse_parser_get_short_option _L_optspec "-$_L_c"; then
 			L_argparse_fatal "unrecognized arguments: -$_L_c"
 			if (($# == 0)); then
@@ -4660,6 +4673,7 @@ _L_argparse_parse_args_short_option() {
 	done
 }
 
+# shellcheck disable=SC2309
 # @description Parse the arguments with the given parser.
 # @env _L_parser
 # @arg $1 argparser nameref
@@ -4725,29 +4739,10 @@ _L_argparse_parse_args() {
 				L_assert "$_L_arg_i $(declare -p _L_optspec)" L_asa_has _L_optspec dest
 				_L_dest=${_L_optspec["dest"]}
 				_L_nargs=${_L_optspec["nargs"]}
-				case "$_L_nargs" in
-				[0-9]*)
-					_L_argparse_optspec_execute_action "$1"
-					if ((_L_arg_assigned+1 == _L_nargs)); then
-						_L_optspec=()
-					fi
-					;;
-				"?")
-					_L_argparse_optspec_validate_value "$1"
-					printf -v "$_L_dest" "%s" "$1"
+				_L_argparse_optspec_execute_action "$1"
+				if [[ ( "$_L_nargs" == [0-9]* && _L_arg_assigned+1 -eq _L_nargs ) || "$_L_nargs" == "?" ]]; then
 					_L_optspec=()
-					;;
-				'remainder')  # remainder
-					_L_onlyargs=1
-					_L_argparse_optspec_assign_array "$1"
-					;;
-				"*" | "+")
-					_L_argparse_optspec_assign_array "$1"
-					;;
-				*)
-					L_argparse_fatal "Invalid nargs: $(declare -p _L_optspec)"
-					;;
-				esac
+				fi
 				((++_L_arg_assigned))
 			}
 			shift
@@ -4800,7 +4795,7 @@ _L_argparse_parse_args() {
 			local _L_required_options_str="" _L_i
 			for _L_i in "${_L_required_options[@]}"; do
 				local -A _L_optspec
-				L_nestedasa_get _L_optspec = "_L_parser[$_L_i]"
+				L_asa_get_asa _L_optspec = "_L_parser[$_L_i]"
 				_L_required_options_str+=" ${_L_optspec[mainoption]:-${_L_optspec[metavar]}}"
 			done
 			L_argparse_fatal "the following arguments are required:${_L_required_options_str}"
@@ -4819,7 +4814,8 @@ L_argparse() {
 	local -A _L_parser=() _L_mainsettings=()
 	local -a _L_args=()
 	while (($#)); do
-		if [[ "$1" == "::" || "$1" == "::::" || "$1" == "--" || "$1" == "----" ]]; then
+		case "$1" in
+		::|::::|--|----)
 			# echo "AA ${_L_args[@]} ${_L_parser[@]}"
 			if ((${#_L_parser[@]} == 0)); then
 				_L_argparse_init ${_L_args[@]+"${_L_args[@]}"}
@@ -4827,12 +4823,13 @@ L_argparse() {
 				_L_argparse_add_argument ${_L_args[@]+"${_L_args[@]}"}
 			fi
 			_L_args=()
-			if [[ "$1" == "::::" || "$1" == "----" ]]; then
-				break
-			fi
-		else
+			case "$1" in
+			::::|----) break ;;
+			esac
+			;;
+		*)
 			_L_args+=("$1")
-		fi
+		esac
 		shift
 	done
 	L_assert "'----' argument missing to ${FUNCNAME[0]}" test "$#" -ge 1
@@ -4898,11 +4895,11 @@ _L_test_z_argparse1() {
 		#
 		local arg=()
 		L_argparse prog=prog :: arg nargs="+" :::: 1
-		L_unittest_eq "${arg[*]}" '1'
+		L_unittest_arreq arg 1
 		#
 		local arg=()
 		L_argparse prog=prog :: arg nargs="+" :::: 1 $'2\n3' $'4"\'5'
-		L_unittest_eq "${arg[*]}" $'1 2\n3 4"\'5'
+		L_unittest_arreq arg 1 $'2\n3' $'4"\'5'
 	}
 	{
 		L_log "check help"
@@ -5225,10 +5222,14 @@ _L_test_z_argparse4() {
 		L_unittest_eq "${Adest[asome]}" 1123
 	}
 	{
-		local a dest
-		L_argparse prog=prog -- -a -- dest nargs=remainder ---- -a 1 2 3 -a
+		local a='' dest=()
+		L_argparse prog=prog -- -a -- dest nargs="*" ---- -a 1 2 3 -a 2
+		L_unittest_arreq dest 2 3
+		L_unittest_eq "$a" 2
+		local a='' dest=()
+		L_argparse prog=prog -- -a -- dest action=remainder ---- -a 1 2 3 -a
 		L_unittest_arreq dest 2 3 -a
-		L_unittest_eq "$a" "1"
+		L_unittest_eq "$a" 1
 	}
 	{
 		local tmp
@@ -5503,9 +5504,12 @@ _L_lib_main() {
 		;;
 	test)
 		set -euo pipefail
+		_L_pre=""
+		printf -v _L_pre "%s\n" "${!_L_@}"
 		L_trap_err_enable
 		trap 'L_trap_err $?' EXIT
 		_L_lib_run_tests "$@"
+		printf "%s\n" "${!_L_@}" | diff <(printf "%s" "$_L_pre") -
 		;;
 	cmd) _L_lib_main_cmd "$@" ;;
 	nop) ;;
