@@ -121,7 +121,7 @@ jobs:
   deploy_pages:
     needs: [test, shellcheck, build_pages]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 1
     permissions:
       pages: write      # to deploy to Pages
