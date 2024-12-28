@@ -420,7 +420,7 @@ L_assert() {
 		fi
 	then
 		if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
-		L_print_traceback
+		L_print_traceback >&2
 		printf "%s: assertion (%s) failed%s\n" "$L_NAME" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
 		exit 249
 	fi
@@ -540,19 +540,19 @@ L_is_false_locale() {
 
 # @description exit with success if argument could be a variable name
 # @arg $1 string to check
-L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
+L_is_valid_variable_name() { [[ ${1:0:1} == [a-zA-Z_] && ( ${#1} == 1 || ${1:1} != *[^a-zA-Z0-9_]* ) ]]; }
 
 # @description exits with success if all characters in string are printable
 # @arg $1 string to check
-L_isprint() { [[ "$*" =~ ^[[:print:]]*$ ]]; }
+L_isprint() { [[ "$*" != *[^[:print:]]* ]]; }
 
 # @description exits with success if all string characters are digits
 # @arg $1 string to check
-L_isdigit() { [[ "$*" =~ ^[0-9]+$ ]]; }
+L_isdigit() { [[ "$*" != *[^0-9]* ]]; }
 
 # @description exits with success if the string characters is an integer
 # @arg $1 string to check
-L_is_integer() { [[ "$*" != *[!0-9]* ]]; }
+L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} > 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
 
 # @description exits with success if the string characters is a float
 # @arg $1 string to check
@@ -564,10 +564,10 @@ L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
 
 _L_test_basic() {
 	{
-		L_isdigit 5
-		L_isdigit 1235567890
-		L_unittest_cmd -c ! L_isdigit 1235567890a
-		L_unittest_cmd -c ! L_isdigit x
+		L_unittest_checkexit 0 L_isdigit 5
+		L_unittest_checkexit 0 L_isdigit 1235567890
+		L_unittest_checkexit 1 L_isdigit 1235567890a
+		L_unittest_checkexit 1 L_isdigit x
 	}
 	{
 		L_unittest_checkexit 0 L_is_float -1
@@ -614,6 +614,27 @@ _L_test_basic() {
 		L_unittest_checkexit 0 L_var_is_set _L_variable
 		_L_variable="a"
 		L_unittest_checkexit 0 L_var_is_set _L_variable
+	}
+	{
+		L_unittest_checkexit 0 L_is_integer 1
+		L_unittest_checkexit 0 L_is_integer 0
+		L_unittest_checkexit 0 L_is_integer -1
+		L_unittest_checkexit 0 L_is_integer +1
+		L_unittest_checkexit 1 L_is_integer 1-
+		L_unittest_checkexit 1 L_is_integer 1+
+		L_unittest_checkexit 1 L_is_integer 1-2
+		L_unittest_checkexit 1 L_is_integer 1+2
+		L_unittest_checkexit 1 L_is_integer a
+	}
+	{
+		L_unittest_checkexit 0 L_is_valid_variable_name a
+		L_unittest_checkexit 0 L_is_valid_variable_name ab
+		L_unittest_checkexit 0 L_is_valid_variable_name _ac
+		L_unittest_checkexit 0 L_is_valid_variable_name _a9
+		L_unittest_checkexit 1 L_is_valid_variable_name 9
+		L_unittest_checkexit 1 L_is_valid_variable_name 9a
+		L_unittest_checkexit 1 L_is_valid_variable_name a-
+		L_unittest_checkexit 1 L_is_valid_variable_name -a
 	}
 }
 
