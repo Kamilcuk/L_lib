@@ -8,6 +8,8 @@ f() {
 	unset SUPER _ FUNCNAME SUPER2
 	declare -p | grep -Ev "^declare (-a|-r|-ar) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS)="
 }
+trap 'L_trap_err $?' EXIT
 SUPER=$(f)
 L_argparse "$@"
+# echo $?
 diff -U0 - <<<"$SUPER" <(f) || :

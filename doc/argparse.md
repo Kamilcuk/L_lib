@@ -60,7 +60,7 @@ See https://docs.python.org/3/library/argparse.html .
 
 ## Reserved options
 
-Options starting what `--L_argparse_` are reserved for internal use. In particuler:
+Options starting what `--L_argparse_` are reserved for internal use.
 
 - `--L_argparse_get_completion` - output completion stream for given arguments
 - `--L_argparse_complete_bash` - print Bash completion script and exit
@@ -69,11 +69,13 @@ Options starting what `--L_argparse_` are reserved for internal use. In particul
 - `--L_argparse_print_completion` - print a helpy message how to use bash completion
 - `--L_argparse_print_usage` - print usage and exit
 - `--L_argparse_print_help` - print help and exit
+- `--L_argparse_dump_parser` - serialize the parser to stdout surrounded by UUIDs and exit
 
 ## Main settings parameters
 
 Main settings take only the following key-value arguments:
 
+- name or `dest` - The name of the subparser. Relevant with an option with `action=subparser` or `action=func:*`.
 - `prog` - The name of the program (default: `${0##*/}`)
 - `usage` - The string describing the program usage (default: generated from arguments added to parser).
   - The string `%(prog)s` is __not__ replaced by the program name in usage messages.
@@ -103,8 +105,8 @@ Main settings take only the following key-value arguments:
   - `count` - every time option is used, `dest` is incremented, starting from if unset
   - `eval:<expr>` - evaluate the string after `eval:` whenever option is set.
   - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
+  - `subparser` - (TODO) Parse the next command line arguments with separate sub-parser with separate parser chains inside `{` `}` tokens.
   - `func:<prefix>` - (TODO) The functions with prefix contain another `L_argparse` call.
-  - `subparser` - (TODO) Parse the next command line into a separate subparser.
 - `nargs` - The number of command-line arguments that should be consumed.
   - `1`. Argument from the command line will be assigned to variable `dest`.
   - `N` (an integer). `N` arguments from the command line will be gathered together into a array.
@@ -165,7 +167,7 @@ Main settings take only the following key-value arguments:
 
 ## `_L_parser`
 
-An associative array of associative arrays. The array exists to achieve the following goals:
+An associative array mostly of values that are serialized associative arrays. The array exists to achieve the following goals:
 - extract the mainsettings of the argparse
 - iterate over all --options optspec
 - find an --option or -o
@@ -176,6 +178,7 @@ The array contains the following keys:
 - `-o` or `--options` - the optspec of a particular option for fast lookup
 - `optionN` where N is a non-negative integer - the optspec of option number `N`
 - `argN` where N is a non-negative integer - the optspec of argument number `N`
+- `option_cnt` and `arg_cnt` - store count characters as many there are options or arguments 
 
 An associative array variable `_L_mainsettings` is used to store main settings.
 
