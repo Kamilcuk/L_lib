@@ -844,45 +844,64 @@ L_printf_append() {
 	printf ${1:+"-v$1"} "%s$2" "${1:+${!1}}" "${@:3}"
 }
 
+# @description Handle nested arrays by L_pretty_print
+# @arg $1 <str> prefix
+# @arg $2 <str> key value
+# @arg $3 <str> declare -p output with removed =
+# @env _L_pp_v
+# @env _L_pp_width
+# @env _L_pp_nested
+_L_pretty_print_nested() {
+	local -A _L_pp_array="$3"
+	if ((${#_L_pp_array[@]} == 0)); then
+		L_printf_append "$_L_pp_v" "%s=()\n" "$_L_pp_prefix$1$2"
+	else
+		local _L_pp_keys=("${!_L_pp_array[@]}")
+		# Associative array indexes are not sorted.
+		L_sort_bash _L_pp_keys
+		L_printf_append "$_L_pp_v" "%s=(\n" "$_L_pp_prefix$1$2"
+		for _L_key in "${_L_pp_keys[@]}"; do
+			local _L_pp_value="${_L_pp_array["$_L_key"]}"
+			if (( _L_pp_nested && ${#_L_pp_value} > _L_pp_width )); then
+				if [[ "$_L_pp_value" == "(["?*"]="*")" ]]; then
+					_L_pretty_print_nested "$1  " "[$_L_key]" "$_L_pp_value"
+					continue
+				elif [[ "$_L_pp_value" == "declare -"[aA]*" "[a-zA-Z_]*"=(["?*"]="*")" ]]; then
+					_L_pretty_print_nested "$1  " "[$_L_key]" "${_L_pp_value#*=}"
+					continue
+				fi
+			fi
+			L_printf_append "$_L_pp_v" "%s  [%q]=%s\n" "$_L_pp_prefix$1" "$_L_key" "$(L_quote_setx "$_L_pp_value")"
+		done
+		L_printf_append "$_L_pp_v" "%s  )\n" "$_L_pp_prefix$1"
+	fi
+}
+
 # @description Prints values with declare, but array values are on separate lines.
 # @option -p <str> prefix each line with this prefix
 # @option -v <var>
 # @option -w <int> set width
+# @option -n Enable pretty printing nested arrays
 # @arg $@ variable names to pretty print
 L_pretty_print() {
-	local OPTARG OPTIND _L_t _L_prefix="" _L_v _L_w=${COLUMNS:-80}
-	while getopts :p:v:w: _L_t; do
-		case $_L_t in
-		p) _L_prefix="$OPTARG " ;;
-		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
-		w) _L_w=$OPTARG ;;
+	local OPTARG OPTIND _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0
+	while getopts :p:v:w:n _L_pp_opt; do
+		case $_L_pp_opt in
+		p) _L_pp_prefix="$OPTARG " ;;
+		v) _L_pp_v=$OPTARG; printf -v "$_L_pp_v" "%s" "" ;;
+		w) _L_pp_width=$OPTARG ;;
+		n) _L_pp_nested=1 ;;
 		*) echo "${FUNCNAME[0]}: invalid option: $OPTARG" >&2; return 2; ;;
 		esac
 	done
-	shift $((OPTIND-1))
-	#
+	shift "$((OPTIND-1))"
 	while (($#)); do
-		if L_is_valid_variable_name "$1" && _L_t=$(declare -p "$1" 2>/dev/null); then
-			case "$_L_t" in
-			"declare -A"*) local -A _L_pretty_print="${_L_t#*=}" ;;
-			"declare -a"*) local -a _L_pretty_print="${_L_t#*=}" ;;
-			esac
-			if L_var_is_set _L_pretty_print; then
-				if ((${#_L_pretty_print[@]} > 1 && ${#_L_t} > _L_w)); then
-					L_printf_append "$_L_v" "%s\n" "${_L_t%%=*}=("
-					for _L_t in "${!_L_pretty_print[@]}"; do
-						L_printf_append "$_L_v" "  [%q]=%q\n" "$_L_t" "${_L_pretty_print["$_L_t"]}"
-					done
-					L_printf_append "$_L_v" "  )\n"
-				else
-					L_printf_append "$_L_v" "%s\n" "$_L_t"
-				fi
-				unset _L_pretty_print
-			else
-				L_printf_append "$_L_v" "%s\n" "$_L_t"
-			fi
+		if ! L_is_valid_variable_name "$1" || ! _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
+			L_printf_append "$_L_pp_v" "%s%s\n" "$_L_pp_prefix" "$1"
+		elif ((${#_L_pp_declare} <= _L_pp_width)) || [[ "$_L_pp_declare" != "declare -"[aA]* ]]; then
+			L_printf_append "$_L_pp_v" "%s%s\n" "$_L_pp_prefix" "$_L_pp_declare"
 		else
-			L_printf_append "$_L_v" "%s\n" "$1"
+			_L_pretty_print_nested "" "${_L_pp_declare%%=*}" "${_L_pp_declare#*=}"
 		fi
 		shift
 	done
