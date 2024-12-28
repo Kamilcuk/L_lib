@@ -986,7 +986,7 @@ EOF
 L_quote_setx() { L_handle_v "$@"; }
 L_quote_setx_v() {
 	L_v=$(
-		{ export BASH_XTRACEFD=2 PS4='+ '; set -x; } 2>/dev/null >&2
+		{ BASH_XTRACEFD=2 PS4='+ '; set -x; } 2>/dev/null >&2
 		{ : "$@"; } 2>&1
 	)
 	L_v=${L_v#* }
@@ -2464,6 +2464,8 @@ L_trap_err_small() {
 #    trap 'L_trap_err $?' ERR
 #    trap 'L_trap_err $?' EXIT
 L_trap_err() {
+	if ((L_HAS_LOCAL_DASH)); then local -; fi
+	set +x
 	# Workaround for read EOF combo tripping traps
 	if ((!$1)); then
 		return "$1"
