@@ -2556,7 +2556,7 @@ L_trap_to_name_v() {
 
 # @description Get the current value of trap
 # @option -v <var> var
-# @arg $1 str|int signal name or number
+# @arg $1 <str|int> signal name or number
 # @example
 #   trap 'echo hi' EXIT
 #   L_trap_get -v var EXIT
@@ -2572,6 +2572,7 @@ L_trap_get_v() {
 # @arg $1 str command to execute
 # @arg $2 str signal to handle
 L_trap_push() {
+	local L_v &&
 	L_trap_get_v "$2" &&
 		trap "$L_v"$'\n'"$1" "$2"
 }
@@ -2580,6 +2581,7 @@ L_trap_push() {
 # @description remove a command from trap up until the last newline
 # @arg $1 str signal to handle
 L_trap_pop() {
+	local L_v &&
 	L_trap_get_v "$1" &&
 		if [[ "$L_v" == *$'\n'* ]]; then
 			trap "${L_v%$'\n'*}" "$1"
@@ -3356,11 +3358,6 @@ L_unittest_contains() {
 }
 
 # ]]]
-# trapchain [[[
-# @section trapchain
-# @description library for chaining traps
-
-# ]]]
 # Map [[[
 # @section map
 # @description Key value store without associative array support
@@ -3762,20 +3759,20 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
-# @env _L_mainsettings The arguments passed to ArgumentParser() constructor
+# @env _L_parsersettings The arguments passed to ArgumentParser() constructor
 # @env _L_parser The current parser
 
 # @description Print argument parsing error and exit.
 # @env L_NAME
-# @env _L_mainsettings
+# @env _L_parsersettings
 # @exitcode 1
 L_argparse_fatal() {
 	if ((${_L_in_complete:-0})); then
 		return
 	fi
 	L_argparse_print_usage >&2
-	printf "%s: error: $1\n" "${_L_mainsettings["prog"]:-${L_NAME:-$0}}" "${@:2}" >&2
-	if "${_L_mainsettings["exit_on_error"]:-true}"; then
+	printf "%s: error: $1\n" "${_L_parsersettings["prog"]:-${L_NAME:-$0}}" "${@:2}" >&2
+	if "${_L_parsersettings["exit_on_error"]:-true}"; then
 		exit 1
 	else
 		return "${2:-1}"
@@ -3809,7 +3806,7 @@ _L_argparse_print_help_indenter() {
 }
 
 # @description Get help of an option.
-# @env _L_mainsettings
+# @env _L_parsersettings
 # @env _L_optspec
 # @set _L_help
 _L_argparse_optspec_get_help() {
@@ -3819,7 +3816,7 @@ _L_argparse_optspec_get_help() {
 	fi
 	# _L_help=${_L_help//%(prog)s/$_L_prog}
 	# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
-	if L_is_true "${_L_optspec[show_default]:-${_L_mainsettings[show_default]:-0}}" && L_var_is_set "_L_optspec[default]"; then
+	if L_is_true "${_L_optspec[show_default]:-${_L_parsersettings[show_default]:-0}}" && L_var_is_set "_L_optspec[default]"; then
 		printf -v _L_help "%s(default: %q)" "${_L_help:+ }" "${_L_optspec[default]:-}"
 	fi
 }
@@ -3846,20 +3843,19 @@ L_argparse_print_help() {
 		L_assert "" test "$#" == 0
 	}
 	{
-		local _L_usage="" _L_dest _L_prog="" _L_tmp
-		local -A _L_mainsettings=() _L_subparser=() _L_submainsettings=()
+		local -A _L_parsersettings=() _L_subparser=() _L_subparsersettings=()
+		local _L_usage="" _L_dest _L_prog="" _L_tmp _L_subparserstr
 		#
-		L_asa_assign _L_subparser = _L_parser
-		while :; do
-			L_asa_load _L_submainsettings = "_L_subparser[0]"
-			if ! L_asa_has _L_subparser parent; then
-				_L_prog="${_L_submainsettings[prog]:-$0}${_L_prog:+ }$_L_prog"
-				break
+		for _L_subparserstr in "${_L_parserchain[@]}"; do
+			L_asa_load _L_subparser = _L_subparserstr
+			L_asa_load _L_subparsersettings = "_L_subparser[0]"
+			if [[ -z "$_L_prog" ]]; then
+				_L_prog="${_L_subparsersettings[prog]:-$0}"
+			else
+				_L_prog+=" ${_L_subparsersettings[prog]:-${_L_subparsersettings[dest]}}"
 			fi
-			_L_prog="${_L_submainsettings[prog]:-${_L_submainsettings[dest]}}${_L_prog:+ }$_L_prog"
-			L_asa_load _L_subparser = "_L_subparser[parent]"
 		done
-		L_asa_load _L_mainsettings = "_L_parser[0]"
+		L_asa_load _L_parsersettings = "_L_parser[0]"
 	}
 	{
 		# Parse options
@@ -3940,10 +3936,10 @@ L_argparse_print_help() {
 				for _L_key in "${!_L_parser[@]}"; do
 					if [[ "$_L_key" == subparser_* ]]; then
 						_L_usage_cmds_descs+=("${_L_key#subparser_}")
-						local -A _L_subparser _L_submainsettings
+						local -A _L_subparser _L_subparsersettings
 						L_asa_load _L_subparser = "_L_parser[$_L_key]"
-						L_asa_load _L_submainsettings = "_L_subparser[0]"
-						_L_usage_cmds_helps+=("${_L_submainsettings[description]:-}")
+						L_asa_load _L_subparsersettings = "_L_subparser[0]"
+						_L_usage_cmds_helps+=("${_L_subparsersettings[description]:-}")
 					fi
 				done
 				;;
@@ -3976,15 +3972,15 @@ L_argparse_print_help() {
 	}
 	{
 		# print usage
-		_L_usage="usage: ${_L_mainsettings[usage]:-$_L_prog$_L_usage}"
+		_L_usage="usage: ${_L_parsersettings[usage]:-$_L_prog$_L_usage}"
 		echo "$_L_usage"
 		if ((!_L_short)); then
 			local _L_help=""
-			_L_help+="${_L_mainsettings[description]+$'\n'${_L_mainsettings[description]%%$'\n'}$'\n'}"
+			_L_help+="${_L_parsersettings[description]+$'\n'${_L_parsersettings[description]%%$'\n'}$'\n'}"
 			_L_help+="${_L_usage_args:+$'\npositional arguments:\n'${_L_usage_args%%$'\n'}$'\n'}"
 			_L_help+="${_L_usage_cmds:+$'\navailable commands:\n'${_L_usage_cmds%%$'\n'}$'\n'}"
 			_L_help+="${_L_usage_options:+$'\noptions:\n'${_L_usage_options%%$'\n'}$'\n'}"
-			_L_help+="${_L_mainsettings[epilog]:+$'\n'${_L_mainsettings[epilog]%%$'\n'}}"
+			_L_help+="${_L_parsersettings[epilog]:+$'\n'${_L_parsersettings[epilog]%%$'\n'}}"
 			echo "${_L_help%%$'\n'}"
 		fi
 	}
@@ -3997,11 +3993,11 @@ L_argparse_print_usage() {
 }
 
 # @description helper for split
-# @use _L_is_mainsettings
+# @use _L_is_parsersettings
 # @arg $1 argument
-_L_argparse_split_help_check() {
-	if ((_L_is_mainsettings)); then
-		L_fatal "L_argparse _L_mainsettings: unrecognized argument: %q" "$1"
+_L_argparse_split_not_parsersettings() {
+	if ((_L_is_parsersettings)); then
+		L_fatal "L_argparse _L_parsersettings: unrecognized argument: %q" "$1"
 	fi
 }
 
@@ -4015,13 +4011,13 @@ _L_argparse_split_help_check() {
 # @set _L_used_args
 _L_argparse_split() {
 	{
-		local _L_is_mainsettings
-		_L_is_mainsettings=$(( ${#_L_parser[@]} == 0 ))
+		local _L_is_parsersettings
+		_L_is_parsersettings=$(( ${#_L_parser[@]} == 0 ))
 	}
 	{
 		# List of allowed k=v options.
-		if ((_L_is_mainsettings)); then
-			local _L_allowed=(prog usage description epilog formatter add_help allow_abbrev Adest show_default)
+		if ((_L_is_parsersettings)); then
+			local _L_allowed=(prog usage description epilog formatter add_help allow_abbrev Adest show_default names)
 		else
 			local _L_allowed=(action nargs const default type choices required help metavar dest deprecated validate complete show_default)
 		fi
@@ -4029,65 +4025,69 @@ _L_argparse_split() {
 	{
 		# parse args
 		declare -A _L_optspec=()
-		local _L_options=()
+		local _L_long_options=() _L_short_options=()
 		while (($#)); do
 			case "$1" in
 			'--'|'----'|'{'|'}') break ;;
 			*=*)
-				local _L_opt
-				_L_opt=${1%%=*}
-				L_assert "L_argparse: kv option may not contain a space: $1" ! L_glob_match "$_L_opt" "*' '*"
+				local _L_opt=${1%%=*}
+				L_assert "L_argparse: kv option may not contain a space: $1" ! L_glob_match "$_L_opt" "* *"
 				L_assert "L_argparse: invalid kv option: $_L_opt" L_args_contain "$_L_opt" "${_L_allowed[@]}"
 				_L_optspec[$_L_opt]=${1#*=}
 				;;
 			*' '*)
-				_L_argparse_split_help_check "$1"
+				_L_argparse_split_not_parsersettings "$1"
 				L_fatal "L_argparse _L_optspec: argument may not contain space: %q" "$1"
 				;;
 			[-+][-+]?*)
-				_L_argparse_split_help_check "$1"
-				_L_options+=("$1")
-				_L_optspec[options]+=" $1 "
-				: "${_L_optspec[dest]:=${1##[-+][-+]}}"
-				: "${_L_optspec[mainoption]:=$1}"
-				# If dest is set to short option, prefer long option.
-				if ((${#_L_optspec[dest]} <= 1)); then
-					_L_optspec[dest]=${1##[-+][-+]}
-					_L_optspec[mainoption]=$1
-				fi
+				_L_argparse_split_not_parsersettings "$1"
+				_L_long_options+=("$1")
+				_L_optspec[is_option]=1
 				;;
 			[-+]?*)
-				_L_argparse_split_help_check "$1"
-				_L_options+=("$1")
-				_L_optspec[options]+=" $1 "
-				: "${_L_optspec[dest]:=${1#[-+]}}"
-				: "${_L_optspec[mainoption]:=$1}"
+				_L_argparse_split_not_parsersettings "$1"
+				_L_short_options+=("$1")
+				_L_optspec[is_option]=1
 				;;
 			*)
-				if L_is_valid_variable_name "$1"; then
-					_L_optspec[dest]=$1
+				if ((_L_is_parsersettings)); then
+					local _L_tmp
+					printf -v _L_tmp "%q" "$1"
+					_L_optspec[names]+=" $_L_tmp "
 				else
-					L_fatal "L_argparse: unrecognized argument: %q" "$1"
+					if L_is_valid_variable_name "$1"; then
+						_L_optspec[dest]=$1
+					else
+						L_fatal "L_argparse: unrecognized argument: %q" "$1"
+					fi
 				fi
 				;;
 			esac
-			((_L_used_args=_L_used_args+1))
+			((++_L_used_args))
 			shift
 		done
 	}
 	# apply defaults and everything else
-	if ((_L_is_mainsettings)); then
-		# _L_mainsettings
+	if ((_L_is_parsersettings)); then
+		# _L_parsersettings
 		{
 			# validate Adest
-			local _L_Adest=${_L_mainsettings[Adest]:-}
+			local _L_Adest=${_L_parsersettings[Adest]:-}
 			if [[ -n "$_L_Adest" ]]; then
-				L_assert "L_argparse _L_mainsettings: is not an associative array: Adest=$_L_Adest" \
-					 L_var_is_associative "$_L_Adest"
+				L_assert "L_argparse _L_parsersettings: is not a valid variable name: Adest=$_L_Adest" \
+					 L_is_valid_variable_name "$_L_Adest"
 			fi
 		}
 	else
 		# options and arguments
+		if ((_L_optspec[is_option])) ;then
+			local IFS=' ' _L_options=(${_L_long_options:+"${_L_long_options[@]}"} ${_L_short_options:+"${_L_short_options[@]}"})
+			_L_optspec[options]=${_L_options[*]}
+			# Infer dest from mainoption
+			: "${_L_optspec[mainoption]:=${_L_long_options[0]:-${_L_short_options[0]}}}" \
+				"${_L_optspec[dest]:=${_L_long_options[0]:+${_L_optspec[mainoption]##[-+][-+]}}}" \
+				"${_L_optspec[dest]:=${_L_short_options[0]:+${_L_optspec[mainoption]##[-+]}}}"
+		fi
 		{
 			# set type
 			local _L_type=${_L_optspec[type]:-}
@@ -4164,20 +4164,26 @@ _L_argparse_split() {
 			count) ;;
 			eval:*) ;;
 			remainder)
-				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" test "${#_L_options[@]}" -eq 0
+				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" \
+					test "${#_L_options[@]}" -eq 0
 				: "${_L_optspec[nargs]=*}"
 				;;
 			subparser)
-				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" test "${#_L_options[@]}" -eq 0
+				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" \
+					test "${#_L_options[@]}" -eq 0
+				L_assert "only one subparser option is possible" ! L_var_is_set '_L_parsersettings[subparsers]'
+				_L_parsersettings[subparsers]=""
 				: "${_L_optspec[nargs]=+}"
 				;;
 			func:*)
-				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" test "${#_L_options[@]}" -eq 0
+				L_assert "action=${_L_optspec[action]} can be used with positional args only: $(declare -p _L_optspec)" \
+					test "${#_L_options[@]}" -eq 0
+				L_assert "only one subparser option is possible" ! L_var_is_set '_L_parsersettings[subparsers]'
 				: "${_L_optspec[nargs]=+}"
 				# Get the sub-functions parsers definitions.
 				# This is super unsafe and the data are later eval-ed.
-				local L_v _L_subparserstr _L_glob _L_name _L_prefix _L_func
-				local -A _L_subparser=() _L_submainsettings=()
+				local L_v _L_subparserstr _L_glob _L_prefix _L_func
+				local -A _L_subparser=() _L_subparsersettings=()
 				_L_prefix="${_L_optspec[action]#func:}"
 				L_list_functions_with_prefix_v "$_L_prefix"
 				for _L_func in "${L_v[@]}"; do
@@ -4186,16 +4192,18 @@ _L_argparse_split() {
 					if _L_subparserstr=$("$_L_func" --L_argparse_dump_parser); then :; else
 						L_fatal "Calling %s --L_argparse_dump_parser exited with $?!" "$_L_func"
 					fi
+					# Remove UUIDs from the output.
 					L_assert "Calling $_L_func --L_argparse_dump_parser is not correct!" \
 						L_glob_match "$_L_subparserstr" "${L_UUID}declare -A*(*)*${L_UUID}"
 					_L_subparserstr=${_L_subparserstr#$L_UUID}
 					_L_subparserstr=${_L_subparserstr%$L_UUID}
+					# Extract "dest" from subparser.
 					L_asa_load _L_subparser = _L_subparserstr
-					L_asa_load _L_submainsettings = "_L_subparser[0]"
-					_L_name=${_L_submainsettings[dest]:=${_L_func#$_L_prefix}}
-					L_asa_dump "_L_subparser[0]" = _L_submainsettings
-					L_asa_dump "_L_subparser[parent]" = _L_parser
-					L_asa_dump "_L_parser[subparser_${_L_name}]" = _L_subparser
+					L_asa_load _L_subparsersettings = "_L_subparser[0]"
+					local _L_names="(${_L_subparsersettings[names]:=${_L_func#$_L_prefix}})"
+					L_asa_dump "_L_subparser[0]" = _L_subparsersettings
+					L_asa_dump _L_subparserstr = _L_subparser
+					_L_argparse_add_subparser "$_L_subparserstr" "${_L_names[@]}"
 				done
 				;;
 			*)
@@ -4210,10 +4218,10 @@ _L_argparse_split() {
 				;;
 			'*'|'+'|[2-9]|[1-9]*)
 				_L_optspec[isarray]=1
-				: "${_L_optspec[action]=append}"
+				: "${_L_optspec[action]:=append}"
 				;;
 			*)
-				L_assert "nargs option is wrong: $(declare -p _L_optspec)" test "${_L_optspec[nargs]}" -ge 0
+				L_assert "nargs=${_L_optspec[nargs]} is wrong: $(declare -p _L_optspec)" test "${_L_optspec[nargs]}" -ge 0
 				if ((_L_optspec[nargs] > 1)); then
 					_L_optspec[isarray]=1
 				fi
@@ -4223,17 +4231,17 @@ _L_argparse_split() {
 		}
 		{
 			# validate dest
-			L_assert "$(declare -p _L_optspec)" L_var_is_set _L_optspec[dest]
+			L_assert "dest= is required for options like $(declare -p _L_optspec)" L_var_is_set _L_optspec[dest]
 			# infer metavar from dest
 			: "${_L_optspec[metavar]:=${_L_optspec[dest]}}"
-			if [[ -n "${_L_mainsettings[Adest]:-}" ]]; then
-				# When Adest if given in mainsettings, the result is assigned to associative array.
-				_L_optspec[dest]="${_L_mainsettings[Adest]}[${_L_optspec[dest]}]"
+			if [[ -n "${_L_parsersettings[Adest]:-}" ]]; then
+				# When Adest if given in parsersettings, the result is assigned to associative array.
+				_L_optspec[dest]="${_L_parsersettings[Adest]}[${_L_optspec[dest]}]"
 			else
-				L_assert "is not a valid variable name: dest=${_L_optspec[dest]} $(declare -p _L_optspec)" \
-					L_is_valid_variable_name "${_L_optspec[dest]}"
 				# Convert - to _
 				_L_optspec[dest]=${_L_optspec[dest]//[#@%!~^-]/_}
+				L_assert "is not a valid variable name: dest=${_L_optspec[dest]} $(declare -p _L_optspec)" \
+					L_is_valid_variable_name "${_L_optspec[dest]}"
 			fi
 		}
 		{
@@ -4246,8 +4254,8 @@ _L_argparse_split() {
 	fi
 	{
 		# assign result
-		if ((_L_is_mainsettings)); then
-			# _L_mainsettings
+		if ((_L_is_parsersettings)); then
+			# _L_parsersettings
 			L_asa_dump "_L_parser[0]" = _L_optspec
 		elif ((${#_L_options[@]} != 0)); then
 			# option argument
@@ -4257,6 +4265,7 @@ _L_argparse_split() {
 			#
 			local _L_i
 			for _L_i in "${_L_options[@]}"; do
+				L_assert "conflicting option: $_L_i" ! L_asa_has _L_parser "$_L_i"
 				_L_parser[$_L_i]=${_L_parser[option${#_L_parser[option_cnt]}]}
 			done
 		else
@@ -4283,7 +4292,7 @@ _L_argparse_parser_get_short_option() {
 _L_argparse_parser_get_long_option() {
 	if L_asa_has _L_parser "$2"; then
 		L_asa_load "$1" = "_L_parser[$2]"
-	elif L_is_true "${_L_mainsettings[allow_abbrev]:-true}"; then
+	elif L_is_true "${_L_parsersettings[allow_abbrev]:-true}"; then
 		local IFS=$'\n' _L_abbrev_matches
 		_L_abbrev_matches=$(compgen -W "${!_L_parser[*]}" -- "$2")
 		IFS=$'\n' read -r -d '' -a _L_abbrev_matches <<<"$_L_abbrev_matches"
@@ -4412,7 +4421,7 @@ _L_argparse_optspec_execute_action() {
 	case ${_L_optspec[action]} in
 	store)
 		if ((_L_optspec[isarray])); then
-			if [[ -n "${_L_optspec[options]:-}" ]]; then
+			if ((_L_optspec[is_option])); then
 				# positional arguments are cleared in the parsing loop
 				_L_argparse_optspec_dest_clear
 			fi
@@ -4829,7 +4838,7 @@ _L_argparse_parse_args_short_option() {
 # @description Parse the arguments with the given parser.
 # @arg $@ arguments
 # @env _L_parser
-# @env _L_mainsettings
+# @env _L_parsersettings
 _L_argparse_parse_args() {
 	{
 		# Handle internal arguments, ex. bash completion
@@ -4957,39 +4966,47 @@ _L_argparse_parse_args() {
 			L_argparse_fatal "unrecognized command: ${_L_subparse[0]}" || return 1
 			return 1
 		fi
+		L_asa_dump "_L_parserchain[${#_L_parserchain[@]}]" = _L_parser
 		L_asa_load _L_parser = "_L_parser[subparser_${_L_subparse[0]}]"
-		# L_asa_load _L_mainsettings = "_L_parser[0]"
+		L_asa_load _L_parsersettings = "_L_parser[0]"
 		_L_argparse_parse_args "${_L_subparse[@]:1}"
 	fi
 }
 
+# @arg $1 <str> serialized subparser
+# @arg $@ <str> subparser name
+_L_argparse_add_subparser() {
+	_L_parser[subparsers]+="$1"$'\n'
+	L_assert "conflicting subparser: $1" ! L_asa_has _L_parser "subparser_$1"
+	_L_parser[subparser_$1]=$2
+}
+
+
 # @description Parse command line aruments according to specification.
 # This command takes groups of command line arguments separated by `--`  with sentinel `----` .
-# The first group of arguments are arguments _L_mainsettings.
+# The first group of arguments are arguments _L_parsersettings.
 # The next group of arguments are arguments _L_optspec.
 # The last group of arguments are command line arguments passed to `_L_argparse_parse_args`.
 # Note: the last separator `----` is different to make it more clear and restrict parsing better.
 # @require associative arrays, i.e. Bash4.0. I could make it work with Bash3.2.
 L_argparse() {
-	local -A _L_parser=() _L_mainsettings=()
-	local _L_args=() _L_save=()
+	local -A _L_parser=() _L_parsersettings=()
+	local _L_parserchain=() _L_args=() _L_save=()
 	while (($#)); do
 		case "$1" in
 		'{')
 			L_asa_dump "_L_save[${#_L_save[@]}]" = _L_parser
-			_L_parser=()
+			_L_parser=() _L_parsersettings=()
 			# echo "Stored ${#_L_save[@]}: ${_L_save[*]}" >&2
 			;;
 		'}')
 			if ((${#_L_save[@]} == 0)); then L_fatal "unbalanced braces: %s" "$*"; fi
-			local _L_dest _L_tmp
-			_L_dest=${_L_mainsettings[dest]}
-			_L_parser[parent]=${_L_save[${#_L_save[@]}-1]}
-			L_asa_dump _L_tmp = _L_parser
+			local _L_subparserstr _L_names="(${_L_parsersettings[names]:?missing name in subparser})"
+			L_asa_dump _L_subparserstr = _L_parser
 			L_asa_load _L_parser = "_L_save[${#_L_save[@]}-1]"
-			L_asa_load _L_mainsettings = "_L_parser[0]"
+			L_asa_load _L_parsersettings = "_L_parser[0]"
 			L_array_pop _L_save
-			_L_parser[subparser_${_L_dest}]=$_L_tmp
+			_L_argparse_add_subparser "$_L_subparserstr" "${_L_names[@]}"
 			;;
 		'----') break ;;
 		*)
@@ -4998,10 +5015,10 @@ L_argparse() {
 			_L_argparse_split "$@"
 			shift "$_L_used_args"
 			if ((${#_L_parser[@]} == 1)); then
-				# Extract mainsettings
-				L_asa_load _L_mainsettings = "_L_parser[0]"
+				# Extract parsersettings
+				L_asa_load _L_parsersettings = "_L_parser[0]"
 				# add -h --help
-				if L_is_true "${_L_mainsettings[add_help]:-true}"; then
+				if L_is_true "${_L_parsersettings[add_help]:-true}"; then
 					set -- -- -h --help \
 						help="show this help message and exit" \
 						action=eval:'L_argparse_print_help;exit 0' \
