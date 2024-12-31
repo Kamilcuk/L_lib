@@ -4,7 +4,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 	-- -f --file type=file help="do type=file" \
 	-- -d --dir type=dir help="do type=dir" \
 	-- -F --function complete=function help="do complete=function" \
-	-- -h --hostname complete=hostname help="do complete=hostname" \
+	-- -H --hostname complete=hostname help="do complete=hostname" \
 	-- -s --service complete=service help="do complete=service" \
 	-- -S --signal complete=signal help="do complete=signal" \
 	-- -U --user complete=user help="do complete=user" \

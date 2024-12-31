@@ -8,7 +8,7 @@ CMD_b() {
 export -f CMD_a CMD_b
 args=(
 	-- --foo action=store_true help='foo help' \
-	-- cmd action=func:CMD_ \
+	-- class=func prefix=CMD_ \
 	---- "$@"
 )
 echo "+ L_argparse ${args[*]@Q}"

@@ -7,7 +7,7 @@ The utility for command line argument parsing.
 * [Example](#example)
 * [Features](#features)
 * [Specification](#specification)
-  * [Main settings parameters](#main-settings-parameters)
+  * [parser settings parameters](#main-settings-parameters)
   * [argument parameters](#argument-parameters)
 * [Implementation documentation](#implementation-documentation)
   * [`_L_parser`](#_l_parser)
@@ -22,11 +22,11 @@ L_argparse \
   prog=ProgramName \
   description="What the program does" \
   epilog="Text at the bottom of help" \
-  -- filename \
+  -- filename help="this is a filename" \
   -- -c --count \
   -- -v --verbose action=store_1 \
   ---- -c 5 -v ./file1
-echo "$count $verbose $filename" # outputs: 5 1 ./file1
+echo "$count $verbose $filename"  # outputs: 5 1 ./file1
 ```
 
 # Features
@@ -41,26 +41,75 @@ echo "$count $verbose $filename" # outputs: 5 1 ./file1
 
 # Specification
 
-The `L_argparse` command takes multiple "chains" of command line arguments. Each chain is separated by `--`. The last chain ends with `----` and separates argument parsing specification from the actual command line arguments.
+```
+L_argparse <parsersettings> \
+  -- <add_argument> \
+  -- class=group <add_group> \
+  -- class=subparser <add_subparsers> \
+  { \
+    <subparsersettings> \
+    -- <add_argument> \
+  } \
+  { \
+    <subparsersettings> \
+    -- <add_argument> \
+  } \
+  -- class=func CMD_ <func_subparsers> \
+  ---- "$@"
+```
 
 ```
-L_argparse prog="PROG" description="This is the first chain of options" epilog="This is an epilog" \
-  -- --option action=store nargs=1 help="This is the second chain of options" \
-  ---- --option "These are the arguments to parse"
-echo "$option"  # outputs: These are the arguments to parse
+parserargs ::= "--" ( add_argument | group )* [ add_subparsers | func_subparsers ]
+"L_argparse" parserargs "----" "$@"
 ```
 
-Each chain is composed positional arguments like `-o` or `--option` and key-value arguments like `nargs="*"`.
+The `L_argparse` command takes multiple "chains" of command line arguments. Each chain is separated by `--` with sub-chains enclosed in `{` `}`. The last chain is terminated with `----` which separates argument parsing specification from the actual command line arguments.
 
-The first chain of arguments specifies the "main settings" of command line parsing arguments. The options are similar to python `argparse.ArgumentParser` options.
+```
+char = <any char except "=">
+dash = "-" | "+"
+short_option = dash char ( "/" dash char )? | "/" dash char
+long_option = dash dash char+ ( "/" dash dash char+ )? | "/" dash dash char
+positional_args ::= ( char+ | short_option | long_option )*
+keywords ::= ( "k=v" )*
+parameters ::= positional_args keywords
+```
 
-Then each next each chain of arguments attaches individual argument specifications to the parser. It defines how a single command-line argument should be parsed. This is similar to python `argparse.add_argument` function.
+Each chain is composed positional arguments like `arg`, `-o` or `--option` and separately keyword arguments like `nargs="*"`, which are differentiated with the `=` sign. There are several "types" of chains which receive different positional arguments and keyword arguments.
 
-See https://docs.python.org/3/library/argparse.html .
+```
+parsersettings ::= parameters
+```
+
+The first chain of arguments specifies the global `parsersettings` of the command line. The options are similar to python `argparse.ArgumentParser` options.
+
+```
+add_argument ::= parameters
+```
+
+Then next `add_argument` chains of arguments attaches individual argument specifications to the parser. It defines how a single command-line argument should be parsed. This is similar to python `argparse.add_argument` function.
+
+```
+add_group ::= "class=group" parameters
+```
+
+The `add_group` chain adds a group for the command line parsing, that arguments can join with `group=`. Group has to be specified before the arguments. The types of chain is determinates by the `action` parameter.
+
+```
+add_subparsers ::= "class=subparser" parameters ( "{" parsersettings ( parserargs ) "}" )+
+```
+
+The `add_subparsers` group allows for adding sub-parsers. Each sub-parser definition starts with `{` and ends with `}` and may contain separate arguments, groups and nested sub-parsers. Multiple sub-parsers are specified by separate `{` `}`.
+
+```
+func_subparsers ::= "class=func" parameters
+```
+
+Alternatively for `add_subparsers` you can specify `func_subparsers`. This causes to get the sub-parsers definitions by running all functions that start with the specified `<prefix>` with one argument `--L_argparse_dump_parser`. These parser dumps are then used as sub-parsers. Functions are executed in sub-shells.
 
 ## Reserved options
 
-Options starting what `--L_argparse_` are reserved for internal use.
+The prefix `--L_argparse_` of the first command line argument for parser is reserved for internal use. There are the following internal options:
 
 - `--L_argparse_get_completion` - output completion stream for given arguments
 - `--L_argparse_complete_bash` - print Bash completion script and exit
@@ -71,23 +120,22 @@ Options starting what `--L_argparse_` are reserved for internal use.
 - `--L_argparse_print_help` - print help and exit
 - `--L_argparse_dump_parser` - serialize the parser to stdout surrounded by UUIDs and exit
 
-## Main settings parameters
+## `parsersettings` parameters:
 
-Main settings take only the following key-value arguments:
-
-- name or `dest` - The name of the subparser. Relevant with an option with `action=subparser` or `action=func:*`.
-- `prog` - The name of the program (default: `${0##*/}`)
-- `usage` - The string describing the program usage (default: generated from arguments added to parser).
+- `prog=` - The name of the program (default: `${0##*/}`)
+- `usage=` - The string describing the program usage (default: generated from arguments added to parser).
   - The string `%(prog)s` is __not__ replaced by the program name in usage messages.
-- `description` - Text to display before the argument help (by default, no text)
-- `epilog` - Text to display after the argument help (by default, no text)
-- `add_help` - Add a -h/--help option to the parser (default: True)
-- `allow_abbrev` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: True)
-- `Adest` - Store all values as keys into this associated dictionary.
+- `description=` - Text to display before the argument help (by default, no text)
+- `epilog=` - Text to display after the argument help (by default, no text)
+- `add_help=` - Add a -h/--help option to the parser (default: 1)
+- `allow_abbrev=` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: 1)
+- `Adest=` - Store all values as keys into this associated dictionary.
   If the result is an array, it is properly quoted and can be deserialized with `declare -a var="(${Adest[key]})"`.
-- `show_default` - default value of `show_default` property of all options. Example `show_default=1`.
+- `show_default=` - default value of `show_default` property of all options. Example `show_default=1`.
+- `name=` - The name of the parser. Only relevant when used as a sub-parser.
+- `aliases=` - Serialized array of strings with the aliases of the command. Only relevant when used as a sub-parser.
 
-## argument parameters
+## `add_argument` options:
 
 - name or flags - Either a name or a list of option strings, e.g. 'foo' or '-f', '--foo'.
   - see https://docs.python.org/3/library/argparse.html#name-or-flags
@@ -105,14 +153,13 @@ Main settings take only the following key-value arguments:
   - `count` - every time option is used, `dest` is incremented, starting from if unset
   - `eval:<expr>` - evaluate the string after `eval:` whenever option is set.
   - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
-  - `subparser` - (TODO) Parse the next command line arguments with separate sub-parser with separate parser chains inside `{` `}` tokens.
-  - `func:<prefix>` - (TODO) The functions with prefix contain another `L_argparse` call.
+  - `help` - Print help and exit with 0. Equal to `action=eval:'L_argparse_print_help;exit 0'`.
 - `nargs` - The number of command-line arguments that should be consumed.
   - `1`. Argument from the command line will be assigned to variable `dest`.
   - `N` (an integer). `N` arguments from the command line will be gathered together into a array.
   - `?`. One argument will be consumed from the command line if possible.
   - `*`. All command-line arguments present are gathered into a list.
-  - `+`. Just like `*`, all command-line `args` present are gathered into a list. Additionally, an error message will be generated if there was not at least one command-line argument present.
+  - `+`. Just like `*`, all command-line arguments present are gathered into a list. Additionally, an error message will be generated if there was not at least one command-line argument present.
 - `const` - the value to store into `dest` depending on `action`
 - `default` - store this default value into `dest`
   - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`.
@@ -128,7 +175,7 @@ Main settings take only the following key-value arguments:
   - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
   - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
 - `choices` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_optspec[choices]})"`. Example: `choices="a b c 'with space'"`
-- `required` - Whether or not the command-line option may be omitted (optionals only).
+- `required` - Whether or not the command-line option may be omitted (optionals only). Example `required=1`.
 - `help` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar` - A name for the argument in usage messages.
 - `dest` - The name of the variable variable that is assigned as the result of the option. Default: argument name or first long option without dashes or first short option.
@@ -163,33 +210,48 @@ Main settings take only the following key-value arguments:
   - Example: `validate='grep -q "(a|b)" <<<"$1"`
   - Example: `validate_my_arg() { echo "Checking is $1 of type ${_L_optspec[type]} is correct... it is not!"; return 1; }; ... validate='validate_my_arg "$1"'`
 
+## `add_subparsers` options:
+
 # Implementation documentation
+
+Internal associative array keys start with `_`.
 
 ## `_L_parser`
 
-An associative array mostly of values that are serialized associative arrays. The array exists to achieve the following goals:
-- extract the mainsettings of the argparse
-- iterate over all --options optspec
-- find an --option or -o
-- iterate over all arguments optspec
+`_L_parser` is an associative array that allows to:
+- access the parser settings
+- find an long --option
+- find an short option -o
+- find an sub-parser with name
+- iterate over all options
+- iterate over all arguments
+- iterate over all sub-parsers
+- iterate over all option groups
+- iterate over all options with in a group
 
-The array contains the following keys:
-- `0` - for the main settings of the option
-- `-o` or `--options` - the optspec of a particular option for fast lookup
-- `optionN` where N is a non-negative integer - the optspec of option number `N`
-- `argN` where N is a non-negative integer - the optspec of argument number `N`
-- `option_cnt` and `arg_cnt` - store count characters as many there are options or arguments 
+`_L_parser` contains the following keys:
+- all keys of parser settings
+- `_option_cnt` - string length is equal to the number of options
+- `_optionN` - where N is a non-negative integer - the `optspec` of option number `N`
+- `_arg_cnt` - string length is equal to the number of arguments
+- `_argN` - where N is a non-negative integer - the `optspec` of argument number `N`
+- `_subparsers` - Serialized array of available sub-parsers
+- `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
+- `-o` or `--option` - the `optspec` of the particular option for fast lookup
 
-An associative array variable `_L_mainsettings` is used to store main settings.
+## `_L_optspec`
 
-An associative array `_L_optspec` is used to store argument specification.
+`_L_optspec` is an associative array used to store options and arguments specifications.
 Additional keys set internally in `_L_optspec` when parsing arguments:
 
-- `options` - space separated list of short and long options
-- `index` - index of the `optspec` into an array, used to uniquely identify the option
-- `isarray` - if `dest` is assigned an array, 0 or 1
-- `mainoption` - used in error messages to signify which option is the main one
+- `_options` - Space separated list of short and long options. Used to detect if this is an option or argument.
+- `_index` - Key in `_L_parser`. Used to uniquely identify the option.
+- `_isarray` - Should the `dest` variable be assigned as an array? Holds 1 or missing.
+- `_mainoption` - Used in error messages to signify which option is the main one.
+
+## `_L_groupspec`
 
 # Reason it exists
 
 I did not like argbash that requires some code generation. There should be no generation required. It is just a function that executes.
+

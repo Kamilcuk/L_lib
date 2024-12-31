@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 args=(
 	-- --foo action=store_true help='foo help' \
-	-- cmd action=subparser \
+	-- class=subparser \
 	{ \
 		a description='a help' \
 		-- bar type=int help='bar help' \
