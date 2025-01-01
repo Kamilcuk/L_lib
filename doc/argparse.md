@@ -232,9 +232,9 @@ Internal associative array keys start with `_`.
 `_L_parser` contains the following keys:
 - all keys of parser settings
 - `_option_cnt` - string length is equal to the number of options
-- `_optionN` - where N is a non-negative integer - the `optspec` of option number `N`
+- `_option_N` - where N is a non-negative integer - the `optspec` of option number `N`
 - `_arg_cnt` - string length is equal to the number of arguments
-- `_argN` - where N is a non-negative integer - the `optspec` of argument number `N`
+- `_arg_N` - where N is a non-negative integer - the `optspec` of argument number `N`
 - `_subparsers` - Serialized array of available sub-parsers
 - `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
 - `-o` or `--option` - the `optspec` of the particular option for fast lookup
