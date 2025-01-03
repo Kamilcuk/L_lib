@@ -28,7 +28,7 @@ if test -z "${L_LIB_VERSION:-}"; then
 
 shopt -s extglob
 # @description version of the library
-L_LIB_VERSION=0.1.5
+L_LIB_VERSION=0.1.6
 # @description The basename part of $0
 L_NAME=${0##*/}
 # @description The directory part of $0
