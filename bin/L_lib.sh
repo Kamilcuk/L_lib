@@ -1337,46 +1337,391 @@ L_json_escape_v() {
 	L_v=\"$L_v\"
 }
 
-# @description WIP
-# @option -A <allowed> list of allowed keywords
-# @arg $1 args destination
-# @arg $2 kwargs destination
-# @arg $3 -- separator
-# @arg $@ arguments
-_L_kwargs_split() {
+# @see L_argskeywords
+_L_argskeywords_assert() {
+	if ! "${@:2}"; then
+		L_error -s 2 "%s" "${_L_errorprefix:+$_L_errorprefix }$1"
+		if ((_L_errorexit)); then
+			exit 2
+		else
+			return 2
+		fi
+	fi
+}
+
+# @arg $1 variable
+# @arg $2 value
+# @see L_argskeywords
+_L_argskeywords_assign() {
+	if [[ -n "$_L_asa" ]]; then
+		if ((_L_use_map)); then
+			L_map_set "$_L_asa" "$1" "$2"
+		else
+			L_asa_set "$_L_asa" "$1" "$2"
+		fi
+	else
+		printf -v "$1" "%s" "$2"
+	fi
+}
+
+# @description Parse python-like positional and keyword arguments format.
+# The difference to python is that `@` is used instead of `*`, becuase `*` triggers filename expansion.
+# An argument `--` signifies end of arguments definition and start of arguments to parse.
+# @see https://docs.python.org/3/reference/compound_stmts.html#function-definitions
+# @see https://realpython.com/python-asterisk-and-slash-special-parameters/
+# @option -A <var> Instead of storing in variables, store values in specified associative array with varaibles as key.
+# @option -M Use L_map instead of associative array, for @@kwargs and -A option. Usefull for older Bash.
+# @option -E Exit on error
+# @option -e <str> Prefix error messages with this prefix. Default: "${FUNCNAME[1]}:L_argskeywords:"
+# @arg $@ Python arguments format specification
+# @arg $2 <str> --
+# @arg $@ Arguments to parse
+# @example
+#   range() {
+#		local start stop step
+#       L_argskeywords start stop step=1 -- "$@" || return 2
+#       for ((; start < stop; start += stop)); do echo "$start"; done
+#   }
+#   range start=1 stop=6 step=2
+#   range 1 6
+#
+#   max() {
+#		local arg1 arg2 args key
+#		L_argskeywords arg1 arg2 @args key='' -- "$@" || return 2
+#		...
+#	}
+#	max 1 2 3 4
+#
+#	int() {
+#		local string base
+#		L_argskeywords string / base=10 -- "$@" || return 2
+#		...
+#	}
+#	int 10 7 # error
+#	int 10 base=7
+L_argskeywords() {
 	{
-		# parse args
-		local OPTIND OPTARG _L_opt _L_opt_allowed=()
-		while getopts A: _L_opt; do
-			case $_L_opt in
-				A) declare -a _L_opt_allowed=("$OPTARG"); ;;
-				*) L_fatal "unhandled argument: $_L_opt"; ;;
+		# parse arguments
+		local OPTARG OPTIND OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]}:${FUNCNAME[0]}:" _L_asa="" _L_use_map=0
+		while getopts A:MEe: _L_i; do
+			case $_L_i in
+			A) _L_asa=$OPTARG ;;
+			M) _L_use_map=1 ;;
+			E) _L_errorexit=1 ;;
+			e) _L_errorprefix=$OPTARG ;;
+			*) _L_argskeywords_assert "Invalid option: -$_L_opt" false || return 2 ;;
 			esac
 		done
-		shift "$((OPTIND-1))"
-		if [[ $1 != _L_args ]]; then declare -n _L_args=$1; else declare -a _L_args=(); fi
-		if [[ $2 != _L_kwargs ]]; then declare -n _L_kwargs=$2; else declare -A _L_kwargs=(); fi
-		L_assert '3rd argument has to be --' test "$3" = '--'
-		shift 3
+		shift $((OPTIND-1))
 	}
 	{
-		# parse args
+		# parse arguments specification
+		# _L_arguments - stores the names of the arguments
+		# _L_positional_cnt - the number of positional allowed arguments
+		# _L_nonkeyword_cnt - the number of only-positional arguments
+		local _L_arguments=() _L_positional_cnt="" _L_nonkeyword_cnt="" _L_seen_star=0 _L_seen_slash=0 _L_excess_positional="" _L_excess_keyword="" _L_isset=() IFS=' '
 		while (($#)); do
 			case "$1" in
-			-*) _L_args+=("$1") ;;
-			*' '*=*) L_fatal "kw option may not contain a space" ;;
-			*=*)
-				local _L_opt
-				_L_opt=${1%%=*}
-				if [[ $_L_opt_allowed ]]; then
-					L_assert "invalid kw option: $_L_opt" L_args_contain "$_L_opt" "${_L_opt_allowed[@]}"
-				fi
-				_L_kwargs["$_L_opt"]=${1#*=}
+			--) break ;;
+			@) # <positional or keyword> * <keyword only>
+				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return 2
+				_L_argskeywords_assert 'named arguments must follow bare @' test "${2:-}" != "--" || return 2
+				_L_positional_cnt=${#_L_arguments[@]}
+				_L_seen_star=1
 				;;
-			*) _L_args+=("$1") ;;
+			/) # <positional only> / <positional or keyword>
+				_L_argskeywords_assert '/ may appear only once' test "$_L_seen_slash" = 0 || return 2
+				_L_argskeywords_assert '/ must be ahead of @' test "$_L_seen_star" = 0 || return 2
+				_L_nonkeyword_cnt=${#_L_arguments[@]}
+				_L_seen_slash=1
+				;;
+			@@*)
+				_L_argskeywords_assert "${1#@@} is not a valid variable name" L_is_valid_variable_name "${1#@@}" || return 2
+				_L_argskeywords_assert "arguments cannot follow var-keyword argument: ${2:-}" test "${2:-}" == "--" || return 2
+				_L_excess_keyword="${1#@@}"
+				if ((_L_use_map)); then
+					L_map_init "$_L_excess_keyword"
+				else
+					_L_argskeywords_assert "$1 must be an associative array" L_var_is_associative "$_L_excess_keyword" || return 2
+					eval "$_L_excess_keyword=()"
+				fi
+				;;
+			@*)
+				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return 2
+				_L_excess_positional="${1#@}"
+				_L_argskeywords_assert "${_L_excess_positional} is not a valid variable name" L_is_valid_variable_name "${_L_excess_positional}" || return 2
+				_L_seen_star=1
+				_L_positional_cnt=${#_L_arguments[@]}
+				eval "$_L_excess_positional=()"
+				;;
+			*=*)
+				_L_argskeywords_assert "${1##=*} is not a valid variable name" L_is_valid_variable_name "${1%%=*}" || return 2
+				_L_argskeywords_assert "duplicate argument ${1##=*}" L_not L_args_contain "${1%%=*}" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return 2
+				_L_argskeywords_assign "${1%%=*}" "${1#*=}"
+				_L_isset[${#_L_arguments[@]}]=1
+				_L_arguments+=("${1%%=*}")
+				;;
+			*)
+				_L_argskeywords_assert "parameter without a default follows parameter with a default: $1" test "${#_L_isset[@]}" -eq 0 || return 2
+				_L_argskeywords_assert "$1 is not a valid variable name" L_is_valid_variable_name "$1" || return 2
+				_L_argskeywords_assert "duplicate argument $1" L_not L_args_contain "$1" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return 2
+				_L_arguments+=("$1")
+				;;
 			esac
 			shift
 		done
+		_L_argskeywords_assert '"--" separator argument is missing' test "${1:-}" = "--" || return 2
+		shift
+		: "${_L_positional_cnt:=${#_L_arguments[@]}}" "${_L_nonkeyword_cnt:=0}"
+	}
+	{
+		# local -; set -x
+		# parse args and assign to variables like python would
+		local _L_seen_equal=0 _L_positional_idx=0
+		while (($#)); do
+			if [[ "$1" == *=* ]]; then
+				_L_seen_equal=1
+				local _L_key=${1%%=*} _L_value=${1#*=} _L_i
+				for _L_i in ${_L_arguments[@]:+"${!_L_arguments[@]}"}; do
+					if [[ "${_L_arguments[_L_i]}" == "$_L_key" ]]; then
+						if ((_L_nonkeyword_cnt <= _L_i)); then
+							_L_isset[_L_i]=1
+							_L_argskeywords_assign "${_L_arguments[_L_i]}" "$_L_value"
+							shift
+							continue 2
+						else
+							declare -p _L_nonkeyword_cnt _L_arguments _L_positional_cnt
+							_L_argskeywords_assert "got some positional only arguments passed as keyword arguments: $1" false || return 2
+						fi
+					fi
+				done
+				if [[ -n "$_L_excess_keyword" ]]; then
+					if ((_L_use_map)); then
+						L_map_set "$_L_excess_keyword" "${1%%=*}" "${1#*=}"
+					else
+						L_asa_set "$_L_excess_keyword" "${1%%=*}" "${1#*=}"
+					fi
+				else
+					_L_argskeywords_assert "got an unexpected keyword argument: $_L_key" false || return 2
+				fi
+			elif ((_L_seen_equal)); then
+				_L_argskeywords_assert "positional argument follows keyword argument: $1" false || return 2
+			elif ((_L_positional_idx < _L_positional_cnt)); then
+				_L_isset[_L_positional_idx]=1
+				_L_argskeywords_assign "${_L_arguments[_L_positional_idx++]}" "$1"
+			elif [[ -n "$_L_excess_positional" ]]; then
+				eval "$_L_excess_positional+=(\"\$1\")"
+			else
+				_L_argskeywords_assert "takes $_L_positional_cnt positional arguments but more were given: $1" false || return 2
+			fi
+			shift
+		done
+	}
+	{
+		# check all are set
+		if ((${#_L_isset[@]} != ${#_L_arguments[@]})); then
+			local positional_cnt=0 positional_str="" keyword_cnt=0 keyword_str=""
+			for _L_i in "${!_L_arguments[@]}"; do
+				if ((!_L_isset[_L_i])); then
+					if ((_L_i < _L_positional_cnt)); then
+						((++positional_cnt))
+						positional_str+=${positional_str:+ }${_L_arguments[_L_i]}
+					elif ((_L_nonkeyword_cnt < _L_i)); then
+						((++keyword_cnt))
+						keyword_str+=${keyword_str:+ }${_L_arguments[_L_i]}
+					fi
+				fi
+			done
+			_L_argskeywords_assert "missing $positional_cnt required positional arguments: $positional_str" test "$positional_cnt" -eq 0 || return 2
+			_L_argskeywords_assert "missing $keyword_cnt required keyword-only arguments: $keyword_str" test "$keyword_cnt" -eq 0 || return 2
+		fi
+	}
+}
+
+_L_test_argskeywords() {
+	{
+		local a b
+		L_unittest_cmd -r "missing 2 required positional arguments: a b" ! L_argskeywords a b --
+		L_unittest_cmd -r "missing 1 required positional arguments: b" ! L_argskeywords a b -- 1
+		L_unittest_cmd -c L_argskeywords a=1 b=2 --
+		L_unittest_eq "$a $b" "1 2"
+		L_unittest_cmd -c L_argskeywords a b=4 -- 3
+		L_unittest_eq "$a $b" "3 4"
+		L_unittest_cmd -r "missing 1 required positional arguments: a" ! L_argskeywords a b=2 --
+		L_unittest_cmd -r "parameter without a default follows parameter with a default" ! L_argskeywords b=2 c --
+		L_unittest_cmd -r "separator argument is missing" ! L_argskeywords a b
+		L_unittest_cmd -r "parameter without a default follows parameter with a default" ! L_argskeywords a=1 b --
+	}
+	{
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either @ keyword_only -- either=Frank keyword_only=Dean
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "Dean"
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either @ keyword_only -- Frank keyword_only=Dean
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "Dean"
+		#
+		L_unittest_cmd -c ! L_argskeywords either @ keyword_only -- Frank Dean
+		L_unittest_cmd -c ! L_argskeywords either @ keyword_only -- Frank
+	}
+	{
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either=def1 @ keyword_only=def2 -- either=Frank keyword_only=Dean
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "Dean"
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either=def1 @ keyword_only=def2 -- Frank keyword_only=Dean
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "Dean"
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either=def1 @ keyword_only=def2 -- Frank
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "def2"
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either=def1 @ keyword_only=def2 --
+		L_unittest_eq "$either" "def1"
+		L_unittest_eq "$keyword_only" "def2"
+		local either="" keyword_only=""
+		L_unittest_cmd -c L_argskeywords either=def1 @ keyword_only=def2 -- either=Frank
+		L_unittest_eq "$either" "Frank"
+		L_unittest_eq "$keyword_only" "def2"
+	}
+	{
+		local positional_only="" either=""
+		L_unittest_cmd -c L_argskeywords positional_only / either -- Frank either=Dean
+		L_unittest_eq "$positional_only" "Frank"
+		L_unittest_eq "$either" "Dean"
+		local positional_only="" either=""
+		L_unittest_cmd -c L_argskeywords positional_only / either -- Frank Dean
+		L_unittest_eq "$positional_only" "Frank"
+		L_unittest_eq "$either" "Dean"
+		#
+		L_unittest_cmd -c ! L_argskeywords positional_only / either -- positional_only=Frank either=Dean
+	}
+	{
+		local member1="" member2="" member3=""
+		L_unittest_cmd -c L_argskeywords @ member1 member2 member3 -- member1=Frank member2=Dean member3=Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Dean"
+		L_unittest_eq "$member3" "Sammy"
+		local member1="" member2="" member3=""
+		L_unittest_cmd -c L_argskeywords @ member1 member2 member3 -- member1=Frank member3=Dean member2=Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Sammy"
+		L_unittest_eq "$member3" "Dean"
+		#
+		L_unittest_cmd -c ! L_argskeywords @ member1 member2 member3 -- Frank Dean Sammy
+		L_unittest_cmd -c ! L_argskeywords @ member1 member2 member3 -- member1=Frank member2=Dean member3=Sammy member4=John
+		L_unittest_cmd -c ! L_argskeywords @ member1 member2 member3 -- Frank member3=Dean member2=Sammy
+	}
+	{
+		local member1="" member2="" member3=""
+		L_unittest_cmd -c L_argskeywords member1 member2 member3 / -- Frank Dean Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Dean"
+		L_unittest_eq "$member3" "Sammy"
+		#
+		L_unittest_cmd -c ! L_argskeywords member1 member2 member3 / -- member1=Frank member2=Dean member3=Sammy
+		L_unittest_cmd -c ! L_argskeywords member1 member2 member3 / -- Frank Dean Sammy John
+		L_unittest_cmd -c ! L_argskeywords member1 member2 member3 / -- member1=Frank member2=Dean member3=Sammy member4=John
+		L_unittest_cmd -c ! L_argskeywords member1 member2 member3 / -- Frank member3=Dean member2=Sammy
+	}
+	{
+		local member1="" member2="" member3="" args=()
+		L_unittest_cmd -c L_argskeywords member1 member2 @args member3 -- Frank member2=Dean member3=Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Dean"
+		L_unittest_eq "$member3" "Sammy"
+		L_unittest_arreq args
+		local member1="" member2="" member3="" args=()
+		L_unittest_cmd -c L_argskeywords member1 member2 @args member3 -- member1=Frank member2=Dean member3=Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Dean"
+		L_unittest_eq "$member3" "Sammy"
+		L_unittest_arreq args
+		#
+		L_unittest_cmd -c ! L_argskeywords member1 member2 @args member3 -- member1=Frank Dean member3=Sammy
+		#
+		local member1="" member2="" member3="" args=()
+		L_unittest_cmd -c L_argskeywords member1 member2 @args member3 -- Frank Dean Peter Joey member3=Sammy
+		L_unittest_eq "$member1" "Frank"
+		L_unittest_eq "$member2" "Dean"
+		L_unittest_eq "$member3" "Sammy"
+		L_unittest_arreq args Peter Joey
+	}
+	L_unittest_cmd -c ! L_argskeywords @ --
+	{
+		local member1="" member2="" member3="" member4=""
+		L_unittest_cmd -c L_argskeywords member1 member2 / member3 @ member4 -- Frank Dean member3=Sammy member4=Joey
+		L_unittest_eq "$member1 $member2 $member3 $member4" "Frank Dean Sammy Joey"
+		L_unittest_cmd -c ! L_argskeywords member1 member2 @ member3 / member4 -- Frank Dean member3=Sammy member4=Joey
+	}
+	{
+		L_unittest_cmd -c ! L_argskeywords member1 member2 @ / member3 -- Frank Dean member3=Sammy
+		L_unittest_cmd -c ! L_argskeywords member1 member2 / @ member3 -- Frank Dean Sammy
+		L_unittest_cmd -c ! L_argskeywords member1 member2 / @ member3 -- Frank member2=Dean member3=Sammy
+		L_unittest_cmd -c ! L_argskeywords member1 member2 / @ member3 --
+	}
+	L_unittest_cmd -c ! L_argskeywords member1 member2 @args @ --
+	L_unittest_cmd -c ! L_argskeywords member1 member2 @ @args --
+	{
+		local fn ln
+		L_unittest_cmd -c L_argskeywords fn ln / -- Frank Sinatra
+		L_unittest_eq "$fn $ln" "Frank Sinatra"
+		L_unittest_cmd -c ! L_argskeywords fn ln / -- fn=Frank ln=Sinatra
+	}
+	{
+		local args
+		L_unittest_cmd -c L_argskeywords @args -- 1 2 3
+		L_unittest_arreq args 1 2 3
+		local integers
+		L_unittest_cmd -c L_argskeywords @integers -- 1  2 3
+		L_unittest_arreq integers 1 2 3
+	}
+	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+		{
+			local -A kwargs=()
+			L_unittest_cmd -c L_argskeywords @@kwargs -- a=Real b=Python c=Is d=Great e="!"
+			L_unittest_eq "${kwargs[a]}" "Real"
+			L_unittest_eq "${kwargs[b]}" "Python"
+			L_unittest_eq "${kwargs[c]}" "Is"
+			L_unittest_eq "${kwargs[d]}" "Great"
+			L_unittest_eq "${kwargs[e]}" "!"
+		}
+		{
+			local a b args IFS=" "
+			local -A kwargs=()
+			L_unittest_cmd -c L_argskeywords a b @args @@kwargs -- 1 2 a b c c=3 d=4
+			L_unittest_eq "$a $b" "1 2"
+			L_unittest_arreq args a b c
+			L_unittest_eq "${kwargs[c]}" "3"
+			L_unittest_eq "${kwargs[d]}" "4"
+			L_unittest_cmd -c ! L_argskeywords a b @@kwargs @args --
+		}
+	fi
+	{
+		local map tmp
+		L_unittest_cmd -c L_argskeywords -M @@map -- a=Real b=Python c=Is d=Great e="!"
+		L_map_get -v tmp map a
+		L_unittest_eq "$tmp" "Real"
+		L_map_get -v tmp map b
+		L_unittest_eq "$tmp" "Python"
+		L_map_get -v tmp map c
+		L_unittest_eq "$tmp" "Is"
+		L_map_get -v tmp map d
+		L_unittest_eq "$tmp" "Great"
+		L_map_get -v tmp map e
+		L_unittest_eq "$tmp" "!"
+	}
+	{
+		local a b args map tmp
+		L_unittest_cmd -c L_argskeywords -M a b @args @@map -- 1 2 a b c c=3 d=4
+		L_unittest_eq "$a $b" "1 2"
+		L_unittest_arreq args a b c
+		L_map_items -v tmp map
+		L_unittest_arreq tmp c 3 d 4
+		L_unittest_cmd -c ! L_argskeywords a b @@map @args --
 	}
 }
 
@@ -2881,7 +3226,22 @@ L_asa() {
 	esac
 }
 
+
 if ((L_HAS_PRINTF_V_ARRAY)); then
+	# @description assign value to associative array
+	# You might think why this function exists?
+	# In case you have associative array name in a variable.
+	# @arg $1 <var> assoatiative array variable
+	# @arg $2 <str> key to assign to
+	# @arg $3 <str> value to assign
+	# @example
+	#    local -A map
+	#    printf -v "map[a]" "%s" val  # will fail in bash 4.0
+	#    L_asa_set map a val  # will work in bash4.0
+	L_asa_set() {
+		printf -v "${1}[$2]" "%s" "$3"
+	}
+
 	# @description Serialize an associative array to string.
 	# @arg $1 var destination variable nameref
 	# @arg $2 =
@@ -2898,6 +3258,9 @@ if ((L_HAS_PRINTF_V_ARRAY)); then
 		printf -v "$1" "%s" "$(declare -p "$3")"
 	}
 else
+	L_asa_set() {
+		eval "${1}[\$2]=\"\$3\""
+	}
 	L_asa_dump() {
 		L_assert "not an associative array: $3" L_var_is_associative "$3"
 		eval "$1=\$(declare -p \"\$3\")"
@@ -3205,7 +3568,7 @@ L_unittest_cmd() {
 	else
 		local _L_ux="" _L_uX=""
 	fi
-	local OPTARG OPTIND _L_uc _L_uopt_invert=0 _L_uopt_capture=1 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
+	local OPTARG OPTIND _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
 	while getopts ciIjxXv:r:o:e: _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_curenv=1 ;;
@@ -3363,7 +3726,7 @@ L_unittest_vareq() {
 # @arg $2 second string
 L_unittest_eq() {
 	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "" test $# = 2
+	L_assert "${FUNCNAME[0]} received invalid number of arguments" test $# = 2
 	if ! _L_unittest_internal "$(printf "%q == %q" "$1" "$2")" "" [ "$1" == "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -3457,6 +3820,12 @@ L_unittest_contains() {
 #    local var
 #    L_map_init var
 L_map_init() {
+	printf -v "$1" "%s" ""
+}
+
+# @description Clear a map
+# @arg $1 var variable name holding the map
+L_map_clear() {
 	printf -v "$1" "%s" ""
 }
 
