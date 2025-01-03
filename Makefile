@@ -112,6 +112,8 @@ doctest:
 	grep -qw _L_logconf_level public/index.md
 	grep -qw L_sort public/index.md
 	grep -qw L_log_level_to_int public/index.md
+	grep -qw L_asa_set public/index.md
+	grep -qw L_asa_dump public/index.md
 	ls -la public
 	test $$(find public -type f | wc -l) = 2
 docopen: doc
