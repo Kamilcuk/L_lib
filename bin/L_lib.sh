@@ -714,7 +714,7 @@ L_table() {
 			for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
 				_L_tmp=${_L_arr[100 * _L_row + _L_column]:-}
 				L_exit_to _L_last L_var_is_set "_L_arr[100 * _L_row + _L_column + 1]"
-				if L_args_contain_nonewline "$((_L_column+1))" ${_L_R[@]+"${_L_R[@]}"}; then
+				if L_args_contain "$((_L_column+1))" ${_L_R[@]+"${_L_R[@]}"}; then
 					L_printf_append "$_L_v" "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
 				else
 					if ((_L_last)); then
@@ -795,9 +795,9 @@ name1   name3
 #     $ L_parse_range_list -v tmp 100 '1-4 3-5'
 #     $ echo "${tmp[@]}"
 #     1 2 3 4 5
-#     $ if L_args_contain_nonewline 3 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
+#     $ if L_args_contain 3 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     yes
-#     $ if L_args_contain_nonewline 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
+#     $ if L_args_contain 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     no
 L_parse_range_list() { L_handle_v "$@"; }
 L_parse_range_list_v() {
@@ -1182,9 +1182,8 @@ L_sudo() {
 # @description check if array variable contains value
 # @arg $1 array nameref
 # @arg $2 needle
-L_arrayvar_contains() {
+L_array_contains() {
 	local _L_array="$1[@]"
-	L_assert "" test "$#" = 2
 	L_args_contain "$2" "${!_L_array}"
 }
 
@@ -1192,25 +1191,17 @@ L_arrayvar_contains() {
 # @arg $1 needle
 # @arg $@ heystack
 L_args_contain() {
-	local needle="$1"
-	shift
-	while (($#)); do
-		if [[ "$1" = "$needle" ]]; then
-			return
-		fi
-		shift
-	done
-	return 1
-}
-
-# @description check if arguments starting from second contain the first argument
-# Much faster than L_args_contain, but arguments may not contain newlines.
-# Usefull for checking for example array of numbers.
-# @arg $1 needle
-# @arg $@ heystack
-L_args_contain_nonewline() {
-	local IFS=$'\n'
-	[[ $'\n'"${*:2}"$'\n' == *$'\n'"$1"$'\n'* ]]
+	local IFS=$'\x1D' i
+	if [[ "${*//$IFS}" == "$*" ]]; then
+		[[ "$IFS${*:2}$IFS" == *"$IFS$1$IFS"* ]]
+	else
+		for i in "${@:2}"; do
+			if [[ "$i" == "$1" ]]; then
+				return 0
+			fi
+		done
+		return 1
+	fi
 }
 
 # @description get index number of argument equal to the first argument
