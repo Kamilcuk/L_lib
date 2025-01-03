@@ -1226,7 +1226,7 @@ L_args_index_v() {
 # @description Remove elements from array for which expression evaluates to failure.
 # @arg $1 array nameref
 # @arg $2 expression to `eval`uate with array element of index L_i and value $1
-L_arrayvar_filter_eval() {
+L_array_filter_eval() {
 	local L_i _L_array _L_expr _L_v
 	_L_v="$1[@]"
 	_L_array=(${!_L_v+"${!_L_v}"})
@@ -1237,7 +1237,7 @@ L_arrayvar_filter_eval() {
 			unset "_L_array[$L_i]"
 		fi
 	done
-	eval "${_L_v%%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
+	eval "${_L_v%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
 }
 
 # @description return max of arguments
@@ -1962,7 +1962,7 @@ _L_test_other() {
 	}
 	{
 		local arr=(1 2 3 4 5)
-		L_arrayvar_filter_eval arr '[[ $1 -ge 3 ]]'
+		L_array_filter_eval arr '[[ $1 -ge 3 ]]'
 		L_unittest_arreq arr 3 4 5
 	}
 	{
@@ -3228,35 +3228,35 @@ L_asa() {
 
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
-	# @description assign value to associative array
-	# You might think why this function exists?
-	# In case you have associative array name in a variable.
-	# @arg $1 <var> assoatiative array variable
-	# @arg $2 <str> key to assign to
-	# @arg $3 <str> value to assign
-	# @example
-	#    local -A map
-	#    printf -v "map[a]" "%s" val  # will fail in bash 4.0
-	#    L_asa_set map a val  # will work in bash4.0
-	L_asa_set() {
-		printf -v "${1}[$2]" "%s" "$3"
-	}
+# @description assign value to associative array
+# You might think why this function exists?
+# In case you have associative array name in a variable.
+# @arg $1 <var> assoatiative array variable
+# @arg $2 <str> key to assign to
+# @arg $3 <str> value to assign
+# @example
+#    local -A map
+#    printf -v "map[a]" "%s" val  # will fail in bash 4.0
+#    L_asa_set map a val  # will work in bash4.0
+L_asa_set() {
+	printf -v "${1}[$2]" "%s" "$3"
+}
 
-	# @description Serialize an associative array to string.
-	# @arg $1 var destination variable nameref
-	# @arg $2 =
-	# @arg $3 var associative array nameref to serialize
-	# @see L_asa_load
-	# @see L_asa_assign
-	# @example
-	#    declare -A map=([a]=b [c]=d)
-	#    L_asa_dump string = map
-	#    declare -A mapcopy=()
-	#    L_asa_load mapcopy = string
-	L_asa_dump() {
-		L_assert "not an associative array: $3" L_var_is_associative "$3"
-		printf -v "$1" "%s" "$(declare -p "$3")"
-	}
+# @description Serialize an associative array to string.
+# @arg $1 var destination variable nameref
+# @arg $2 =
+# @arg $3 var associative array nameref to serialize
+# @see L_asa_load
+# @see L_asa_assign
+# @example
+#    declare -A map=([a]=b [c]=d)
+#    L_asa_dump string = map
+#    declare -A mapcopy=()
+#    L_asa_load mapcopy = string
+L_asa_dump() {
+	L_assert "not an associative array: $3" L_var_is_associative "$3"
+	printf -v "$1" "%s" "$(declare -p "$3")"
+}
 else
 	L_asa_set() {
 		eval "${1}[\$2]=\"\$3\""
@@ -3268,32 +3268,32 @@ else
 fi
 
 if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-	# @description Extract associative array from string
-	# @arg $1 var associative array nameref to store
-	# @arg $2 =
-	# @arg $3 var source variable nameref
-	# @see L_asa_dump
-	# @see L_asa_copy
-	# @example
-	#    declare -A map=([a]=b [c]=d)
-	#    declare string=""
-	#    L_asa_dump string = map
-	#    declare -A mapcopy=()
-	#    L_asa_load mapcopy = string
-	L_asa_load() {
-		L_assert "not an associative array: $1" L_var_is_associative "$1"
-		# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-		L_assert "Source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_GLOB: $3=${!3:-}" \
-			L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_GLOB"
-		# This has to be eval - it expands to `var=([a]=b [c]=d)`
-		eval "$1=${!3#*=}"
-		# Is 1000 times faster, then the below, because L_asa_copy is slow.
-		# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
-		# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
-		# declare -A _L_tmpa="$_L_asa"
-		# _L_asa_to=()
-		# L_asa_copy _L_tmpa "$1"
-	}
+# @description Extract associative array from string
+# @arg $1 var associative array nameref to store
+# @arg $2 =
+# @arg $3 var source variable nameref
+# @see L_asa_dump
+# @see L_asa_copy
+# @example
+#    declare -A map=([a]=b [c]=d)
+#    declare string=""
+#    L_asa_dump string = map
+#    declare -A mapcopy=()
+#    L_asa_load mapcopy = string
+L_asa_load() {
+	L_assert "not an associative array: $1" L_var_is_associative "$1"
+	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
+	L_assert "Source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_GLOB: $3=${!3:-}" \
+		L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_GLOB"
+	# This has to be eval - it expands to `var=([a]=b [c]=d)`
+	eval "$1=${!3#*=}"
+	# Is 1000 times faster, then the below, because L_asa_copy is slow.
+	# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
+	# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
+	# declare -A _L_tmpa="$_L_asa"
+	# _L_asa_to=()
+	# L_asa_copy _L_tmpa "$1"
+}
 else
 	L_asa_load() {
 		L_assert "not an associative array: $1" L_var_is_associative "$1"
@@ -3465,7 +3465,7 @@ EOF
 			;;
 		r)
 			L_log "filtering tests with %q" "${OPTARG}"
-			L_arrayvar_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
+			L_array_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
 			;;
 		E)
 			L_unittest_exit_on_error=1
@@ -4446,6 +4446,7 @@ EOF
 # @env _L_split_long_options
 # @env _L_split_short_options
 _L_argparse_split_check_nooptions() {
+	${_L_split_args[@]:+ _L_argparse_split_fatal "positional arguments not allowed" }
 	${_L_split_long_options[@]:+ _L_argparse_split_fatal "long options not allowed" }
 	${_L_split_short_options[@]:+ _L_argparse_split_fatal "short options not allowed" }
 }
@@ -4508,6 +4509,31 @@ _L_argparse_split_class_parsersetings() {
 	}
 }
 
+
+# @description generate completion for subparsers names
+# @arg $1 incomplete
+# @env _L_optspec
+_L_argparse_subparser_complete() {
+	if ((${#_L_subargs[@]} == 0)); then
+		local -A _L_subparser=()
+		local _L_i _L_desc
+		for _L_i in "${!_L_parser[@]}"; do
+			if [[ "$_L_i" == "_subparser_$1"* ]]; then
+				L_asa_load _L_subparser = "_L_parser[$_L_i]"
+				_L_desc=${_L_subparser[description]:-}
+				_L_desc=${_L_desc//[$'\n\t']/ }
+				echo "plain$L_TAB${_L_i#_subparser_}$L_TAB$_L_desc"
+			fi
+		done
+	else
+		# find subparser
+		if L_asa_has _L_parser "_subparser_${_L_subargs[0]}"; then
+			L_asa_load _L_parser = "_L_parser[_subparser_${_L_subargs[0]}]"
+			_L_argparse_parse_args --L_argparse_get_completion "${_L_subargs[@]:1}" "$1"
+		fi
+	fi
+}
+
 # @env _L_split_args
 # @env _L_split_long_options
 # @env _L_split_short_options
@@ -4527,11 +4553,16 @@ _L_argparse_split_class_subparser() {
 	else
 		_L_optspec[nargs]="*"
 	fi
-	: "${_L_optspec[metavar]:=command}"
-	: "${_L_optspec[dest]:=_}"
+	: \
+		"${_L_optspec[metavar]:=command}" \
+		"${_L_optspec[dest]:=_}" \
+		"${_L_optspec[complete]:=_L_argparse_subparser_complete \"\$1\"}"
 	_L_optspec[action]=_subparser
 	_L_argparse_split_argument_common
 	#
+	if [[ "${1:-}" != "{" ]]; then
+		_L_argparse_split_fatal "Missing at least one subparser opening {"
+	fi
 	while [[ "${1:-}" == "{" ]]; do
 		local _L_save_parser
 		L_asa_dump _L_save_parser = _L_parser
@@ -4567,18 +4598,19 @@ _L_argparse_split_class_group() {
 		_L_argparse_split_fatal "nested groups are not allowed"
 	fi
 	_L_split_group=${_L_optspec[_index]}
-	while [[ "${1:-}" == "{" ]]; do
-		{
-			shift
-			local _L_split_used_args_save=$((_L_split_used_args += 2))
-			_L_argparse_split "$@"
-			shift "$((_L_split_used_args - _L_split_used_args_save))"
-			if [[ "${1:-}" != "}" ]]; then
-				_L_argparse_split_fatal "Missing closing }: $*"
-			fi
-			shift
-		}
-	done
+	{
+		if [[ "${1:-}" != "{" ]]; then
+			_L_argparse_split_fatal "Missing opening {"
+		fi
+		shift
+		local _L_split_used_args_save=$((_L_split_used_args += 2))
+		_L_argparse_split "$@"
+		shift "$((_L_split_used_args - _L_split_used_args_save))"
+		if [[ "${1:-}" != "}" ]]; then
+			_L_argparse_split_fatal "Missing closing }: $*"
+		fi
+		shift
+	}
 	_L_split_group=""
 }
 
@@ -4626,7 +4658,8 @@ _L_argparse_split_class_func() {
 	: \
 		"${_L_optspec[action]:=_subparser}" \
 		"${_L_optspec[dest]:=${_L_split_args[0]:-_}}" \
-		"${_L_optspec[metavar]:=${_L_split_args[0]:-command}}"
+		"${_L_optspec[metavar]:=${_L_split_args[0]:-command}}" \
+		"${_L_optspec[complete]:=_L_argparse_subparser_complete \"\$1\"}"
 	_L_argparse_split_argument_common
 }
 
@@ -4960,36 +4993,36 @@ _L_argparse_optspec_validate_values() {
 }
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
-	# @description store $1 in variable
-	# @arg $1 value to store
-	# @env _L_optspec
-	# @set ${_L_optspec[dest]}
-	_L_argparse_optspec_dest_store() {
-		printf -v "${_L_optspec[dest]}" "%s" "$@"
-	}
-	# @description clear the dest variable
-	# @env _L_optspec
-	# @set ${_L_optspec[dest]}
-	_L_argparse_optspec_dest_clear() {
-		if [[ "${_L_optspec[dest]}" == *"["*"]" ]]; then
-			printf -v "${_L_optspec[dest]}" "%s" ""
-		else
-			eval "${_L_optspec[dest]}=()"
-		fi
-	}
-	# @description append $@ to the variable
-	# @arg $@ values to store
-	# @env _L_optspec
-	# @set ${_L_optspec[dest]}
-	_L_argparse_optspec_dest_append() {
-		if [[ "${_L_optspec[dest]}" == *"["*"]" ]]; then
-			local _L_tmp
-			printf -v _L_tmp "%q " "$@"
-			printf -v "${_L_optspec[dest]}" "%s%s" "${!_L_optspec[dest]:-}" "$_L_tmp"
-		else
-			eval "${_L_optspec[dest]}+=(\"\$@\")"
-		fi
-	}
+# @description store $1 in variable
+# @arg $1 value to store
+# @env _L_optspec
+# @set ${_L_optspec[dest]}
+_L_argparse_optspec_dest_store() {
+	printf -v "${_L_optspec[dest]}" "%s" "$@"
+}
+# @description clear the dest variable
+# @env _L_optspec
+# @set ${_L_optspec[dest]}
+_L_argparse_optspec_dest_clear() {
+	if [[ "${_L_optspec[dest]}" == *"["*"]" ]]; then
+		printf -v "${_L_optspec[dest]}" "%s" ""
+	else
+		eval "${_L_optspec[dest]}=()"
+	fi
+}
+# @description append $@ to the variable
+# @arg $@ values to store
+# @env _L_optspec
+# @set ${_L_optspec[dest]}
+_L_argparse_optspec_dest_append() {
+	if [[ "${_L_optspec[dest]}" == *"["*"]" ]]; then
+		local _L_tmp
+		printf -v _L_tmp "%q " "$@"
+		printf -v "${_L_optspec[dest]}" "%s%s" "${!_L_optspec[dest]:-}" "$_L_tmp"
+	else
+		eval "${_L_optspec[dest]}+=(\"\$@\")"
+	fi
+}
 else
 	_L_argparse_optspec_dest_store() {
 		eval "${_L_optspec[dest]}=\$1"
@@ -5489,7 +5522,7 @@ _L_argparse_parse_args() {
 					fi
 					case "${_L_optspec[action]}" in
 					store) if ((_L_optspec[_isarray])); then _L_argparse_optspec_dest_clear; fi ;;
-					remainder|_subparser) _L_onlyargs=1 ;;
+					remainder|_subparser) _L_argparse_optspec_dest_clear; _L_onlyargs=1 ;;
 					esac
 				fi
 				_L_arg_assigned+=("$1")
@@ -6022,6 +6055,50 @@ _L_test_z_argparse4() {
 		L_unittest_cmd -r filenames -- L_argparse -- --asome -- dest complete=filenames nargs="?" ---- --L_argparse_get_completion -a b
 		L_unittest_cmd -r filenames -- L_argparse -- --asome -- dest complete=filenames nargs="?" ---- --L_argparse_get_completion --ignoreme b
 		L_unittest_cmd -I ! L_argparse -- --asome nargs="**"
+	}
+	{
+		L_argparse -- --foo action=store_true -- arg nargs="*" ---- a b c
+		L_unittest_eq "$foo" false
+		L_unittest_arreq arg a b c
+		L_argparse -- --foo action=store_true -- arg nargs="*" ---- --foo a b c
+		L_unittest_eq "$foo" true
+		L_unittest_arreq arg a b c
+	}
+}
+
+_L_test_z_argparse5() {
+	{
+		local foo bar baz cmd sub
+		cmd=(
+			L_argparse \
+			-- --foo action=store_true help='foo help' \
+			-- dest=sub class=subparser \
+			'{' \
+				name=aa description='a help' \
+				-- bar type=int help='bar help' \
+			'}' \
+			'{' \
+				name=bb description='b help' \
+				-- --baz choices='X Y Z' help='baz help' \
+			'}' \
+			----
+		)
+		L_unittest_cmd -c "${cmd[@]}" --foo aa 1
+		L_unittest_eq "$foo" true
+		L_unittest_eq "$bar" 1
+		L_unittest_arreq sub aa 1
+		L_unittest_cmd -c "${cmd[@]}" bb --baz X
+		L_unittest_arreq sub bb --baz X
+		L_unittest_eq "$baz" X
+		#
+		L_unittest_cmd -r "plain${L_TAB}aa${L_TAB}a help" \
+			"${cmd[@]}" --L_argparse_get_completion --foo a
+		L_unittest_cmd -r \
+			"plain${L_TAB}X.*plain${L_TAB}Y.*plain${L_TAB}Z" \
+			"${cmd[@]}" --L_argparse_get_completion bb --baz ''
+	}
+	{
+		L_unittest_cmd ! L_argparse -- dest=sub class=subparser ----
 	}
 }
 
