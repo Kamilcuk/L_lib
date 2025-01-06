@@ -235,6 +235,8 @@ Internal associative array keys start with `_`.
 - `_option_N` - where N is a non-negative integer - the `optspec` of option number `N`
 - `_arg_cnt` - string length is equal to the number of arguments
 - `_arg_N` - where N is a non-negative integer - the `optspec` of argument number `N`
+- `_group_cnt` - string length is equal to the number of groups
+- `_group_N` - where N is a non-negative integer - the `groupspec` of group number `N`
 - `_subparsers` - Serialized array of available sub-parsers
 - `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
 - `-o` or `--option` - the `optspec` of the particular option for fast lookup
