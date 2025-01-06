@@ -410,17 +410,12 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # Note: `[[` is a bash syntax sugar and is not a command.
 # As last resort, use `eval "[[ ${var@Q} = ${var@Q} ]]"` if you really want to use it,
 # Better prefer write and use wrapper functions, like `L_regex_match` or `L_glob_match`.
+# To invert the test use `L_not` which just executes `! "$@"`.
 # @arg $1 str assertiong string description
-# @arg $@ command to test, may start with `!`
+# @arg $@ command to test
 # @example L_assert 'wrong number of arguments' [ "$#" = 0 ]
 L_assert() {
-	if
-		if [[ "$2" == "!" ]]; then
-			"${@:3}"
-		else
-			! "${@:2}"
-		fi
-	then
+	if ! "${@:2}"; then
 		if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
 		L_print_traceback >&2
 		printf "%s: assertion (%s) failed%s\n" "$L_NAME" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
@@ -758,40 +753,59 @@ L_handle_v() {
 	local L_v=() _L_r=0
 	case "${1:-}" in
 	-v?*)
+		L_assert "not a valid identifier: ${1##-v}" L_is_valid_variable_name "${1##-v}"
 		if [[ "$2" == -- ]]; then
 			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
 		else
 			"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
 		fi
 		case ${#L_v[@]} in
-		0|1) eval "${1##-v}"'=${L_v:-}' ;;
+		0) if L_var_is_array "${1##-v}"; then eval "${1##-v}=()"; fi ;;
+		1) eval "${1##-v}"'=${L_v:-}' ;;
 		*) eval "${1##-v}"'=("${L_v[@]}")' ;;
 		esac
-		exit
 		;;
 	-v)
+		L_assert "not a valid identifier: $2" L_is_valid_variable_name "$2"
 		if [[ "$3" == -- ]]; then
 			"${FUNCNAME[1]}"_v "${@:4}" || _L_r=$?
 		else
 			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
 		fi
 		case ${#L_v[@]} in
-		0|1) eval "$2"'=${L_v:-}' ;;
+		0) if L_var_is_array "$2"; then eval "$2=()"; fi ;;
+		1) eval "$2"'=${L_v:-}' ;;
 		*) eval "$2"'=("${L_v[@]}")' ;;
 		esac
 		;;
 	--)
 		"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
-		${L_v[@]+ printf "%s\n" "${L_v[@]}" }
+		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
 		;;
 	*)
 		"${FUNCNAME[1]}"_v "$@" || _L_r=$?
-		${L_v[@]+ printf "%s\n" "${L_v[@]}" }
+		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
 	esac
 	return "$_L_r"
 }
 
-_L_test_handle_v() {
+# _L_handle_v_with_getopts() {
+# 	local OPTARG OPTIND OPTERR L_v=() _L_r=0 _L_v=""
+# 	while getopts v: _L_r; do
+# 		case $_L_r in
+# 		v) _L_v="$OPTARG" ;;
+# 		esac
+# 	done
+# 	shift $((OPTIND - 1))
+# 	"${FUNCNAME[1]}"_v "$@" || _L_r=$?
+# 	case "${#L_v[@]}/$_L_v" in
+# 	*/) ${L_v[@]+ printf "%s\n" "${L_v[@]}" } ;;
+# 	[01]/[a-zA-Z_]*) eval "$_L_v"'=${L_v:-}' ;;
+# 	*/[a-zA-Z_]*) eval "$_L_v"'=("${L_v[@]}")' ;;
+# 	esac
+# }
+
+_L_test_a_handle_v() {
 	{
 		return_123() { L_handle_v "$@"; }
 		return_123_v() { return 123; }
@@ -814,7 +828,6 @@ _L_test_handle_v() {
 		local a=""
 		L_unittest_cmd -c set_one -va a
 		L_unittest_eq "$a" 123
-		declare -p a
 		L_unittest_cmd -c L_var_is_notarray a
 		local a=""
 		L_unittest_cmd -c set_one -v a a
@@ -980,9 +993,21 @@ L_strupper() { L_handle_v "$@"; }
 # @arg $1 String to operate on.
 L_strlower() { L_handle_v "$@"; }
 
+# @description Capitalize first character of a string.
+# @option -v <var> variable to set
+# @arg $1 String to operate on
+L_capitalize() { L_handle_v "$@"; }
+
+# @description Lowercase first character of a string.
+# @option -v <var> variable to set
+# @arg $1 String to operate on
+L_uncapitalize() { L_handle_v "$@"; }
+
 if ((L_HAS_LOWERCASE_UPPERCASE_EXPANSION)); then
 	L_strupper_v() { L_v=${1^^}; }
 	L_strlower_v() { L_v=${1,,}; }
+	L_capitalize_v() { L_v=${1^[a-z]}; }
+	L_uncapitalize_v() { L_v=${1,[A-Z]}; }
 else
 	L_strupper_v() {
 		L_v=${1//a/A}
@@ -1040,6 +1065,8 @@ else
 		L_v=${L_v//Y/y}
 		L_v=${L_v//Z/z}
 	}
+	L_capitalize_v() { L_strupper_v "${1:0:1}"; L_v="$L_v${1:1}"; }
+	L_uncapitalize_v() { L_strlower_v "${1:0:1}"; L_v="$L_v${1:1}"; }
 fi
 
 # @description Remove characters from IFS from begining and end of string
@@ -1085,9 +1112,15 @@ _L_test_str() {
 	local tmp IFS=$' \t\n'
 	L_rstrip -v tmp " a b  "
 	L_unittest_eq "$tmp" " a b"
+	L_rstrip -v tmp " a b"
+	L_unittest_eq "$tmp" " a b"
 	L_lstrip -v tmp " a b  "
 	L_unittest_eq "$tmp" "a b  "
+	L_lstrip -v tmp "a b  "
+	L_unittest_eq "$tmp" "a b  "
 	L_strip -v tmp " a b  "
+	L_unittest_eq "$tmp" "a b"
+	L_strip -v tmp "a b"
 	L_unittest_eq "$tmp" "a b"
 	L_strupper -v tmp " a b  "
 	L_unittest_eq "$tmp" " A B  "
@@ -1099,6 +1132,18 @@ _L_test_str() {
 	L_unittest_cmd -c L_is_integer "$tmp"
 	L_unittest_cmd -c L_strhash_bash -v tmp "  a b "
 	L_unittest_cmd -c L_is_integer "$tmp"
+	L_capitalize -v tmp "abc"
+	L_unittest_eq "$tmp" "Abc"
+	L_capitalize -v tmp "ABC"
+	L_unittest_eq "$tmp" "ABC"
+	L_capitalize -v tmp ""
+	L_unittest_eq "$tmp" ""
+	L_uncapitalize -v tmp "abc"
+	L_unittest_eq "$tmp" "abc"
+	L_uncapitalize -v tmp "ABC"
+	L_unittest_eq "$tmp" "aBC"
+	L_uncapitalize -v tmp ""
+	L_unittest_eq "$tmp" ""
 }
 
 # @description list functions with prefix
@@ -1249,30 +1294,25 @@ L_json_escape_v() {
 L_abbreviation() { L_handle_v "$@"; }
 # @set L_v
 L_abbreviation_v() {
-	local cur
-	cur=$1
+	local cur=$1 IFS=$'\n'
 	shift
-	L_v=()
-	while (($#)); do
-		if [[ "$1" == "$cur"* ]]; then
-			L_v+=("$1")
+	if [[ "${*//"$IFS"}" == "$*" ]]; then
+		if ! cur=$(compgen -W "$*" -- "$cur"); then
+			L_v=()
+			return
 		fi
-		shift
-	done
-}
-
-# @description Choose newline separated elements matching prefix
-# This is a faster version of L_abbreviation with the limitation
-# that elements are separated by newline.
-# @option -v <var> Store the result in the array var.
-# @arg $1 prefix
-# @arg $@ elements, arguments are joined with newline.
-L_abbreviation_nonewline() { L_handle_v "$@"; }
-# shellcheck disable=SC2207
-# @set L_v
-L_abbreviation_nonewline_v() {
-	local IFS=$'\n'
-	L_v=($(compgen -W "${*:2}" -- "$1" || :))
+		! read -d '' -r -a L_v <<<"$cur"
+		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
+	else
+		L_v=()
+		while (($#)); do
+			if [[ "$1" == "$cur"* ]]; then
+				L_v+=("$1")
+			fi
+			shift
+		done
+		declare -p L_v
+	fi
 }
 
 # @description convert exit code to the word yes or to nothing
@@ -1421,7 +1461,7 @@ _L_test_other() {
 		L_unittest_eq "$max" 4
 	}
 	{
-		local a
+		local -a a
 		L_abbreviation -va ev eval shooter
 		L_unittest_arreq a eval
 		L_abbreviation_v e eval eshooter
@@ -1430,13 +1470,11 @@ _L_test_other() {
 		L_unittest_arreq a
 	}
 	{
-		local a
-		L_abbreviation_nonewline -v a ev eval shooter
-		L_unittest_arreq a eval
-		L_abbreviation_nonewline -v a e eval eshooter
-		L_unittest_arreq a eval eshooter
-		L_abbreviation_nonewline -v a none eval eshooter
-		L_unittest_arreq a
+		local -a a
+		L_abbreviation -v a $'\x01' "$L_ALLCHARS" var
+		L_unittest_arreq a "$L_ALLCHARS"
+		L_abbreviation -v a $'nl\nno' $'nothing' $'nl\nnot here' $'nl\n ok' $'nl\nno'
+		L_unittest_arreq a $'nl\nnot here' $'nl\nno'
 	}
 	{
 		L_unittest_checkexit 0 L_is_true true
@@ -1623,12 +1661,58 @@ L_array_filter_eval() {
 	eval "${_L_v%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
 }
 
+# @description Join array elements separated with the second argument.
+# @option -v <var> Output variable
+# @arg $1 <var> array nameref
+# @arg $2 <str> string to join elements with
+# @see L_args_join
+L_array_join() { L_handle_v "$@"; }
+L_array_join_v() {
+	local _L_arr="$1[@]"
+	L_args_join_v "$2" ${!_L_arr:+"${!_L_arr}"}
+}
+
+# @description Join arguments with separator
+# @option -v <var> Output variable
+# @arg $1 <str> separator
+# @arg $@ arguments to join
+L_args_join() { L_handle_v "$@"; }
+L_args_join_v() {
+	printf -v L_v "${1//%/%%}%s" "${@:2}"
+	L_v=${L_v:${#1}}
+}
+
+# @description
+# @option -v <var> Output variable
+# @arg $1 <var> array nameref
+# @see L_args_andjoin
+L_array_andjoin() { L_handle_v "$@"; }
+L_array_andjoin_v() {
+	local _L_arr="$1[@]"
+	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
+}
+
+# @description Join arguments with ", " and last with " and "
+# @option -v <var> Output variable
+# @arg $@ arguments to join
+L_args_andjoin() { L_handle_v "$@"; }
+L_args_andjoin_v() {
+	case "$#" in
+	0) L_v="" ;;
+	1) L_v=$1 ;;
+	*)
+		printf -v L_v ", %s" "${@:1:$#-1}"
+		L_v="${L_v#, } and ${*:$#}"
+		;;
+	esac
+}
+
 # @description check if arguments starting from second contain the first argument
 # @arg $1 needle
 # @arg $@ heystack
 L_args_contain() {
 	local IFS=$'\x1D' i
-	if [[ "${*//$IFS}" == "$*" ]]; then
+	if [[ "${*//"$IFS"}" == "$*" ]]; then
 		[[ "$IFS${*:2}$IFS" == *"$IFS$1$IFS"* ]]
 	else
 		for i in "${@:2}"; do
@@ -2121,7 +2205,7 @@ L_argskeywords() {
 							shift
 							continue 2
 						else
-							declare -p _L_nonkeyword_cnt _L_arguments _L_positional_cnt
+							# declare -p _L_nonkeyword_cnt _L_arguments _L_positional_cnt
 							_L_argskeywords_assert "got some positional only arguments passed as keyword arguments: $1" false || return 2
 						fi
 					fi
@@ -3552,7 +3636,7 @@ L_unittest_checkexit() {
 		_L_invert=1
 		shift
 	fi
-	"${@}" || _L_ret=$?
+	"$@" || _L_ret=$?
 	(( _L_invert ? _L_ret = !_L_ret, 1 : 1 ))
 	_L_unittest_internal "[$(L_quote_printf "$@")] exited with $_L_ret" "$_L_ret != $_L_shouldbe" \
 		[ "$_L_ret" -eq "$_L_shouldbe" ]
@@ -3605,9 +3689,9 @@ L_unittest_cmd() {
 	if ((L_unittest_unset_x)) && [[ $- = *x* ]]; then
 		local -
 		set +x
-		local _L_setx=1
+		local _L_uopt_setx=1
 	else
-		local _L_setx=0
+		local _L_uopt_setx=0
 	fi
 	local OPTARG OPTIND _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
 	while getopts ciIjxXv:r:o:e: _L_uc; do
@@ -3616,8 +3700,8 @@ L_unittest_cmd() {
 		i) _L_uopt_invert=1 ;;
 		I) _L_uopt_capture=1 ;;
 		j) _L_uopt_capture=1 _L_uopt_stdjoin=1 ;;
-		x) _L_setx=1 ;;
-		X) _L_setx=0 ;;
+		x) _L_uopt_setx=1 ;;
+		X) _L_uopt_setx=0 ;;
 		v) _L_uopt_capture=1 _L_uopt_v=$OPTARG ;;
 		r) _L_uopt_capture=1 _L_uopt_regex=$OPTARG ;;
 		o) _L_uopt_capture=1 _L_uopt_output=$OPTARG ;;
@@ -3633,8 +3717,8 @@ L_unittest_cmd() {
 			_L_uopt_stdjoin=1
 		fi
 	fi
-	if ((_L_setx)); then
-		set L_setx "$@"
+	if ((_L_uopt_setx)); then
+		set -- L_setx "$@"
 	fi
 	#
 	_L_unittest_internal "command found: $1" "" L_hash "$1"
@@ -4561,7 +4645,7 @@ _L_argparse_print_help_indenter() {
 # @env _L_optspec
 _L_argparse_print_help_handle_optspec() {
 	local _L_group=$1 _L_usage_pnt=$2 _L_descs_pnt=$3 _L_helps_pnt=$4
-	local _L_usage="" _L_descs=() _L_helps=()
+	local _L_usage="" _L_desc=""
 	if [[ "${_L_optspec[_group]:-}" != "$_L_group" ]]; then
 		return 1
 	fi
@@ -4585,6 +4669,8 @@ _L_argparse_print_help_handle_optspec() {
 				# infer metavar from choices
 				local IFS=","
 				_L_metavar="{${_L_choices[*]}}"
+			else
+				_L_metavar=${_L_optspec[dest]}
 			fi
 			L_strupper -v _L_metavar "$_L_metavar"
 		fi
@@ -4597,16 +4683,16 @@ _L_argparse_print_help_handle_optspec() {
 			_L_notrequired=
 		fi
 		_L_usage+=" ${_L_notrequired:+[}${_L_options[0]}"
-		for _L_i in "${_L_options[@]}"; do
-			_L_desc+=${_L_desc:+, }${_L_i}
-		done
+		L_args_join -v _L_desc ", " "${_L_options[@]}"
 		case "$_L_nargs" in
 		0) ;;
 		[0-9]*) while ((_L_nargs--)); do _L_usage+=" ${_L_metavar}"; done; _L_desc+=" ${_L_metavar}" ;;
 		"?") _L_usage+=" ${_L_metavar}" _L_desc+=" [${_L_metavar}]" ;;
 		esac
 		_L_usage+="${_L_notrequired:+]}"
-		L_array_append "$_L_descs_pnt" "$_L_metavar"
+		#
+		printf -v "$_L_usage_pnt" "%s%s" "${!_L_usage_pnt}" "$_L_usage"
+		L_array_append "$_L_descs_pnt" "$_L_desc"
 		L_array_append "$_L_helps_pnt" "$_L_opthelp"
 	elif [[ "${_L_optspec[action]}" != "_subparser" ]]; then
 		# argument
@@ -4617,6 +4703,8 @@ _L_argparse_print_help_handle_optspec() {
 		[0-9]*) while ((_L_nargs--)); do _L_usage+=" $_L_metavar"; done ;;
 		*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
 		esac
+		#
+		printf -v "$_L_usage_pnt" "%s%s" "${!_L_usage_pnt}" "$_L_usage"
 		L_array_append "$_L_descs_pnt" "$_L_metavar"
 		L_array_append "$_L_helps_pnt" "$_L_opthelp"
 	else
@@ -4628,6 +4716,7 @@ _L_argparse_print_help_handle_optspec() {
 		[0-9]*) _L_usage+=" command"; while ((_L_nargs--)); do _L_usage+=" args"; done ;;
 		*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
 		esac
+		printf -v "$_L_usage_pnt" "%s%s" "${!_L_usage_pnt}" "$_L_usage"
 		local _L_key
 		for _L_key in "${!_L_parser[@]}"; do
 			if [[ "$_L_key" == _subparser_* ]]; then
@@ -4650,9 +4739,7 @@ L_argparse_print_help() {
 		# parse arguments
 		local _L_short=0
 		case "${1:-}" in
-		-s | --short)
-			_L_short=1
-			shift
+		-s | --short) _L_short=1; shift
 		esac
 		if [[ "$#" -gt 0 && "${1:-}" != "_L_parser" ]]; then local -n _L_parser="$1"; shift; fi
 		L_assert "" test "$#" == 0
@@ -4681,188 +4768,63 @@ L_argparse_print_help() {
 	}
 	{
 		# Parse positional arguments
-		local _L_help_cmds_usage=""
+		local _L_args_usage=""
 		local _L_usage_args_descs=()  # descriptions of positional arguments
 		local _L_usage_args_helps=()  # help messages of positional arguments
 		local _L_usage_cmds_descs=()  # descriptions of subparsers
 		local _L_usage_cmds_helps=()  # help messages of subparsers
 		local -A _L_optspec=()
 		while _L_argparse_parser_next_argument _L_optspec; do
-			if [[ "${_L_optspec[_group]:-}" != "" ]]; then continue; fi
-			local _L_opthelp
-			if ! _L_argparse_optspec_get_help _L_opthelp; then continue; fi
-			local _L_metavar=${_L_optspec[metavar]} _L_nargs=${_L_optspec[nargs]}
-			case "${_L_optspec[action]}" in
-			_subparser)
-				case "$_L_nargs" in
-				"+") _L_help_cmds_usage+=" command [args ...]" ;;
-				"?") _L_help_cmds_usage+=" [command]" ;;
-				"*") _L_help_cmds_usage+=" [command [args ...]]" ;;
-				[0-9]*) _L_help_cmds_usage+=" command"; while ((_L_nargs--)); do _L_help_cmds_usage+=" args"; done ;;
-				*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
-				esac
-				local _L_key
-				for _L_key in "${!_L_parser[@]}"; do
-					if [[ "$_L_key" == _subparser_* ]]; then
-						_L_usage_cmds_descs+=("${_L_key#_subparser_}")
-						local -A _L_subparser=()
-						L_asa_load _L_subparser = "_L_parser[$_L_key]"
-						_L_usage_cmds_helps+=("${_L_subparser[description]:-}")
-					fi
-				done
-				;;
-			*)
-				local -a _L_choices="(${_L_optspec[choices]:-})"
-				if ((${#_L_choices[@]})); then
-					# infer metavar from choices
-					local IFS=,
-					_L_metavar="{${_L_choices[*]}}"
-				fi
-				case "$_L_nargs" in
-				'+') _L_help_cmds_usage+=" ${_L_metavar} [${_L_metavar} ...]" ;;
-				'*') _L_help_cmds_usage+=" [${_L_metavar} ...]" ;;
-				'?') _L_help_cmds_usage+=" [${_L_metavar}]" ;;
-				[0-9]*) while ((_L_nargs--)); do _L_help_cmds_usage+=" $_L_metavar"; done ;;
-				*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
-				esac
-				_L_usage_args_descs+=("$_L_metavar")
-				_L_usage_args_helps+=("$_L_opthelp")
-				;;
-			esac
+			if [[ "${_L_optspec[action]}" == _subparser ]]; then
+				_L_argparse_print_help_handle_optspec "" _L_args_usage _L_usage_cmds_descs _L_usage_cmds_helps
+			else
+				_L_argparse_print_help_handle_optspec "" _L_args_usage _L_usage_args_descs _L_usage_args_helps
+			fi
 		done
 		_L_argparse_print_help_indenter _L_help_help "Arguments:" _L_usage_args_descs _L_usage_args_helps
 		_L_argparse_print_help_indenter _L_help_help "Available Commands:" _L_usage_cmds_descs _L_usage_cmds_helps
 	}
 	{
 		# Parse options
+		local _L_options_usage=""
 		local _L_options_descs=()  # descriptions of options
 		local _L_options_helps=()  # help messages of options
 		local -A _L_optspec=()
 		while _L_argparse_parser_next_option _L_optspec; do
-			if [[ -n "${_L_optspec[_group]:-}" ]]; then continue; fi
-			local _L_opthelp
-			if ! _L_argparse_optspec_get_help _L_opthelp; then continue; fi
-			local -a _L_options="(${_L_optspec[_options]:-})"
-			local _L_metavar=${_L_optspec[metavar]} _L_nargs=${_L_optspec[nargs]} _L_notrequired=1 _L_desc=""
-			if L_is_true "${_L_optspec[required]:-0}"; then
-				_L_notrequired=
-			fi
-			_L_opt_help_usage+=" ${_L_notrequired:+[}${_L_options[0]}"
-			for _L_j in "${_L_options[@]}"; do
-				_L_desc+=${_L_desc:+, }${_L_j}
-			done
-			local -a _L_choices="(${_L_optspec[choices]:-})"
-			if ((${#_L_choices[@]})); then
-				# infer metavar from choices
-				local IFS=,
-				_L_metavar="{${_L_choices[*]}}"
-			fi
-			case "$_L_nargs" in
-			0) ;;
-			[0-9]*)
-				while ((_L_nargs--)); do
-					_L_opt_help_usage+=" ${_L_metavar}"
-				done
-				_L_desc+=" ${_L_metavar}"
-				;;
-			"?")
-				_L_opt_help_usage+=" ${_L_metavar}"
-				_L_desc+=" [${_L_metavar}]"
-				;;
-			esac
-			_L_opt_help_usage+="${_L_notrequired:+]}"
-			_L_options_descs+=("$_L_desc")
-			_L_options_helps+=("$_L_opthelp")
+			_L_argparse_print_help_handle_optspec "" _L_options_usage _L_options_descs _L_options_helps
 		done
 		_L_argparse_print_help_indenter _L_help_help "Options:" _L_options_descs _L_options_helps
 	}
 	{
 		# handle groups
-		local _L_group_help_usage=""
+		local _L_group_usage=""
 		local -A _L_groupspec=()
 		while _L_argparse_parser_next_group _L_groupspec; do
+			local _L_exclusive=1 _L_required=1
+			if ! L_is_true "${_L_groupspec[exclusive]:-0}"; then _L_exclusive=""; fi
+			if ! L_is_true "${_L_groupspec[required]:-0}"; then _L_required=""; fi
+			local _L_group_usage_tmp=""
 			local _L_group_descs=()
 			local _L_group_helps=()
 			local -A _L_optspec=()
 			while _L_argparse_parser_next_option _L_optspec; do
-				if [[ "${_L_optspec[_group]:-}" != "${_L_groupspec[_index]}" ]]; then continue; fi
-				local _L_opthelp
-				if ! _L_argparse_optspec_get_help _L_opthelp; then continue; fi
-				local -a _L_options="(${_L_optspec[_options]:-})"
-				local _L_metavar=${_L_optspec[metavar]} _L_nargs=${_L_optspec[nargs]} _L_notrequired=1 _L_desc=""
-				if L_is_true "${_L_optspec[required]:-0}"; then
-					_L_notrequired=
-				fi
-				_L_group_help_usage+=" ${_L_options[0]}"
-				for _L_j in "${_L_options[@]}"; do
-					_L_desc+=${_L_desc:+, }${_L_j}
-				done
-				case "$_L_nargs" in
-				0) ;;
-				[0-9]*)
-					while ((_L_nargs--)); do
-						_L_group_help_usage+=" ${_L_metavar}"
-					done
-					_L_desc+=" ${_L_metavar}"
-					;;
-				"?")
-					_L_group_help_usage+=" ${_L_metavar}"
-					_L_desc+=" [${_L_metavar}]"
-					;;
-				esac
-				_L_group_descs+=("$_L_desc")
-				_L_group_helps+=("$_L_opthelp")
+				_L_argparse_print_help_handle_optspec "${_L_groupspec[_index]}" _L_group_usage_tmp _L_group_descs _L_group_helps
+				_L_group_usage_tmp="${_L_group_usage_tmp%|}${_L_exclusive:+|}${_L_required:+|}"
 			done
 			local -A _L_optspec=()
 			while _L_argparse_parser_next_argument _L_optspec; do
-				if [[ "${_L_optspec[_group]:-}" != "${_L_groupspec[_index]}" ]]; then continue; fi
-				local _L_opthelp
-				if ! _L_argparse_optspec_get_help _L_opthelp; then continue; fi
-				local _L_metavar=${_L_optspec[metavar]} _L_nargs=${_L_optspec[nargs]}
-				case "${_L_optspec[action]}" in
-				_subparser)
-					case "$_L_nargs" in
-					"+") _L_group_help_usage+=" command [args ...]" ;;
-					"?") _L_group_help_usage+=" [command]" ;;
-					"*") _L_group_help_usage+=" [command [args ...]]" ;;
-					[0-9]*) _L_group_help_usage+=" command"; while ((_L_nargs--)); do _L_help_cmds_usage+=" args"; done ;;
-					*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
-					esac
-					local _L_key
-					for _L_key in "${!_L_parser[@]}"; do
-						if [[ "$_L_key" == _subparser_* ]]; then
-							_L_usage_cmds_descs+=("${_L_key#_subparser_}")
-							local -A _L_subparser=()
-							L_asa_load _L_subparser = "_L_parser[$_L_key]"
-							_L_usage_cmds_helps+=("${_L_subparser[description]:-}")
-						fi
-					done
-					;;
-				*)
-					local -a _L_choices="(${_L_optspec[choices]:-})"
-					if ((${#_L_choices[@]})); then
-						# infer metavar from choices
-						local IFS=,
-						_L_metavar="{${_L_choices[*]}}"
-					fi
-					case "$_L_nargs" in
-					'+') _L_group_help_usage+=" ${_L_metavar} [${_L_metavar} ...]" ;;
-					'*') _L_group_help_usage+=" [${_L_metavar} ...]" ;;
-					'?') _L_group_help_usage+=" [${_L_metavar}]" ;;
-					[0-9]*) while ((_L_nargs--)); do _L_group_help_usage+=" $_L_metavar"; done ;;
-					*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
-					esac
-					_L_group_descs+=("$_L_metavar")
-					_L_group_helps+=("$_L_opthelp")
-					;;
-				esac
+				_L_argparse_print_help_handle_optspec "${_L_groupspec[_index]}" _L_group_usage_tmp _L_group_descs _L_group_helps
+				_L_group_usage_tmp="${_L_group_usage_tmp%|}${_L_exclusive:+|}${_L_required:+|}"
 			done
-			_L_argparse_print_help_indenter _L_help_help "${_L_groupspec[title]:-Group}:${_L_groupspec[description]:+$'\n'  ${_L_groupspec[description]##$'\n'}}" _L_group_descs _L_group_helps
+			_L_group_usage_tmp="${_L_group_usage_tmp%|}"
+			_L_group_usage_tmp="${_L_group_usage_tmp//| /|}"
+			_L_group_usage+="${_L_exclusive:+ [}${_L_required:+ (}${_L_group_usage_tmp#|}${_L_required:+)}${_L_exclusive:+]}"
+			_L_argparse_print_help_indenter _L_help_help "${_L_groupspec[title]:-Group:}${_L_groupspec[description]:+$'\n'  ${_L_groupspec[description]##$'\n'}$'\n'}" _L_group_descs _L_group_helps
 		done
 	}
 	{
 		# output
-		echo "Usage: ${_L_parser[usage]:-$_L_prog$_L_opt_help_usage$_L_group_help_usage}"
+		echo "Usage: ${_L_parser[usage]:-$_L_prog$_L_options_usage$_L_group_usage$_L_args_usage}"
 		if ((!_L_short)); then
 			_L_help_help+=${_L_parser[epilog]:+$'\n'${_L_parser[epilog]%%$'\n'}}
 			echo "${_L_help_help%%$'\n'}"
@@ -5035,7 +4997,7 @@ _L_argparse_split_class_subparser() {
 _L_argparse_split_class_group() {
 	if ((${#_L_split_args[@]})); then _L_fatal "no arguments needed"; fi
 	_L_argparse_split_check_nooptions
-	_L_argparse_split_check_allowed title description class
+	_L_argparse_split_check_allowed title description exclusive required class
 	# Add the group to parser
 	_L_parser[_group_cnt]+=X
 	_L_optspec[_index]=_group_${#_L_parser[_group_cnt]}
@@ -5196,7 +5158,6 @@ _L_argparse_split_argument_common() {
 				_L_argparse_split_fatal "L_argparse: unrecognized argument: ${_L_split_args[0]}"
 			fi
 			: "${_L_optspec[dest]:=${_L_split_args[0]}}"
-			: "${_L_optspec[metavar]:=${_L_split_args[0]}}"
 			;;
 		*) _L_argparse_split_fatal "L_argparse: unrecognized argument: ${_L_split_args[1]}"
 		esac
@@ -5254,7 +5215,7 @@ _L_argparse_split_argument_common() {
 			: "${_L_optspec[nargs]=*}"
 			;;
 		_subparser|count|help) ;;
-		*) _L_argparse_split_fatal "invalid action"
+		*) _L_argparse_split_fatal "invalid action=${_L_optspec[action]:-}"
 		esac
 	}
 	{
@@ -5277,8 +5238,6 @@ _L_argparse_split_argument_common() {
 		if ! L_var_is_set _L_optspec[dest]; then
 			_L_argparse_split_fatal "dest= is required for options"
 		fi
-		# infer metavar from dest
-		: "${_L_optspec[metavar]:=${_L_optspec[dest]}}"
 		if [[ -n "${_L_parser[Adest]:-}" ]]; then
 			# When Adest if given in parsersettings, the result is assigned to associative array.
 			_L_optspec[dest]="${_L_parser[Adest]}[${_L_optspec[dest]}]"
@@ -5421,7 +5380,7 @@ _L_argparse_parser_next_argument() { _L_argparse_parser_next _arg_ "$@"; }
 _L_argparse_parser_next_option() { _L_argparse_parser_next _option_ "$@"; }
 _L_argparse_parser_next_group() {
 	[[ -n "${_L_parser[_group_$((${_L_groupspec[@]:+${_L_groupspec[_index]#_group_}}+1))]:-}" ]] &&
-		L_asa_load "$1" = "_L_parser[_group_$((${_L_groupspec[@]:+${_L_groupspec[_index]#"$1"}}+1))]"
+		L_asa_load "$1" = "_L_parser[_group_$((${_L_groupspec[@]:+${_L_groupspec[_index]#_group_}}+1))]"
 }
 
 # @description validate values
@@ -5936,7 +5895,7 @@ _L_argparse_parse_args_short_option() {
 # @env _L_parser
 # @env _L_parser
 _L_argparse_parse_args() {
-	L_pretty_print -n _L_parser
+	# L_pretty_print -n _L_parser
 	{
 		# Handle internal arguments, ex. bash completion
 		local _L_in_complete=0
@@ -6049,7 +6008,7 @@ _L_argparse_parse_args() {
 			for _L_i in "${_L_required_options[@]}"; do
 				local -A _L_optspec
 				L_asa_load _L_optspec = "_L_parser[$_L_i]"
-				_L_required_options_str+=" ${_L_optspec[_mainoption]:-${_L_optspec[metavar]}}"
+				_L_required_options_str+=" ${_L_optspec[_mainoption]:-${_L_optspec[metavar]:-${_L_optspec[dest]}}}"
 			done
 			L_argparse_fatal "the following arguments are required:${_L_required_options_str}" || return 1
 		fi
@@ -6172,7 +6131,7 @@ _L_test_z_argparse1() {
 		L_log "check help"
 		L_unittest_failure_capture tmp -- L_argparse prog="ProgramName" -- arg nargs=2 ----
 		L_unittest_contains "$tmp" "Usage: ProgramName"
-		L_unittest_contains "$tmp" " arg arg"
+		L_unittest_contains "$tmp" " ARG ARG"
 	}
 	{
 		L_log "only short opt"
