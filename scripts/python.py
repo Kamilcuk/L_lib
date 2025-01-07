@@ -57,12 +57,9 @@ def three():
 
 def four():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-a", dest="AAA", type=int)
-    parser.add_argument("-b", metavar="AAA", dest="AAA", type=int)
-    parser.add_argument("-c", "--clong", "--dlong", "arg", type=int, required=True)
-    parser.add_argument("--long", type=int)
-    parser.add_argument("aaa", type=int)
+    parser.add_argument("aaa", type=int, choices=[1, 2, 3])
     args = parser.parse_args()
     print(args)
 
-three()
+# three()
+four()
