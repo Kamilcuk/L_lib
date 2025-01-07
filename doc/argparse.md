@@ -237,7 +237,9 @@ Internal associative array keys start with `_`.
 - `_arg_N` - where N is a non-negative integer - the `optspec` of argument number `N`
 - `_group_cnt` - string length is equal to the number of groups
 - `_group_N` - where N is a non-negative integer - the `groupspec` of group number `N`
-- `_subparsers` - Serialized array of available sub-parsers
+- `_group_N_options` - space separated indexes of options in the group N separated by spaces
+- `_helpgroups` - space separaated indexes of groups that are not required and not exclusive
+- `_has_subparsers` - 1 if there are sub-parsers. Used for checking if user provided two sub-parsers.
 - `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
 - `-o` or `--option` - the `optspec` of the particular option for fast lookup
 
@@ -247,11 +249,13 @@ Internal associative array keys start with `_`.
 Additional keys set internally in `_L_optspec` when parsing arguments:
 
 - `_options` - Space separated list of short and long options. Used to detect if this is an option or argument.
-- `_index` - Key in `_L_parser`. Used to uniquely identify the option.
+- `_index` - Key in `_L_parser`. Used to uniquely identify the entity.
 - `_isarray` - Should the `dest` variable be assigned as an array? Holds 1 or missing.
-- `_mainoption` - Used in error messages to signify which option is the main one.
+- `_desc` - Description used in error messages. Metavar for arguments or list of options joined with `/`.
 
 ## `_L_groupspec`
+
+- `_index` - Key in `_L_parser`. Used to uniquely identify the entity.
 
 # Reason it exists
 
