@@ -1329,20 +1329,6 @@ L_exit_to_1null() {
 	fi
 }
 
-# @description convert exit code to the word yes or to nothing
-# @arg $1 variable
-# @arg $@ command to execute
-# @example
-#     L_exit_to_1null suceeded test "$#" = 0
-#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
-L_exit_to_1unset() {
-	if "${@:2}"; then
-		printf -v "$1" "1"
-	else
-		unset "$1"
-	fi
-}
-
 _L_test_exit_to_1null() {
 	{
 		local var='blabla'
@@ -1358,6 +1344,20 @@ _L_test_exit_to_1null() {
 		L_unittest_eq "${var:-0}" "0"
 		L_unittest_eq "$((var))" "0"
 	}
+}
+
+# @description convert exit code to the word yes or to unset variable
+# @arg $1 variable
+# @arg $@ command to execute
+# @example
+#     L_exit_to_1null suceeded test "$#" = 0
+#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
+L_exit_to_1unset() {
+	if "${@:2}"; then
+		printf -v "$1" "1"
+	else
+		unset "$1"
+	fi
 }
 
 # @description store exit status of a command to a variable
@@ -2650,22 +2650,18 @@ L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
 L_log_level_to_int() {
-	local L_v
-	case "$2" in
+	local L_v=${2##*_}
+	L_strupper_v "$L_v"
+	case "$L_v" in
 	[0-9]*) L_v=$2 ;;
-	*[cC][rR][iI][tT]*) L_v=$L_LOGLEVEL_CRITICAL ;;
-	*[eE][rR][rR]*) L_v=$L_LOGLEVEL_ERROR ;;
-	*[wW][aA][rR][nN]*) L_v=$L_LOGLEVEL_WARNING ;;
-	*[nN][oO][tT][iI][cC][eE]) L_v=$L_LOGLEVEL_NOTICE ;;
-	*[iI][nN][fF][oO]) L_v=$L_LOGLEVEL_INFO ;;
-	*[dD][eE][bB][uU][gG]) L_v=$L_LOGLEVEL_DEBUG ;;
-	*[tT][rR][aA][cC][eE]) L_v=$L_LOGLEVEL_TRACE ;;
-	*)
-		L_v=${2##*_}
-		L_strupper_v "$L_v"
-		L_v=L_LOGLEVEL_$L_v
-		L_v=${!L_v:$L_LOGLEVEL_INFO}
-		;;
+	*CRIT*) L_v=$L_LOGLEVEL_CRITICAL ;;
+	*ERR*) L_v=$L_LOGLEVEL_ERROR ;;
+	*WARN*) L_v=$L_LOGLEVEL_WARNING ;;
+	*NOTICE) L_v=$L_LOGLEVEL_NOTICE ;;
+	*INFO) L_v=$L_LOGLEVEL_INFO ;;
+	*DEBUG) L_v=$L_LOGLEVEL_DEBUG ;;
+	*TRACE) L_v=$L_LOGLEVEL_TRACE ;;
+	*) L_v=L_LOGLEVEL_$L_v; L_v=${!L_v:-$L_LOGLEVEL_INFO} ;;
 	esac
 	printf -v "$1" "%d" "$L_v"
 }
@@ -4655,55 +4651,62 @@ _L_argparse_print_help_indenter() {
 	done
 }
 
+# @arg $1 <var> variable to assign
+# @env _L_parser
+# @env _L_optspec
+_L_argparse_optspec_get_help() {
+	local L_v=${_L_optspec[help]:-}
+	if [[ "$L_v" == "SUPPRESS" ]]; then
+		return
+	fi
+	# L_v=${L_v//%(prog)s/$_L_prog}
+	# L_v=${L_v//%(default)s/${_L_optspec[default]:-}}
+	if L_is_true "${_L_optspec[show_default]:-${_L_parser[show_default]:-0}}" && L_var_is_set "_L_optspec[default]"; then
+		printf -v "$1" "%s(default: %q)" "$L_v${L_v:+ }" "${_L_optspec[default]}"
+	fi
+}
+
+# @arg $1 <var> variable to assign
+# @env _L_parser
+# @env _L_optspec
+_L_argparse_optspec_get_metavar() {
+	local L_v=${_L_optspec[metavar]:-}
+	if [[ -z "$L_v" ]]; then
+		local -a _L_choices="(${_L_optspec[choices]:-})"
+		if ((${#_L_choices[@]})); then
+			# infer metavar from choices
+			local IFS=","
+			L_v="{${_L_choices[*]}}"
+		else
+			L_v=${_L_optspec[dest]}
+		fi
+		L_strupper_v "$L_v"
+	fi
+	printf -v "$1" "%s" "$L_v"
+}
+
+# @arg $1 <var> variable to assign
+# @env _L_parser
+# @env _L_optspec
+_L_argparse_optspec_get_description() {
+	if [[ -n "${_L_optspec[_options]:-}" ]]; then
+		local -a _L_options="(${_L_optspec[options]})"
+		local IFS='/'
+		printf -v "$1" "%s" "${_L_options[*]}"
+	else
+		_L_argparse_optspec_get_metavar "$1"
+	fi
+}
+
 # @env _L_parser
 # @env _L_optspec
 _L_argparse_print_help_handle_optspec() {
-	local _L_group=$1 _L_usage_pnt=$2 _L_descs_pnt=$3 _L_helps_pnt=$4
+	local _L_usage_pnt=$1 _L_descs_pnt=$2 _L_helps_pnt=$3
 	local _L_usage="" _L_desc=""
-	if [[ "${_L_optspec[_group]:-}" != "$_L_group" ]]; then
-		return 1
-	fi
-	{
-		local _L_opthelp=${_L_optspec[help]:-}
-		if [[ "$_L_opthelp" == "SUPPRESS" ]]; then
-			return
-		fi
-		# _L_help=${_L_help//%(prog)s/$_L_prog}
-		# _L_help=${_L_help//%(default)s/${_L_optspec[default]:-}}
-		if L_is_true "${_L_optspec[show_default]:-${_L_parser[show_default]:-0}}" && L_var_is_set "_L_optspec[default]"; then
-			printf -v _L_opthelp "%s(default: %q)" "$_L_opthelp${_L_opthelp:+ }" "${_L_optspec[default]}"
-		fi
-	}
 	local _L_nargs=${_L_optspec[nargs]}
-	{
-		local _L_metavar=${_L_optspec[metavar]:-}
-		if [[ -z "$_L_metavar" ]]; then
-			local -a _L_choices="(${_L_optspec[choices]:-})"
-			if ((${#_L_choices[@]})); then
-				# infer metavar from choices
-				local IFS=","
-				_L_metavar="{${_L_choices[*]}}"
-			else
-				_L_metavar=${_L_optspec[dest]}
-			fi
-			L_strupper -v _L_metavar "$_L_metavar"
-		fi
-	}
 	local -a _L_options="(${_L_optspec[_options]:-})"
 	if ((${#_L_options[@]})); then
 		# options
-		local _L_notrequired=1 _L_i
-		if L_is_true "${_L_optspec[required]:-0}" || [[ -n "$_L_group" ]]; then
-			_L_notrequired=
-		fi
-		_L_usage+=" ${_L_notrequired:+[}${_L_options[0]}"
-		L_args_join -v _L_desc ", " "${_L_options[@]}"
-		case "$_L_nargs" in
-		0) ;;
-		[0-9]*) while ((_L_nargs--)); do _L_usage+=" ${_L_metavar}"; done; _L_desc+=" ${_L_metavar}" ;;
-		"?") _L_usage+=" ${_L_metavar}" _L_desc+=" [${_L_metavar}]" ;;
-		esac
-		_L_usage+="${_L_notrequired:+]}"
 		#
 		printf -v "$_L_usage_pnt" "%s%s" "${!_L_usage_pnt}" "$_L_usage"
 		L_array_append "$_L_descs_pnt" "$_L_desc"
@@ -4724,10 +4727,10 @@ _L_argparse_print_help_handle_optspec() {
 	else
 		# subparser
 		case "$_L_nargs" in
-		"+") _L_usage+=" command [args ...]" ;;
-		"?") _L_usage+=" [command]" ;;
-		"*") _L_usage+=" [command [args ...]]" ;;
-		[0-9]*) _L_usage+=" command"; while ((_L_nargs--)); do _L_usage+=" args"; done ;;
+		"+") _L_usage+=" COMMAND [ARGS ...]" ;;
+		"?") _L_usage+=" [COMMAND]" ;;
+		"*") _L_usage+=" [COMMAND [ARGS ...]]" ;;
+		[0-9]*) _L_usage+=" COMMAND"; while ((_L_nargs--)); do _L_usage+=" ARGS"; done ;;
 		*) L_fatal "invalid nargs $(declare -p _L_optspec)" ;;
 		esac
 		printf -v "$_L_usage_pnt" "%s%s" "${!_L_usage_pnt}" "$_L_usage"
@@ -4800,43 +4803,33 @@ L_argparse_print_help() {
 	}
 	{
 		# Parse options
-		local _L_options_usage=""
+		local _L_options_usage="" _L_opthelp=""
 		local _L_options_descs=()  # descriptions of options
 		local _L_options_helps=()  # help messages of options
 		local -A _L_optspec=()
 		while _L_argparse_parser_next_option _L_optspec; do
-			_L_argparse_print_help_handle_optspec "" _L_options_usage _L_options_descs _L_options_helps
+			if _L_argparse_optspec_get_help _L_opthelp; then
+				local _L_notrequired=1 _L_i
+				if L_is_true "${_L_optspec[required]:-0}"; then
+					_L_notrequired=
+				fi
+				_L_options_usage+=" ${_L_notrequired:+[}${_L_options[0]}"
+				L_args_join -v _L_desc ", " "${_L_options[@]}"
+				case "$_L_nargs" in
+				0) ;;
+				[0-9]*) while ((_L_nargs--)); do _L_options_usage+=" ${_L_metavar}"; done; _L_desc+=" ${_L_metavar}" ;;
+				"?") _L_options_usage+=" ${_L_metavar}" _L_desc+=" [${_L_metavar}]" ;;
+				esac
+				_L_options_usage+="${_L_notrequired:+]}"
+				_L_options_descs+=("$_L_desc")
+				_L_options_helps+=("$_L_help")
+			fi
 		done
 		_L_argparse_print_help_indenter _L_help_help "Options:" _L_options_descs _L_options_helps
 	}
 	{
-		# handle groups
-		local _L_group_usage=""
-		local -A _L_groupspec=()
-		while _L_argparse_parser_next_group _L_groupspec; do
-			local _L_exclusive="${_L_groupspec[exclusive]}" _L_required="${_L_groupspec[required]}"
-			local _L_group_usage_tmp=""
-			local _L_group_descs=()
-			local _L_group_helps=()
-			local -A _L_optspec=()
-			while _L_argparse_parser_next_option _L_optspec; do
-				_L_argparse_print_help_handle_optspec "${_L_groupspec[_index]}" _L_group_usage_tmp _L_group_descs _L_group_helps
-				_L_group_usage_tmp="${_L_group_usage_tmp%|}${_L_exclusive:+|}${_L_required:+|}"
-			done
-			local -A _L_optspec=()
-			while _L_argparse_parser_next_argument _L_optspec; do
-				_L_argparse_print_help_handle_optspec "${_L_groupspec[_index]}" _L_group_usage_tmp _L_group_descs _L_group_helps
-				_L_group_usage_tmp="${_L_group_usage_tmp%|}${_L_exclusive:+|}${_L_required:+|}"
-			done
-			_L_group_usage_tmp="${_L_group_usage_tmp%|}"
-			_L_group_usage_tmp="${_L_group_usage_tmp//| /|}"
-			_L_group_usage+="${_L_exclusive:+ [}${_L_required:+ (}${_L_group_usage_tmp#|}${_L_required:+)}${_L_exclusive:+]}"
-			_L_argparse_print_help_indenter _L_help_help "${_L_groupspec[title]:-Group:}${_L_groupspec[description]:+$'\n'  ${_L_groupspec[description]##$'\n'}$'\n'}" _L_group_descs _L_group_helps
-		done
-	}
-	{
 		# output
-		echo "Usage: ${_L_parser[usage]:-$_L_prog$_L_options_usage$_L_group_usage$_L_args_usage}"
+		echo "Usage: ${_L_parser[usage]:-$_L_prog$_L_options_usage$_L_args_usage}"
 		if ((!_L_short)); then
 			_L_help_help+=${_L_parser[epilog]:+$'\n'${_L_parser[epilog]%%$'\n'}}
 			echo "${_L_help_help%%$'\n'}"
@@ -4975,40 +4968,6 @@ _L_argparse_split_class_subparser() {
 	done
 }
 
-_L_argparse_split_class_group() {
-	_L_argparse_split_check_nooptions
-	_L_argparse_split_check_allowed title description exclusive required class
-	# Add the group to parser
-	_L_parser[_group_cnt]+=X
-	_L_optspec[_index]=_group_${#_L_parser[_group_cnt]}
-	L_exit_to_1null "_L_optspec[exclusive]" L_is_true "${_L_optspec[exclusive]:-}"
-	L_exit_to_1null "_L_optspec[required]" L_is_true "${_L_optspec[required]:-}"
-	if ((!_L_optspec[exclusive] && !_L_optspec[required])); then
-		_L_parser[_helpgroups]+=" ${_L_optspec[_index]}"
-	fi
-	L_asa_dump "_L_parser[${_L_optspec[_index]}]" = _L_optspec
-	#
-	if [[ -n "${_L_split_group}" ]]; then
-		_L_argparse_split_fatal "nested groups are not allowed"
-	fi
-	_L_split_group=${_L_optspec[_index]}
-	{
-		if [[ "${1:-}" != "{" ]]; then
-			_L_argparse_split_fatal "Missing opening {"
-		fi
-		shift
-		local _L_split_used_args_save=$_L_split_used_args
-		_L_argparse_split "$@"
-		shift "$((_L_split_used_args))"
-		((_L_split_used_args += _L_split_used_args_save + 2))
-		if [[ "${1:-}" != "}" ]]; then
-			_L_argparse_split_fatal "Missing closing }: $*"
-		fi
-		shift
-	}
-	_L_split_group=""
-}
-
 _L_argparse_split_subparser_common() {
 	_L_argparse_split_check_nooptions
 	if L_var_is_set '_L_parser[_has_subparsers]'; then
@@ -5070,7 +5029,7 @@ _L_argparse_split_class_func() {
 # @env _L_optspec
 # @set _L_parser
 _L_argparse_split_class_argument() {
-	_L_argparse_split_check_allowed action nargs const default type choices required help metavar dest deprecated validate complete show_default group
+	_L_argparse_split_check_allowed action nargs const default type choices required help metavar dest deprecated validate complete show_default
 	{
 		# apply defaults and everything else
 		local IFS=' ' _L_options=(${_L_split_short_options[@]:+"${_L_split_short_options[@]}"} ${_L_split_long_options[@]:+"${_L_split_long_options[@]}"})
@@ -5103,7 +5062,7 @@ _L_argparse_split_class_argument() {
 		# Infer _desc
 		local IFS='/'
 		: "${_L_optspec[_desc]:=${_L_options[*]}}"
-		: "${_L_optspec[_desc]:=${_L_optspec[metavar]:=${_L_optspec[dest]}}}"
+		: "${_L_optspec[_desc]:=${_L_optspec[metavar]:-${_L_optspec[dest]}}}"
 	}
 	{
 		# handle type
@@ -5155,12 +5114,6 @@ _L_argparse_split_class_argument() {
 		fi
 	}
 	_L_argparse_split_argument_common
-}
-
-_L_argparse_split_add_to_group() {
-	if [[ -n "${_L_split_group:+${_L_optspec[_group]:=$_L_split_group}}" ]]; then
-		_L_optspec[${_L_split_group}_${_L_optspec[_index]}]+="$_L_split_group "
-	fi
 }
 
 _L_argparse_split_argument_common() {
@@ -5257,7 +5210,6 @@ _L_argparse_split_argument_common() {
 			# option argument
 			_L_parser[_option_cnt]=${_L_parser[_option_cnt]:-}X
 			_L_optspec[_index]=_option_${#_L_parser[_option_cnt]}
-			_L_argparse_split_add_to_group
 			L_asa_dump "_L_parser[${_L_optspec[_index]}]" = _L_optspec
 			#
 			local _L_i
@@ -5271,7 +5223,6 @@ _L_argparse_split_argument_common() {
 			# positional argument
 			_L_parser[_arg_cnt]=${_L_parser[_arg_cnt]:-}X
 			_L_optspec[_index]=_arg_${#_L_parser[_arg_cnt]}
-			_L_argparse_split_add_to_group
 			L_asa_dump "_L_parser[${_L_optspec[_index]}]" = _L_optspec
 		fi
 	}
@@ -5382,10 +5333,6 @@ _L_argparse_parser_next() {
 
 _L_argparse_parser_next_argument() { _L_argparse_parser_next _arg_ "$@"; }
 _L_argparse_parser_next_option() { _L_argparse_parser_next _option_ "$@"; }
-_L_argparse_parser_next_group() {
-	[[ -n "${_L_parser[_group_$((${_L_groupspec[@]:+${_L_groupspec[_index]#_group_}}+1))]:-}" ]] &&
-		L_asa_load "$1" = "_L_parser[_group_$((${_L_groupspec[@]:+${_L_groupspec[_index]#_group_}}+1))]"
-}
 
 # @description validate values
 # @arg $@ value to assign to option
@@ -5889,17 +5836,6 @@ _L_argparse_parse_args_short_option() {
 	done
 }
 
-_L_argparse_groupspec_get_options_desc() {
-	local _L_list="" _L_i
-	local _L_options="(${_L_parser[${_L_groupspec[_index]}_options]})"
-	local -A _L_optspec=()
-	for _L_i in "${_L_options[@]}"; do
-		L_asa_load _L_optspec = "_L_parser[$_L_i]"
-		_L_list+="${_L_list:+, }${_L_optspec[_desc]}"
-	done
-	printf -v "$1" "%s" "$_L_list"
-}
-
 # shellcheck disable=SC2309
 # @description Parse the arguments with the given parser.
 # @arg $@ arguments
@@ -6023,31 +5959,6 @@ _L_argparse_parse_args() {
 			done
 			L_argparse_fatal "the following arguments are required: ${_L_required_options_str}" || return 1
 		fi
-	}
-	{
-		# check groups
-		local -A _L_groupspec=()
-		while _L_argparse_parser_next_group _L_groupspec; do
-			if ((_L_groupspec[exclusive] || _L_groupspec[required])); then
-				local _L_options="(${_L_parser[${_L_groupspec[_index]}_options]})"
-				local _L_areset=0 _L_i IFS=' '
-				for _L_i in "${_L_options[@]}"; do
-					if [[ " ${_L_assigned_options[*]} " == *" $_L_i "* ]]; then
-						if ((++_L_areset == 2)); then
-							break
-						fi
-					fi
-				done
-				if ((_L_areset == 0 && _L_groupspec[required])); then
-					_L_argparse_groupspec_get_options_desc _L_i
-					L_argparse_fatal "one of the arguments is required: $_L_i"
-				fi
-				if ((_L_areset > 1 && _L_groupspec[exclusive])); then
-					_L_argparse_groupspec_get_options_desc _L_i
-					L_argparse_fatal "only one of the arguments is allowed: $_L_i"
-				fi
-			fi
-		done
 	}
 	# L_pretty_print -n _L_parser _L_subargs
 	if ((${#_L_subargs[@]})); then
