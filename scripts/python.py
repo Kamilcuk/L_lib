@@ -39,7 +39,11 @@ def three():
     parser_b.add_argument("--baz", choices=("X", "Y", "Z"), help="baz help")
     group = parser.add_argument_group("group")
     group.add_argument("--foo1", help="foo help")
-    group.add_argument("bar", help="bar help")
+    group.add_argument("bar", help="bar help", nargs="?")
+    group = parser.add_argument_group("group2")
+    group.add_argument("--foo12", help="foo help")
+    group.add_argument("bar12", help="bar help", nargs="?")
+    group.add_argument("bar13", help="bar help", nargs="?")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--foo2", action="store_true")
     group.add_argument("--bar", action="store_false")
@@ -50,5 +54,15 @@ def three():
     args = parser.parse_args()
     print(args)
 
+
+def four():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a", dest="AAA", type=int)
+    parser.add_argument("-b", metavar="AAA", dest="AAA", type=int)
+    parser.add_argument("-c", "--clong", "--dlong", "arg", type=int, required=True)
+    parser.add_argument("--long", type=int)
+    parser.add_argument("aaa", type=int)
+    args = parser.parse_args()
+    print(args)
 
 three()
