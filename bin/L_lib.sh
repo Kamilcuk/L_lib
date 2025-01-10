@@ -4476,16 +4476,18 @@ L_asa_set() {
 #    declare -A mapcopy=()
 #    L_asa_load mapcopy = string
 L_asa_dump() {
-	L_assert "not an associative array: $3" L_var_is_associative "$3"
 	printf -v "$1" "%s" "$(declare -p "$3")"
+	L_assert "not an associative array: $3" L_glob_match "${!1}" "declare -A*"
 }
 else
 	L_asa_set() {
+		L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
 		eval "${1}[\$2]=\"\$3\""
 	}
 	L_asa_dump() {
-		L_assert "not an associative array: $3" L_var_is_associative "$3"
+		L_assert "not a valid variable name: $1" L_is_valid_variable_or_array_element "$1"
 		eval "$1=\$(declare -p \"\$3\")"
+		L_assert "not an associative array: $3" L_glob_match "${!1}" "declare -A*"
 	}
 fi
 
@@ -4505,7 +4507,7 @@ if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
 L_asa_load() {
 	L_assert "not an associative array: $1" L_var_is_associative "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert "Source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_GLOB: $3=${!3:-}" \
+	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_GLOB: $3=${!3:-}" \
 		L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_GLOB"
 	# This has to be eval - it expands to `var=([a]=b [c]=d)`
 	eval "$1=${!3#*=}"
@@ -4519,7 +4521,7 @@ L_asa_load() {
 else
 	L_asa_load() {
 		L_assert "not an associative array: $1" L_var_is_associative "$1"
-		L_assert "Source nameref does not match \"declare -A* [a-zA-Z_]*='(*)'\": $3=${!3:-}" \
+		L_assert "source nameref does not match \"declare -A* [a-zA-Z_]*='(*)'\": $3=${!3:-}" \
 			L_glob_match "${!3:-}" "declare -A* [a-zA-Z_]*='(*)'"
 		# Godspeed.
 		# First expansion un-quotes the output of declare -A.
