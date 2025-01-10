@@ -408,6 +408,15 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @section basic
 # @description Some base simple definitions for every occasion.
 
+# @arg $1 str assertiong string description
+# @arg $@ command to test
+L_assert_fail() {
+	set +x
+	L_print_traceback >&2
+	printf "%s: assertion (%s) failed%s\n" "$L_NAME" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
+	exit 249
+}
+
 # @description Assert the command starting from second arguments returns success.
 # Note: `[[` is a bash syntax sugar and is not a command.
 # As last resort, use `eval "[[ ${var@Q} = ${var@Q} ]]"` if you really want to use it,
@@ -418,10 +427,7 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @example L_assert 'wrong number of arguments' [ "$#" = 0 ]
 L_assert() {
 	if ! "${@:2}"; then
-		if ((L_HAS_LOCAL_DASH)); then local -; set +x; fi
-		L_print_traceback >&2
-		printf "%s: assertion (%s) failed%s\n" "$L_NAME" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
-		exit 249
+		L_assert_fail "$@"
 	fi
 }
 
