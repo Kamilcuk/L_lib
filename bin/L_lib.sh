@@ -349,6 +349,8 @@ L_HAS_BASH1_14_7= L_BASH_VERSION >= 0x010E07,
 1))
 fi
 
+# @description New shell option: patsub_replacement. When enabled, a `&' in the replacement
+L_HAS_PATSUB_REPLACEMENT=$L_HAS_BASH5_2
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 # @description The `mapfile' builtin now has a -d option
@@ -6699,7 +6701,10 @@ _L_lib_main() {
 		esac
 	done
 	if ((_L_init)); then
-		shopt -s extglob patsub_replacement
+		shopt -s extglob
+		if ((L_HAS_PATSUB_REPLACEMENT)); then
+			shopt -s patsub_replacement
+		fi
 		L_trap_err_init
 	fi
 	shift "$((OPTIND-1))"
