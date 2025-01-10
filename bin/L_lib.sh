@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # vim: foldmethod=marker foldmarker=[[[,]]] ft=bash
-# shellcheck disable=SC2034,SC2178,SC2016,SC2128
+# shellcheck disable=SC2034,SC2178,SC2016,SC2128,SC1083
 # SPDX-License-Identifier: LGPL-3.0
 #    L_lib.sh
 #    Copyright (C) 2024 Kamil Cukrowski
@@ -455,6 +455,10 @@ _L_test_a_regex_match() {
 # @arg $@ Command to execute
 L_not() { ! "$@"; }
 
+# @description Return the first argument
+# @arg $1 <int> integer to return
+L_return() { return "$1"; }
+
 if ((L_HAS_LOCAL_DASH)); then
 # @description Runs the command under set -x.
 # @arg $@ Command to execute
@@ -465,6 +469,7 @@ L_setx() {
 }
 else
 	L_setx() {
+		# shellcheck disable=SC2064
 		trap "$(set +o)" RETURN
 		set -x
 		"$@"
@@ -481,7 +486,7 @@ L_glob_match() { [[ "$1" == $2 ]]; }
 if ((L_HAS_EXTGLOB_IN_TESTTEST)); then
 # shellcheck disable=2053
 # @description Wrapper around == for contexts that require a function.
-# This is equalt o L_glob_match when `==` has always extglob enabled.
+# This is equal to L_glob_match when `==` has always extglob enabled.
 # However, this was not the case for older bash. In which case this function
 # temporary enables extglob.
 # @arg $1 string to match
@@ -584,9 +589,7 @@ L_is_false() { L_regex_match "$1" "^([-]|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][
 # @arg $1 str
 L_is_true_locale() {
 	local i
-	i=$(locale LC_MESSAGES)
-	# extract first line
-	i=${i%%$'\n'*}
+	i=$(locale yesexpr)
 	[[ "$1" =~ $i ]]
 }
 
@@ -594,10 +597,7 @@ L_is_true_locale() {
 # @arg $1 str
 L_is_false_locale() {
 	local i
-	i=$(locale LC_MESSAGES)
-	# extract second line
-	i=${i#*$'\n'}
-	i=${i%%$'\n'*}
+	i=$(locale noexpr)
 	[[ "$1" =~ $i ]]
 }
 
@@ -621,11 +621,12 @@ L_is_valid_variable_name() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*$'; }
 #	L_is_valid_variable_or_array_element aa           # true
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
 #	L_is_valid_variable_or_array_element 'arr[elem'   # false
-L_is_valid_variable_or_array_element() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*(\[.*\])?$'; }
+L_is_valid_variable_or_array_element() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$'; }
 
 # @description Return 0 if the string characters is an integer
 # @arg $1 string to check
-L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} -gt 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
+L_is_integer() { L_regex_match "$1" '^[-+]?[0-9]+$'; }
+# L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} -gt 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
 # L_is_integer() { [[ $1 == ?([+-])+([0-9]) ]]; }
 
 # @description Return 0 if the string characters is a float
@@ -710,6 +711,14 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_is_valid_variable_name 9a
 		L_unittest_checkexit 1 L_is_valid_variable_name a-
 		L_unittest_checkexit 1 L_is_valid_variable_name -a
+	}
+	{
+		L_unittest_checkexit 0 L_is_valid_variable_or_array_element aa
+		L_unittest_checkexit 0 L_is_valid_variable_or_array_element 'arr[elem]'
+		L_unittest_checkexit 1 L_is_valid_variable_or_array_element 'arr[elem'
+		L_unittest_checkexit 0 L_is_valid_variable_or_array_element 'arr[@#!@#[][32]13]'
+		L_unittest_checkexit 1 L_is_valid_variable_or_array_element '1'
+		L_unittest_checkexit 1 L_is_valid_variable_or_array_element 'arr[]'
 	}
 }
 
@@ -813,6 +822,7 @@ L_handle_v() {
 # 	esac
 # }
 
+# shellcheck disable=SC2329
 _L_test_a_handle_v() {
 	{
 		return_123() { L_handle_v "$@"; }
@@ -1045,7 +1055,7 @@ else
 		L_v=${L_v//y/Y}
 		L_v=${L_v//z/Z}
 	}
-	L_strlower() {
+	L_strlower_v() {
 		L_v=${1//A/a}
 		L_v=${L_v//B/b}
 		L_v=${L_v//C/c}
@@ -1309,6 +1319,7 @@ L_abbreviation_v() {
 			L_v=()
 			return
 		fi
+		# shellcheck disable=SC2329,SC2064,SC2251
 		! read -d '' -r -a L_v <<<"$cur"
 		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
 	else
@@ -2659,17 +2670,20 @@ L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
 L_log_level_to_int() {
 	local L_v=${2##*_}
-	L_strupper_v "$L_v"
 	case "$L_v" in
 	[0-9]*) L_v=$2 ;;
-	*CRIT*) L_v=$L_LOGLEVEL_CRITICAL ;;
-	*ERR*) L_v=$L_LOGLEVEL_ERROR ;;
-	*WARN*) L_v=$L_LOGLEVEL_WARNING ;;
-	*NOTICE) L_v=$L_LOGLEVEL_NOTICE ;;
-	*INFO) L_v=$L_LOGLEVEL_INFO ;;
-	*DEBUG) L_v=$L_LOGLEVEL_DEBUG ;;
-	*TRACE) L_v=$L_LOGLEVEL_TRACE ;;
-	*) L_v=L_LOGLEVEL_$L_v; L_v=${!L_v:-$L_LOGLEVEL_INFO} ;;
+	*[Cc][Rr][Ii][Tt]*) L_v=$L_LOGLEVEL_CRITICAL ;;
+	*[Ee][Rr][Rr]*) L_v=$L_LOGLEVEL_ERROR ;;
+	*[Ww][Aa][Rr][Nn]*) L_v=$L_LOGLEVEL_WARNING ;;
+	*[Nn][Oo][Tt][Ii][Cc][Ee]) L_v=$L_LOGLEVEL_NOTICE ;;
+	*[Ii][Nn][Ff][Oo]) L_v=$L_LOGLEVEL_INFO ;;
+	*[Dd][Ee][Bb][Uu][Gg]) L_v=$L_LOGLEVEL_DEBUG ;;
+	*[Tt][Rr][Aa][Cc][Ee]) L_v=$L_LOGLEVEL_TRACE ;;
+	*)
+		L_strupper_v "$L_v"
+		L_v=L_LOGLEVEL_$L_v
+		L_v=${!L_v:-$L_LOGLEVEL_INFO}
+		;;
 	esac
 	printf -v "$1" "%d" "$L_v"
 }
@@ -3735,11 +3749,11 @@ L_unittest_cmd() {
 			_L_uopt_stdjoin=1
 		fi
 	fi
+	_L_unittest_internal "command found: [$(L_quote_printf "$@")]" "" L_hash "$1"
 	if ((_L_uopt_setx)); then
 		set -- L_setx "$@"
 	fi
 	#
-	_L_unittest_internal "command found: $1" "" L_hash "$1"
 	if ((_L_uopt_curenv)); then
 		L_trap_push '_L_unittest_cmd_exit_trap $?' EXIT
 		# shellcheck disable=2030,2093,1083
