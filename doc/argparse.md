@@ -241,6 +241,7 @@ Internal associative array keys start with `_`.
 - `_helpgroups` - space separaated indexes of groups that are not required and not exclusive
 - `_has_subparsers` - 1 if there are sub-parsers. Used for checking if user provided two sub-parsers.
 - `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
+- `_func` - the name of the function that is executed when the parser is run
 - `-o` or `--option` - the `optspec` of the particular option for fast lookup
 
 ## `_L_optspec`
@@ -253,11 +254,8 @@ Additional keys set internally in `_L_optspec` when parsing arguments:
 - `_isarray` - Should the `dest` variable be assigned as an array? Holds 1 or missing.
 - `_desc` - Description used in error messages. Metavar for arguments or list of options joined with `/`.
 
-## `_L_groupspec`
-
-- `_index` - Key in `_L_parser`. Used to uniquely identify the entity.
-
 # Reason it exists
 
-I did not like argbash that requires some code generation. There should be no generation required. It is just a function that executes.
+I did not like argbash that requires some code generation. There should
+be no generation required. It is just a function that executes.
 
