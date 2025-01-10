@@ -61,5 +61,13 @@ def four():
     args = parser.parse_args()
     print(args)
 
+
+def five():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--option", nargs=3)
+    args = parser.parse_args()
+    print(args)
+
 # three()
-four()
+# four()
+five()

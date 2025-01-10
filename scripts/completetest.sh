@@ -12,10 +12,15 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 	-- -e --export complete=export help="do complete=export" \
 	-- -D --directory complete=directory help="do complete=directory" \
 	-- -c --command complete=command help="do complete=command" \
-	-- -C --choices choices="car manual tiger" \
+	-- -C --choices choices="car manual tiger" help="choices=" \
 	-- -1 --one_store_true action="store_true" \
 	-- -2 --two_store_false action="store_false" \
 	-- -3 --three_store_const action="store_const" const=3 \
 	-- -4 --four_store_1 action="store_1" \
-	-- -5 --five_store_0 action="store_0" \
+	-- -5 --five_store_0 action="store_0" help="
+			So this is a multiline description that is quite long
+			for the purpouse of checking how a multiline help
+			is going to be formatted. All is fine and great
+			and this help text is purpousefully so long.
+			" \
 	---- "$@"
