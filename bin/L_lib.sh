@@ -549,16 +549,16 @@ L_var_is_notnull() { [[ -n "${!1:+yes}" ]]; }
 
 # @description Return 0 if variable is not set or is not an array neither an associative array
 # @arg $1 variable nameref
-L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -"[^aA]* ]]; }
+L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -"[^aA]* ]]; }
 
 # @description
 # @arg $1 variable nameref
 # @exitcode 0 if variable is an array, nonzero otherwise
-L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -a"* ]]; }
+L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -a"* ]]; }
 
 # @description Return 0 if variable is an associative array
 # @arg $1 variable nameref
-L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null)" == "declare -A"* ]]; }
+L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -A"* ]]; }
 
 # @description Return 0 if variable is readonly
 # @arg $1 variable nameref
@@ -566,19 +566,21 @@ L_var_is_readonly() { ! (eval "$1=") 2>/dev/null; }
 
 # @description Return 0 if variable has integer attribute set
 # @arg $1 variable nameref
-L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null)" "^declare -[A-Za-z]*i"; }
+L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*i"; }
 
 # @description Return 0 if variable is exported.
 # @arg $1 variable nameref
-L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null)" "^declare -[A-Za-z]*x"; }
+L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*x"; }
 
 # @description Return 0 if the string happend to be something like true.
 # @arg $1 str
-L_is_true() { L_regex_match "$1" "^([+]|[+]?[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$"; }
+L_is_true() { [[ "$1" == [+1-9TtYy]* ]]; }
+# L_is_true() { L_regex_match "$1" "^([+]|[+]?[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$"; }
 
 # @description Return 0 if the string happend to be something like false.
 # @arg $1 str
-L_is_false() { L_regex_match "$1" "^([-]|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$"; }
+L_is_false() { [[ "$1" == [-0fFnN]* ]]; }
+# L_is_false() { L_regex_match "$1" "^([-]|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$"; }
 
 # L_is_true() { [[ "$1" == @(+|[1-9]*([0-9])|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS]) ]]; }
 # L_is_false() { [[ "$1" == @(-|+(0)|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO]) ]]; }
@@ -1315,7 +1317,7 @@ L_abbreviation_v() {
 	local cur=$1 IFS=$'\n'
 	shift
 	if [[ "${*//"$IFS"}" == "$*" ]]; then
-		if ! cur=$(compgen -W "$*" -- "$cur"); then
+		if ! cur=$(trap - ERR; compgen -W "$*" -- "$cur"); then
 			L_v=()
 			return
 		fi
@@ -1825,7 +1827,7 @@ L_min_v() {
 #         a     b c
 #         d     e f
 L_table() {
-	local OPTARG OPTIND IFS=$'\n' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
+	local OPTARG OPTIND IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
 	while getopts v:s:o:R: _L_i; do
 		case $_L_i in
 		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
@@ -3794,12 +3796,12 @@ L_unittest_cmd() {
 	else
 		if ((_L_uopt_capture)); then
 			if ((_L_uopt_stdjoin)); then
-				_L_uout=$("$@" 2>&1) || _L_uret=$?
+				_L_uout=$(trap - ERR; "$@" 2>&1) || _L_uret=$?
 			else
-				_L_uout=$("$@") || _L_uret=$?
+				_L_uout=$(trap - ERR; "$@") || _L_uret=$?
 			fi
 		else
-			( "$@" ) || _L_uret=$?
+			( trap - ERR; "$@" ) || _L_uret=$?
 		fi
 	fi
 	#
@@ -4267,7 +4269,8 @@ _L_test_map() {
 		}
 	}
 	{
-		local map tmp oldifs=$IFS IFS=bc
+		if ((L_HAS_BASH4)); then local IFS=bc; fi
+		local map tmp
 		L_map_init map
 		L_map_set map "/bin/ba*" "/dev/*"
 		L_map_set map "b " "2 "
