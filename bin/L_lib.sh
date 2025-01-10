@@ -1967,8 +1967,13 @@ L_parse_range_list_v() {
 }
 
 # @description extglob that matches declare -p output from array or associative array
-_L_DECLARE_P_ARRAY_GLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(\[?*\]=*)"
-_L_DECLARE_P_EMPTY_ARRAY_GLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(*)"
+if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
+_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(\[?*\]=*)"
+_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(*)"
+else
+_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='(\[?*\]=*)'"
+_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='(*)'"
+fi
 
 # @description Add stuff to output from pretty_print
 # @arg $1 <str> printf format string
@@ -2031,7 +2036,7 @@ _L_pretty_print_nested() {
 				if [[ "$_L_pp_value" == "(["?*"]="*")" ]]; then
 					_L_pretty_print_nested "[$_L_pp_key]" "$_L_pp_value"
 					continue
-				elif [[ "$_L_pp_value" == $_L_DECLARE_P_ARRAY_GLOB ]]; then
+				elif [[ "$_L_pp_value" == $_L_DECLARE_P_ARRAY_EXTGLOB ]]; then
 					_L_pretty_print_nested "[$_L_pp_key]" "${_L_pp_value#*=}"
 					continue
 				fi
@@ -4507,8 +4512,8 @@ if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
 L_asa_load() {
 	L_assert "not an associative array: $1" L_var_is_associative "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_GLOB: $3=${!3:-}" \
-		L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_GLOB"
+	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB: $3=${!3:-}" \
+		L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB"
 	# This has to be eval - it expands to `var=([a]=b [c]=d)`
 	eval "$1=${!3#*=}"
 	# Is 1000 times faster, then the below, because L_asa_copy is slow.
@@ -5095,8 +5100,8 @@ _L_argparse_split_class_func() {
 		if _L_subparserstr=$("$_L_func" --L_argparse_dump_parser); then :; else
 			_L_argparse_split_fatal "Calling $_L_func --L_argparse_dump_parser exited with $?"
 		fi
-		if [[ "$_L_subparserstr" != ${L_UUID}${_L_DECLARE_P_ARRAY_GLOB}${L_UUID} ]]; then
-			_L_argparse_split_fatal "Calling $_L_func --L_argparse_dump_parser is not correct!"
+		if [[ "$_L_subparserstr" != ${L_UUID}${_L_DECLARE_P_ARRAY_EXTGLOB}${L_UUID} ]]; then
+			_L_argparse_split_fatal "Calling $_L_func --L_argparse_dump_parser is not correct!: ${_L_subparserstr}"
 		fi
 		# Remove UUIDs from the output.
 		_L_subparserstr=${_L_subparserstr#"$L_UUID"}
@@ -6060,6 +6065,7 @@ _L_argparse_parse_args() {
 		L_asa_dump "_L_parserchain[${#_L_parserchain[@]}]" = _L_parser
 		L_asa_load _L_parser = "_L_parser[_subparser_${_L_subargs[0]}]"
 		unset "_L_subargs[0]"
+		declare -p _L_subargs >/dev/tty
 		# Note - this is the last function, to propagate exit code.
 		if ((_L_in_complete)); then
 			_L_argparse_parse_args --L_argparse_get_completion ${_L_subargs[@]+"${_L_subargs[@]}"}
