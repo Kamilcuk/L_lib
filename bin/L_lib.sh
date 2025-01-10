@@ -5090,18 +5090,21 @@ _L_argparse_split_class_func() {
 	#
 	# Get the sub-functions parsers definitions.
 	# This is super unsafe and the data are later eval-ed.
-	local L_v _L_subparserstr _L_prefix _L_func
+	local L_v _L_subparserstr _L_prefix _L_func _L_func_declare
 	local -A _L_subparser=()
 	L_list_functions_with_prefix_v "${_L_optspec[prefix]}"
 	for _L_func in "${L_v[@]}"; do
-		if [[ "$(declare -f "$_L_func")" != "$_L_func"*"()"*"{"*L_argparse*----*"\"\$@\""* ]]; then
-			_L_argparse_split_fatal "Function $_L_func does not call L_argparse: $(declare -f "$_L_func")"
+		if ! _L_func_declare="$(declare -f "$_L_func")"; then
+			_L_argparse_split_fatal "internal error" || return 2
+		fi
+		if [[ "$_L_func_declare" != "$_L_func"*"()"*"{"*L_argparse*----*"\"\$@\""* ]]; then
+			_L_argparse_split_fatal "Function $_L_func does not call L_argparse. Add a call to L_argparse into the function to use it as a subparser. declare -f $_L_func=%s" "$_L_func_declare" || return 2
 		fi
 		if _L_subparserstr=$("$_L_func" --L_argparse_dump_parser); then :; else
-			_L_argparse_split_fatal "Calling $_L_func --L_argparse_dump_parser exited with $?"
+			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_dump_parser] exited with $? nonzero. Does the function call L_argparse as the first command?" || return 2
 		fi
 		if [[ "$_L_subparserstr" != ${L_UUID}${_L_DECLARE_P_ARRAY_EXTGLOB}${L_UUID} ]]; then
-			_L_argparse_split_fatal "Calling $_L_func --L_argparse_dump_parser is not correct!: ${_L_subparserstr}"
+			_L_argparse_split_fatal "Output of [$_L_func --L_argparse_dump_parser] doesn't match the proper regex. Does the function correctly calls L_argparse? The function output is: %s" "${_L_subparserstr}" || return 2
 		fi
 		# Remove UUIDs from the output.
 		_L_subparserstr=${_L_subparserstr#"$L_UUID"}

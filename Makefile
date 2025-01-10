@@ -28,7 +28,7 @@ test: \
 		test_bash4.2 \
 		test_bash4.1 \
 		#
-	@echo SUCCESS test
+	@echo 'make test finished with SUCCESS'
 test_local:
 	./bin/L_lib.sh test $(ARGS)
 test_bash%:
