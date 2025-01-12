@@ -2640,8 +2640,8 @@ _L_logconf_outputeval='L_log_output_to_stderr "$@"'
 # 		-o 'printf "%s\n" "$@" >&2' \
 # 		-s 'L_log_select_source_regex ".*/script.sh"'
 L_log_configure() {
-	local OPTARG OPTIND _L_opt
-	while getopt rl:c:f:s:o: _L_opt; do
+	local OPTARG OPTIND OPTERR _L_opt
+	while getopts rl:c:f:s:o: _L_opt; do
 		if ((_L_logconf_configured)); then
 			case $_L_opt in
 				r) _L_logconf_configured=0 ;;
@@ -2656,12 +2656,12 @@ L_log_configure() {
 				f) _L_logconf_formateval=$OPTARG ;;
 				s) _L_logconf_selecteval=$OPTARG ;;
 				o) _L_logconf_outputeval=$OPTARG ;;
-				*) L_fatal "invalid arguments: $_L_opt $OPTARG" ;;
+				*) L_fatal "invalid arguments: opt=$_L_opt OPTARG=$OPTARG" ;;
 			esac
 		fi
 	done
 	shift $((OPTIND-1))
-	L_assert "invalid arguments" test $# -ne 0
+	L_assert "invalid arguments: $*" test $# -eq 0
 	_L_logconf_configured=1
 }
 
