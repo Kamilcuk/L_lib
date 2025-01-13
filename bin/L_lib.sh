@@ -4516,35 +4516,13 @@ if ((L_HAS_PRINTF_V_ARRAY)); then
 L_asa_set() {
 	printf -v "${1}[$2]" "%s" "$3"
 }
-
-# @description Serialize an associative array to string.
-# @arg $1 var destination variable nameref
-# @arg $2 =
-# @arg $3 var associative array nameref to serialize
-# @see L_asa_load
-# @see L_asa_assign
-# @example
-#    declare -A map=([a]=b [c]=d)
-#    L_asa_dump string = map
-#    declare -A mapcopy=()
-#    L_asa_load mapcopy = string
-L_asa_dump() {
-	printf -v "$1" "%s" "$(declare -p "$3")"
-	L_assert "not an associative array: $3" L_glob_match "${!1}" "declare -A*"
-}
 else
 	L_asa_set() {
 		L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
-		eval "${1}[\$2]=\"\$3\""
-	}
-	L_asa_dump() {
-		L_assert "not a valid variable name: $1" L_is_valid_variable_or_array_element "$1"
-		eval "$1=\$(declare -p \"\$3\")"
-		L_assert "not an associative array: $3" L_glob_match "${!1}" "declare -A*"
+		eval "$1[\$2]=\"\$3\""
 	}
 fi
 
-if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
 # @description Extract associative array from string
 # @arg $1 var associative array nameref to store
 # @arg $2 =
@@ -4554,32 +4532,34 @@ if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
 # @example
 #    declare -A map=([a]=b [c]=d)
 #    declare string=""
-#    L_asa_dump string = map
+#    string=$(declare -p "map")
 #    declare -A mapcopy=()
-#    L_asa_load mapcopy = string
-L_asa_load() {
+#    L_asa_from_declare mapcopy = "${string}"
+L_asa_from_declare() {
 	L_assert "not an associative array: $1" L_var_is_associative "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB: $3=${!3:-}" \
-		L_glob_match "${!3:-}" "$_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB"
-	# This has to be eval - it expands to `var=([a]=b [c]=d)`
-	eval "$1=${!3#*=}"
-	# Is 1000 times faster, then the below, because L_asa_copy is slow.
-	# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
-	# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
-	# declare -A _L_tmpa="$_L_asa"
-	# _L_asa_to=()
-	# L_asa_copy _L_tmpa "$1"
+	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB: $3" \
+		L_glob_match "$3" "$_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB"
+	L_asa_from_declare_unsafe "$@"
 }
+
+if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
+	L_asa_from_declare_unsafe() {
+		# This has to be eval - it expands to `var=([a]=b [c]=d)`
+		eval "$1=${3#*=}"
+		# Is 1000 times faster, then the below, because L_asa_copy is slow.
+		# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
+		# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
+		# declare -A _L_tmpa="$_L_asa"
+		# _L_asa_to=()
+		# L_asa_copy _L_tmpa "$1"
+	}
 else
-	L_asa_load() {
-		L_assert "not an associative array: $1" L_var_is_associative "$1"
-		L_assert "source nameref does not match \"declare -A* [a-zA-Z_]*='(*)'\": $3=${!3:-}" \
-			L_glob_match "${!3:-}" "declare -A* [a-zA-Z_]*='(*)'"
+	L_asa_from_declare_unsafe() {
 		# Godspeed.
 		# First expansion un-quotes the output of declare -A.
 		# Second assigns the associative array.
-		eval "eval \$1=${!3#*=}"
+		eval "eval \$1=${3#*=}"
 	}
 fi
 
@@ -4592,15 +4572,15 @@ fi
 # @arg $3 var Source associative array
 # @see L_asa_copy
 # @see L_asa_dump
-# @see L_asa_load
+# @see L_asa_from_declare
 # @example
 #   local -A map=([a]=b [c]=d)
 #   local -A mapcopy=()
 #   L_asa_assign mapcopy = map
 L_asa_assign() {
 	local _L_tmp
-	L_asa_dump _L_tmp = "$3"
-	L_asa_load "$1" = _L_tmp
+	_L_tmp=$(declare -p "$3")
+	L_asa_from_declare "$1" = "${_L_tmp}"
 }
 
 _L_test_asa() {
@@ -4644,11 +4624,11 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: nested asa"
 		local -A map2=([c]=d [e]=f)
-		L_asa_dump "map[mapkey]" = map2
+		map[mapkey]=$(declare -p "map2")
 		L_asa_has map mapkey
 		L_asa_get map mapkey
 		local -A map3=()
-		L_asa_load map3 = "map[mapkey]"
+		L_asa_from_declare map3 = "${map[mapkey]}"
 		L_asa_get -v v map3 c
 		L_unittest_eq "$v" d
 		L_asa_get -v v map3 e
@@ -4662,8 +4642,8 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: nested asa with quotes"
 		local -A map3 map2=([a]="='='=")
-		L_asa_dump "map[mapkey]" = map2
-		L_asa_load map3 = "map[mapkey]"
+		map[mapkey]=$(declare -p "map2")
+		L_asa_from_declare map3 = "${map[mapkey]}"
 		L_unittest_eq "${map2[a]}" "${map3[a]}"
 	}
 }
@@ -4743,9 +4723,9 @@ _L_argparse_print_help_indenter() {
 				if L_hash fmt; then
 					# Replace whitespaces by a single space.
 					# shellcheck disable=SC2064
-					trap "$(shopt -p extglob)" RETURN
-					shopt -s extglob
-					opthelp="${opthelp//+([$' \t\n'])/ }"
+					# trap "$(shopt -p extglob)" RETURN
+					# shopt -s extglob
+					# opthelp="${opthelp//+([$' \t\n'])/ }"
 					# Use fmt for formatting if available.
 					# shellcheck disable=SC2154
 					opthelp=$(fmt -w "$help_width" <<<"$opthelp")
@@ -4862,7 +4842,7 @@ L_argparse_print_help() {
 		else
 			for _L_subparserstr in ${_L_parserchain[@]:+"${_L_parserchain[@]}"}; do
 				local -A _L_subparser=()
-				L_asa_load _L_subparser = _L_subparserstr
+				L_asa_from_declare_unsafe _L_subparser = "${_L_subparserstr}"
 				if ! L_var_is_set _L_prog; then
 					_L_prog=${_L_subparser[prog]:-$0}
 				else
@@ -4902,7 +4882,7 @@ L_argparse_print_help() {
 					for _L_key in "${!_L_parser[@]}"; do
 						if [[ "$_L_key" == _subparser_* ]]; then
 							local -A _L_subparser=()
-							L_asa_load _L_subparser = "_L_parser[$_L_key]"
+							L_asa_from_declare_unsafe _L_subparser = "${_L_parser[$_L_key]}"
 							_L_usage_cmds_helps+=("${_L_key#_subparser_}"$'\n'"${_L_subparser[description]:-}")
 						fi
 					done
@@ -5026,7 +5006,7 @@ _L_argparse_split_class_parsersetings() {
 		# Set _anything_ so that detection that has been set works.
 		: "${_L_optspec[_arg_cnt]:=}"
 	}
-	L_asa_assign _L_parser = _L_optspec
+	L_asa_from_declare_unsafe _L_parser = "$(declare -p _L_optspec)"
 	{
 		if L_is_true "${_L_parser[add_help]:-true}"; then
 			local _L_split_left_args=()
@@ -5044,7 +5024,7 @@ _L_argparse_subparser_complete() {
 		local _L_i _L_desc
 		for _L_i in "${!_L_parser[@]}"; do
 			if [[ "$_L_i" == "_subparser_$1"* ]]; then
-				L_asa_load _L_subparser = "_L_parser[$_L_i]"
+				L_asa_from_declare_unsafe _L_subparser = "${_L_parser[$_L_i]}"
 				_L_desc=${_L_subparser[description]:-}
 				_L_desc=${_L_desc//[$'\n\t']/ }
 				echo "plain$L_TAB${_L_i#_subparser_}$L_TAB$_L_desc"
@@ -5053,7 +5033,7 @@ _L_argparse_subparser_complete() {
 	else
 		# find subparser
 		if L_asa_has _L_parser "_subparser_${_L_subargs[0]}"; then
-			L_asa_load _L_parser = "_L_parser[_subparser_${_L_subargs[0]}]"
+			L_asa_from_declare_unsafe _L_parser = "${_L_parser[_subparser_${_L_subargs[0]}]}"
 			_L_argparse_parse_args --L_argparse_get_completion "${_L_subargs[@]:1}" "$1"
 		fi
 	fi
@@ -5083,7 +5063,7 @@ _L_argparse_split_class_subparser() {
 	fi
 	while [[ "${1:-}" == "{" ]]; do
 		local _L_save_parser
-		L_asa_dump _L_save_parser = _L_parser
+		_L_save_parser=$(declare -p "_L_parser")
 		_L_parser=()
 		{
 			shift
@@ -5100,8 +5080,8 @@ _L_argparse_split_class_subparser() {
 		local -a _L_aliases="(${_L_parser[aliases]:-})"
 		_L_aliases+=("${_L_parser[name]:?}")
 		local _L_subparserstr
-		L_asa_dump _L_subparserstr = _L_parser
-		L_asa_load _L_parser = "_L_save_parser"
+		_L_subparserstr=$(declare -p "_L_parser")
+		L_asa_from_declare_unsafe _L_parser = "${_L_save_parser}"
 		_L_argparse_parser_add_subparsers "$_L_subparserstr" "${_L_aliases[@]}"
 	done
 	_L_split_left_args=("$@")
@@ -5158,11 +5138,11 @@ _L_argparse_split_class_func() {
 		_L_subparserstr=${_L_subparserstr#"$L_UUID"}
 		_L_subparserstr=${_L_subparserstr%"$L_UUID"}
 		# Extract subparser aliases.
-		L_asa_load _L_subparser = _L_subparserstr
+		L_asa_from_declare_unsafe _L_subparser = "${_L_subparserstr}"
 		local -a _L_aliases="(${_L_subparser[aliases]:-})"
 		_L_aliases+=("${_L_subparser[name]:=${_L_func#"${_L_optspec[prefix]}"}}")
 		_L_subparser[_func]=$_L_func
-		L_asa_dump _L_subparserstr = _L_subparser
+		_L_subparserstr=$(declare -p "_L_subparser")
 		_L_argparse_parser_add_subparsers "$_L_subparserstr" "${_L_aliases[@]}"
 	done
 }
@@ -5350,7 +5330,7 @@ _L_argparse_split_argument_common() {
 			# option argument
 			_L_parser[_option_cnt]=${_L_parser[_option_cnt]:-}X
 			_L_optspec[_index]=_option_${#_L_parser[_option_cnt]}
-			L_asa_dump "_L_parser[${_L_optspec[_index]}]" = _L_optspec
+			_L_parser[${_L_optspec[_index]}]=$(declare -p "_L_optspec")
 			#
 			local _L_i
 			for _L_i in "${_L_options[@]}"; do
@@ -5363,7 +5343,7 @@ _L_argparse_split_argument_common() {
 			# positional argument
 			_L_parser[_arg_cnt]=${_L_parser[_arg_cnt]:-}X
 			_L_optspec[_index]=_arg_${#_L_parser[_arg_cnt]}
-			L_asa_dump "_L_parser[${_L_optspec[_index]}]" = _L_optspec
+			_L_parser[${_L_optspec[_index]}]=$(declare -p "_L_optspec")
 		fi
 	}
 }
@@ -5404,11 +5384,15 @@ _L_argparse_split() {
 			shift
 		done
 		# L_pretty_print -np "A" _L_parser _L_optspec _L_split_long_options _L_split_short_options _L_split_args >/dev/tty
-		_L_split_left_args=("$@")
-		if ! _L_argparse_split_class_"${class:=${_L_optspec[class]:-argument}}" "$@"; then
+		if [[ "${class:=${_L_optspec[class]:-argument}}" == "subparser" ]]; then
+			_L_split_left_args=("$@")
+		fi
+		if ! _L_argparse_split_class_"$class" "$@"; then
 			_L_argparse_split_fatal "error splitting args or invalid class=$class"
 		fi
-		set -- ${_L_split_left_args[@]+"${_L_split_left_args[@]}"}
+		if [[ "$class" == "subparser" ]]; then
+			set -- ${_L_split_left_args[@]+"${_L_split_left_args[@]}"}
+		fi
 		case "${1:-}" in
 		'--') shift ;;
 		''|'----'|'{'|'}') break ;;
@@ -5423,7 +5407,7 @@ _L_argparse_split() {
 # @arg $1 variable to set with optspec
 # @arg $2 short option ex. -a
 _L_argparse_parser_get_short_option() {
-	L_asa_has _L_parser "$2" && L_asa_load "$1" = "_L_parser[$2]"
+	L_asa_has _L_parser "$2" && L_asa_from_declare_unsafe "$1" = "${_L_parser[$2]}"
 }
 
 # @description
@@ -5432,14 +5416,14 @@ _L_argparse_parser_get_short_option() {
 # @arg $2 long option ex. --option
 _L_argparse_parser_get_long_option() {
 	if L_asa_has _L_parser "$2"; then
-		L_asa_load "$1" = "_L_parser[$2]"
+		L_asa_from_declare_unsafe "$1" = "${_L_parser[$2]}"
 	elif L_is_true "${_L_parser[allow_abbrev]:-true}"; then
 		local IFS=$'\n' _L_abbrev_matches
 		_L_abbrev_matches=$(compgen -W "${!_L_parser[*]}" -- "$2")
 		IFS=$'\n' read -r -d '' -a _L_abbrev_matches <<<"$_L_abbrev_matches"
 		# L_abbreviation -v _L_abbrev_matches "$2" "${!_L_parser[@]}"
 		if (( ${#_L_abbrev_matches[@]} == 1 )); then
-			L_asa_load "$1" = "_L_parser[${_L_abbrev_matches[0]}]"
+			L_asa_from_declare_unsafe "$1" = "${_L_parser[${_L_abbrev_matches[0]}]}"
 		elif (( ${#_L_abbrev_matches[@]} > 1 )); then
 			local IFS=' '
 			L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches[*]}" || return 1
@@ -5468,7 +5452,7 @@ _L_argparse_parser_get_long_option() {
 #	done
 _L_argparse_parser_next() {
 	[[ -n "${_L_parser[$1$((${_L_optspec[@]:+${_L_optspec[_index]#"$1"}}+1))]:-}" ]] &&
-		L_asa_load "$2" = "_L_parser[$1$((${_L_optspec[@]:+${_L_optspec[_index]#"$1"}}+1))]"
+		L_asa_from_declare_unsafe "$2" = "${_L_parser[$1$((${_L_optspec[@]:+${_L_optspec[_index]#"$1"}}+1))]}"
 }
 
 _L_argparse_parser_next_argument() { _L_argparse_parser_next _arg_ "$@"; }
@@ -5786,7 +5770,7 @@ _L_argparse_parse_internal_args() {
 	case "${1:-}" in
 	--L_argparse_dump_parser)
 		local _L_tmp
-		L_asa_dump _L_tmp = _L_parser
+		_L_tmp=$(declare -p "_L_parser")
 		echo "$L_UUID$_L_tmp$L_UUID"
 		exit
 		;;
@@ -6098,7 +6082,7 @@ _L_argparse_parse_args() {
 			local _L_required_options_str="" _L_i
 			for _L_i in "${_L_required_options[@]}"; do
 				local -A _L_optspec=()
-				L_asa_load _L_optspec = "_L_parser[$_L_i]"
+				L_asa_from_declare_unsafe _L_optspec = "${_L_parser[$_L_i]}"
 				local _L_desc
 				_L_argparse_optspec_get_description _L_desc
 				_L_required_options_str+="${_L_required_options_str:+, }${_L_desc}"
@@ -6113,8 +6097,8 @@ _L_argparse_parse_args() {
 			L_argparse_fatal "unrecognized command: ${_L_subargs[0]}" || return 1
 			return 1
 		fi
-		L_asa_dump "_L_parserchain[${#_L_parserchain[@]}]" = _L_parser
-		L_asa_load _L_parser = "_L_parser[_subparser_${_L_subargs[0]}]"
+		_L_parserchain[${#_L_parserchain[@]}]=$(declare -p "_L_parser")
+		L_asa_from_declare_unsafe _L_parser = "${_L_parser[_subparser_${_L_subargs[0]}]}"
 		unset "_L_subargs[0]"
 		declare -p _L_subargs >/dev/tty
 		# Note - this is the last function, to propagate exit code.
