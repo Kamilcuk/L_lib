@@ -4700,13 +4700,14 @@ L_argparse_fatal() {
 # @arg $3 <var> array of metavars of options
 # @arg $4 <var> array of help messages of options
 _L_argparse_print_help_indenter() {
-	local _L_left="$3[@]" _L_right="$4[@]" _L_i _L_len max_header_length=0 _L_line _L_tmp help_position a b c COLUMNS=${COLUMNS:-80} free_space diff
-	_L_left=(${!_L_left+"${!_L_left}"})
-	if ((${#_L_left[@]} == 0)); then return; fi
-	_L_right=(${!_L_right+"${!_L_right}"})
+	local _L_helps="$3[@]" _L_i _L_len max_header_length=0 _L_line _L_tmp help_position a b c COLUMNS=${COLUMNS:-80} free_space diff _L_help
+	_L_helps=(${!_L_helps+"${!_L_helps}"})
+	if ((${#_L_helps[@]} == 0)); then return; fi
+	# LC_ALL=C L_sort_bash _L_helps
 	#
 	L_printf_append "$1" "\n%s\n" "$2"
-	for _L_i in "${_L_left[@]}"; do
+	for _L_i in "${_L_helps[@]}"; do
+		_L_i=${_L_i%%$'\n'*}
 		# shellcheck disable=SC2094,SC2035,SC2094
 		(( max_header_length < ${#_L_i} ? max_header_length = ${#_L_i} : 1 ))
 	done
@@ -4714,16 +4715,16 @@ _L_argparse_print_help_indenter() {
 	#           | - help_position
 	# shellcheck disable=SC2094,SC2035,SC2283,SC2210,SC2094
 	((
-		COLUMNS -= 2,
-		help_position = COLUMNS - 20,
-		help_position < 24 ? help_position = 24 : 1,
+		help_position = 24,
 		help_position > max_header_length + 4 ? help_position = max_header_length + 4 : 1,
+		max_header_length + 4 < COLUMNS / 2 ? help_position = max_header_length + 4 : 1,
 		help_width = COLUMNS - help_position - 2,
 		help_width < 11 ? help_width = 11 : 1
 	))
-	for _L_i in "${!_L_left[@]}"; do
-		local header="  ${_L_left[_L_i]}"
-		local opthelp=${_L_right[_L_i]%$'\n'}
+	for _L_help in "${_L_helps[@]}"; do
+		local header="  ${_L_help%%$'\n'*}"
+		local opthelp=${_L_help#*$'\n'}
+		L_strip -v opthelp "$opthelp"
 		if ((${#opthelp} == 0)); then
 			# no help
 			L_printf_append "$1" "%s\n" "$header"
@@ -4902,8 +4903,7 @@ L_argparse_print_help() {
 						if [[ "$_L_key" == _subparser_* ]]; then
 							local -A _L_subparser=()
 							L_asa_load _L_subparser = "_L_parser[$_L_key]"
-							_L_usage_cmds_descs+=("${_L_key#_subparser_}")
-							_L_usage_cmds_helps+=("${_L_subparser[description]:-}")
+							_L_usage_cmds_helps+=("${_L_key#_subparser_}"$'\n'"${_L_subparser[description]:-}")
 						fi
 					done
 				else
@@ -4911,13 +4911,12 @@ L_argparse_print_help() {
 					local _L_metavar
 					_L_argparse_optspec_get_metavar _L_metavar
 					_L_argparse_optspec_get_usage _L_args_usage
-					_L_usage_args_descs+=("$_L_metavar")
-					_L_usage_args_helps+=("$_L_opthelp")
+					_L_usage_args_helps+=("$_L_metavar"$'\n'"$_L_opthelp")
 				fi
 			fi
 		done
-		_L_argparse_print_help_indenter _L_help_help "Arguments:" _L_usage_args_descs _L_usage_args_helps
-		_L_argparse_print_help_indenter _L_help_help "Available Commands:" _L_usage_cmds_descs _L_usage_cmds_helps
+		_L_argparse_print_help_indenter _L_help_help "Arguments:" _L_usage_args_helps
+		_L_argparse_print_help_indenter _L_help_help "Available Commands:" _L_usage_cmds_helps
 	}
 	{
 		# Parse options
@@ -4934,11 +4933,10 @@ L_argparse_print_help() {
 				local _L_add=""
 				_L_argparse_optspec_get_usage _L_add
 				_L_options_usage+=" ${_L_notrequired:+[}${_L_options[0]}${_L_add}${_L_notrequired:+]}"
-				_L_options_descs+=("$_L_desc$_L_add")
-				_L_options_helps+=("$_L_opthelp")
+				_L_options_helps+=("$_L_desc$_L_add"$'\n'"$_L_opthelp")
 			fi
 		done
-		_L_argparse_print_help_indenter _L_help_help "Options:" _L_options_descs _L_options_helps
+		_L_argparse_print_help_indenter _L_help_help "Options:" _L_options_helps
 	}
 	{
 		# output
@@ -4991,6 +4989,11 @@ _L_argparse_split_check_allowed() {
 	${_L_optspec[class]:+unset} ${_L_optspec[class]:+"_L_optspec[class]"}
 }
 
+L_argparse_template_help=(-h --help help="show this help message and exit" action=help)
+L_argparse_template_verbose=(-v --verbose help="be more verbose" action=eval:'L_log_level_inc')
+L_argparse_template_quiet=(-q --quiet help="be more quiet" action=eval:'L_log_level_dec')
+L_argparse_template_dryrun=(-n --dryrun help="do not run; just print" action=eval:'L_dryrun=1')
+
 # @env _L_split_args
 # @env _L_split_long_options
 # @env _L_split_short_options
@@ -5027,10 +5030,7 @@ _L_argparse_split_class_parsersetings() {
 	{
 		if L_is_true "${_L_parser[add_help]:-true}"; then
 			local _L_split_left_args=()
-			_L_argparse_split \
-				-h --help \
-				help="show this help message and exit" \
-				action=help
+			_L_argparse_split "${L_argparse_template_help[@]}"
 		fi
 	}
 }
