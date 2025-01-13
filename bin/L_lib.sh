@@ -2771,6 +2771,7 @@ L_log_select_source_regex() {
 # @env L_NAME
 # @see L_log_configure
 L_log_format_default() {
+	if (($# == 1)); then set -- "%s" "$*"; fi
 	printf -v L_logrecord_msg "%s""%s:%s:%d:$1""%s" \
 		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		"$L_NAME" \
@@ -2793,6 +2794,7 @@ L_log_format_default() {
 # @env L_NAME
 # @see L_log_configure
 L_log_format_long() {
+	if (($# == 1)); then set -- "%s" "$*"; fi
 	printf -v L_logrecord_msg "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s $1""%s" \
 		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		-1 \
