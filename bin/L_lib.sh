@@ -6658,18 +6658,6 @@ _L_lib_list_prefix_functions() {
 	L_list_functions_with_prefix "$L_prefix" | sed "s/^$L_prefix//"
 }
 
-if ! L_function_exists L_cb_usage_usage; then L_cb_usage_usage() {
-	echo "usage: $L_NAME <COMMAND> [OPTIONS]"
-}; fi
-
-if ! L_function_exists L_cb_usage_desc; then L_cb_usage_desc() {
-	:
-}; fi
-
-if ! L_function_exists L_cb_usage_footer; then L_cb_usage_footer() {
-	:
-}; fi
-
 # shellcheck disable=2046
 _L_lib_their_usage() {
 	if L_function_exists L_cb_usage; then
@@ -6677,17 +6665,10 @@ _L_lib_their_usage() {
 		return
 	fi
 	local a_usage a_desc a_cmds a_footer
-	a_usage=$(L_cb_usage_usage)
-	a_desc=$(L_cb_usage_desc)
+	a_usage="Usage: $L_NAME <COMMAND> [OPTIONS]"
 	a_cmds=$(
 		{
-			for f in $(_L_lib_list_prefix_functions); do
-				desc=""
-				if L_function_exists L_cb_"$L_prefix$f"; then
-					L_cb_"$L_prefix$f" "$f" "$L_prefix"
-				fi
-				echo "$f${desc:+$'\01'}$desc"
-			done
+			_L_lib_list_prefix_functions
 			echo "-h --help"$'\01'"print this help and exit"
 			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
 		} | {
@@ -6698,16 +6679,12 @@ _L_lib_their_usage() {
 			fi
 		} | sed 's/^/  /'
 	)
-	a_footer=$(L_cb_usage_footer)
 	cat <<EOF
-${a_usage}
+$a_usage
 
-${a_desc:-}${a_desc:+
+Commands:
+$a_cmds
 
-}Commands:
-$a_cmds${a_footer:+
-
-}${a_footer:-}
 EOF
 }
 
