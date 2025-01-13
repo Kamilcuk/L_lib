@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-. "$(dirname "$(readlink -f "$0")")"/../bin/L_lib.sh
+. "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../bin/L_lib.sh
 if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 	declare -A Adest=()
 fi
