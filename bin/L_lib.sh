@@ -2678,6 +2678,18 @@ L_log_configure() {
 	_L_logconf_configured=1
 }
 
+# @description increase log level
+# @arg $1 <int> amount, default: 10
+L_log_level_inc() {
+	((_L_logconf_level-=${1:-10}))
+}
+
+# @description decrease log level
+# @arg $1 <int> amount, default: 10
+L_log_level_dec() {
+	((_L_logconf_level+=${1:-10}))
+}
+
 # @description int positive stack level to omit when printing caller information
 # @example
 # 	echo \
