@@ -5929,7 +5929,7 @@ _L_argparse_parse_args_short_option() {
 	# Parse short option -euopipefail
 	local _L_i _L_dash=${1:0:1} _L_opt=${1#[-+]} _L_init_args=$#
 	for ((_L_i = 0; _L_init_args == $# && _L_i < ${#_L_opt}; ++_L_i)); do
-		local _L_c=${_L_opt:_L_i:1} _L_rest=${_L_opt:_L_i+1} _L_pre=${_L_opt::_L_i-1}
+		local _L_c=${_L_opt:_L_i:1} _L_rest=${_L_opt:_L_i+1} _L_pre=${_L_opt::_L_i-1<0?0:_L_i-1}
 		local -A _L_optspec=()
 		if ! _L_argparse_parser_get_short_option _L_optspec "$_L_dash$_L_c"; then
 			if (($# == 0)); then
