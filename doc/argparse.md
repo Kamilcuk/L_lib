@@ -115,7 +115,7 @@ The prefix `--L_argparse_` of the first command line argument for parser is rese
 - `--L_argparse_complete_bash` - print Bash completion script and exit
 - `--L_argparse_complete_zsh` - print Zsh completion script and exit
 - `--L_argparse_complete_fish` - print Fish completion script and exit
-- `--L_argparse_print_completion` - print a helpy message how to use bash completion
+- `--L_argparse_print_completion` - print a helpful message how to use bash completion
 - `--L_argparse_print_usage` - print usage and exit
 - `--L_argparse_print_help` - print help and exit
 - `--L_argparse_dump_parser` - serialize the parser to stdout surrounded by UUIDs and exit
@@ -220,14 +220,14 @@ Internal associative array keys start with `_`.
 
 `_L_parser` is an associative array that allows to:
 - access the parser settings
-- find an long --option
-- find an short option -o
-- find an sub-parser with name
+- find a long --option
+- find a short option -o
+- find a subparser with name
 - iterate over all options
 - iterate over all arguments
-- iterate over all sub-parsers
+- iterate over all subparsers
 - iterate over all option groups
-- iterate over all options with in a group
+- iterate over all options within a group
 
 `_L_parser` contains the following keys:
 - all keys of parser settings
@@ -235,11 +235,7 @@ Internal associative array keys start with `_`.
 - `_option_N` - where N is a non-negative integer - the `optspec` of option number `N`
 - `_arg_cnt` - string length is equal to the number of arguments
 - `_arg_N` - where N is a non-negative integer - the `optspec` of argument number `N`
-- `_group_cnt` - string length is equal to the number of groups
-- `_group_N` - where N is a non-negative integer - the `groupspec` of group number `N`
-- `_group_N_options` - space separated indexes of options in the group N separated by spaces
-- `_helpgroups` - space separaated indexes of groups that are not required and not exclusive
-- `_has_subparsers` - 1 if there are sub-parsers. Used for checking if user provided two sub-parsers.
+- `_has_subparsers` - 1 if there are subparsers. Used for checking if user provided two subparsers.
 - `_subparser_<alias>` - Sub-parser `_L_parser` with the alias `<alias>`.
 - `_func` - the name of the function that is executed when the parser is run
 - `-o` or `--option` - the `optspec` of the particular option for fast lookup
@@ -249,7 +245,7 @@ Internal associative array keys start with `_`.
 `_L_optspec` is an associative array used to store options and arguments specifications.
 Additional keys set internally in `_L_optspec` when parsing arguments:
 
-- `_options` - Space separated list of short and long options. Used to detect if this is an option or argument.
+- `_options` - Space separated list of short and long options. Used to detect if this is an option or an argument.
 - `_index` - Key in `_L_parser`. Used to uniquely identify the entity.
 - `_isarray` - Should the `dest` variable be assigned as an array? Holds 1 or missing.
 - `_desc` - Description used in error messages. Metavar for arguments or list of options joined with `/`.
@@ -258,4 +254,3 @@ Additional keys set internally in `_L_optspec` when parsing arguments:
 
 I did not like argbash that requires some code generation. There should
 be no generation required. It is just a function that executes.
-
