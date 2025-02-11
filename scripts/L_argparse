@@ -13,4 +13,4 @@ trap 'L_trap_err $?' EXIT
 SUPER=$(f)
 time L_argparse "$@"
 # echo $?
-diff -U0 - <<<"$SUPER" <(f) || :
+diff -biw - <<<"$SUPER" <(f) | sed -n 's/^> /+ /p' || :
