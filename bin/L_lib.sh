@@ -1421,6 +1421,17 @@ L_exit_to() {
 	fi
 }
 
+# @description store 1 if command exited with 0, store 0 if command exited with nonzero
+# @arg $1 variable
+# @arg $@ command to execute
+L_exit_to_10() {
+	if "${@:2}"; then
+		printf -v "$1" 1
+	else
+		printf -v "$1" 0
+	fi
+}
+
 # @description compare two float numbers
 # The '<=>' operator returns 9 when $1 < $2, 10 when $1 == $2 and 11 when $1 > $2.
 # @arg $1 <float> one number
