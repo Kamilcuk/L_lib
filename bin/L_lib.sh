@@ -4067,11 +4067,10 @@ L_map_clear() {
 #       echo "a is not set"
 #     fi
 L_map_remove() {
-	if L_map_has "$@"; then
-		local _L_map _L_key
-		_L_map=${!1}$'\n'
-		printf -v _L_key "%q" "$2"
-		printf -v "$1" "\n%s%s" "${_L_map#*$'\n'"$_L_key"$'\t'*$'\n'}" "${_L_map%%$'\n'"$_L_key"$'\t'*}"
+	local _L_key
+	printf -v _L_key "%q" "$2"
+	if [[ "${!1}" == *$'\n'"$_L_key"$'\t'* ]]; then
+		printf -v "$1" "\n%s%s" "${!1#*$'\n'"$_L_key"$'\t'*$'\n'}" "${!1%%$'\n'"$_L_key"$'\t'*}"
 	fi
 }
 
@@ -4087,7 +4086,7 @@ L_map_set() {
 	L_map_remove "$1" "$2"
 	# This code depends on that `printf %q` _never_ prints a newline, instead it does $'\n'.
 	# I add key-value pairs in chunks with preeceeding newline.
-	printf -v "$1" "%s\n%q\t%q" "${!1}" "$2" "${*:3}"
+	printf -v "$1" "%s\n%q\t%q\n" "${!1%$'\n'}" "$2" "${*:3}"
 }
 
 # @description Assigns the value of key in map.
@@ -4104,25 +4103,22 @@ L_map_set() {
 #    echo "$tmp"  # outputs: 1
 L_map_get() { L_handle_v "$@"; }
 L_map_get_v() {
-	local _L_map _L_key _L_map2
-	_L_map=${!1}
-	printf -v _L_key "%q" "$2"
+	printf -v L_v "%q" "$2"
 	# Remove anything in front of the newline followed by key followed by space.
 	# Because the key can't have newline not space, it's fine.
-	_L_map=${_L_map##*$'\n'"$_L_key"$'\t'}
+	L_v=${!1##*$'\n'"$L_v"$'\t'}
 	# If nothing was removed, then the key does not exists.
-	if [[ "$_L_map" == "${!1}" ]]; then
+	if [[ "$L_v" == "${!1}" ]]; then
 		if (($# >= 3)); then
 			L_v="${*:3}"
-			return 0
 		else
 			return 1
 		fi
+	else
+		# Remove from the newline until the end and print with eval.
+		# The key was inserted with printf %q, so it has to go through eval now.
+		eval "L_v=${L_v%%$'\n'*}"
 	fi
-	# Remove from the newline until the end and print with eval.
-	# The key was inserted with printf %q, so it has to go through eval now.
-	_L_map=${_L_map%%$'\n'*}
-	eval "L_v=$_L_map"
 }
 
 # @description
