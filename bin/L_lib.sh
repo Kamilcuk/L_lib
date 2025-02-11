@@ -3636,7 +3636,7 @@ _L_test_trapchain() {
 # @arg $2 message to print on failure
 # @arg $@ command to execute, can start with '!' to invert exit status
 _L_unittest_internal() {
-	local _L_tmp=0 _L_invert=0 IFS=' '
+	local _L_tmp=0 _L_invert=0 IFS=' ' i
 	if [[ "$3" == "!" ]]; then
 		_L_invert=1
 		shift
@@ -3647,7 +3647,16 @@ _L_unittest_internal() {
 	if ((_L_tmp)); then
 		echo -n "${L_RED}${L_BRIGHT}"
 	fi
-	echo -n "${FUNCNAME[2]}:${BASH_LINENO[1]}: test: ${1:-}: "
+	# Find first function in the stack that does not start with _L_unittest_
+	for ((i=1;;++i)); do
+		case "${FUNCNAME[i]:-}" in
+		"") break ;;
+		_L_unittest_*|L_unittest_*) ;;
+		*) break ;;
+		esac
+	done
+	echo -n "${FUNCNAME[i]}:${BASH_LINENO[i-1]}: test: ${1:-}: "
+	#
 	if ((_L_tmp == 0)); then
 		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
