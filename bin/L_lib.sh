@@ -1110,50 +1110,33 @@ fi
 # @description Remove characters from IFS from begining and end of string
 # @option -v <var> variable to set
 # @arg $1 <str> String to operate on.
-# @arg $2 <str> Optional characters to strip, default is IFS
+# @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_strip() { L_handle_v "$@"; }
 L_strip_v() {
-	if [[ "$1" == *[^"${2:-$IFS}"]* ]]; then
-		# "  abc  "
-		#  ^^^^     - pre
-		#     ^^^^  - post
-		local pre=${1%[^"${2:-$IFS}"]*} post=${1#*[^"${2:-$IFS}"]}
-		L_v=${1:${#1}-${#post}-1:${#pre}+1-(${#1}-${#post}-1)}
-	else
-		L_v=""
-	fi
+	L_v=${1#"${1%%[!${2:-[:space:]}]*}"}
+	L_v="${L_v%"${L_v##*[!${2:-[:space:]}]}"}"
 }
 
 # @description Remove characters from IFS from begining of string
 # @option -v <var> variable to set
-# @arg $1 String to operate on.
-# @arg $2 <str> Optional characters to strip, default is IFS
+# @arg $1 <str> String to operate on.
+# @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_lstrip() { L_handle_v "$@"; }
 L_lstrip_v() {
-	if [[ "$1" == *[^"${2:-$IFS}"]* ]]; then
-		local post=${1#*[^"${2:-$IFS}"]}
-		L_v=${1:${#1}-${#post}-1}
-	else
-		L_v=""
-	fi
+	L_v="${1#"${1%%[!${2:-[:space:]}]*}"}"
 }
 
 # @description Remove characters from IFS from begining of string
 # @option -v <var> variable to set
 # @arg $1 String to operate on.
-# @arg $2 <str> Optional characters to strip, default is IFS
+# @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_rstrip() { L_handle_v "$@"; }
 L_rstrip_v() {
-	if [[ "$1" == *[^"${2:-$IFS}"]* ]]; then
-		local pre=${1%[^"${2:-$IFS}"]*}
-		L_v=${1::${#pre}+1}
-	else
-		L_v=""
-	fi
+	L_v="${1%"${1##*[!${2:-[:space:]}]}"}"
 }
 
 _L_test_str() {
-	local tmp IFS=$' \t\n'
+	local tmp IFS="!@#"
 	L_rstrip -v tmp " a b  "
 	L_unittest_eq "$tmp" " a b"
 	L_rstrip -v tmp " a b"
