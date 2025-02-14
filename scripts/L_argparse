@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export TIMEFORMAT="real=%lR user=%lU sys=%lS"
-time . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../bin/L_lib.sh
+if [[ "$*" == *" ---- --L_argparse_"* ]]; then
+	_time() { "$@"; }
+else
+	export TIMEFORMAT="real=%lR user=%lU sys=%lS"
+	_time() { time "$@"; }
+fi
+_time . "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"/../bin/L_lib.sh
 if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 	declare -A Adest=()
 fi
@@ -11,6 +16,6 @@ f() {
 }
 trap 'L_trap_err $?' EXIT
 SUPER=$(f)
-time L_argparse "$@"
+_time L_argparse "$@"
 # echo $?
 diff -biw - <<<"$SUPER" <(f) | sed -n 's/^> /+ /p' || :
