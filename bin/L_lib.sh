@@ -1324,6 +1324,68 @@ else  # L_HAS_NAMEREF
 	L_array_pop() { eval "unset \"$1[\${#$1[@]}-1]\""; }
 fi  # L_HAS_NAMEREF
 
+# @description wrapper for readarray for bash versions that do not have it
+# @option -d <str> separator to use
+# @option -u <fd> file descriptor to read from
+# @option -s <int> skip first n lines
+# @arg $1 <var> array nameref
+L_array_read() {
+	local OPTIND OPTARG _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(-t) _L_s=0
+	while getopts d:u:s _L_c; do
+		case $_L_c in
+		d) _L_d=$OPTARG ;;
+		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
+		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
+		?) return 2 ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	if ((L_HAS_MAPFILE_D)); then
+		"${_L_mapfile[@]}" -d "$_L_d" "$1"
+	elif ((L_HAS_MAPFILE)) && [[ "$_L_d" == $'\n' ]]; then
+		"${_L_mapfile[@]}" "$1"
+	else
+		while ((_L_s--)); do
+			"${_L_read[@]}" -d "$_L_d" _L_c || return
+		done
+		if [[ -z "$_L_d" ]]; then
+			while IFS= "${_L_read[@]}" -d '' "$1[$((_L_i++))]"; do :; done
+		else
+			IFS=$_L_d "${_L_read[@]}" -d '' -a "$1"
+		fi
+	fi
+}
+
+# @description pipe an array to a command and then read back
+# @option -z use null byte as separator
+# @arg $1 <var> array nameref
+# @arg $@ <cmd> command to pipe to
+L_array_pipe() {
+	if [[ "$1" == -z ]]; then
+		local _L_i=0 _L_arr="$2" _L_arrpnt="${2}[@]"
+		if ((L_HAS_MAPFILE_D)); then
+			mapfile -d '' -t "$_L_arr"
+		else
+			while IFS= read -d '' -r "$_L_arr[$((_L_i++))]"; do :; done
+			unset "$_L_arr[$((_L_i-1))]"
+		fi < <(
+			printf ""${!_L_arrpnt:+"%s\0"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:3}"
+		)
+	else
+		local _L_arr="$1" _L_arrpnt="$1[@]"
+		if ((L_HAS_MAPFILE)); then
+			mapfile -t "$_L_arr" < <(
+				printf ""${!_L_arrpnt:+"%s\n"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:2}"
+			)
+		else
+			IFS=$'\n' read -d '' -r -a "$_L_arr" < <(
+				printf ""${!_L_arrpnt:+"%s\n"} ${_L_arrpnt:+"${!_L_arrpnt}"} | "${@:2}"
+				printf "\0"
+			)
+		fi
+	fi
+}
+
 # @description check if array variable contains value
 # @arg $1 array nameref
 # @arg $2 needle
@@ -2346,96 +2408,28 @@ L_run() {
 # @section Sort
 # @description sorting function
 
-if ((L_HAS_BASH4_2)); then
-# shellcheckparser=off
-# @see L_sort_bash
-# @description quicksort an array in numeric order
-_L_sort_bash_in_numeric() {
-	local _L_start=$1 _L_end=$2 _L_left _L_right _L_pivot _L_tmp
-	if (( _L_start < _L_end ? (_L_left=_L_start+1, _L_right=_L_end, _L_pivot=_L_array[_L_start], 1) : 0)); then
-		while (( _L_left < _L_right )); do
-			((
-				(
-					$_L_sort_reverse( _L_pivot > _L_array[_L_left] ) ?
-						++_L_left :
-					$_L_sort_reverse( _L_pivot < _L_array[_L_right] ) ?
-						--_L_right : (
-							_L_tmp=_L_array[_L_left],
-							_L_array[_L_left]=_L_array[_L_right],
-							_L_array[_L_right]=_L_tmp
-						)
-				), 1
-			))
-		done
-		((
-			$_L_sort_reverse( _L_array[_L_left] < _L_pivot ) ? (
-				(_L_tmp = _L_array[_L_left]),
-				(_L_array[_L_left] = _L_array[_L_start]),
-				(_L_array[_L_start] = _L_tmp),
-				(_L_left--)
-			) : (
-				(--_L_left),
-				(_L_tmp=_L_array[_L_left]),
-				(_L_array[_L_left]=_L_array[_L_start]),
-				(_L_array[_L_start]=_L_tmp),
-				1
-			)
-		))
-		_L_sort_bash_in_numeric "$_L_start" "$_L_left"
-		_L_sort_bash_in_numeric "$_L_right" "$_L_end"
-	fi
+# @description Shuffle an array
+# @arg $1 array nameref
+L_shuf_bash() {
+	local -n _L_arr=$1
+	local _L_i _L_j _L_tmp
+	# RANDOM range is 0..32767
+	for ((_L_i=${#_L_arr[@]}-1; _L_i; --_L_i)); do
+		# _L_j=$(( ((_L_i < 32768 ? 0 : (_L_i < 1073741824 ? 0 : RANDOM << 30) | RANDOM << 15) | RANDOM) % _L_i ))
+		_L_j=$(( RANDOM % _L_i ))
+		_L_tmp=${_L_arr[_L_i]}
+		_L_arr[_L_i]=${_L_arr[_L_j]}
+		_L_arr[_L_j]=$_L_tmp
+	done
 }
-else
-# shellcheckparser=off
-# There is some bug in bash before 4.2 that makes the expression (( ?: with ternary take __both__ branches.
-# Fix that.
-_L_sort_bash_in_numeric() {
-	local _L_start=$1 _L_end=$2 _L_left _L_right _L_pivot _L_tmp
-	if (( _L_start < _L_end ? (_L_left=_L_start+1, _L_right=_L_end, _L_pivot=_L_array[_L_start], 1) : 0)); then
-		while (( _L_left < _L_right )); do
-			((
-				(
-					$_L_sort_reverse( _L_pivot > _L_array[_L_left] ) ?
-						++_L_left :
-					$_L_sort_reverse( _L_array[_L_right] > _L_pivot ) ?
-						--_L_right : (
-							_L_tmp=_L_array[_L_left],
-							_L_array[_L_left]=_L_array[_L_right],
-							_L_array[_L_right]=_L_tmp
-						)
-				), 1
-			))
-		done
-		if (( $_L_sort_reverse( _L_pivot > _L_array[_L_left] ) )); then
-			((
-				(_L_tmp = _L_array[_L_left]),
-				(_L_array[_L_left] = _L_array[_L_start]),
-				(_L_array[_L_start] = _L_tmp),
-				(_L_left--)
-			))
-		else
-			((
-				(--_L_left),
-				(_L_tmp=_L_array[_L_left]),
-				(_L_array[_L_left]=_L_array[_L_start]),
-				(_L_array[_L_start]=_L_tmp),
-				1
-			))
-		fi
-		_L_sort_bash_in_numeric "$_L_start" "$_L_left"
-		_L_sort_bash_in_numeric "$_L_right" "$_L_end"
-	fi
-}
-fi
 
 # shellcheck disable=SC2030,SC2031,SC2035
 # @see L_sort_bash
-_L_sort_bash_in_nonnumeric() {
-	local _L_start _L_end _L_left _L_right _L_pivot _L_tmp
-	if ((
-			_L_start=$1, _L_end=$2,
-			_L_start < _L_end ? _L_left=_L_start+1, _L_right=_L_end, 1 : 0
-	)); then
+_L_sort_bash_in() {
+	local _L_start=$1 _L_end=$2 _L_left _L_right _L_pivot _L_tmp
+	if (( _L_start < _L_end )); then
+		_L_left=$((_L_start + 1))
+		_L_right=$_L_end
 		_L_pivot=${_L_array[_L_start]}
 		while (( _L_left < _L_right )); do
 			if $_L_sort_reverse "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
@@ -2459,99 +2453,52 @@ _L_sort_bash_in_nonnumeric() {
 			_L_array[_L_left]=${_L_array[_L_start]}
 			_L_array[_L_start]=$_L_tmp
 		fi
-		_L_sort_bash_in_nonnumeric "$_L_start" "$_L_left"
-		_L_sort_bash_in_nonnumeric "$_L_right" "$_L_end"
+		_L_sort_bash_in "$_L_start" "$_L_left"
+		_L_sort_bash_in "$_L_right" "$_L_end"
 	fi
 }
 
 # @description default nonnumeric compare function
 _L_sort_compare() { [[ "$1" > "$2" ]]; }
+# @description default numeric compare function
+_L_sort_compare_numeric() { (( $1 > $2 )); }
 
 # @description quicksort an array in place in pure bash
 # Is faster then sort and redirection.
 # @see L_sort
 # @option -z ignored. Always zero sorting
-# @option -n optimized sort for numeric array values, otherwise lexical
+# @option -n numeric sort, otherwise lexical
 # @option -r reverse sort
-# @option -a the argument is not an array, but the arguments themselves will be sorted and printed to stdout or assigned to variable
 # @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
-# @option -v <var> store sorted array in var instead of modyfing the original array
 # @arg $1 array nameref or arguments to sort depending on `-a` flag
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTARG OPTIND _L_c _L_array _L_sort_compare=_L_sort_compare _L_sort_reverse=0 _L_sort_v='' _L_sort_arguments=0 _L_sort_zero=0
+	local _L_sort_numeric=0 OPTARG OPTIND OPTERR _L_c _L_array _L_sort_compare=_L_sort_compare _L_sort_reverse=
 	while getopts znrac:v: _L_c; do
 		case $_L_c in
-			z) _L_sort_zero=1 ;;
-			n) _L_sort_numeric=1 ;;
-			r) _L_sort_reverse=1 ;;
-			a) _L_sort_arguments=1 ;;
-			c) _L_sort_numeric=0 _L_sort_compare=$OPTARG ;;
-			v)
-				_L_sort_v=$OPTARG
-				L_assert "invalid argument: $_L_sort_v" L_is_valid_variable_name "$_L_sort_v"
-				;;
+			z) ;;
+			n) _L_sort_compare=_L_sort_compare_numeric ;;
+			r) _L_sort_reverse=L_not ;;
+			c) _L_sort_compare=$OPTARG ;;
 			*) L_fatal "invalid argument" ;;
 		esac
 	done
 	shift $((OPTIND-1))
-	if ((_L_sort_arguments)); then
-		_L_array=("$@")
+	L_assert "wrong number of arguments" test "$#" = 1
+	if ((!L_HAS_NAMEREF)); then
+		_L_c="$1[@]"
+		_L_array=(${!_L_c+"${!_L_c}"})
 	else
-		L_assert "wrong number of arguments" test "$#" = 1
-		_L_array="${_L_sort_v:=$1}[@]"
-		_L_array=(${!_L_array+"${!_L_array}"})
+		local -n _L_array=$1
 	fi
-	#
-	# Initialize _L_sort_reverse
-	if ((_L_sort_reverse)); then
-		if ((_L_sort_numeric)); then
-			_L_sort_reverse="!"
-		else
-			_L_sort_reverse="L_not"
-		fi
-	else
-		_L_sort_reverse=""
-	fi
-	#
-	if ((_L_sort_numeric)); then
-		_L_sort_bash_in_numeric 0 $((${#_L_array[@]} - 1))
-	else
-		_L_sort_bash_in_nonnumeric 0 $((${#_L_array[@]} - 1))
-	fi
-	#
-	if [[ -z "$_L_sort_v" ]]; then
-		if ((_L_sort_zero)); then
-			printf "%s\0" "${_L_array[@]}"
-		else
-			printf "%s\n" "${_L_array[@]}"
-		fi
-	else
+	_L_sort_bash_in 0 $((${#_L_array[@]} - 1))
+	if ((!L_HAS_NAMEREF)); then
 		eval "$_L_sort_v=(\"\${_L_array[@]}\")"
 	fi
 }
 
-# @description like L_sort but without mapfile.
-# @see L_sort
-_L_sort_cmd_no_mapfile() {
-	local _L_array="${*: -1}[@]"
-	IFS=$'\n' read -d '' -r -a "${*: -1}" < <(
-		printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}"
-		printf "\0"
-	)
-}
-
-_L_sort_cmd_no_mapfile_d() {
-	local _L_array="${*: -1}[@]" _L_i=0
-	while IFS= read -d '' -r "${*: -1}[$((_L_i++))]"; do
-		:
-	done < <(
-		printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}"
-	)
-	unset "${*: -1}[$((_L_i-1))]"
-}
-
 # @description sort an array using sort command
 # @option -z --zero-terminated use zero separated stream with sort -z
+# @option -n numeric sort
 # @arg $* any options are forwarded to sort command
 # @arg $-1 last argument is the array nameref
 # @example
@@ -2559,26 +2506,25 @@ _L_sort_cmd_no_mapfile_d() {
 #    L_sort -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
 L_sort_cmd() {
-	local _L_array="${*: -1}[@]"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
-		if ((L_HAS_MAPFILE_D)); then
-			mapfile -d '' -t "${@: -1}" < <(printf "%s\0" "${!_L_array}" | sort "${@:1:$#-1}")
-		else
-			_L_sort_cmd_no_mapfile_d "$@"
-		fi
+		L_array_pipe -z "${*: -1}" sort "${@:1:$#-1}"
 	else
-		if ((L_HAS_MAPFILE)); then
-			mapfile -t "${@: -1}" < <(printf "%s\n" "${!_L_array}" | sort "${@:1:$#-1}")
-		else
-			_L_sort_cmd_no_mapfile "$@"
-		fi
+		L_array_pipe "${*: -1}" sort "${@:1:$#-1}"
 	fi
 }
 
 # @description sort an array
 # @see L_sort_bash
 L_sort() {
-	L_sort_bash "$@"
+	# Even in most optimized code that I could write for bash sorting,
+	# still executing sort command is faster.
+	# The difference becomes significant for large arrays.
+	# Sorting 100 element array with bash is 0.049s and with sort is 0.022s.
+	if L_hash sort; then
+		L_sort_cmd "$@"
+	else
+		L_sort_bash "$@"
+	fi
 }
 
 # shellcheck disable=SC2086
