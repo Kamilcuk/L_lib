@@ -438,6 +438,19 @@ L_regex_escape() { L_handle_v "$@"; }
 L_regex_escape_v() { L_v=${*//?/[&]}; }
 
 
+# @description Get all matches of a regex to an array.
+# @option -v <var> variable to set
+# @arg $1 string to match
+# @arg $2 regex to match
+L_regex_findall() { L_handle_v "$@"; }
+L_regex_findall_v() {
+	L_v=()
+	while L_regex_match "$1" "($2)(.*)"; do
+		L_v+=("${BASH_REMATCH[1]}")
+		set -- "${BASH_REMATCH[2]}" "$2"
+	done
+}
+
 # @description inverts exit status
 # @arg $@ Command to execute
 L_not() { ! "$@"; }
@@ -647,6 +660,8 @@ L_ASCII_STX=$'\002'
 L_ASCII_EOT=$'\003'
 # @description End of transmission
 L_ASCII_EOF=$'\004'
+# @description Group separator
+L_ASCII_GS=$'\x1D'
 # @description 255 bytes with all possible 255 values
 L_ALLCHARS=$'\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037\040\041\042\043\044\045\046\047\050\051\052\053\054\055\056\057\060\061\062\063\064\065\066\067\070\071\072\073\074\075\076\077\100\101\102\103\104\105\106\107\110\111\112\113\114\115\116\117\120\121\122\123\124\125\126\127\130\131\132\133\134\135\136\137\140\141\142\143\144\145\146\147\150\151\152\153\154\155\156\157\160\161\162\163\164\165\166\167\170\171\172\173\174\175\176\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 # @description
@@ -1315,6 +1330,13 @@ L_array_pop_front() { local -n _L_arr=$1; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"})
 # @arg $1 <var> array nameref
 L_array_pop() { local -n _L_arr=$1; unset "_L_arr[${#_L_arr[@]}-1]"; }
 
+# @description
+# @arg $1 <var> array nameref
+L_array_is_dense() {
+	local -n _L_arr=$1
+	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
+}
+
 else  # L_HAS_NAMEREF
 	L_array_clear() { eval "$1=()"; }
 	L_array_set() { eval "$1=(\"\${@:2}\")"; }
@@ -1322,7 +1344,22 @@ else  # L_HAS_NAMEREF
 	L_array_prepend() { eval "$1=(\"\${@:2}\" \"\${$1[@]}\")"; }
 	L_array_pop_front() { eval "$1=(\"\${$1[@]:1}\")"; }
 	L_array_pop() { eval "unset \"$1[\${#$1[@]}-1]\""; }
+	L_array_is_dense() {
+		L_assert '' L_is_valid_variable_name "$1"
+		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
+	}
 fi  # L_HAS_NAMEREF
+
+# @description Reverse elements in an array.
+# @arg $1 <var> array nameref
+L_array_reverse() {
+	# eval is the fastest, see scripts/array_reverse_test.sh
+	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
+	eval "local _L_len=\${#$1[@]}"
+	if ((_L_len)); then
+		eval eval "'$1=(' '\"\${$1['{$((_L_len-1))..0}']}\"' ')'"
+	fi
+}
 
 # @description wrapper for readarray for bash versions that do not have it
 # @option -d <str> separator to use
@@ -1497,7 +1534,7 @@ L_args_index_v() {
 # @arg $@ int arguments
 # @example L_max -v max 1 2 3 4
 L_max() { L_handle_v "$@"; }
-# shellcheck disable=1105,2094,2035
+# shellcheck disable=SC1105,SC2094,SC2035
 # @set L_v
 L_max_v() {
 	L_v=$1
@@ -2506,6 +2543,7 @@ L_sort_bash() {
 #    L_sort -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
 L_sort_cmd() {
+	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
 		L_array_pipe -z "${*: -1}" sort "${@:1:$#-1}"
 	else

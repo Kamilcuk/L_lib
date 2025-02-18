@@ -87,6 +87,14 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_is_valid_variable_name 9a
 		L_unittest_checkexit 1 L_is_valid_variable_name a-
 		L_unittest_checkexit 1 L_is_valid_variable_name -a
+		L_unittest_checkexit 1 L_is_valid_variable_name "a "
+		L_unittest_checkexit 1 L_is_valid_variable_name " a"
+		L_unittest_checkexit 1 L_is_valid_variable_name " a "
+		L_unittest_checkexit 1 L_is_valid_variable_name $'\x01a'
+		# shellcheck disable=SC2016
+		L_unittest_checkexit 1 L_is_valid_variable_name '$((a))'
+		L_unittest_checkexit 1 L_is_valid_variable_name 'rm -rf'
+		L_unittest_checkexit 1 L_is_valid_variable_name ''
 	}
 	{
 		L_unittest_checkexit 0 L_is_valid_variable_or_array_element aa
@@ -375,6 +383,31 @@ _L_test_other() {
 	{
 		L_unittest_cmd -o 'echo echo' L_quote_setx 'echo' 'echo'
 		L_unittest_cmd -o $'one \'a\nb\' two' L_quote_setx 'one' $'a\nb' 'two'
+	}
+}
+
+_L_test_array_reverse() {
+	local array=(1 2 3 4 5)
+	L_unittest_cmd -c L_array_reverse array
+	L_unittest_arreq array 5 4 3 2 1
+	local array=(1)
+	L_unittest_cmd -c L_array_reverse array
+	L_unittest_arreq array 1
+	local array=({1..200})
+	L_unittest_cmd -c L_array_reverse array
+	L_unittest_arreq array {200..1}
+	local array=()
+	L_unittest_cmd -c L_array_reverse array
+	L_unittest_arreq array
+}
+
+_L_test_regex_findall() {
+	{
+		local tmp
+		L_regex_findall -v tmp 'ab ac ad' 'a.'
+		L_unittest_arreq tmp ab ac ad
+		L_regex_findall -v tmp '123ab123ac123ad123' 'a.'
+		L_unittest_arreq tmp ab ac ad
 	}
 }
 
