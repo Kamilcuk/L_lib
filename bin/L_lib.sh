@@ -451,6 +451,62 @@ L_regex_findall_v() {
 	done
 }
 
+# @description Replace all matches of a regex with a string.
+# In a string replace all occurences of a regex with replacement string.
+# Backreferences like \& \1 \2 etc. are replaced in replacement string unless -B option is used.
+# Written pure in Bash. Uses [[ =~ operator in a loop.
+# @option -v <var> Variable to set
+# @option -g Global replace
+# @option -c <int> Limit count of replacements, default: 1
+# @option -n <var> Variable to set with count of replacements made.
+# @option -B Do not handle backreferences in replacement string \& \1 \2 \\
+# @arg $1 string to match
+# @arg $2 regex to match
+# @arg $3 replacement string
+# @exitcode If -n option is given, exit with 0, otherwise exit with 0 if at least one replacement was made, otherwise exit with 1.
+# @example
+#   L_regex_replace -v out 'world world' 'w[^ ]*' 'hello'
+#   echo "$out"
+L_regex_replace() {
+	local OPTIND OPTERR _L_countmax=1 _L_count=0 _L_v="" _L_backref=1 _L_count_v="" _L_i _L_repl
+	while getopts "hgBv:c:n:" _L_i; do
+		case $_L_i in
+		g) _L_countmax=-1 ;;
+		B) _L_backref=0 ;;
+		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" ""; ;;
+		c) _L_countmax=$OPTARG ;;
+		n) _L_count_v=$OPTARG ;;
+		*)
+			printf "Usage: %s [-hgB] [-v <var>] [-c <int>] [-n <var>] <string> <regex> <replacement>\n" "${FUNCNAME[0]}" >&2
+			return 2 ;;
+		esac
+	done
+	shift $((OPTIND - 1))
+	local _L_str="${1?Missing string argument}" _L_rgx="${2:?Missing regex argument}"
+	while L_regex_match "$_L_str" "($_L_rgx)(.*)"; do
+		# declare -p BASH_REMATCH
+		_L_repl=${3?Missing replacement argument}
+		if (( _L_backref )); then
+			_L_repl=${_L_repl//\\&/${BASH_REMATCH[1]}}
+			for ((_L_i=1;_L_i<${#BASH_REMATCH[@]}-2;_L_i++)); do
+				_L_repl=${_L_repl//\\$_L_i/${BASH_REMATCH[_L_i+1]}}
+			done
+			_L_repl=${_L_repl//\\\\/\\}
+		fi
+		L_printf_append "$_L_v" "%s" "${_L_str::${#_L_str}-${#BASH_REMATCH[0]}}$_L_repl"
+		_L_str=${BASH_REMATCH[-1]}
+		if (( ++_L_count == _L_countmax )); then
+			break
+		fi
+	done
+	L_printf_append "$_L_v" "%s" "$_L_str"
+	if [[ -n "$_L_count_v" ]]; then
+		printf -v "$_L_count_v" "%s" "$_L_count"
+	elif (( _L_count == 0 )); then
+		return 1
+	fi
+}
+
 # @description inverts exit status
 # @arg $@ Command to execute
 L_not() { ! "$@"; }
@@ -776,13 +832,13 @@ L_handle_v_getopts() {
 #          var=$2
 #          shift 2
 #		fi
-#		L_printf_append "$var" "Hello "
-#		L_printf_append "$var" "world\n"
+#		L_printf_append "$var" "%s" "Hello "
+#		L_printf_append "$var" "%s" "world\n"
 #	 }
 #	 func
 #	 func -v var
 L_printf_append() {
-	printf ${1:+"-v$1"} "%s$2" "${1:+${!1}}" "${@:3}"
+	printf ${1:+"-v$1"} ${1:+"%s"}"$2" ${1:+"${!1:-}"} "${@:3}"
 }
 
 L_copyright_gpl30orlater() {

@@ -411,6 +411,18 @@ _L_test_regex_findall() {
 	}
 }
 
+_L_test_regex_replace() {
+	local out a
+	L_regex_replace -v out 'world world' 'w[^ ]*' 'hello'
+	L_unittest_eq "$out" "hello world"
+	L_regex_replace -gv out "aa ab ac" "a." ''
+	L_unittest_eq "$out" "  "
+	L_regex_replace -gv a "aa ab ac" "a." 'A"\&"'
+	L_unittest_eq "$a" 'A"aa" A"ab" A"ac"'
+	L_regex_replace -gv a "aa ab ac" "a(.)" 'A"\1"'
+	L_unittest_eq "$a" 'A"a" A"b" A"c"'
+}
+
 _L_test_table() {
 	{
 		local tmp out="\
