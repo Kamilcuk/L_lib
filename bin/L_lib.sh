@@ -2530,6 +2530,23 @@ L_shuf_bash() {
 	done
 }
 
+# @description Shuffle an array using shuf command
+# @arg $* any options are forwarded to shuf command
+# @arg $-1 array nameref
+L_shuf_cmd() {
+	local _L_arr="${*: -1}[@]" _L_z=""
+	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
+		_L_z=-z
+	fi
+	L_array_pipe ${_L_z:+"$_L_z"} "${*: -1}" shuf "${@:1:$#-1}" -e ${!_L_arr:+"${!_L_arr}"}
+}
+
+# @description Shuffle an array
+# @arg $1 array nameref
+L_shuf() {
+	L_shuf_cmd "$@"
+}
+
 # shellcheck disable=SC2030,SC2031,SC2035
 # @see L_sort_bash
 _L_sort_bash_in() {
@@ -2613,7 +2630,6 @@ L_sort_bash() {
 #    L_sort -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
 L_sort_cmd() {
-	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
 	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
 		L_array_pipe -z "${*: -1}" sort "${@:1:$#-1}"
 	else
@@ -3684,7 +3700,6 @@ L_asa_assign() {
 	_L_tmp=$(declare -p "$3")
 	L_asa_from_declare "$1" = "${_L_tmp}"
 }
-
 
 # ]]]
 # argparse [[[
