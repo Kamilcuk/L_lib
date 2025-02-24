@@ -4079,7 +4079,7 @@ _L_argparse_split_class_subparser() {
 		local parent=$_L_parseri
 		while [[ "${1:-}" == "{" ]]; do
 			_L_argparse_split_parse_args "${@:2}"
-			shift $(($#-_L_args_left))
+			shift $(($#-_L_g_args_left))
 			if [[ "${1:-}" != "}" ]]; then
 				_L_argparse_split_fatal "Missing closing }: $*"
 			fi
@@ -4090,7 +4090,7 @@ _L_argparse_split_class_subparser() {
 			_L_parser__parent[_L_parseri]=$parent
 		done
 		_L_parseri=$parent
-		_L_args_left=$#
+		_L_g_args_left=$#
 	}
 }
 
@@ -4140,7 +4140,7 @@ _L_argparse_split_class_function() {
 		done
 		_L_opt__class[_L_opti]="function"
 		_L_argparse_split_common_subparser_function
-		_L_args_left=$#
+		_L_g_args_left=$#
 	}
 	{
 		if [[ -z "${_L_opt_prefix[_L_opti]}" ]]; then
@@ -4221,7 +4221,7 @@ _L_argparse_sub_subparser_complete() {
 	_L_argparse_sub_subparser_choices_indexes _L_choices _L_indexes "${_L_sub_args[0]:-}"
 	if ((${#_L_sub_args[@]} <= 1)); then
 		for i in "${!_L_indexes[@]}"; do
-			printf "plain\t%s\t%s\n" "${_L_choices[i]}" "${_L_parser_help[_L_indexes[i]]:-${_L_parser_description[_L_indexes[i]]:-}}"
+			L_argparse_compgen -W "${_L_choices[i]}" -D "${_L_parser_help[_L_indexes[i]]:-${_L_parser_description[_L_indexes[i]]:-}}" || return $?
 		done
 	elif [[ "${_L_choices[0]}" == "${_L_sub_args[0]}" ]]; then
 		_L_parseri=${_L_indexes[0]}
@@ -4234,59 +4234,64 @@ _L_argparse_sub_subparser_complete() {
 _L_argparse_sub_function_complete() {
 	local L_v i _L_desc _L_func="${_L_opt_prefix[_L_opti]}${_L_sub_args[0]:-}"
 	if ((${#_L_sub_args[@]} <= 1)); then
+		# complete function names
 		L_list_functions_with_prefix_removed_v "$_L_func"
 		for i in "${L_v[@]}"; do
 			_L_argparse_sub_function_get_description _L_desc "$i" || return $?
-			printf "plain\t%s\t%s\n" "${_L_sub_args[0]:-}$i" "$_L_desc"
+			L_argparse_compgen -W "${_L_sub_args[0]:-}$i" -D "$_L_desc" || return $?
 		done
 	else
+		# call subparser to run it's own completion
 		case "${_L_opt_help_from[_L_opti]:-}" in
 		subcall)
-			_L_argparse_sub_function_get_description _L_desc "$i" || return $?
 			"$_L_func" --L_argparse_get_completion "${_L_sub_args[@]:1}"
 			;;
 		esac
 	fi
 }
 
-_L_argparse_validator() { if ! "${@:3}"; then L_argparse_fatal "%s: %q" "$1" "$2" || return 1; fi; }
-_L_argparse_validator_int() { _L_argparse_validator "is not an integer" "$1" L_is_integer "$1"; }
-_L_argparse_validator_float() { _L_argparse_validator "is not a float" "$1" L_is_float "$1"; }
+# @description Validate arguments inside validator for argparse.
+# In case of validation error, prints the error message.
+# @arg $1 <str> error message
+# @arg $2 <str> value to validate
+# @arg $@ <str> command to execute for validation
+# @exitcode 1 if validation fails
+# @see _L_argparse_validator_int
+L_argparse_validator() { if ! "${@:3}"; then L_argparse_fatal "%s: %q" "$1" "$2" || return 1; fi; }
+_L_argparse_validator_int() { L_argparse_validator "is not an integer" "$1" L_is_integer "$1"; }
+_L_argparse_validator_float() { L_argparse_validator "is not a float" "$1" L_is_float "$1"; }
 _L_argparse_validator_positive() {
-	_L_argparse_validator_int "$1" && _L_argparse_validator "is lower than 0" "$1" test "$1" -gt 0
+	_L_argparse_validator_int "$1" && L_argparse_validator "is lower than 0" "$1" test "$1" -gt 0
 }
 _L_argparse_validator_nonnegative() {
-	_L_argparse_validator_int "$1" && _L_argparse_validator "is lower than 0" "$1" test "$1" -ge 0
+	_L_argparse_validator_int "$1" && L_argparse_validator "is lower than 0" "$1" test "$1" -ge 0
 }
 _L_argparse_validator_file() {
-	if test -e "$1"; then
-		_L_argparse_validator "not a file" "$1" test -f "$1"
-	else
-		_L_argparse_validator "file does not exists" "$1" test -f "$1"
-	fi
+	L_argparse_validator "file does not exists" "$1" test -e "$1" &&
+		L_argparse_validator "expected a file, but received a directory" "$1" L_not test -d "$1"
 }
 _L_argparse_validator_file_r() {
 	_L_argparse_validator_file "$1" &&
-		_L_argparse_validator "file not readable" "$1" test -r "$1"
+		L_argparse_validator "file not readable" "$1" test -r "$1"
 }
 _L_argparse_validator_file_w() {
 	_L_argparse_validator_file "$1" &&
-		_L_argparse_validator "file not writable" "$1" test -w "$1"
+		L_argparse_validator "file not writable" "$1" test -w "$1"
 }
 _L_argparse_validator_dir() {
 	if test -e "$1"; then
-		_L_argparse_validator "not a directory" "$1" test -d "$1"
+		L_argparse_validator "not a directory" "$1" test -d "$1"
 	else
-		_L_argparse_validator "directory does not exists" "$1" test -d "$1"
+		L_argparse_validator "directory does not exists" "$1" test -d "$1"
 	fi
 }
 _L_argparse_validator_dir_r() {
 	_L_argparse_validator_dir "$1" &&
-		_L_argparse_validator "directory not readable" "$1" test -x "$1" -a -r "$1"
+		L_argparse_validator "directory not readable" "$1" test -x "$1" -a -r "$1"
 }
 _L_argparse_validator_dir_w() {
 	_L_argparse_validator_dir "$1" &&
-		_L_argparse_validator "directory not writable" "$1" test -x "$1" -a -w "$1"
+		L_argparse_validator "directory not writable" "$1" test -x "$1" -a -w "$1"
 }
 
 # @env _L_split_args
@@ -4334,7 +4339,7 @@ _L_argparse_split_call_argument() {
 			esac
 			shift
 		done
-		_L_args_left=$#
+		_L_g_args_left=$#
 	}
 	{
 		# Infer dest from options
@@ -4358,19 +4363,27 @@ _L_argparse_split_call_argument() {
 		local _L_type=${_L_opt_type[_L_opti]:-}
 		if [[ -n "$_L_type" ]]; then
 			# set validate for type
-			# shellcheck disable=2016
-			local L_v IFS=' ' _L_prefix=_L_argparse_validator_
-			L_list_functions_with_prefix_removed_v "$_L_prefix"
-			if [[ " ${L_v[*]} " == *" $_L_type "* ]]; then
-				: "${_L_opt_validate[_L_opti]:=\"$_L_prefix$_L_type\" \"\$1\"}"
-			else
-				# validators are also used to check correctness of the type
-				_L_argparse_split_fatal "L_argparse _L_optspec: invalid type=$_L_type for option: $(declare -p _L_optspec). Available types: ${L_v[*]}"
-			fi
+			local default=""
+			case "$_L_type" in
+			int) default=_L_argparse_validator_int ;;
+			float) default=_L_argparse_validator_float ;;
+			positive) default=_L_argparse_validator_positive ;;
+			nonnegative) default=_L_argparse_validator_nonnegative ;;
+			file) default=_L_argparse_validator_file ;;
+			file_r) default=_L_argparse_validator_file_r ;;
+			file_w) default=_L_argparse_validator_file_w ;;
+			dir) default=_L_argparse_validator_dir ;;
+			dir_r) default=_L_argparse_validator_dir_r ;;
+			dir_w) default=_L_argparse_validator_dir_w ;;
+			*) _L_argparse_split_fatal "L_argparse _L_optspec: invalid type=$_L_type for option: $(declare -p _L_optspec). Available types: ${L_v[*]}" ;;
+			esac
+			: "${_L_opt_validate[_L_opti]:=\"$default\" \"\$1\"}"
 			# set completion for type
 			case "${_L_type%%_*}" in
-			file) : "${_L_opt_complete[_L_opti]:=compgen -o bashdefault -A file -- \"\$1\"}" ;;
-			dir) : "${_L_opt_complete[_L_opti]:=compgen -o dirnames -A directory -- \"\$1\"}" ;;
+			# file) : "${_L_opt_complete[_L_opti]:=filenames,L_argparse_compgen -A file}" ;;
+			# file) : "${_L_opt_complete[_L_opti]:=filenames,L_argparse_compgen -A file}" ;;
+			file) : "${_L_opt_complete[_L_opti]:=filenames,file}" ;;
+			dir) : "${_L_opt_complete[_L_opti]:=filenames,directory}" ;;
 			esac
 		fi
 	}
@@ -4544,24 +4557,25 @@ _L_argparse_optspec_validate_values() {
 	fi
 }
 
-if ((L_HAS_PRINTF_V_ARRAY)); then
 # @description clear the dest variable
 # @env _L_optspec
 # @set ${_L_opt_dest[_L_opti]}
 _L_argparse_optspec_dest_arr_clear() {
 	if [[ "${_L_opt_dest[_L_opti]}" == *"["*"]" ]]; then
-		printf -v "${_L_opt_dest[_L_opti]}" "%s" ""
+		eval "${_L_opt_dest[_L_opti]}="
 	else
 		eval "${_L_opt_dest[_L_opti]}=()"
 	fi
 }
+
 # @description store $1 in variable
 # @arg $1 value to store
 # @env _L_optspec
 # @set ${_L_opt_dest[_L_opti]}
 _L_argparse_optspec_dest_store() {
-	printf -v "${_L_opt_dest[_L_opti]}" "%s" "$@"
+	eval "${_L_opt_dest[_L_opti]}=\$1"
 }
+
 # @description append $@ to the variable
 # @arg $@ values to store
 # @env _L_optspec
@@ -4570,32 +4584,11 @@ _L_argparse_optspec_dest_arr_append() {
 	if [[ "${_L_opt_dest[_L_opti]}" == *"["*"]" ]]; then
 		local _L_tmp
 		printf -v _L_tmp "%q " "$@"
-		printf -v "${_L_opt_dest[_L_opti]}" "%s%s" "${!_L_opt_dest[_L_opti]:-}" "$_L_tmp"
+		eval "${_L_opt_dest[_L_opti]}+=\$_L_tmp"
 	else
 		eval "${_L_opt_dest[_L_opti]}+=(\"\$@\")"
 	fi
 }
-else
-	_L_argparse_optspec_dest_arr_clear() {
-		if [[ "${_L_opt_dest[_L_opti]}" == *"["*"]" ]]; then
-			eval "${_L_opt_dest[_L_opti]}="
-		else
-			eval "${_L_opt_dest[_L_opti]}=()"
-		fi
-	}
-	_L_argparse_optspec_dest_store() {
-		eval "${_L_opt_dest[_L_opti]}=\$1"
-	}
-	_L_argparse_optspec_dest_arr_append() {
-		if [[ "${_L_opt_dest[_L_opti]}" == *"["*"]" ]]; then
-			local _L_tmp
-			printf -v _L_tmp "%q " "$@"
-			eval "${_L_opt_dest[_L_opti]}+=\$_L_tmp"
-		else
-			eval "${_L_opt_dest[_L_opti]}+=(\"\$@\")"
-		fi
-	}
-fi
 
 # @description assign value to _L_opt_dest[_L_opti] or execute the action specified by _L_optspec
 # @env _L_optspec
@@ -4644,30 +4637,40 @@ _L_argparse_optspec_execute_action() {
 	esac
 }
 
-# @description Get description outputted for completion of an option.
-# @arg $1 variable that will store the option help for completion
-# @env _L_optspec
-L_argparse_optspec_get_complete_description() {
-	local _L_v="${_L_opt_help[_L_opti]:-}"
-	printf -v "$1" "%s" "${_L_v//[$'\t\n']/ }"
-}
-
 # @description Run compgen that outputs correctly formatted completion stream.
 # With option description prefixed with the 'plain' prefix.
-# Any compgen option is accepted, arguments are forwareded to compgen.
-# @option -P <str> Prefix the options
-# @arg $@ arguments to compgen
+# Any compgen option is accepted, arguments are forwarded to compgen.
+# @option --ANY Any options supported by compgen, except -P and -S
+# @option -D <str> Specify the description of appended to the result. If description is an empty string, it is not printed. Default: help of the option.
+# @arg $1 <str> incomplete
+# @exitcode 0 if compgen returned 0 or 1, otherwise 2
 L_argparse_compgen() {
-	local _L_desc _L_prefix="" _L_tmp
-	if [[ "$1" == -P ]]; then
-		_L_prefix="$2"
-		shift 2
+	local OPTIND OPTARG OPTERR args=() c="" prefix="" suffix="" desc="${_L_opt_help[_L_opti]:-}"
+	while getopts 'abcdefgjksuvo:A:G:W:F:C:X:P:S:D:' c; do
+		case "$c" in
+		[abcdefgjksuvo:A:G:W:F:C:X:]) args+=("-${c}" "${OPTARG:-}") ;;
+		P) prefix="$OPTARG" ;;
+		S) suffix="$OPTARG" ;;
+		D) desc="$OPTARG" ;;
+		?) compgen "-$_L_c" || L_fatal "invalid option: -$_L_c"; return 2 ;;
+		esac
+	done
+	if [[ -n "$desc" ]]; then
+		trap "$(shopt -p extglob)" RETURN
+		shopt -s extglob
+		# replace multiple spaces with one space and remove leading/trailing spaces
+		desc="${desc//+([$' \t\n'])/ }"
+		L_strip -v desc "$desc"
 	fi
-	L_argparse_optspec_get_complete_description _L_desc
-	L_exit_to _L_tmp compgen -P "plain${L_TAB}${_L_prefix}" -S "${L_TAB}${_L_desc}" "$@"
-	L_assert "compgen $* exited with error" test "$_L_tmp" -le 1
+	shift $((OPTIND - 1))
+	if (($# == 0)) && L_var_is_set L_comp_incomplete; then
+		set -- "$L_comp_incomplete"
+	fi
+	compgen ${args[@]:+"${args[@]}"} \
+		-P "plain${L_GS}${L_comp_prefix:-}$prefix" \
+		-S "$suffix${desc:+${L_GS}$desc}" \
+		-- "$@" || (($? == 1)) || return 2
 }
-
 
 # @description validate argument with choices is correct
 # @arg $1 incomplete
@@ -4689,7 +4692,7 @@ _L_argparse_choices_complete() {
 	local IFS=$'\n'
 	declare -a choices="(${_L_opt_choices[_L_opti]})"
 	L_sort_bash choices
-	compgen -P "plain$L_TAB" -W "${choices[*]}" -- "$1"
+	L_argparse_compgen -W "${choices[*]}" -D "" -- "$1" || return $?
 }
 
 # @description Generate completions for given element.
@@ -4704,18 +4707,14 @@ _L_argparse_optspec_gen_completion() {
 	if ((!_L_in_complete)); then
 		return
 	fi
-	local _L_complete=${_L_opt_complete[_L_opti]:-default} IFS=$'\n' _L_desc
+	local _L_complete="${_L_opt_complete[_L_opti]:-default}" L_comp_incomplete="$1" L_comp_prefix="${2:-}"
 	IFS=, read -ra _L_complete <<<"$_L_complete"
 	for _L_complete in "${_L_complete[@]}"; do
 		case "$_L_complete" in
 		bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs|file|directory)
-			L_argparse_optspec_get_complete_description _L_desc
-			printf "%s%s\n" "$_L_complete" "${_L_desc:+$'\t\t'$_L_desc}"
-			;;
+			echo "$_L_complete${_L_opt_help[_L_opti]:+${L_GS}${L_GS}${_L_opt_help[_L_opti]}}" ;;
 		alias|arrayvar|binding|builtin|command|directory|disabled|enabled|export|file|function|group|helptopic|hostname|job|keyword|running|service|setopt|shopt|signal|stopped|user|variable)
-			compgen -P "plain$L_TAB${2:-}" -A "$_L_complete" -- "$1" || :
-			# L_argparse_compgen -P "$L_TAB${2:-}" -A "$_L_complete" -- "$1"
-			;;
+			L_argparse_compgen -A "$_L_complete" -- "$1" || exit $? ;;
 		*" "*) eval "${_L_complete}" || return $? ;;
 		'') ;;
 		*)
@@ -4726,54 +4725,73 @@ _L_argparse_optspec_gen_completion() {
 }
 
 # @description Bash completion code.
+# COMP_TYPE == 9  -> single tab
+# COMP_TYPE == 63 -> tab tab
+# COMP_TYPE == 37 -> menu-complete/menu-complete-backward
+# COMP_TYPE == 42 -> insert-completions
 # @see https://github.com/containers/podman/blob/main/completions/bash/podman
 _L_argparse_complete_bash=$'
 %(complete_func)s() {
-	local IFS=$\'\\x01\' response value desc cword words longest=0 i _
-	# __reassemble_comp_words_by_ref renamed to _comp__reassemble_words in newer bash-completion
-	if hash __reassemble_comp_words_by_ref 2>/dev/null; then
-		__reassemble_comp_words_by_ref "=:" words cword
-	elif hash _comp__reassemble_words 2>/dev/null; then
-		_comp__reassemble_words "=:" words cword
+	local cur prev words cword comp_args was_split split
+	local IFS=$\'\\n\' sep=$\'\\035\' _ COLUMNS="${COLUMNS:-80}" LINES="${LINES:-1}"
+	local longestcomp=1 longestdesc=0 i response mode comp desc descs=()
+	if hash _comp_initialize 2>/dev/null; then
+		# https://github.com/scop/bash-completion/blob/main/bash_completion#L1453
+		_comp_initialize -s -- "$@" || return
+	elif hash _init_completion 2>/dev/null; then
+		# https://github.com/scop/bash-completion/blob/1.99/bash_completion#L649
+    	_init_completion -s || return
 	else
 		words=("${COMP_WORDS[@]}")
 		cword=${COMP_CWORD}
+		cur="${words[@]:cword:1}"
 	fi
-	${L_ARGPARSE_DEBUG:+set} ${L_ARGPARSE_DEBUG:+-x}
-	response="$( %(prog_name)s --L_argparse_get_completion "${words[@]:1:cword}" )"
-	while read -r key val; do
-		if [[ -z "$key" ]]; then
-			case "$val" in
-			bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs)
-				compopt -o "$what"
-				;;
-			file|directory)
-				COMPREPLY+=($(compgen -S "${desc:+$IFS$desc}" -A "$what" -- "${words[@]:cword:1}"))
-			esac
-		else
-			# COMP_TYPE == 9 -> single tab
-			if ((COMP_TYPE != 63)); then  # tab tab
-				# no descriptions
-				val=""
-			else
-				((longest = ${#val} > longest ? ${#val} : longest))
+	response=$( "$1" --L_argparse_get_completion "${words[@]:1:cword}" ) &&
+	while IFS=$sep read -r mode comp desc _; do
+		case "$mode" in
+		bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs) compopt -o "$mode" ;;
+		file|directory)
+			COMPREPLY+=($(compgen -A "$mode" ${comp:+-G"$comp"} ${desc:+-S"$sep$desc"} -- "$cur")) ;;
+		plain)
+			if [[ "$comp" == "$cur"* ]]; then
+				printf -v comp "%q" "$comp"
+				longestcomp=$(( longestcomp < ${#comp} ? ${#comp} : longestcomp ))
+				longestdesc=$(( longestdesc < ${#desc} ? ${#desc} : longestdesc ))
+				COMPREPLY+=("$comp${desc:+"$sep${desc//[[:space:]]/ }"}")
 			fi
-			COMPREPLY+=("$key${val:+$IFS$val}")
-		fi
+			;;
+		esac
 	done <<<"$response"
-	if ((${#COMPREPLY[@]} == 1)); then
-		# If there is a single completion, remove the description text
-		COMPREPLY[0]=${COMPREPLY[0]%%"$IFS"*}
-	elif ((${#COMPREPLY[@]} && COMP_TYPE == 63 && longest)); then
-		# Format the descriptions
+	local compdesclen=$(( longestcomp + longestdesc + 4 ))
+	local compdesccolumns=$(( COLUMNS / compdesclen + !!(COLUMNS % compdesclen) ))
+	local compdesclines=$(( ${#COMPREPLY[@]} / compdesccolumns + !!(${#COMPREPLY[@]} % compdesccolumns) ))
+	local compnodesclen=$(( longestcomp + 1 ))
+	local compnodesccolumns=$(( COLUMNS / compnodesclen + !!(COLUMNS % compnodesclen) ))
+	local compnodesclines=$(( ${#COMPREPLY[@]} / compnodesccolumns + !!(${#COMPREPLY[@]} % compnodesccolumns) ))
+	if (( COLUMNS < longestcomp + 10 || ${#COMPREPLY[@]} == 1 || (LINES < compdesclines && LINES > compnodesclines) )); then
+		# remove descriptions if
+		# - there are not enough columns to fit the descriptions
+		# - or there is only one completion
+		# - or there are not enough lines to print completions with descriptions
+		#   but enough lines to print completions without descriptions
 		for i in "${!COMPREPLY[@]}"; do
-			if [[ "${COMPREPLY[i]}" == *"$IFS"* ]]; then
-				printf -v "COMPREPLY[$i]" "%-*s (%s)" "$longest" "${COMPREPLY[i]%%"$IFS"*}" "${COMPREPLY[i]#*"$IFS"}"
+			COMPREPLY[i]="${COMPREPLY[i]%%"$sep"*}"
+		done
+	else
+		# Format the descriptions
+		# TODO: how to group completions depending on description like zsh does?
+		for i in "${!COMPREPLY[@]}"; do
+			if [[ "${COMPREPLY[i]}" == *"$sep"* ]]; then
+				# If the completion has a description, format it.
+				comp="${COMPREPLY[i]%%"$sep"*}"
+				desc=" (${COMPREPLY[i]#*"$sep"})"
+				# Truncate too long description for the columns.
+				desc="${desc::COLUMNS-longestcomp}"
+				printf -v comp "%-*s%s" "$longestcomp" "$comp" "$desc"
+				COMPREPLY[i]=$comp
 			fi
-			printf -v "COMPREPLY[$i]" "%s%*s" "${COMPREPLY[i]}" "$((COLUMNS - ${#COMPREPLY[i]}))" ""
 		done
 	fi
-	${L_ARGPARSE_DEBUG:+set} ${L_ARGPARSE_DEBUG:++x}
 }
 complete -F %(complete_func)s %(prog_name)s
 '
@@ -4781,27 +4799,30 @@ complete -F %(complete_func)s %(prog_name)s
 # @description ZSH completion code.
 _L_argparse_complete_zsh=$'#compdef %(prog_name)s
 %(complete_func)s() {
+	local mode comp desc _ nosort=""
 	local -a response completions completions_with_descriptions
-	# (( ! $+commands[%(prog_name)s] )) && return 1
-	response="$( %(prog_name)s --L_argparse_get_completion "${words[@]:1:$((CURRENT-1))}" )"
-	while IFS="\t" read -r what key desc; do
-		case "$what" in
-		file) _path_files -f ;;
-		directory) _path_files -/ ;;
+	(( ! $+commands[%(prog_name)s] )) && return 1
+	response="$( %(prog_name)s --L_argparse_get_completion_zsh "${words[@]:1:$((CURRENT-1))}" )"
+	while IFS=$\'\\035\' read -r mode comp desc; do
+		case "$mode" in
+		nosort) nosort=1 ;;
+		file) _path_files -f ${=comp:+-g"$comp"} ${=desc:+-X"$desc"} ;;
+		directory) _path_files -/ ${=comp:+-g"$comp"} ${=desc:+-X"$desc"} ;;
 		bashdefault|default) _default ;;
 		plain)
 			if [[ -z "$desc" ]]; then
-				completions+=("$key")
+				completions+=("$comp")
 			else
-				completions_with_descriptions+=("$key:$desc")
+				completions_with_descriptions+=("$comp:$desc")
 			fi
 		esac
 	done <<<"$response"
-	if [ -n "$completions_with_descriptions" ]; then
-		_describe -V unsorted completions_with_descriptions -U
+	# declare -p completions_with_descriptions completions >/dev/tty
+	if [[ -n "$completions_with_descriptions" ]]; then
+		_describe  -J ${nosort:+un}sorted ${nosort:+-o nosort} completions_with_descriptions -U
 	fi
-	if [ -n "$completions" ]; then
-		compadd -U -V unsorted -a completions
+	if [[ -n "$completions" ]]; then
+		compadd -U -J ${nosort:+un}sorted ${nosort:+-o nosort} -a completions
 	fi
 }
 if [[ $zsh_eval_context[-1] == loadautofunc ]]; then
@@ -4818,11 +4839,15 @@ _L_argparse_complete_fish='
 function %(complete_func)s;
 	set -l args (commandline -pco) (commandline -pct);
 	set -e args[1];
-	%(prog_name)s --L_argparse_get_completion $args | while read -l -d \t what key desc;
-		switch "$what";
+	%(prog_name)s --L_argparse_get_completion $args | while read -l -d \035 mode comp desc;
+		switch "$mode";
 		case file; __fish_complete_path "$key" "$desc";
 		case directory; __fish_complete_directories "$key" "$desc";
-		case plain; printf "%s\t%s\n" "$key" "$desc";
+		case plain; printf "%s\t%s\n" "$comp" "$desc";
+		end;
+			complete -c -X "$args[2]" -a "$key" -d "$desc";
+		end;
+		switch "$what";
 		end;
 	end;
 end;
@@ -4839,6 +4864,7 @@ _L_argparse_parse_internal_args() {
 	--L_argparse_print_usage) L_argparse_print_usage; exit; ;;
 	--L_argparse_print_help) L_argparse_print_help; exit; ;;
 	--L_argparse_get_completion) _L_in_complete=1 ;;
+	--L_argparse_get_completion_zsh) _L_in_complete=1 _L_comp_shell=zsh ;;
 	--L_argparse_complete_bash|--L_argparse_complete_zsh|--L_argparse_complete_fish)
 		local i=_${1##--} name
 		i=${!i}
@@ -4848,26 +4874,34 @@ _L_argparse_parse_internal_args() {
 		printf "%s" "$i"
 		exit
 		;;
-	--L_argparse_print_completion)
+	--L_argparse_completion_help)
 		local bash_dst=${XDG_DATA_HOME:-$HOME/.local/share}/bash-completion
 		local fish_dst=${XDG_CONFIG_HOME:-~/.config}/fish/completions/
 		local name
 		printf -v name "%q" "$L_NAME"
 		cat <<EOF
-# Bash: To install completion, add the following to .bashrc
+# Bash: To load the completion script into the current session run:
 	eval "\$($name --L_argparse_complete_bash)"
-# Bash: Or create completion file:
+# Bash: To make it available using bash-completion project:
 	mdir -vp $bash_dst
 	$name --L_argparse_complete_bash > $bash_dst/$name
-# Zsh: To install Zsh completion, add the following to .zshrc
+# Zsh: To load the completion script into the current session run:
 	eval "\$($name --L_argparse_complete_zsh)"
-# Fish: To install Fish completion, add the following to ~/.fishrc
+# Zsh: To make it available for all zsh sessions run
+	$name --L_argparse_complete_zsh > "\${fpath[1]}/_$name"
+# Fish: To load the completion script into the current session run:
 	eval "\$($name --L_argparse_complete_fish)"
-# Fish: Or create completion file:
+# Fish: To make it available for all fish sessions run:
 	mkdir -vp $fish_dst
 	$name --L_argparse_complete_fish > $fish_dst/$name.fish
 EOF
 		exit
+		;;
+	--L_argparse_*)
+		local available_cmds="$(declare -f "${FUNCNAME[0]}" | grep -o -- "--L_argparse_[a-z_]\+" | sort -u)"
+		available_cmds="${available_cmds//$'\n'/ }"
+		L_fatal "unknown internal argument: $1, available: $available_cmds"
+		exit 1
 		;;
 	esac
 }
@@ -4905,149 +4939,127 @@ _L_argparse_parse_args_set_defaults() {
 # @arg $2 <str> prefix to completion
 _L_argparse_gen_option_names_completion() {
 	if [[ "$1" != -* ]]; then
-		exit
+		L_argparse_fatal "unrecognized argument: $1" || return $?
 	fi
 	if ((_L_in_complete)); then
-		local i _L_desc _L_opti=0
+		local _L_opti=0 IFS=$'\n'
 		while _L_argparse_parser_next_option _L_opti; do
-			local -a _L_options="(${_L_opt__options[_L_opti]})"
-			for i in "${_L_options[@]}"; do
-				if [[ "$i" == "$1"* ]]; then
-					L_argparse_optspec_get_complete_description _L_desc
-					printf "plain\t%s\t%s\n" "${2:-}$i" "$_L_desc"
-				fi
-			done
+			local -a options="(${_L_opt__options[_L_opti]})"
+			if [[ "$IFS${options[*]}$IFS" == *"$IFS$1"* ]]; then
+				L_argparse_compgen -W "${options[*]}" -P "${2:-}" -- "$1" || return $?
+			fi
 		done
 		exit
 	fi
 }
 
 # @description parse long option
-# @set _L_used_args
+# @set _L_g_args_left
 # @arg $1 long option to parse
 # @arg $@ further arguments on command line
 _L_argparse_parse_args_long_option() {
 	# Parse long option `--rcfile file --help`
-	local _L_opt=$1 _L_values=()
-	if [[ "$_L_opt" == *=* ]]; then
-		_L_values+=("${_L_opt#*=}")
-		_L_opt=${_L_opt%%=*}
+	if [[ "$1" == *=* ]]; then
+		local _L_option="${1%%=*}" _L_values=("${1#*=}")
 	else
+		local _L_option="$1" _L_values=()
 		if (($# == 1)); then
-			_L_argparse_gen_option_names_completion "$1"
+			_L_argparse_gen_option_names_completion "$1" || return $?
 		fi
 	fi
 	local _L_opti=0
-	if ! _L_argparse_parser_get_long_option _L_opti "$_L_opt"; then
+	if ! _L_argparse_parser_get_long_option _L_opti "$_L_option"; then
 		if (($# == 1)); then
-			_L_argparse_gen_option_names_completion "$1"
+			_L_argparse_gen_option_names_completion "$1" || return $?
 		fi
-		L_argparse_fatal "unrecognized argument: $1" || return 1
+		L_argparse_fatal "unrecognized argument: $1" || return $?
 		# This is special - if _L_in_complete, then we should ignore invalid options and carry on
 		return 0
-	fi
-	if (($# == 1)); then
-		if ((${#_L_values[@]})); then
-			_L_argparse_optspec_gen_completion "${_L_values[0]}" "$_L_opt="
-		else
-			_L_argparse_gen_option_names_completion "$_L_opt"
-		fi
 	fi
 	shift
 	local _L_nargs=${_L_opt_nargs[_L_opti]}
 	case "$_L_nargs" in
 	0)
 		if ((${#_L_values[@]})); then
-			L_argparse_fatal "argument $_L_opt: ignored explicit argument ${_L_values[*]}" || return 1
+			L_argparse_fatal "option $_L_option takes no arguments: ${_L_values[*]}" || return $?
 		fi
 		;;
-	"+"|"*")
-		_L_argparse_optspec_gen_completion "${@:$#}"
-		(( _L_used_args += $# ))
-		_L_values+=("$@")
-		;;
-	"?")
-		if ((${#_L_values[@]} == 0)); then
-			_L_values+=("${_L_opt_const[_L_opti]:-}")
-		fi
-		;;
+	"+"|"*") _L_values+=("$@"); shift "$#"; ;;
+	"?") _L_values=("${_L_values[0]:-${_L_opt_const[_L_opti]:-}}") ;;
 	[0-9]*)
-		(( _L_used_args += _L_nargs - ${#_L_values[@]} ))
-		while ((${#_L_values[@]} < _L_nargs)); do
-			case "$#" in
-			0) L_argparse_fatal "argument $_L_opt: expected ${_L_opt_nargs[_L_opti]} arguments" || return 1 ;;
-			1) _L_argparse_optspec_gen_completion "$1" ;;
-			esac
-			_L_values+=("$1")
-			shift
-		done
+		local _L_req_nargs=$((_L_nargs - ${#_L_values[@]}))
+		_L_values+=("${@:1:_L_req_nargs}")
+		if ! shift "$_L_req_nargs"; then
+			L_argparse_fatal "argument $_L_option: expected ${_L_opt_nargs[_L_opti]} arguments" || return $?
+		fi
 		;;
-	*) L_argparse_fatal "invalid nargs specification of $(declare -p _L_optspec)" || return 1 ;;
+	*) L_argparse_fatal "invalid nargs specification of $(declare -p _L_optspec)" || return $? ;;
 	esac
-	_L_argparse_optspec_execute_action ${_L_values[@]+"${_L_values[@]}"} || return 1
+	if (($# == 0 && _L_in_complete)); then
+		local _L_comp_prefix=""
+		if ((_L_g_args_left - $# == ${#_L_values[@]})); then
+			_L_comp_prefix="$_L_option="
+		fi
+		_L_argparse_optspec_gen_completion "${_L_values[@]:+"${_L_values[${#_L_values[@]}-1]:-}"}" "$_L_comp_prefix" || return $?
+	fi
+	_L_argparse_optspec_execute_action ${_L_values[@]+"${_L_values[@]}"} || return $?
+	_L_g_args_left=$#
 }
 
 # @description parse short option
-# @set _L_used_args
+# @set _L_g_args_left
 # @arg $1 long option to parse
 # @arg $@ further arguments on command line
 _L_argparse_parse_args_short_option() {
 	# Parse short option -euopipefail
-	local _L_i _L_dash=${1:0:1} _L_opt=${1#[-+]} _L_init_args=$#
-	for ((_L_i = 0; _L_init_args == $# && _L_i < ${#_L_opt}; ++_L_i)); do
-		local _L_c=${_L_opt:_L_i:1} _L_rest=${_L_opt:_L_i+1} _L_pre=${_L_opt::_L_i-1<0?0:_L_i-1}
+	local _L_i
+	for ((_L_i = 1; _L_g_args_left == $#; ++_L_i)); do
+		local _L_option=${1:0:1}${1:_L_i:1}  # option with the dash, ex. -e
+		local _L_value=${1:_L_i+1}  # everything that follows the option, ex. -eopipefail -> pipefail
+		local _L_values=(${_L_value:+"${_L_value}"})
+		local _L_comp_prefix=${1::_L_i+1}  # prefix for completion including the option
 		local _L_opti=0
-		if ! _L_argparse_parser_get_short_option _L_opti "$_L_dash$_L_c"; then
-			if (($# == 0)); then
-				_L_argparse_gen_option_names_completion "$_L_dash$_L_c" "$_L_prefix$_L_pre"
-			fi
-			L_argparse_fatal "unrecognized arguments: $_L_dash$_L_c" || return 1
+		if ! _L_argparse_parser_get_short_option _L_opti "$_L_option"; then
+			L_argparse_fatal "unrecognized short option: $_L_option" || return $?
 			# This is special - if _L_in_complete, then we should ignore invalid options and carry on
+			_L_g_args_left=$(($#-1))
 			return 0
 		fi
-		local _L_values=() _L_nargs=${_L_opt_nargs[_L_opti]:-}
-		case "$_L_nargs" in
-		"+"|"*"|"?"|[1-9]*)
-			if [[ -n "$_L_rest" ]]; then _L_values+=("$_L_rest"); fi
-			if (($# == 1)); then
-				_L_argparse_optspec_gen_completion "${_L_values[0]:-}" "$_L_dash$_L_pre$_L_c"
-			fi
-			shift
-		esac
+		local _L_nargs=${_L_opt_nargs[_L_opti]:-}
 		case "$_L_nargs" in
 		0)
-			if (($# == 1)); then
-				_L_argparse_gen_option_names_completion "$_L_dash$_L_c"
-			fi
-			if ((${#_L_values[@]})); then
-				L_argparse_fatal "argument $_L_opt: ignored explicit argument ${_L_values[*]}" || return 1
-			fi
-			;;
-		"+"|"*")
-			_L_argparse_optspec_gen_completion "${@:$#}"
-			(( _L_used_args += $# ))
-			_L_values+=("$@")
-			;;
-		"?")
-			if ((${#_L_values[@]} == 0)); then
-				_L_values+=("${_L_opt_const[_L_opti]:-}")
-			fi
-			;;
+			# The loop above checks left arguments, so we shift here when there are no more args.
+			if ((_L_i + 1 == ${#1})); then shift; fi ;;
+		"+"|"*") shift; _L_values+=("$@"); shift "$#"; ;;
+		"?") shift; _L_values=("${_L_values[0]:-${_L_opt_const[_L_opti]:-}}") ;;
 		[0-9]*)
-			(( _L_used_args += _L_nargs - ${#_L_values[@]} ))
-			while ((${#_L_values[@]} < _L_nargs)); do
-				case "$#" in
-				0) L_argparse_fatal "argument -$_L_c: expected ${_L_opt_nargs[_L_opti]} arguments" || return 1 ;;
-				1) _L_argparse_optspec_gen_completion "${1:-}" ;;
-				esac
-				_L_values+=("$1")
-				shift
-			done
+			shift
+			local _L_req_nargs=$((_L_nargs - ${#_L_values[@]}))
+			_L_values+=("${@:1:_L_req_nargs}")
+			if ! shift "$_L_req_nargs"; then
+				L_argparse_fatal "argument $_L_option: expected ${_L_opt_nargs[_L_opti]} arguments" || return $?
+			fi
 			;;
 		*) L_argparse_fatal "invalid nargs specification of $(declare -p _L_optspec)" || return 1 ;;
 		esac
+		# Handle completion
+		if (($# == 0 && _L_in_complete)); then
+			local _L_used_args=$((_L_g_args_left - $#))
+			if [[ "$_L_nargs" == 0 || ( "$_L_used_args" -eq 1 && -z "$_L_value" ) ]]; then
+				# nargs=0 or this is an option without value, just add a space.
+				L_argparse_compgen -W "$_L_comp_prefix" || return $?
+				exit
+			elif [[ "$_L_used_args" -eq 1 && -n "$_L_value" ]]; then
+				# nargs!=0 and user started typing the value, try to complete it.
+				_L_argparse_optspec_gen_completion "$_L_value" "$_L_comp_prefix" || return $?
+			else
+				# nargs!=0 and user given more arguments. Complete the last value, if any.
+				_L_argparse_optspec_gen_completion "${_L_values[@]:+${_L_values[${#_L_values[@]}-1]}}" || return $?
+			fi
+		fi
 		_L_argparse_optspec_execute_action ${_L_values[@]+"${_L_values[@]}"} || return 1
 	done
+	_L_g_args_left=$#
 }
 
 # shellcheck disable=SC2309
@@ -5071,7 +5083,7 @@ _L_argparse_parse_args() {
 		while (($#)); do
 			if ((!_L_onlyargs)); then
 				# parse short and long options
-				local _L_used_args=1
+				local _L_g_args_left=$#
 				case "$1" in
 				--)
 					if (($# == 1)); then _L_argparse_gen_option_names_completion "$1"; fi
@@ -5080,10 +5092,11 @@ _L_argparse_parse_args() {
 				--?*) _L_argparse_parse_args_long_option "$@" || return $? ;;
 				-?*) _L_argparse_parse_args_short_option "$@" || return $? ;;
 				-) if (($# == 1)); then _L_argparse_gen_option_names_completion "$1"; fi; ;;
-				*) _L_used_args=0 ;;
 				esac
-				if ((_L_used_args)); then
-					shift "$_L_used_args"
+				if (($# != _L_g_args_left)); then
+					if ! shift "$(($#-$_L_g_args_left))"; then
+						L_fatal "internal error: shift failed _L_g_args_left=$_L_g_args_left #=$#" || return $?
+					fi
 					continue
 				fi
 			fi
@@ -5093,7 +5106,7 @@ _L_argparse_parse_args() {
 					# When _L_optspec is empty, get the next positional argument.
 					if ! _L_argparse_parser_next_argument _L_opti; then
 						L_argparse_fatal "unrecognized argument: $1" || return $?
-						return 0
+						break
 					else
 						case "${_L_opt_action[_L_opti]}" in
 						store) if ((_L_opt__isarray[_L_opti])); then _L_argparse_optspec_dest_arr_clear; fi ;;
@@ -5119,7 +5132,7 @@ _L_argparse_parse_args() {
 					;;
 				*) L_fatal "invalid nargs specification of $(declare -p _L_optspec)" ;;
 				esac
-				if (($# == 1)); then _L_argparse_optspec_gen_completion "$1"; fi
+				if (($# == 1)); then _L_argparse_optspec_gen_completion "$1" || return $?; fi
 			}
 			shift
 		done
@@ -5132,7 +5145,7 @@ _L_argparse_parse_args() {
 				_L_argparse_parser_next_argument _L_opti
 			fi
 		do
-			_L_argparse_optspec_gen_completion ""
+			_L_argparse_optspec_gen_completion "" || return $?
 			case "${_L_opt_nargs[_L_opti]}" in
 			"+")
 				if ((${#_L_arg_assigned[@]} == 0)); then
@@ -5147,7 +5160,10 @@ _L_argparse_parse_args() {
 			esac
 			_L_arg_assigned=()
 		done
-		_L_argparse_gen_option_names_completion "-"
+		if ((!_L_onlyargs)); then
+			# If there are no arguments to complete, complete option names.
+			_L_argparse_gen_option_names_completion "-" || return $?
+		fi
 	}
 	{
 		# Check if all required options have value
@@ -5244,10 +5260,10 @@ _L_argparse_split_parse_args() {
 			call=*|class=*) _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" || return 2 ;;
 			*) _L_argparse_split_call_argument "${@:2}" || return 2 ;;
 			esac
-			shift $(($#-_L_args_left))
+			shift $(($#-_L_g_args_left))
 		done
 	}
-	_L_args_left=$#
+	_L_g_args_left=$#
 }
 
 _L_argparse_print_var() {
@@ -5365,13 +5381,14 @@ L_argparse() {
 		_L_opt__parseri \
 		\
 		_L_in_complete=0 \
-		_L_args_left \
+		_L_comp_shell="" \
+		_L_g_args_left \
 		#
 	local _L_sub_args=()  # Accumulated arguments of subparser.
 	local _L_sub_opti=-1  # The option index of the subparser argument.
 	_L_argparse_split_parse_args "$@" || return 2
 	(( _L_parseri=0, _L_optmax=_L_opti+1 ))
-	shift $(($#-_L_args_left))
+	shift $(($#-_L_g_args_left))
 	if [[ "${1:-}" != "----" ]]; then
 		_L_argparse_split_fatal "missing separator ---- at $1" || return 2
 	fi
@@ -5428,6 +5445,12 @@ L_argparse() {
 				;;
 			esac
 		done
+	}
+	{
+		# Make sure we exit always here in completion and not execute user code.
+		if ((_L_in_complete)); then
+			exit
+		fi
 	}
 }
 

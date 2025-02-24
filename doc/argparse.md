@@ -250,6 +250,26 @@ Additional keys set internally in `_L_optspec` when parsing arguments:
 - `_isarray` - Should the `dest` variable be assigned as an array? Holds 1 or missing.
 - `_desc` - Description used in error messages. Metavar for arguments or list of options joined with `/`.
 
+## Completion
+
+### Completion cases
+
+`''` denotes cursor position.
+
+| what        | complete                                                          |
+| ---         | ---                                                               |
+| ''          | arguments if any, otherwise long options, otherwise short options |
+| -''         | long options, otherwise short options                             |
+| -f''        | another short options, or space if this is the only option        |
+| -o''        | options of `-o` prefixed with `-o`                                |
+| -fo''       | options of `-o` prefixed with `-fo`                               |
+| -o ''       | options of `-o`                                                   |
+| --''        | long options                                                      |
+| --flag''    | space                                                             |
+| --option''  | `=`                                                               |
+| --option='' | options                                                           |
+| --option '' | options                                                           |
+
 # Reason it exists
 
 I did not like argbash that requires some code generation. There should
