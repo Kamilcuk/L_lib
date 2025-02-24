@@ -523,11 +523,25 @@ L_setx() {
 	set -x
 	"$@"
 }
+# @description Runs the command under set +x.
+# @arg $@ Command to execute
+# @see L_setx
+L_unsetx() {
+	local -
+	set +x
+	"$@"
+}
 else
 	L_setx() {
 		# shellcheck disable=SC2064
 		trap "$(set +o)" RETURN
 		set -x
+		"$@"
+	}
+	L_unsetx() {
+		# shellcheck disable=SC2064
+		trap "$(set +o)" RETURN
+		set +x
 		"$@"
 	}
 fi
