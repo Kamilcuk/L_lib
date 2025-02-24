@@ -720,26 +720,78 @@ L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
 L_NL=$'\n'
 # @description tab
 L_TAB=$'\t'
-# @description carriage return
-L_CR=$'\r'
 # @description Start of heading
-L_ASCII_SOH=$'\001'
+L_SOH=$'\001'
 # @description Start of text
-L_ASCII_STX=$'\002'
+L_STX=$'\002'
 # @description End of Text
-L_ASCII_EOT=$'\003'
+L_EOT=$'\003'
 # @description End of transmission
-L_ASCII_EOF=$'\004'
-# @description Group separator
-L_ASCII_GS=$'\x1D'
-# @description 255 bytes with all possible 255 values
-L_ALLCHARS=$'\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037\040\041\042\043\044\045\046\047\050\051\052\053\054\055\056\057\060\061\062\063\064\065\066\067\070\071\072\073\074\075\076\077\100\101\102\103\104\105\106\107\110\111\112\113\114\115\116\117\120\121\122\123\124\125\126\127\130\131\132\133\134\135\136\137\140\141\142\143\144\145\146\147\150\151\152\153\154\155\156\157\160\161\162\163\164\165\166\167\170\171\172\173\174\175\176\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
-# @description
+L_EOF=$'\004'
+# @description Enquiry
+L_ENQ=$'\005'
+# @description Acknowledge
+L_ACK=$'\006'
+# @description Bell
+L_BEL=$'\007'
+# @description Backspace
+L_BS=$'\010'
+# @description Horizontal Tab
+L_HT=$'\011'
+# @description Line Feed
+L_LF=$'\012'
+# @description Vertical Tab
+L_VT=$'\013'
+# @description Form Feed
+L_FF=$'\014'
+# @description Carriage Return
+L_CR=$'\015'
+# @description Shift Out
+L_SO=$'\016'
+# @description Shift In
+L_SI=$'\017'
+# @description Data Link Escape
+L_DLE=$'\020'
+# @description Device Control 1
+L_DC1=$'\021'
+# @description Device Control 2
+L_DC2=$'\022'
+# @description Device Control 3
+L_DC3=$'\023'
+# @description Device Control 4
+L_DC4=$'\024'
+# @description Negative Acknowledge
+L_NAK=$'\025'
+# @description Synchronous Idle
+L_SYN=$'\026'
+# @description End of Transmission Block
+L_ETB=$'\027'
+# @description Cancel
+L_CAN=$'\030'
+# @description End of Medium
+L_EM=$'\031'
+# @description Substitute
+L_SUB=$'\032'
+# @description Escape
+L_ESC=$'\033'
+# @description File Separator
+L_FS=$'\034'
+# @description Group Separator
+L_GS=$'\035'
+# @description Record Separator
+L_RS=$'\036'
+# @description Unit Separator
+L_US=$'\037'
+# @description Delete
+L_DEL=$'\177'
+# @description Left brace character
 L_LBRACE='{'
-# @description
+# @description Right brace character
 L_RBRACE='}'
 # @description Looks random.
 L_UUID=921c7f46-e0d8-4170-91e9-7055ee30d1e2
+# @description 255 bytes with all possible 255 values
+L_ALLCHARS=$'\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037\040\041\042\043\044\045\046\047\050\051\052\053\054\055\056\057\060\061\062\063\064\065\066\067\070\071\072\073\074\075\076\077\100\101\102\103\104\105\106\107\110\111\112\113\114\115\116\117\120\121\122\123\124\125\126\127\130\131\132\133\134\135\136\137\140\141\142\143\144\145\146\147\150\151\152\153\154\155\156\157\160\161\162\163\164\165\166\167\170\171\172\173\174\175\176\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
 
 L_ASCII_LOWERCASE="abcdefghijklmnopqrstuvwxyz"
 L_ASCII_UPPERCASE="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
