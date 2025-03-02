@@ -27,9 +27,10 @@
 L_LIB_VERSION=0.1.7
 # @description The basename part of $0
 L_NAME=${0##*/}
+if [[ "${0%/*}" != "$0" ]]; then
 # @description The directory part of $0
 L_DIR=${0%/*}
-if [[ "$L_DIR" == "$0" ]]; then
+else
 	L_DIR=$PWD
 fi
 
@@ -3250,11 +3251,11 @@ L_unittest_cmpfiles() {
 _L_unittest_showdiff() {
 	L_assert "" test $# = 2
 	if L_hash diff; then
-		if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
-			diff <(cat <<<"$1") - <<<"$2" | cat -vet
-		else
-			diff <(xxd -p <<<"$1") <(xxd -p <<<"$2")
-		fi
+		# if [[ "$1" =~ ^[[:print:][:space:]]*$ && "$2" =~ ^[[:print:][:space:]]*$ ]]; then
+		diff <(cat -vet <<<"$1") <(cat -vet <<<"$2")
+		# else
+		# 	diff <( -p <<<"$1") <(xxd -p <<<"$2")
+		# fi
 	else
 		printf -- "--- diff ---\nL: %q\nR: %q\n\n" "$1" "$2"
 	fi
@@ -4293,6 +4294,14 @@ _L_argparse_validator_dir_w() {
 	_L_argparse_validator_dir "$1" &&
 		L_argparse_validator "directory not writable" "$1" test -x "$1" -a -w "$1"
 }
+_L_argparse_validator_user() {
+	local IFS=$'\n'
+	L_argparse_validator "not a valid user" "$1" L_array_contains groups "$1" $(compgen -A user)
+}
+_L_argparse_validator_group() {
+	local IFS=$'\n'
+	L_argparse_validator "not a valid group" "$1" L_array_contains groups "$1" $(compgen -A group)
+}
 
 # @env _L_split_args
 # @env _L_split_long_options
@@ -4375,6 +4384,8 @@ _L_argparse_split_call_argument() {
 			dir) default=_L_argparse_validator_dir ;;
 			dir_r) default=_L_argparse_validator_dir_r ;;
 			dir_w) default=_L_argparse_validator_dir_w ;;
+			user) default=_L_argparse_validator_user ;;
+			group) default=_L_argparse_validator_group ;;
 			*) _L_argparse_split_fatal "L_argparse _L_optspec: invalid type=$_L_type for option: $(declare -p _L_optspec). Available types: ${L_v[*]}" ;;
 			esac
 			: "${_L_opt_validate[_L_opti]:=\"$default\" \"\$1\"}"
@@ -4384,6 +4395,8 @@ _L_argparse_split_call_argument() {
 			# file) : "${_L_opt_complete[_L_opti]:=filenames,L_argparse_compgen -A file}" ;;
 			file) : "${_L_opt_complete[_L_opti]:=filenames,file}" ;;
 			dir) : "${_L_opt_complete[_L_opti]:=filenames,directory}" ;;
+			user) : "${_L_opt_complete[_L_opti]:=user}" ;;
+			group) : "${_L_opt_complete[_L_opti]:=group}" ;;
 			esac
 		fi
 	}
@@ -4659,7 +4672,7 @@ L_argparse_compgen() {
 		trap "$(shopt -p extglob)" RETURN
 		shopt -s extglob
 		# replace multiple spaces with one space and remove leading/trailing spaces
-		desc="${desc//+([$' \t\n'])/ }"
+		desc="${desc//+([$L_GS[:space:]])/ }"
 		L_strip -v desc "$desc"
 	fi
 	shift $((OPTIND - 1))
@@ -4689,9 +4702,8 @@ _L_argparse_choices_validate() {
 # @arg $1 incomplete
 # @env _L_optspec
 _L_argparse_choices_complete() {
+	local -a choices="(${_L_opt_choices[_L_opti]})"
 	local IFS=$'\n'
-	declare -a choices="(${_L_opt_choices[_L_opti]})"
-	L_sort_bash choices
 	L_argparse_compgen -W "${choices[*]}" -D "" -- "$1" || return $?
 }
 
@@ -4712,7 +4724,7 @@ _L_argparse_optspec_gen_completion() {
 	for _L_complete in "${_L_complete[@]}"; do
 		case "$_L_complete" in
 		bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs|file|directory)
-			echo "$_L_complete${_L_opt_help[_L_opti]:+${L_GS}${L_GS}${_L_opt_help[_L_opti]}}" ;;
+			echo "$_L_complete${_L_opt_help[_L_opti]:+${L_GS}${L_GS}${_L_opt_help[_L_opti]//[$L_GS[:space:]]/ }}" ;;
 		alias|arrayvar|binding|builtin|command|directory|disabled|enabled|export|file|function|group|helptopic|hostname|job|keyword|running|service|setopt|shopt|signal|stopped|user|variable)
 			L_argparse_compgen -A "$_L_complete" -- "$1" || exit $? ;;
 		*" "*) eval "${_L_complete}" || return $? ;;
@@ -4724,17 +4736,15 @@ _L_argparse_optspec_gen_completion() {
 	exit
 }
 
-# @description Bash completion code.
 # COMP_TYPE == 9  -> single tab
 # COMP_TYPE == 63 -> tab tab
 # COMP_TYPE == 37 -> menu-complete/menu-complete-backward
 # COMP_TYPE == 42 -> insert-completions
 # @see https://github.com/containers/podman/blob/main/completions/bash/podman
-_L_argparse_complete_bash=$'
-%(complete_func)s() {
+_L_argparse_complete_bash_function() {
 	local cur prev words cword comp_args was_split split
-	local IFS=$\'\\n\' sep=$\'\\035\' _ COLUMNS="${COLUMNS:-80}" LINES="${LINES:-1}"
-	local longestcomp=1 longestdesc=0 i response mode comp desc descs=()
+	local IFS=$'\n' sep=$'\035' _ COLUMNS="${COLUMNS:-80}" LINES="${LINES:-1}"
+	local longestcomp=1 longestdesc=0 i response mode comp desc
 	if hash _comp_initialize 2>/dev/null; then
 		# https://github.com/scop/bash-completion/blob/main/bash_completion#L1453
 		_comp_initialize -s -- "$@" || return
@@ -4757,19 +4767,153 @@ _L_argparse_complete_bash=$'
 				printf -v comp "%q" "$comp"
 				longestcomp=$(( longestcomp < ${#comp} ? ${#comp} : longestcomp ))
 				longestdesc=$(( longestdesc < ${#desc} ? ${#desc} : longestdesc ))
-				COMPREPLY+=("$comp${desc:+"$sep${desc//[[:space:]]/ }"}")
+				COMPREPLY+=("$comp$sep${desc//[[:space:]]/ }")
 			fi
 			;;
 		esac
 	done <<<"$response"
+	{
+		# Group completions by description into lines.
+		local descscomps=() colidx compsnodesc=() i j
+		for i in ${!COMPREPLY[@]}; do
+			comp="${COMPREPLY[i]%%"$sep"*}"
+			desc="${COMPREPLY[i]#*"$sep"}"
+			if [[ -z "$desc" ]]; then
+				compsnodesc+=("$comp")
+			else
+				for ((j = 0; j < ${#descscomps[@]}; ++j)); do
+					if [[ "${descscomps[j]%%"$sep"*}" == "$desc" ]]; then
+						break
+					fi
+				done
+				descscomps[j]=${descscomps[j]:-$desc}$sep$comp
+			fi
+		done
+		# declare -p descscomps compsnodesc
+	}
+	if (( longestdesc == 0 || longestcomp + 10 > COLUMNS || ${#COMPREPLY[@]} <= 1 || (${#descscomps[@]} == 1 && ${#compsnodesc[@]} == 0) )); then
+		# Remove descriptions if
+		# - there are no descriptions
+		# - or there are not enough columns to fit the descriptions
+		# - or there is only one completion
+		# - or all completion have the same description (TODO)
+		COMPREPLY=("${COMPREPLY[@]%%"$sep"*}")
+	else
+		{
+			{
+				# Find shortest prefix, so that completion fills only up to it even if we mess up.
+				local shortestprefix="${COMPREPLY[0]}" comp i j
+				for (( i = 1; i < ${#COMPREPLY[@]} && ${#shortestprefix}; ++i )); do
+					comp="${COMPREPLY[i]%%"$sep"*}"
+					for (( j = 1; j <= ${#shortestprefix}; ++j )); do
+						if [[ "$comp" != "${shortestprefix::j}"* ]]; then
+							shortestprefix=${shortestprefix::j-1}
+							break
+						fi
+					done
+				done
+			}
+			{
+				# sort completions within each line
+				local IFS="$sep" i j k LC_ALL=C sort='
+				for (( i = 0; i < ${#ARRAY[@]} - 1; ++i )); do
+					for (( j = 0; j + i < ${#ARRAY[@]} - 1; ++j )); do
+						if [[ "${ARRAY[j]}" < "${ARRAY[j+1]}" ]]; then
+							local tmp=${ARRAY[j]}
+							ARRAY[j]="${ARRAY[j+1]}"
+							ARRAY[j+1]="$tmp"
+						fi
+					done
+				done
+				'
+				for k in ${!descscomps[@]}; do
+					IFS="$sep" read -ra desc <<<"${descscomps[k]}"
+					comp=("${desc[@]:1}")
+					eval "${sort//ARRAY/comp}"
+					descscomps[k]="${desc[0]}$sep${comp[*]}"
+				done
+				# Sort completions without descriptions too.
+				eval "${sort//ARRAY/compsnodesc}"
+			}
+			{
+				# Determine column lengths.
+				local collens=()
+				for j in ${!descscomps[@]}; do
+					IFS="$sep" read -ra desc <<<"${descscomps[j]}"
+					for ((i = 0; i < ${#desc[@]}; ++i)); do
+						collens[i]=$(( collens[i] > ${#desc[i+1]} ? collens[i] : ${#desc[i+1]} ))
+					done
+				done
+			}
+			{
+				# Create completions with descriptions in columns. Watch out for COLUMNS.
+				local compreplysav=("${COMPREPLY[@]}") i comp line
+				COMPREPLY=()
+				for i in "${descscomps[@]}"; do
+					IFS="$sep" read -ra desc <<<"$i"
+					# fill up line
+					local line=""
+					for ((j=0;j<${#collens[@]};++j)); do
+						if [[ -n "$line" ]] && ((${#line} + collens[j] + 1 > COLUMNS)); then
+							# If line is too long for terminal, flush it.
+							COMPREPLY+=("$line")
+							line=""
+						fi
+						printf -v line "%s%-*s " "$line" "${collens[j]}" "${desc[j+1]:-}"
+					done
+					if ((${#desc} && ${#line} + 5 < COLUMNS)); then
+						line+="-- $desc"
+						if ((${#line} > COLUMNS)); then
+							line="${line::COLUMNS-1}…"
+						fi
+					fi
+					COMPREPLY+=("$line")
+				done
+				COMPREPLY+=("${compsnodesc[@]}")
+			}
+			{
+				# Calculate shortest prefix again to determine if it should be added.
+				local shortestprefixpre=$shortestprefix shortestprefix="${COMPREPLY[0]}" i j
+				for (( i = 1; i < ${#COMPREPLY[@]} && ${#shortestprefix}; ++i )); do
+					comp="${COMPREPLY[i]%%"$sep"*}"
+					for (( j = 1; j <= ${#shortestprefix}; ++j )); do
+						if [[ "$comp" != "${shortestprefix::j}"* ]]; then
+							shortestprefix=${shortestprefix::j-1}
+							break
+						fi
+					done
+				done
+				# Only add shortest prefix if it is needed.
+				if [[ "$shortestprefixpre" != "$shortestprefix" ]]; then
+					COMPREPLY+=("${shortestprefix}")
+				fi
+			}
+			{
+				# Can we fit the descriptions in available LINES?
+				local longestline=0
+				for comp in "${COMPREPLY[@]}"; do
+					longestline=$(( longestline > ${#comp} ? longestline : ${#comp} ))
+				done
+				longestline=$(( longestline + 2 ))
+				if (( LINES < ${#COMPREPLY[@]} / ( 1 + COLUMNS / longestline ) )); then
+					# If we are not able to fit them, remove descriptions.
+					COMPREPLY=("${compreplysav[@]%%"$sep"*}")
+				fi
+			}
+		}
+	fi
+}
+
+_L_argparse_complete_bash_function_old() {
 	local compdesclen=$(( longestcomp + longestdesc + 4 ))
 	local compdesccolumns=$(( COLUMNS / compdesclen + !!(COLUMNS % compdesclen) ))
 	local compdesclines=$(( ${#COMPREPLY[@]} / compdesccolumns + !!(${#COMPREPLY[@]} % compdesccolumns) ))
 	local compnodesclen=$(( longestcomp + 1 ))
 	local compnodesccolumns=$(( COLUMNS / compnodesclen + !!(COLUMNS % compnodesclen) ))
 	local compnodesclines=$(( ${#COMPREPLY[@]} / compnodesccolumns + !!(${#COMPREPLY[@]} % compnodesccolumns) ))
-	if (( COLUMNS < longestcomp + 10 || ${#COMPREPLY[@]} == 1 || (LINES < compdesclines && LINES > compnodesclines) )); then
+	if (( longestdesc == 0 || COLUMNS < longestcomp + 10 || ${#COMPREPLY[@]} <= 1 || (LINES < compdesclines && LINES > compnodesclines) )); then
 		# remove descriptions if
+		# - there just are no descriptions
 		# - there are not enough columns to fit the descriptions
 		# - or there is only one completion
 		# - or there are not enough lines to print completions with descriptions
@@ -4777,24 +4921,85 @@ _L_argparse_complete_bash=$'
 		for i in "${!COMPREPLY[@]}"; do
 			COMPREPLY[i]="${COMPREPLY[i]%%"$sep"*}"
 		done
-	else
+	elif ((0)); then
 		# Format the descriptions
-		# TODO: how to group completions depending on description like zsh does?
-		for i in "${!COMPREPLY[@]}"; do
-			if [[ "${COMPREPLY[i]}" == *"$sep"* ]]; then
-				# If the completion has a description, format it.
+		{
+			# find shortest prefix, so that completion fills only up to it even if we mess up
+			local shortestprefix="${COMPREPLY[0]}" i j
+			for (( i = 1; i < ${#COMPREPLY[@]} && ${#shortestprefix}; ++i )); do
 				comp="${COMPREPLY[i]%%"$sep"*}"
-				desc=" (${COMPREPLY[i]#*"$sep"})"
-				# Truncate too long description for the columns.
-				desc="${desc::COLUMNS-longestcomp}"
-				printf -v comp "%-*s%s" "$longestcomp" "$comp" "$desc"
+				for (( j = 1; j <= ${#shortestprefix}; ++j )); do
+					if [[ "$comp" != "${shortestprefix::j}"* ]]; then
+						shortestprefix=${shortestprefix::j-1}
+						needshortestprefix=1
+						break
+					fi
+				done
+			done
+			# group completions by description
+			local descscomps=() collens=() colidx compsnodesc=()
+			for i in ${!COMPREPLY[@]}; do
+				comp="${COMPREPLY[i]%%"$sep"*}"
+				desc="${COMPREPLY[i]#*"$sep"}"
+				for ((j = 0; j < ${#descscomps[@]}; ++j)); do
+					if [[ "${descscomps[j]%%"$sep"*}" == "$desc" ]]; then
+						break
+					fi
+				done
+				descscomps[j]=${descscomps[j]:-$desc}$sep$comp
+				colidx=${descscomps[j]//[^$sep]}
+				colidx=${#colidx}
+				collens[colidx]=$(( collens[colidx] > ${#comp} ? collens[colidx] : ${#comp} ))
+			done
+			# declare -p descscomps collens compsnodesc
+			# if there was a shortestprefix, start with it
+			COMPREPLY=()
+			for i in "${descscomps[@]}"; do
+				IFS=$sep read -ra comp <<<"$i"
+				local line=""
+				for ((j=1;j<${#comp[@]};++j)); do
+					if ((${#line} + collens[j] + 1 > COLUMNS)); then
+						COMPREPLY+=("$line")
+						line=""
+					fi
+					printf -v line "%s%-*s " "$line" "${collens[j]}" "${comp[j]}"
+				done
+				if ((${#line} + 10 < COLUMNS)); then
+					line+="-- ${comp[0]}"
+					if ((${#line} > COLUMNS)); then
+						line="${line::COLUMNS-1}…"
+					fi
+				fi
+				if [[ -n "$line" ]]; then
+					COMPREPLY+=("$line")
+				fi
+			done
+			COMPREPLY+=("${compsnodesc[@]}")
+			COMPREPLY+=("${shortestprefix}")
+		}
+	else
+		{
+			# Simply pad descriptions max one per line with spaces until end of line.
+			for i in "${!COMPREPLY[@]}"; do
+				comp="${COMPREPLY[i]%%"$sep"*}"
+				desc="${COMPREPLY[i]#*"$sep"}"
+				# If the completion has a description, format it.
+				if [[ -n "$desc" ]]; then
+					# Truncate too long description for the columns.
+					printf -v comp "%-*s (%s)" "$longestcomp" "$comp" "$desc"
+					if ((${#comp} > COLUMNS)); then
+						comp="${comp::COLUMNS-1}…"
+					fi
+				fi
 				COMPREPLY[i]=$comp
-			fi
-		done
+			done
+		}
 	fi
 }
-complete -F %(complete_func)s %(prog_name)s
-'
+
+
+# @description Bash completion code.
+_L_argparse_complete_bash='complete -F %(complete_func)s %(prog_name)s'
 
 # @description ZSH completion code.
 _L_argparse_complete_zsh=$'#compdef %(prog_name)s
@@ -4806,8 +5011,8 @@ _L_argparse_complete_zsh=$'#compdef %(prog_name)s
 	while IFS=$\'\\035\' read -r mode comp desc; do
 		case "$mode" in
 		nosort) nosort=1 ;;
-		file) _path_files -f ${=comp:+-g"$comp"} ${=desc:+-X"$desc"} ;;
-		directory) _path_files -/ ${=comp:+-g"$comp"} ${=desc:+-X"$desc"} ;;
+		file) _path_files -f ${comp:+-g"$comp"} ${desc:+-X"$desc"} ;;
+		directory) _path_files -/ ${comp:+-g"$comp"} ${desc:+-X"$desc"} ;;
 		bashdefault|default) _default ;;
 		plain)
 			if [[ -z "$desc" ]]; then
@@ -4868,10 +5073,14 @@ _L_argparse_parse_internal_args() {
 	--L_argparse_complete_bash|--L_argparse_complete_zsh|--L_argparse_complete_fish)
 		local i=_${1##--} name
 		i=${!i}
+		if [[ "$1" == *bash ]]; then
+			i=$(declare -f _L_argparse_complete_bash_function)$'\n'"$i"$'\n'
+			i=${i//_L_argparse_complete_bash_function/%(complete_func)s}
+		fi
 		printf -v name "%q" "$L_NAME"
 		i=${i//%(prog_name)s/$name}
 		i=${i//%(complete_func)s/_L_argparse_complete_${L_NAME//[^a-zA-Z0-9_]/_}}
-		printf "%s" "$i"
+		printf "%s\n" "$i"
 		exit
 		;;
 	--L_argparse_completion_help)
@@ -4939,7 +5148,7 @@ _L_argparse_parse_args_set_defaults() {
 # @arg $2 <str> prefix to completion
 _L_argparse_gen_option_names_completion() {
 	if [[ "$1" != -* ]]; then
-		L_argparse_fatal "unrecognized argument: $1" || return $?
+		L_argparse_fatal "internal error ${FUNCNAME[0]}: $1" || return $?
 	fi
 	if ((_L_in_complete)); then
 		local _L_opti=0 IFS=$'\n'
@@ -4972,8 +5181,9 @@ _L_argparse_parse_args_long_option() {
 		if (($# == 1)); then
 			_L_argparse_gen_option_names_completion "$1" || return $?
 		fi
-		L_argparse_fatal "unrecognized argument: $1" || return $?
+		L_argparse_fatal "unrecognized long option: $1" || return $?
 		# This is special - if _L_in_complete, then we should ignore invalid options and carry on
+		_L_g_args_left=$(($#-1))
 		return 0
 	fi
 	shift
@@ -4981,7 +5191,8 @@ _L_argparse_parse_args_long_option() {
 	case "$_L_nargs" in
 	0)
 		if ((${#_L_values[@]})); then
-			L_argparse_fatal "option $_L_option takes no arguments: ${_L_values[*]}" || return $?
+			_L_argparse_optspec_get_description _L_desc
+			L_argparse_fatal "option $_L_desc takes no arguments: ${_L_values[*]}" || return $?
 		fi
 		;;
 	"+"|"*") _L_values+=("$@"); shift "$#"; ;;
@@ -4990,7 +5201,8 @@ _L_argparse_parse_args_long_option() {
 		local _L_req_nargs=$((_L_nargs - ${#_L_values[@]}))
 		_L_values+=("${@:1:_L_req_nargs}")
 		if ! shift "$_L_req_nargs"; then
-			L_argparse_fatal "argument $_L_option: expected ${_L_opt_nargs[_L_opti]} arguments" || return $?
+			_L_argparse_optspec_get_description _L_desc
+			L_argparse_fatal "argument $_L_desc: expected ${_L_opt_nargs[_L_opti]} arguments" || return $?
 		fi
 		;;
 	*) L_argparse_fatal "invalid nargs specification of $(declare -p _L_optspec)" || return $? ;;
@@ -5087,7 +5299,7 @@ _L_argparse_parse_args() {
 				case "$1" in
 				--)
 					if (($# == 1)); then _L_argparse_gen_option_names_completion "$1"; fi
-					_L_onlyargs=1
+					_L_onlyargs=1; shift; continue
 					;;
 				--?*) _L_argparse_parse_args_long_option "$@" || return $? ;;
 				-?*) _L_argparse_parse_args_short_option "$@" || return $? ;;

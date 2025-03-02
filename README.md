@@ -21,8 +21,11 @@ Bash library. Collection of functions and libraries that I deem usefull for writ
 
 # Features
 
-- compatible bash 3.2, except where associative arrays are required
-- subshell usage is minimized
+- bash >= 3.2
+- speed
+- colored output
+- logging library
+- trap library
 
 ## Various useful functionsand variables
 

@@ -24,4 +24,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 	-- -3 --three_store_const action="store_const" const=3 \
 	-- -4 --four_store_1 action="store_1" \
 	-- -5 --five_store_0 action="store_0" \
+	-- --one help="only long option" \
+	-- -o help="only short option" \
+	-- --two --three --four --five help="multiple long options" \
 	---- "$@"
