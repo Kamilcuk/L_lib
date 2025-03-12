@@ -3829,6 +3829,7 @@ L_asa_assign() {
 }
 
 # ]]]
+fi
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
@@ -4026,7 +4027,7 @@ L_argparse_print_help() {
 	}
 	{
 		# stores all the stuff after usage
-		local _L_help_help="${_L_parser_description[_L_parseri]+$'\n'${_L_parser_description[_L_parseri]%%$'\n'}$'\n'}"
+		local _L_help_help="${_L_parser_description[_L_parseri]:+$'\n'${_L_parser_description[_L_parseri]%%$'\n'}$'\n'}"
 		local _L_opthelp _L_notrequired _L_metavar
 	}
 	{
@@ -4098,7 +4099,7 @@ L_argparse_print_help() {
 		# output
 		echo "Usage: ${_L_parser_usage:-$_L_prog$_L_options_usage$_L_args_usage}"
 		if ((!_L_short)); then
-_L_help_help+=${_L_parser_epilog[_L_parseri]:+$'\n'${_L_parser_epilog[_L_parseri]%%$'\n'}}
+			_L_help_help+=${_L_parser_epilog[_L_parseri]:+$'\n'${_L_parser_epilog[_L_parseri]%%$'\n'}}
 			echo "${_L_help_help%%$'\n'}"
 		fi
 	}
@@ -5759,7 +5760,6 @@ L_argparse() {
 }
 
 # ]]]
-fi
 # proc [[[
 # @section proc
 # Allows to open multiple processes connected via pipe.

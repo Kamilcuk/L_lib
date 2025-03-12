@@ -1384,6 +1384,8 @@ _L_test_asa() {
 	}
 }
 
+fi  # L_HAS_ASSOCIATIVE_ARRAY
+
 _L_test_z_argparse1() {
 	local ret tmp option storetrue storefalse store0 store1 storeconst append
 	{
@@ -1775,7 +1777,8 @@ Options:
   	}
 }
 
-_L_test_z_argparse4() {
+if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+_L_test_z_argparse_A() {
 	{
 		declare -A Adest=()
 		L_unittest_cmd -c \
@@ -1790,6 +1793,10 @@ _L_test_z_argparse4() {
 		L_unittest_arreq arr 1 2 3
 		L_unittest_eq "${Adest[asome]}" 1123
 	}
+}
+fi
+
+_L_test_z_argparse4() {
 	{
 		local a='' dest=()
 		L_argparse prog=prog -- -a -- dest nargs="*" ---- -a 1 2 3 -a 2
@@ -1892,7 +1899,6 @@ _L_test_z_argparse6() {
 	}
 }
 
-fi  # L_HAS_ASSOCIATIVE_ARRAY
 
 _L_test_L_proc() {
 	local proc
