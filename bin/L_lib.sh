@@ -4140,7 +4140,7 @@ _L_argparse_split_class_subparser() {
             action=*) _L_opt_action[_L_opti]=${1#*=} ;;
             metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
             dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
-			*) _L_argparse_split_fatal "unsupported subparser argument: $1" || return 1 ;;
+			*) _L_argparse_split_fatal "unsupported subparser argument: $1" ;;
 			esac
 			shift
 		done
@@ -4181,7 +4181,7 @@ _L_argparse_split_common_subparser_function() {
 	case "${_L_opt__class[_L_opti]}" in
 	subparser) : "${_L_opt_complete[_L_opti]:=_L_argparse_sub_subparser_complete \"\$1\"}" ;;
 	function)  : "${_L_opt_complete[_L_opti]:=_L_argparse_sub_function_complete \"\$1\"}" ;;
-	*) _L_argparse_split_fatal "internal error class=${_L_opt__class[_L_opti]}" || return 2 ;;
+	*) _L_argparse_split_fatal "internal error class=${_L_opt__class[_L_opti]}" ;;
 	esac
 	_L_opt_action[_L_opti]="_subparser"
 	_L_argparse_split_argument_common
@@ -4201,7 +4201,7 @@ _L_argparse_split_class_function() {
 			required=*) _L_opt_required[_L_opti]=${1#*=} ;;
 			metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
 			dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
-			*=*|*[$' \t\n']*) _L_argparse_split_fatal "unsupported call=function argument: $1" || return 1 ;;
+			*=*|*[$' \t\n']*) _L_argparse_split_fatal "unsupported call=function argument: $1" ;;
 			*) _L_opt_prefix[_L_opti]=$1 ;;
 			esac
 			shift
@@ -4212,7 +4212,7 @@ _L_argparse_split_class_function() {
 	}
 	{
 		if [[ -z "${_L_opt_prefix[_L_opti]}" ]]; then
-			_L_argparse_split_fatal "prefix= is not set" || return 1
+			_L_argparse_split_fatal "prefix= is not set"
 		fi
 	}
 }
@@ -4261,7 +4261,7 @@ _L_argparse_sub_function_get_function_description() {
 	local _L_func=$2 _L_subparser_help _L_helpvar="${2}_help"
 	if _L_argparse_sub_function_is_ok_to_call "$_L_func"; then
 		if _L_subparser_help=$("$_L_func" --L_argparse_parser_help); then :; else
-			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?" || return 2
+			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?"
 		fi
 		printf -v "$1" "%s" "$_L_subparser_help"
 	else
@@ -4390,7 +4390,7 @@ _L_argparse_split_call_argument() {
             validate=*) _L_opt_validate[_L_opti]=${1#*=} ;;
             complete=*) _L_opt_complete[_L_opti]=${1#*=} ;;
             show_default=*) _L_opt_show_default[_L_opti]=${1#*=} ;;
-			*=*) _L_argparse_split_fatal "unsupported k=v argument: $1" || return 1 ;;
+			*=*) _L_argparse_split_fatal "unsupported k=v argument: $1" ;;
 			[-+][-+]?*)
 				_L_opt__options[_L_opti]+=${_L_opt__options[_L_opti]:+ }$1
 				: "${first_long_option:=${1##[-+][-+]}}"
@@ -4399,14 +4399,14 @@ _L_argparse_split_call_argument() {
 				_L_opt__options[_L_opti]+=${_L_opt__options[_L_opti]:+ }$1
 				: "${first_short_option:=${1##[-+]}}"
 				;;
-			[^a-zA-Z0-9]*|*[^a-zA-Z0-9_]*) _L_argparse_split_fatal "unsupported positional argument: $1" || return 1 ;;
+			[^a-zA-Z0-9]*|*[^a-zA-Z0-9_]*) _L_argparse_split_fatal "unsupported positional argument: $1" ;;
 			[a-zA-Z0-9]*)
 				if [[ -n "${_L_opt_desc[_L_opti]:-}" ]]; then
 					_L_argparse_split_fatal "desc supplied twice for positional argument: $1"
 				fi
 				_L_opt_dest[_L_opti]=$1
 				;;
-			*) _L_argparse_split_fatal "unsupported invalid positional argument: $1" || return 1 ;;
+			*) _L_argparse_split_fatal "unsupported invalid positional argument: $1" ;;
 			esac
 			shift
 		done
@@ -4425,7 +4425,7 @@ _L_argparse_split_call_argument() {
 		fi
 		# assert dest is valid
 		if ! L_is_valid_variable_name "${_L_opt_dest[_L_opti]}"; then
-			_L_argparse_split_fatal "dest=${_L_opt_dest[_L_opti]} is invalid" || return 1
+			_L_argparse_split_fatal "dest=${_L_opt_dest[_L_opti]} is invalid"
 		fi
 		_L_opt_dest[_L_opti]="${_L_parser_Adest[_L_parseri]:+${_L_parser_Adest[_L_parseri]}[}""${_L_opt_dest[_L_opti]}""${_L_parser_Adest[_L_parseri]:+]}"
 	}
@@ -5497,17 +5497,17 @@ _L_argparse_split_parse_args() {
             name=*) _L_parser_name[_L_parseri]=${1#*=} ;;
             help=*)
 				if ((_L_parseri == 0)); then
-					_L_argparse_split_fatal "help= is supported only in subparsers" || return 1
+					_L_argparse_split_fatal "help= is supported only in subparsers"
 				fi
             	_L_parser_help[_L_parseri]=${1#*=}
             	;;
-            *=*) _L_argparse_split_fatal "unknown parser k=v argument: $1" || return 2 ;;
+            *=*) _L_argparse_split_fatal "unknown parser k=v argument: $1" ;;
             *)
 				if ((_L_parseri == 0)); then
-					_L_argparse_split_fatal "unknown parser positional argument: $1" || return 2
+					_L_argparse_split_fatal "unknown parser positional argument: $1"
 				else
 					if [[ -n "${_L_parser_name[_L_parseri]:-}" ]]; then
-						_L_argparse_split_fatal "multiple positional arguments to parser: $1" || return 2
+						_L_argparse_split_fatal "multiple positional arguments to parser: $1"
 					fi
 					_L_parser_name[_L_parseri]=$1
 				fi
@@ -5520,7 +5520,7 @@ _L_argparse_split_parse_args() {
 		# a subparser has to have a name
 		if ((_L_parseri != 0)); then
 			if [[ -z "${_L_parser_name[_L_parseri]:-}" ]]; then
-				_L_argparse_split_fatal "a subparser has to have a name=" || return 2
+				_L_argparse_split_fatal "a subparser has to have a name="
 			fi
 		fi
 	}
@@ -5544,10 +5544,10 @@ _L_argparse_split_parse_args() {
 		while [[ "${1:-}" == "--" ]]; do
 			((++_L_opti))
 			case "${2:-}" in
-			""|---*|--|"{"|"}") _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" || return 2 ;;
+			""|---*|--|"{"|"}") _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" ;;
 			call=function|class=f*|call=f*) _L_argparse_split_class_function "${@:3}" || return 2 ;;
 			call=subparser|class=s*|call=s*) _L_argparse_split_class_subparser "${@:3}" || return 2 ;;
-			call=*|class=*) _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" || return 2 ;;
+			call=*|class=*) _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" ;;
 			*) _L_argparse_split_call_argument "${@:2}" || return 2 ;;
 			esac
 			shift $(($#-_L_g_args_left))
@@ -5696,7 +5696,7 @@ L_argparse() {
 	(( _L_parseri=0, _L_optmax=_L_opti+1 ))
 	shift $(($#-_L_g_args_left))
 	if [[ "${1:-}" != "----" ]]; then
-		_L_argparse_split_fatal "missing separator ---- at $1" || return 2
+		_L_argparse_split_fatal "missing separator ---- at $1"
 	fi
 	shift
 	# _L_argparse_print >/dev/tty
