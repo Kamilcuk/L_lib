@@ -24,7 +24,7 @@
 #@description some global variables
 
 # @description version of the library
-L_LIB_VERSION=0.1.7
+L_LIB_VERSION=0.1.8
 # @description The basename part of $0
 L_NAME=${0##*/}
 if [[ "$0" == */* ]]; then
