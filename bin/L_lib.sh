@@ -21,13 +21,13 @@
 
 # Globals [[[
 # @section globals
-# @description some global variables
+#@description some global variables
 
 # @description version of the library
 L_LIB_VERSION=0.1.7
 # @description The basename part of $0
 L_NAME=${0##*/}
-if [[ "${0%/*}" != "$0" ]]; then
+if [[ "$0" == */* ]]; then
 # @description The directory part of $0
 L_DIR=${0%/*}
 else
@@ -342,6 +342,8 @@ L_HAS_BASH1_14_7=$(( L_BASH_VERSION >= 0x010E07))
 
 # @description New shell option: patsub_replacement. When enabled, a `&' in the replacement
 L_HAS_PATSUB_REPLACEMENT=$L_HAS_BASH5_2
+# @description SRANDOM: a new variable that expands to a 32-bit random number
+L_HAS_SRANDOM=$L_HAS_BASH5_1
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 # @description The `mapfile' builtin now has a -d option
@@ -354,6 +356,8 @@ L_HAS_AT_Q=$L_HAS_BASH4_4
 L_HAS_DECLARE_WITH_NO_QUOTES=$L_HAS_BASH4_4
 # @description Bash 4.3 introduced declare -n nameref
 L_HAS_NAMEREF=$L_HAS_BASH4_3
+# @description The printf builtin has a new %(fmt)T specifier
+L_HAS_PRINTF_T=$L_HAS_BASH4_2
 # @description Force extglob on temporarily when parsing the pattern argument to
 # the == and != operators to the [[ command, for compatibility.
 L_HAS_EXTGLOB_IN_TESTTEST=$L_HAS_BASH4_1
@@ -644,11 +648,26 @@ L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^decla
 L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*x"; }
 
 # @description Return 0 if the string happend to be something like true.
+# Return 0 when argument is case-insensitive:
+#  - true
+#  - 1
+#  - yes
+#  - y
+#  - t
+#  - any number except 0
+#  - the cahracter '+'
 # @arg $1 str
 L_is_true() { [[ "$1" == [+1-9TtYy]* ]]; }
 # L_is_true() { L_regex_match "$1" "^([+]|[+]?[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$"; }
 
 # @description Return 0 if the string happend to be something like false.
+# Return 0 when argument is case-insensitive:
+#  - false
+#  - 0
+#  - no
+#  - F
+#  - n
+#  - the character minus '-'
 # @arg $1 str
 L_is_false() { [[ "$1" == [-0fFnN]* ]]; }
 # L_is_false() { L_regex_match "$1" "^([-]|0+|[fF]|[fF][aA][lL][sS][eE]|[nN]|[nN][oO])$"; }
@@ -1430,10 +1449,16 @@ if ((L_HAS_NAMEREF)); then
 # @arg $1 <var> array nameref
 L_array_clear() { local -n _L_arr=$1; _L_arr=(); }
 
-# @description Append elements to array.
+# @description Set elements of array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to set
 L_array_set() { local -n _L_arr=$1; _L_arr=("${@:2}"); }
+
+# @description Assign element of an array
+# @arg $1 <var> array nameref
+# @arg $2 <int> array index
+# @arg $3 <str> value to assign
+L_array_assign() { local -n _L_arr=$1; _L_arr[$2]=$3; }
 
 # @description Append elements to array.
 # @arg $1 <var> array nameref
@@ -1453,7 +1478,7 @@ L_array_pop_front() { local -n _L_arr=$1; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"})
 # @arg $1 <var> array nameref
 L_array_pop() { local -n _L_arr=$1; unset "_L_arr[${#_L_arr[@]}-1]"; }
 
-# @description
+# @description Return success, if all array elements are in sequence from 0.
 # @arg $1 <var> array nameref
 L_array_is_dense() {
 	local -n _L_arr=$1
