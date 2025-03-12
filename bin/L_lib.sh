@@ -1488,6 +1488,7 @@ L_array_is_dense() {
 else  # L_HAS_NAMEREF
 	L_array_clear() { eval "$1=()"; }
 	L_array_set() { eval "$1=(\"\${@:2}\")"; }
+	L_array_assign() { eval "$1[$2]=\$3"; }
 	L_array_append() { eval "$1+=(\"\${@:2}\")"; }
 	L_array_prepend() { eval "$1=(\"\${@:2}\" \"\${$1[@]}\")"; }
 	L_array_pop_front() { eval "$1=(\"\${$1[@]:1}\")"; }
@@ -1497,6 +1498,18 @@ else  # L_HAS_NAMEREF
 		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
 	}
 fi  # L_HAS_NAMEREF
+
+# @description Assign array elements to variables in order.
+# @arg $1 <var> array nameref
+# @arg $@ variables to assign to
+L_array_get() {
+	local _L_v _L_i=0 _L_r
+	shift
+	for _L_v in "${@:2}"; do
+		_L_r="$1[$((_L_i++))]"
+		printf -v "$_L_v" "%s" "${!_L_r}"
+	done
+}
 
 # @description Reverse elements in an array.
 # @arg $1 <var> array nameref
