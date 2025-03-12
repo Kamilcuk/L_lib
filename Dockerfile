@@ -5,7 +5,7 @@ RUN L_lib.sh --help
 
 FROM app AS test
 COPY tests/test.sh /bin
-RUN test.sh test
+RUN test.sh
 
 # FROM busybox AS shellcheck_prepare
 # COPY bin/L_lib.sh scripts/shellcheckparser_off.sh .
