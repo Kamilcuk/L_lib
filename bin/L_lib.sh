@@ -5699,6 +5699,384 @@ L_argparse() {
 
 # ]]]
 fi
+# proc [[[
+# @section proc
+# Allows to open multiple processes connected via pipe.
+
+# @description Open two connected file descriptors.
+# This intenrally creates a temporary file with mkfifo
+# The result variable is assigned an array that:
+#   - [0] element is input from the pipe,
+#   - [1] element is the output to the pipe.
+# This is meant to mimic the pipe() C function.
+# @arg $1 <var> variable name to assign result to
+# @arg $2 <str> template temporary filename, default: L_pipe_XXXXXXXXXX
+L_pipe() {
+	local _L_i _L_file _L_1 _L_0 _L_tmp
+	L_assert 'mktemp or mkfifo utilities are missing' L_hash mktemp mkfifo
+	for _L_i in _ _ _ _ _; do
+		if
+			_L_file="$(mktemp -u "${2:-L_pipe_XXXXXXXXXX}")" &&
+			mkfifo "$_L_file" &&
+			# First open the file descriptor for both, so that opening is not getting stuck.
+			exec {_L_tmp}<>"$_L_file" {_L_0}<"$_L_file" {_L_1}>"$_L_file" {_L_tmp}>&-
+		then
+			rm "$_L_file"
+			L_array_set "$1" "$_L_0" "$_L_1"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# @description Check if file descriptor is open.
+# @arg $1 file descriptor
+L_is_fd_open() {
+	{ >&"$1"; } 2>/dev/null
+}
+
+_L_proc_init_setup_redir() {
+	local redir="$1" mode="$2" val="${!3}" ret=""
+	if [[ -n "$mode" ]]; then
+		L_printf_append _L_cmd " %s" "$redir"
+		case "$mode" in
+		input)
+			L_assert 'you can only input string to stdin' test "$redir" = "<"
+			L_printf_append _L_cmd " <(printf %s %q)" "$val"
+			;;
+		stdout) L_printf_append _L_cmd "&1" ;;
+		stderr) L_printf_append _L_cmd "&2" ;;
+		pipe)
+			L_pipe fd "L_proc_${val}_XXXXXXXX"
+			# Pipe file descriptors are inverted depending on the direction.
+			if [[ "$redir" == "<" ]]; then
+				_L_toclose+=("${fd[0]}")
+				ret="${fd[1]}"
+			else
+				_L_toclose+=("${fd[1]}")
+				ret="${fd[0]}"
+			fi
+			# Pipe file descriptors have to be closed so that EOF is properly propagated.
+			L_printf_append _L_cmd "&%d %d>&- %d>&-" "${_L_toclose[${#_L_toclose[@]}-1]}" "${fd[0]}" "${fd[1]}"
+			if ((_L_dryrun)); then
+				_L_toclose+=("$ret")
+			fi
+			;;
+		file)
+			L_assert "file does not exists: $val" test -e "$val"
+			L_printf_append _L_cmd "%q" "$val"
+			;;
+		fd)
+			L_printf_append _L_cmd "&%d" "$val"
+			;;
+		esac
+	fi
+	printf -v "$3" "%s" "$ret"
+}
+
+# @description The gold old popen. Coproc replacement.
+# The options are in three groups:
+#  -I and -i for stdin,
+#  -O and -o fr stdout,
+#  -E and -e for stderr.
+# Uppercase letter option specifies the mode for the file descriptor.
+# There are following modes available that you can give to -I -O and -E:
+#  - input - -i specifies the string to forward to stdin. Only allowed for -I.
+#  - stdout - connect file descriptor to stdout. -o or -e value are ignored.
+#  - stderr - connect file descriptor to stderr. -o or -e value are ignored.
+#  - pipe - create a fifo and connect file descriptor to it. -i -o or -e option specifies part of the temporary filename.
+#  - file - connect file descriptor to file specified by -i -o or -e option
+#  - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
+# The first argument specifies an output variable that will be assigned as an array with the following indexes:
+#  - [0] - if -Ipipe will store the file descriptor connected to stdin of the program, otherwise empty.
+#  - [1] - if -Opipe will store the file descriptor connected to stdout of the program, otherwise empty.
+#  - [2] - if -Epipe will store the file descriptor connected to stderr of the program, otherwise empty.
+#  - [3] - stores the pid of the program.
+#  - [4] - stores the generated command.
+#  - [5] - stores exitcode.
+# You can use getters L_proc_get_* to extract the data from array elements.
+#
+# @option -I <str> stdin mode
+# @option -i <str> string for -Iinput, file for -Ifile, fd for -Ifd
+# @option -O <str> stdout mode
+# @option -o <str> file for -Ifile, fd for -Ifd
+# @option -E <str> stderr mode
+# @option -e <str> file for -Efile, fd for -Efd
+# @option -p <int> Open a pipe for additional file descriptors. (TODO)
+# @option -n Dryrun mode. Do not execute the generated command. Instead print it to stdout.
+# @arg $1 variable name to store the result to.
+# @arg $@ command to execute.
+# @example
+#   L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
+#   L_proc_printf proc "%s\n" "Hello world"
+#   L_proc_read proc line
+#   L_proc_wait -c -v exitcode proc
+#   echo "$line"
+#   echo "$exitcode"
+L_proc_popen() {
+	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTERR OPTARG _L_cmd _L_toclose=() _L_dryrun=0 _L_i _L_addpipe=()
+	# Parse arguments.
+	while getopts "i:I:o:O:e:E:p:n" _L_opt; do
+		case "$_L_opt" in
+		i) _L_in="$OPTARG" ;;
+		I) _L_inmode="$OPTARG" ;;
+		o) _L_out="$OPTARG" ;;
+		O) _L_outmode="$OPTARG" ;;
+		e) _L_err="$OPTARG" ;;
+		E) _L_errmode="$OPTARG" ;;
+		p) L_assert '-p option must be greater than 3' test "$OPTARG" -gt 3; _L_addpipe+=("$OPTARG") ;;
+		n) _L_dryrun=1 ;;
+		*) return 2 ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	_L_v="$1"
+	shift
+	printf -v _L_cmd "%q " "$@"
+	L_assert "destination variable is empty: $_L_v" test -n "$_L_v"
+	L_assert "no command to execute" test "$#" -ne 0
+	# Setup redirections.
+	_L_proc_init_setup_redir "<" "$_L_inmode" "_L_in"
+	_L_proc_init_setup_redir ">" "$_L_outmode" "_L_out"
+	_L_proc_init_setup_redir "2>" "$_L_errmode" "_L_err"
+	# Execute command.
+	eval "$_L_cmd &"
+	# Cleanup.
+	for _L_i in "${_L_toclose[@]}"; do
+		exec {_L_i}>&-
+	done
+	# Assign result.
+	L_array_set "$_L_v" "$_L_in" "$_L_out" "$_L_err" "$!" "$_L_cmd" ""
+}
+
+# @description Get file descriptor for stdin of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_stdin() { L_handle_v "$@"; }
+L_proc_get_stdin_v() { L_v=$1[0]; L_v=${!L_v}; }
+# @description Get file descriptor for stdout of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_stdout() { L_handle_v "$@"; }
+L_proc_get_stdout_v() { L_v=$1[1]; L_v=${!L_v}; }
+# @description Get file descriptor for stderr of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_stderr() { L_handle_v "$@"; }
+L_proc_get_stderr_v() { L_v=$1[2]; L_v=${!L_v}; }
+# @description Get PID of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_pid() { L_handle_v "$@"; }
+L_proc_get_pid_v() { L_v=$1[3]; L_v=${!L_v}; }
+# @description Get command of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_cmd() { L_handle_v "$@"; }
+L_proc_get_cmd_v() { L_v=$1[4]; L_v=${!L_v}; }
+# @description Get exitcode of L_proc.
+# @arg $1 L_proc variable
+L_proc_get_exitcode() { L_handle_v "$@"; }
+L_proc_get_exitcode_v() { L_v=$1[5]; L_v=${!L_v}; }
+
+# @description Write printf formatted string to coproc.
+# @arg $1 L_proc variable
+# @arg $@ any printf arguments
+L_proc_printf() {
+	local L_v
+	L_proc_get_stdin_v "$1"
+	printf "${@:2}" >&"$L_v"
+}
+
+# @description Exec read bultin with -u file descriptor of stdout of coproc.
+# @arg $1 L_proc variable
+# @arg $@ any builtin read options
+L_proc_read() {
+	local L_v
+	L_proc_get_stdout_v "$1"
+	read -u "$L_v" "${@:2}"
+}
+
+# @description Exec read bultin with -u file descriptor of stderr of coproc.
+# @arg $1 L_proc variable
+# @arg $@ any builtin read options
+# @see L_proc_read
+L_proc_read_stderr() {
+	local L_v
+	L_proc_get_stderr_v "$1"
+	read -u "$L_v" "${@:2}"
+}
+
+# @description Close stdin, stdout and stderr of L_proc
+# @arg $1 L_proc variable
+L_proc_close() {
+	L_proc_close_stdin "$@"
+	L_proc_close_stdout "$@"
+	L_proc_close_stderr "$@"
+}
+
+# @description Close stdin of L_proc.
+# Does nothing if already closed or not started with -Opipe.
+# @arg $1 L_proc variable
+L_proc_close_stdin() {
+	local L_v
+	L_proc_get_stdin_v "$1"
+	if [[ -n "$L_v" ]]; then exec {L_v}>&-; L_array_assign "$1" 0 ""; fi
+}
+
+# @description Close stdout of L_proc.
+# Does nothing if already closed or not started with -Opipe
+# @arg $1 L_proc variable
+L_proc_close_stdout() {
+	local L_v
+	L_proc_get_stdout_v "$1"
+	if [[ -n "$L_v" ]]; then exec {L_v}>&-; L_array_assign "$1" 1 ""; fi
+}
+
+# @description Close stderr of L_proc.
+# Does nothing if already closed or not started with -Epipe.
+# @arg $1 L_proc variable
+L_proc_close_stderr() {
+	local L_v
+	L_proc_get_stderr_v "$1"
+	if [[ -n "$L_v" ]]; then exec {L_v}>&-; L_array_assign "$1" 2 ""; fi
+}
+
+# @description Check if L_proc is finished.
+# @arg $1 L_proc variable
+# @exitcode 0 if L_proc is running, 1 otherwise
+L_proc_poll() {
+	local L_v
+	L_proc_get_exitcode_v "$1"
+	if [[ -n "$L_v" ]]; then
+		return 1
+	else
+		L_proc_get_pid_v "$1"
+		if kill -0 "$L_v" 2>/dev/null; then
+			L_proc_wait "$1"
+			return 0
+		else
+			L_proc_close "$1"
+			return 1
+		fi
+	fi
+}
+
+# @description Wait for L_proc to finish.
+# If L_proc has already finished execution, will only evaluate -v option.
+# @option -t <int> Timeout in seconds. Will try to use waitpid, tail --pid or busy loop with sleep.
+# @option -v <var> Assign exitcode to this variable.
+# @option -c Close L_proc file descriptors before waiting.
+# @arg $1 L_proc variable
+# @exitcode 0 if L_proc has finished, 1 if timeout expired
+L_proc_wait() {
+	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
+	while getopts "t:v:c" _L_opt; do
+		case "$_L_opt" in
+		t) _L_timeout="$OPTARG" ;;
+		v) _L_v="$OPTARG" ;;
+		c) _L_close=1 ;;
+		*) return 2 ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	if ((_L_close)); then
+		L_proc_close "$1"
+	fi
+	L_proc_get_exitcode_v "$1"
+	if [[ -z "$L_v" ]]; then
+		{
+			# evaluate timeout
+			if [[ -n "$_L_timeout" ]] && L_hash waitpid; then
+				L_exit_to _L_ret waitpid -t "$_L_timeout" "$L_v"
+				case "$_L_ret" in
+				0) _L_timeout="" ;; # pid finished
+				3) return 1 ;; # timeout expired
+				esac
+			fi
+			if [[ -n "$_L_timeout" ]] && L_hash timeout tail && _L_ret=$(tail --help) && [[ "$_L_ret" == *"--pid"* ]]; then
+				L_exit_to _L_ret timeout "$_L_timeout" tail --pid="$L_v" -f /dev/null
+				case "$_L_ret" in
+				0) _L_timeout="" ;; # pid finished
+				124) return 1 ;; # timeout expired
+				esac
+			fi
+			if [[ -n "$_L_timeout" ]]; then
+				_L_ret=$SECONDS
+				while kill -0 "$L_v" 2>/dev/null; do
+					if ((SECONDS >= _L_ret + _L_timeout)); then
+						return 1
+					fi
+					sleep 0.5
+				done
+			fi
+		}
+		L_proc_get_pid_v "$1"
+		wait "$L_v" && L_v=$? || L_v=$?
+		L_array_assign "$1" 5 "$L_v"
+	fi
+	if [[ -n "$_L_v" ]]; then
+		printf -v "$_L_v" "%s" "$L_v"
+	fi
+}
+
+# @description Communicate with L_proc.
+# @option -i <str> Send string to stdin.
+# @option -o <var> Assign stdout to this variable.
+# @option -e <var> Assign stderr to this variable.
+# @option -t <int> Timeout in seconds.
+# @option -k Kill L_proc after communication.
+# @option -v <var> Assign exitcode to this variable.
+# @arg $1 L_proc variable
+# @exitcode 0 if communication was successful
+L_proc_communicate() {
+	local _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
+	while getopts "i:o:e:t:kv" _L_opt; do
+		case "$_L_opt" in
+		i) _L_input="$OPTARG" ;;
+		o) _L_output="$OPTARG" ;;
+		e) _L_error="$OPTARG" ;;
+		t) _L_timeout="$OPTARG" ;;
+		k) _L_kill=1 ;;
+		v) _L_v="$OPTARG" ;;
+		*) return 2 ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	if [[ -n "$_L_input" ]]; then
+		L_proc_printf "$1" "%s" "$_L_input"
+	fi
+	L_proc_close_stdin "$1"
+	if [[ -n "$_L_stdout" ]]; then
+		L_proc_read "$1" -d '' ${_L_timeout:+-t"$_L_timeout"} "$_L_output" || return 128
+	fi
+	L_proc_close_stdout "$1"
+	if [[ -n "$_L_stderr" ]]; then
+		L_proc_read_stderr "$1" -d '' ${_L_timeout:+-t"$_L_timeout"} "$_L_error" || return 129
+	fi
+	L_proc_close_stderr "$1"
+	if ((_L_kill)); then
+		L_proc_kill "$1"
+	fi
+	L_proc_wait ${_L_v:+-v"$_L_v"} ${_L_timeout:+-t"$_L_timeout"} "$1" || return 130
+}
+
+# @description Send signal to L_proc.
+# @arg $1 L_proc variable
+L_proc_send_signal() {
+	local L_v
+	L_proc_get_pid_v "$1"
+	kill "$2" "$L_v"
+}
+
+# @description Terminate L_proc.
+# @arg $1 L_proc variable
+L_proc_terminate() {
+	L_proc_send_signal "$1" SIGTERM
+}
+
+# @description Kill L_proc.
+# @arg $1 L_proc variable
+L_proc_kill() {
+	L_proc_send_signal "$1" SIGKILL
+}
+
+# ]]]
 # private lib functions [[[
 # @section lib
 # @description internal functions and section.

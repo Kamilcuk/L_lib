@@ -1832,4 +1832,28 @@ _L_test_z_argparse6() {
 	}
 }
 
+_L_test_L_proc() {
+	local proc
+	{
+		L_proc_popen -Ipipe -Opipe coproc cat
+		L_proc_printf coproc "%s\n" "Hello, world!"
+		L_proc_close_stdin coproc
+		L_proc_read coproc line
+		L_proc_wait -c coproc
+		L_unittest_vareq line "Hello, world!"
+	}
+	{
+		L_proc_popen -Ipipe -Opipe proc sed -u 's/w/W/g'
+		L_proc_printf proc "%s\n" "Hello world"
+		L_proc_read proc line
+		L_proc_wait -c -v exitcode proc
+		L_unittest_vareq line "Hello World"
+		L_unittest_vareq exitcode 0
+	}
+	{
+		local leftovers=(/tmp/L_*)
+		L_unittest_arreq leftovers "/tmp/L_*"
+	}
+}
+
 . "$(dirname "$0")"/../bin/L_lib.sh test "$@"
