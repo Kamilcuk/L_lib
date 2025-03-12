@@ -57,7 +57,7 @@ term-%:
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
-		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
+		--mount type=bind,source=$(CURDIR),target=$(CURDIR) -w $(CURDIR) \
 		bash:$* -l $(ARGS)
 termnoload-%:
 	@touch .bash_history
