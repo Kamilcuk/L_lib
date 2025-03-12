@@ -1785,10 +1785,10 @@ _L_test_z_argparse5() {
 		L_unittest_arreq sub bb --baz X
 		L_unittest_eq "$baz" X
 		#
-		L_unittest_cmd -r "plain${L_TAB}aa${L_TAB}a help" \
+		L_unittest_cmd -r "plain${L_GS}aa${L_GS}a help" \
 			"${cmd[@]}" --L_argparse_get_completion --foo a
 		L_unittest_cmd -r \
-			"plain${L_TAB}X.*plain${L_TAB}Y.*plain${L_TAB}Z" \
+			"plain${L_GS}X.*plain${L_GS}Y.*plain${L_GS}Z" \
 			"${cmd[@]}" --L_argparse_get_completion bb --baz ''
 	}
 	{
@@ -1802,18 +1802,32 @@ _L_test_z_argparse5() {
 }
 
 _L_test_z_argparse6() {
+	local cmd
 	# "'
 	{
 		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
 		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
-		cmd=(L_argparse -- --three default= -- class=func prefix=CMD_ ----)
+		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=yes ----)
 		local one two three
 		L_unittest_cmd -e 100 -r "1 one=one three=" "${cmd[@]}" 1 --one one
 		L_unittest_cmd -r "2 two=AA three=" "${cmd[@]}" 2 --two AA
 		L_unittest_cmd -r "2 two=AB three=" "${cmd[@]}" 2 --two AB
 		L_unittest_cmd -r "2 two=CC three=a" "${cmd[@]}" --three a 2 --two CC
 		L_unittest_cmd -r "invalid" ! "${cmd[@]}" 2 --two DD
-		L_unittest_cmd -r "plain${L_TAB}AA.*plain${L_TAB}AB" \
+		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
+			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
+	}
+	{
+		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
+		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
+		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=auto ----)
+		local one two three
+		L_unittest_cmd -e 100 -r "1 one=one three=" "${cmd[@]}" 1 --one one
+		L_unittest_cmd -r "2 two=AA three=" "${cmd[@]}" 2 --two AA
+		L_unittest_cmd -r "2 two=AB three=" "${cmd[@]}" 2 --two AB
+		L_unittest_cmd -r "2 two=CC three=a" "${cmd[@]}" --three a 2 --two CC
+		L_unittest_cmd -r "invalid" ! "${cmd[@]}" 2 --two DD
+		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
 	}
 }

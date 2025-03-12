@@ -4162,13 +4162,7 @@ _L_argparse_split_class_function() {
 			case "$1" in
 			--|----|"}") break ;;
 			prefix=*) _L_opt_prefix[_L_opti]=${1#*=} ;;
-			help_from=*)
-				_L_opt_help_from[_L_opti]=${1#*=}
-				case "${_L_opt_help_from[_L_opti]}" in
-				helpvar|subcall) ;;
-				*) _L_argparse_split_fatal "invalid ${_L_opt_help_from[_L_opti]}" || return 2 ;;
-				esac
-				;;
+			subcall=*) _L_opt_subcall[_L_opti]=${1#*=} ;;
 			required=*) _L_opt_required[_L_opti]=${1#*=} ;;
 			metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
 			dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
@@ -4217,29 +4211,26 @@ _L_argparse_sub_function_choices() {
 	L_list_functions_with_prefix_removed -v "$1" "${_L_opt_prefix[_L_opti]}${2:-}"
 }
 
+_L_argparse_sub_function_is_ok_to_call() {
+	local _L_func="$1" _L_subcall="${_L_opt_subcall[_L_opti]:-}" _L_func_declare
+	L_is_true "$_L_subcall" || {
+		[[ "$_L_subcall" == "auto" ]] &&
+		_L_func_declare="$(declare -f "$_L_func")" &&
+		[[ "$_L_func_declare" == "$_L_func"*"()"*"{"*[[:space:]]L_argparse[[:space:]]*[[:space:]]----[[:space:]]*"\"\$@\""* ]]
+	}
+}
+
 # @arg $1 <var> variable to assign the subparser description
 # @arg $2 <func> the function
 _L_argparse_sub_function_get_function_description() {
-	local _L_func=$2 _L_func_declare _L_subparser_help
-	case "${_L_opt_help_from[_L_opti]:-}" in
-	''|helpvar)
-		local i="${_L_func}_help"
-		printf -v "$1" "%s" "${!i:-}"
-		;;
-	subcall)
-		if ! _L_func_declare="$(declare -f "$_L_func")"; then
-			_L_argparse_split_fatal "no such subfunction: $_L_func" || return 2
-		fi
-		if [[ "$_L_func_declare" != "$_L_func"*"()"*"{"*L_argparse*----*"\"\$@\""* ]]; then # }
-			_L_argparse_split_fatal "Function $_L_func does not call L_argparse. Add a call to L_argparse into the function to use it as a subcall function subparser. declare -f $_L_func=%s" "$_L_func_declare" || return 2
-		fi
+	local _L_func=$2 _L_subparser_help _L_helpvar="${_L_func}_help"
+	printf -v "$1" "%s" "${!i:-}"
+	if _L_argparse_sub_function_is_ok_to_call "$_L_func"; then
 		if _L_subparser_help=$("$_L_func" --L_argparse_parser_help); then :; else
 			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?" || return 2
 		fi
 		printf -v "$1" "%s" "$_L_subparser_help"
-		;;
-	*) _L_argparse_split_fatal "invalid help_from=${_L_opt_help_from[_L_opti]}" || return 2 ;;
-	esac
+	fi
 }
 
 # @arg $1 <var> array to append with parser and description separated by a newline
@@ -4279,13 +4270,8 @@ _L_argparse_sub_function_complete() {
 			_L_argparse_sub_function_get_description _L_desc "$i" || return $?
 			L_argparse_compgen -W "${_L_sub_args[0]:-}$i" -D "$_L_desc" || return $?
 		done
-	else
-		# call subparser to run it's own completion
-		case "${_L_opt_help_from[_L_opti]:-}" in
-		subcall)
-			"$_L_func" --L_argparse_get_completion "${_L_sub_args[@]:1}"
-			;;
-		esac
+	elif _L_argparse_sub_function_is_ok_to_call "$_L_func"; then
+		"$_L_func" --L_argparse_get_completion "${_L_sub_args[@]:1}"
 	fi
 }
 
@@ -5622,7 +5608,7 @@ L_argparse() {
 		_L_opt_type \
 		_L_opt_validate \
 		_L_opt_prefix \
-		_L_opt_help_from \
+		_L_opt_subcall \
 		_L_opt__class \
 		_L_opt__desc \
 		_L_opt__index \
