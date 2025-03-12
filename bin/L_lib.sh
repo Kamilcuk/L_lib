@@ -2761,22 +2761,24 @@ L_sort_cmd() {
 	fi
 }
 
-# @description sort an array
+# @description Sort a bash array.
+# Even in most optimized code that I could write for bash sorting,
+# still executing sort command is faster.
+# The difference becomes significant for large arrays.
+# Sorting 100 element array with bash is 0.049s and with sort is 0.022s.
+# @option -z Use zero separated stream with sort -z
+# @option -n numeric sort
+# @option -r reverse sort
+# @arg $1 <var> array nameref
 # @see L_sort_bash
 # @see L_sort_cmd
 L_sort() {
-	# Even in most optimized code that I could write for bash sorting,
-	# still executing sort command is faster.
-	# The difference becomes significant for large arrays.
-	# Sorting 100 element array with bash is 0.049s and with sort is 0.022s.
 	if L_hash sort; then
 		L_sort_cmd "$@"
 	else
 		L_sort_bash "$@"
 	fi
 }
-
-# shellcheck disable=SC2086
 
 # ]]]
 # trap [[[
