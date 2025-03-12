@@ -167,6 +167,10 @@ _L_test_a_handle_v() {
 
 _L_test_str() {
 	local tmp IFS="!@#"
+	if ((!L_HAS_BASH4)); then
+		# Bash3.2 is not able to split "${@:2}" correctly when IFS does not contain space.
+		local IFS=" "
+	fi
 	L_rstrip -v tmp " a b  "
 	L_unittest_eq "$tmp" " a b"
 	L_rstrip -v tmp " a b"
@@ -225,11 +229,6 @@ _L_test_exit_to_1null() {
 }
 
 _L_test_other() {
-	{
-		local arr=(1 2 3)
-		L_array_pop arr
-		L_unittest_arreq arr 1 2
-	}
 	{
 		local name=John
 		local age=21
@@ -296,11 +295,6 @@ _L_test_other() {
 		L_unittest_checkexit 0 L_args_contain 1 1
 		L_unittest_checkexit 1 L_args_contain 0 1
 		L_unittest_checkexit 1 L_args_contain 0
-	}
-	{
-		local arr=(1 2 3 4 5)
-		L_array_filter_eval arr '[[ $1 -ge 3 ]]'
-		L_unittest_arreq arr 3 4 5
 	}
 	{
 		local tmp
@@ -386,6 +380,83 @@ _L_test_other() {
 	}
 }
 
+_L_test_array() {
+	local arr=() len
+	{
+		arr=()
+		L_array_pop_front arr
+		L_array_reverse arr
+		L_array_len -v len arr
+		L_unittest_eq "$len" 0
+		L_unittest_arreq arr
+		L_array_prepend arr
+		L_unittest_arreq arr
+		L_array_append arr
+		L_unittest_arreq arr
+		L_array_insert arr 0
+		L_unittest_arreq arr
+		L_array_insert arr 0 1 2 3
+		L_unittest_arreq arr 1 2 3
+		L_array_clear arr
+		L_unittest_arreq arr
+		L_array_assign arr 1 2 3
+		L_unittest_arreq arr 1 2 3
+		L_array_set arr 1 5
+		L_unittest_arreq arr 1 5 3
+		L_array_clear arr
+		L_array_set arr 0 5
+		L_unittest_arreq arr 5
+	}
+	{
+		arr=(1 2 3)
+		L_array_pop_back arr
+		L_unittest_arreq arr 1 2
+		arr=(1 2 3)
+		L_array_pop_front arr
+		L_unittest_arreq arr 2 3
+		arr=(1 2 3)
+		L_array_reverse arr
+		L_unittest_arreq arr 3 2 1
+		L_array_assign arr 1 2 3
+		L_unittest_arreq arr 1 2 3
+		L_array_prepend arr
+		L_unittest_arreq arr 1 2 3
+	}
+	{
+		local arr=(1 2 3)
+		L_array_pop_back arr
+		L_unittest_arreq arr 1 2
+	}
+	{
+		local arr=(1 2 3 4 5)
+		L_array_filter_eval arr '[[ $1 -ge 3 ]]'
+		L_unittest_arreq arr 3 4 5
+	}
+	{
+		arr=(1 2 3)
+		L_unittest_checkexit 0 L_array_is_dense arr
+		arr[100]=100
+		L_unittest_checkexit 1 L_array_is_dense arr
+	}
+	{
+		arr=(1 2 3)
+		local a b c
+		L_array_extract arr a b c
+		L_unittest_eq "$a" "1"
+		L_unittest_eq "$b" "2"
+		L_unittest_eq "$c" "3"
+	}
+}
+
+_L_test_array_read() {
+	local arr=(4 5 6)
+	L_array_read arr <<<$'1\n2\n3'
+	L_unittest_arreq arr 1 2 3
+	local arr=(4 5 6)
+	L_array_read -d '' arr < <(printf "1\x002\x003\x00")
+	L_unittest_arreq arr 1 2 3
+}
+
 _L_test_array_reverse() {
 	local array=(1 2 3 4 5)
 	L_unittest_cmd -c L_array_reverse array
@@ -393,7 +464,9 @@ _L_test_array_reverse() {
 	local array=(1)
 	L_unittest_cmd -c L_array_reverse array
 	L_unittest_arreq array 1
-	local array=({1..200})
+	# local array=({1..200}) does not work in bash4.0
+	local array=()
+	array=({1..200})
 	L_unittest_cmd -c L_array_reverse array
 	L_unittest_arreq array {200..1}
 	local array=()
@@ -670,6 +743,16 @@ _L_test_version() {
 	L_unittest_checkexit 0 L_version_cmp "1.4.6" "~=" "1.4.5"
 	L_unittest_checkexit 1 L_version_cmp "1.5.0" "~=" "1.4.5"
 	L_unittest_checkexit 1 L_version_cmp "1.3.0" "~=" "1.4.5"
+	#
+	# L_unittest_checkexit 1 L_version_cmp "1.1.post1" "==" "1.1"
+	# L_unittest_checkexit 0 L_version_cmp "1.1.post1" "==" "1.1.*"
+	# L_unittest_checkexit 0 L_version_cmp "1.1.post1" "==" "1.1.post1"
+	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1"
+	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1.0"
+	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1.dev1"
+	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1a1"
+	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1.post1"
+	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1.*"
 }
 
 _L_test_table() {
@@ -898,31 +981,6 @@ _L_test_argskeywords() {
 		L_unittest_cmd -c ! L_argskeywords a b @@map @args --
 	}
 }
-
-_L_test_version() {
-	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
-	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
-	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
-	L_unittest_checkexit 0 L_version_cmp "0" '<' "1"
-	L_unittest_checkexit 0 L_version_cmp "0" '<=' "1"
-	L_unittest_checkexit 0 L_version_cmp "0.1" '<' "0.2"
-	L_unittest_checkexit 0 L_version_cmp "2.3.1" '<' "10.1.2"
-	L_unittest_checkexit 0 L_version_cmp "1.3.a4" '<' "10.1.2"
-	L_unittest_checkexit 0 L_version_cmp "0.0.1" '<' "0.0.2"
-	L_unittest_checkexit 0 L_version_cmp "0.1.0" -gt "0.0.2"
-	L_unittest_checkexit 0 L_version_cmp "$BASH_VERSION" -gt "0.1.0"
-	L_unittest_checkexit 0 L_version_cmp "1.0.3" "<" "1.0.7"
-	L_unittest_checkexit 1 L_version_cmp "1.0.3" ">" "1.0.7"
-	L_unittest_checkexit 0 L_version_cmp "2.0.1" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "2.1" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "2.0.0" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "1.4.5" "~=" "1.4.5"
-	L_unittest_checkexit 0 L_version_cmp "1.4.6" "~=" "1.4.5"
-	L_unittest_checkexit 1 L_version_cmp "1.5.0" "~=" "1.4.5"
-	L_unittest_checkexit 1 L_version_cmp "1.3.0" "~=" "1.4.5"
-}
-
-
 
 _L_test_log() {
 	{
@@ -1258,6 +1316,8 @@ _L_test_map() {
 		fi
 	}
 }
+
+if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 
 _L_test_asa() {
 	declare -A map=()
@@ -1832,19 +1892,22 @@ _L_test_z_argparse6() {
 	}
 }
 
+fi  # L_HAS_ASSOCIATIVE_ARRAY
+
 _L_test_L_proc() {
 	local proc
 	{
-		L_proc_popen -Ipipe -Opipe coproc cat
-		L_proc_printf coproc "%s\n" "Hello, world!"
-		L_proc_close_stdin coproc
-		L_proc_read coproc line
-		L_proc_wait -c coproc
+		L_proc_popen -Ipipe -Opipe proc cat
+		L_proc_printf proc "%s\n" "Hello, world!"
+		L_proc_close_stdin proc
+		L_proc_read proc line
+		L_proc_wait -c proc
 		L_unittest_vareq line "Hello, world!"
 	}
 	{
-		L_proc_popen -Ipipe -Opipe proc sed -u 's/w/W/g'
+		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
 		L_proc_printf proc "%s\n" "Hello world"
+		L_proc_close_stdin proc
 		L_proc_read proc line
 		L_proc_wait -c -v exitcode proc
 		L_unittest_vareq line "Hello World"
