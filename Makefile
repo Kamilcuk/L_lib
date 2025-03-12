@@ -30,11 +30,11 @@ test: \
 		#
 	@echo 'make test finished with SUCCESS'
 test_local:
-	./bin/L_lib.sh test $(ARGS)
+	./tests/test.sh $(ARGS)
 test_bash%:
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		bash:$* ./bin/L_lib.sh test $(ARGS)
+		bash:$* ./tests/test.sh $(ARGS)
 # docker build --build-arg VERSION=$* --target test .
 
 shellcheck:
