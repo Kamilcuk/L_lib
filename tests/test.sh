@@ -376,7 +376,12 @@ _L_test_other() {
 	}
 	{
 		L_unittest_cmd -o 'echo echo' L_quote_setx 'echo' 'echo'
-		L_unittest_cmd -o $'one \'a\nb\' two' L_quote_setx 'one' $'a\nb' 'two'
+		if ((L_HAS_BASH5_3)); then
+			# So happy for this change.
+			L_unittest_cmd -o "one $'a\nb' two" L_quote_setx 'one' $'a\nb' 'two'
+		else
+			L_unittest_cmd -o $'one \'a\nb\' two' L_quote_setx 'one' $'a\nb' 'two'
+		fi
 	}
 }
 

@@ -27,6 +27,8 @@ test: \
 		test_bash4.3 \
 		test_bash4.2 \
 		test_bash4.1 \
+		test_bash5.1 \
+		test_bash5.0 \
 		#
 	@echo 'make test finished with SUCCESS'
 test_local:
@@ -70,13 +72,17 @@ run-%:
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
 		bash:$* -lc 'L_lib.sh $(ARGS)' bash
 
+5.3test: test_bash5.3-alpha
 5.2test: test_bash5.2
+5.1test: test_bash5.1
+5.0test: test_bash5.0
 4.4test: test_bash4.4
 4.3test: test_bash4.3
 4.2test: test_bash4.2
 4.1test: test_bash4.1
 4.0test: test_bash4.0
 3.2test: test_bash3.2
+3.1test: test_bash3.1
 5.2term: term-5.2
 4.4term: term-4.4
 4.3term: term-4.3
@@ -84,6 +90,7 @@ run-%:
 4.1term: term-4.1
 4.0term: term-4.0
 3.2term: term-3.2
+3.1term: term-3.1
 5.2termnoload: termnoload-5.2
 4.4termnoload: termnoload-4.4
 4.3termnoload: termnoload-4.3
@@ -92,6 +99,8 @@ run-%:
 4.0termnoload: termnoload-4.0
 3.2termnoload: termnoload-3.2
 5.2run: run-5.2
+5.1run: run-5.1
+5.0run: run-5.0
 4.4run: run-4.4
 4.3run: run-4.3
 4.2run: run-4.2

@@ -321,6 +321,7 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # shellcheck disable=SC2004
 # note: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
 L_BASH_VERSION=$((BASH_VERSINFO[0] << 16 | BASH_VERSINFO[1] << 8 | BASH_VERSINFO[2]))
+L_HAS_BASH5_3=$((    L_BASH_VERSION >= 0x050300))
 L_HAS_BASH5_2=$((    L_BASH_VERSION >= 0x050200))
 L_HAS_BASH5_1=$((    L_BASH_VERSION >= 0x050100))
 L_HAS_BASH5=$((      L_BASH_VERSION >= 0x050000))
@@ -1411,7 +1412,7 @@ L_float_cmp() {
 #   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
 L_percent_format() {
 	local _L_fmt=$1 _L_args=()
-	while [[ "$_L_fmt" =~ ^(.*[^%](%%)*)?%\(([^\)]+)\)(.*)$ ]]; do
+	while L_regex_match "$_L_fmt" '^(.*[^%](%%)*)?%\(([^\)]+)\)(.*)$'; do
 		# declare -p BASH_REMATCH >&2
 		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]}"
 		if [[ -z "${BASH_REMATCH[3]+var}" ]]; then
@@ -1433,7 +1434,7 @@ L_percent_format() {
 L_fstring() {
 	local _L_fmt=$1 _L_args=() _L_tmp
 	_L_fmt="${_L_fmt//'{{'/$'\x01'}"
-	while [[ "$_L_fmt" =~ ^(.*[^\{])?\{([^:\}]+)(:([^\}]*))?\}(.*)$ ]]; do
+	while L_regex_match "$_L_fmt" '^(.*[^\{])?\{([^:\}]+)(:([^\}]*))?\}(.*)$'; do
 		# declare -p BASH_REMATCH
 		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]:-s}${BASH_REMATCH[5]}"
 		eval "_L_tmp=${BASH_REMATCH[2]}"
@@ -3079,8 +3080,8 @@ _L_unittest_internal() {
 # @option -E exit on error
 L_unittest_main() {
 	set -euo pipefail
-	local OPTIND OPTARG _L_opt _L_tests=()
-	while getopts hr:EP: _L_opt; do
+	local OPTIND OPTARG OPTERR _L_opt _L_tests=()
+	while getopts "hr:EP:" _L_opt; do
 		case $_L_opt in
 		h)
 			cat <<EOF
@@ -5344,7 +5345,8 @@ _L_argparse_parse_args_short_option() {
 				_L_argparse_optspec_gen_completion "$_L_value" "$_L_comp_prefix" || return $?
 			else
 				# nargs!=0 and user given more arguments. Complete the last value, if any.
-				_L_argparse_optspec_gen_completion "${_L_values[@]:+${_L_values[${#_L_values[@]}-1]}}" || return $?
+				# "" on the end - fix for Bash5.1
+				_L_argparse_optspec_gen_completion "${_L_values[@]:+"${_L_values[${#_L_values[@]}-1]}"}""" || return $?
 			fi
 		fi
 		_L_argparse_optspec_execute_action ${_L_values[@]+"${_L_values[@]}"} || return 1
