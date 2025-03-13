@@ -6322,7 +6322,7 @@ Usage example of 'cmd' command:
 
 Usage example of 'bash-completion' command:
 
-  eval "\$(script.sh cmd --bash-completion)"
+  eval "\$(script.sh cmd 'CMD_' --bash-completion)"
 
 $_L_lib_name Copyright (C) 2024 Kamil Cukrowski
 $L_FREE_SOFTWARE_NOTICE
@@ -6381,7 +6381,7 @@ _L_lib_main_cmd() {
 }
 
 _L_lib_main() {
-	local _L_mode="" _L_sourced=0 OPTARG OPTING _L_opt _L_init=1
+	local _L_mode="" _L_sourced=0 OPTARG OPTIND OPTERR _L_opt _L_init=1
 	while getopts nsLh-: _L_opt; do
 		case $_L_opt in
 		n) _L_init=0 ;;
