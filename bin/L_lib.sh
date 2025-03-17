@@ -4138,9 +4138,9 @@ _L_argparse_split_class_subparser() {
 		while (($#)); do
 			case "$1" in
 			--|----|"{") break ;;
-            action=*) _L_opt_action[_L_opti]=${1#*=} ;;
-            metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
-            dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
+			action=*) _L_opt_action[_L_opti]=${1#*=} ;;
+			metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
+			dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
 			*) _L_argparse_split_fatal "unsupported subparser argument: $1" ;;
 			esac
 			shift
@@ -4377,20 +4377,20 @@ _L_argparse_split_call_argument() {
 		while (($#)); do
 			case "$1" in
 			--|---*|"}") break ;;
-            action=*) _L_opt_action[_L_opti]=${1#*=} ;;
-            nargs=*) _L_opt_nargs[_L_opti]=${1#*=} ;;
-            const=*) _L_opt_const[_L_opti]=${1#*=} ;;
-            default=*) _L_opt_default[_L_opti]=${1#*=} ;;
-            type=*) _L_opt_type[_L_opti]=${1#*=} ;;
-            choices=*) _L_opt_choices[_L_opti]=${1#*=} ;;
-            required=*) _L_opt_required[_L_opti]=${1#*=} ;;
-            help=*) _L_opt_help[_L_opti]=${1#*=} ;;
-            metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
-            dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
-            deprecated=*) _L_opt_deprecated[_L_opti]=${1#*=} ;;
-            validate=*) _L_opt_validate[_L_opti]=${1#*=} ;;
-            complete=*) _L_opt_complete[_L_opti]=${1#*=} ;;
-            show_default=*) _L_opt_show_default[_L_opti]=${1#*=} ;;
+			action=*) _L_opt_action[_L_opti]=${1#*=} ;;
+			nargs=*) _L_opt_nargs[_L_opti]=${1#*=} ;;
+			const=*) _L_opt_const[_L_opti]=${1#*=} ;;
+			default=*) _L_opt_default[_L_opti]=${1#*=} ;;
+			type=*) _L_opt_type[_L_opti]=${1#*=} ;;
+			choices=*) _L_opt_choices[_L_opti]=${1#*=} ;;
+			required=*) _L_opt_required[_L_opti]=${1#*=} ;;
+			help=*) _L_opt_help[_L_opti]=${1#*=} ;;
+			metavar=*) _L_opt_metavar[_L_opti]=${1#*=} ;;
+			dest=*) _L_opt_dest[_L_opti]=${1#*=} ;;
+			deprecated=*) _L_opt_deprecated[_L_opti]=${1#*=} ;;
+			validate=*) _L_opt_validate[_L_opti]=${1#*=} ;;
+			complete=*) _L_opt_complete[_L_opti]=${1#*=} ;;
+			show_default=*) _L_opt_show_default[_L_opti]=${1#*=} ;;
 			*=*) _L_argparse_split_fatal "unsupported k=v argument: $1" ;;
 			[-+][-+]?*)
 				_L_opt__options[_L_opti]+=${_L_opt__options[_L_opti]:+ }$1
@@ -4818,7 +4818,7 @@ _L_argparse_complete_bash_function() {
 		_comp_initialize -s -- "$@" || return
 	elif hash _init_completion 2>/dev/null; then
 		# https://github.com/scop/bash-completion/blob/1.99/bash_completion#L649
-    	_init_completion -s || return
+		_init_completion -s || return
 	else
 		words=("${COMP_WORDS[@]}")
 		cword=${COMP_CWORD}
@@ -5487,24 +5487,19 @@ _L_argparse_split_parse_args() {
 		while (($#)); do
 			case "$1" in
 			--|----) break ;;
-            add_help=*) _L_parser_add_help[_L_parseri]=${1#*=} ;;
-            Adest=*) _L_parser_Adest[_L_parseri]=${1#*=} ;;
-            aliases=*) _L_parser_aliases[_L_parseri]=${1#*=} ;;
-            allow_abbrev=*) _L_parser_allow_abbrev[_L_parseri]=${1#*=} ;;
-            description=*) _L_parser_description[_L_parseri]=${1#*=} ;;
-            epilog=*) _L_parser_epilog[_L_parseri]=${1#*=} ;;
-            prog=*) _L_parser_prog[_L_parseri]=${1#*=} ;;
-            show_default=*) _L_parser_show_default[_L_parseri]=${1#*=} ;;
-            usage=*) _L_parser_usage[_L_parseri]=${1#*=} ;;
-            name=*) _L_parser_name[_L_parseri]=${1#*=} ;;
-            help=*)
-				if ((_L_parseri == 0)); then
-					_L_argparse_split_fatal "help= is supported only in subparsers"
-				fi
-            	_L_parser_help[_L_parseri]=${1#*=}
-            	;;
-            *=*) _L_argparse_split_fatal "unknown parser k=v argument: $1" ;;
-            *)
+			add_help=*) _L_parser_add_help[_L_parseri]=${1#*=} ;;
+			Adest=*) _L_parser_Adest[_L_parseri]=${1#*=} ;;
+			aliases=*) _L_parser_aliases[_L_parseri]=${1#*=} ;;
+			allow_abbrev=*) _L_parser_allow_abbrev[_L_parseri]=${1#*=} ;;
+			description=*) _L_parser_description[_L_parseri]=${1#*=} ;;
+			epilog=*) _L_parser_epilog[_L_parseri]=${1#*=} ;;
+			prog=*) _L_parser_prog[_L_parseri]=${1#*=} ;;
+			show_default=*) _L_parser_show_default[_L_parseri]=${1#*=} ;;
+			usage=*) _L_parser_usage[_L_parseri]=${1#*=} ;;
+			name=*) _L_parser_name[_L_parseri]=${1#*=} ;;
+			help=*) _L_parser_help[_L_parseri]=${1#*=} ;;
+			*=*) _L_argparse_split_fatal "unknown parser k=v argument: $1" ;;
+			*)
 				if ((_L_parseri == 0)); then
 					_L_argparse_split_fatal "unknown parser positional argument: $1"
 				else
