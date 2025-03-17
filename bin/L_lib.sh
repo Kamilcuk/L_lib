@@ -4247,12 +4247,29 @@ _L_argparse_sub_function_choices() {
 	L_list_functions_with_prefix_removed -v "$1" "${_L_opt_prefix[_L_opti]}${2:-}"
 }
 
+# @description A subfunction is ok to call when:
+# - subcall=1 or
+# - subcall=auto and the function matches the regex below.
+# The regex matches when:
+# - there is call to L_argparse in the function
+# - the call to L_argparse has an argument of help= or description=
+# - There is ---- "$@" ending of L_argparse call in the function.
+# @arg $1 <str> the function
 _L_argparse_sub_function_is_ok_to_call() {
 	local _L_func="$1" _L_subcall="${_L_opt_subcall[_L_opti]:-}" _L_func_declare
+	local -; set -x
 	L_is_true "$_L_subcall" || {
-		[[ "$_L_subcall" == "auto" ]] &&
+		[[ "$_L_subcall" == "detect" ]] &&
 		_L_func_declare="$(declare -f "$_L_func")" &&
-		[[ "$_L_func_declare" == "$_L_func"*"()"*"{"*[[:space:]]L_argparse[[:space:]]*[[:space:]]----[[:space:]]*"\"\$@\""* ]]
+		L_regex_match "$_L_func_declare" "\
+$_L_func\
+[[:space:]]*\\(\\)[[:space:]]*\\{.*[[:space:]]\
+L_argparse\
+([[:space:]]|[[:space:]].*[[:space:]])\
+(help|description)=[^[:space:]].*\
+([[:space:]]|[[:space:]].*[[:space:]])\
+----[[:space:]]+\"\\\$@\"\
+"
 	}
 }
 
@@ -4275,7 +4292,7 @@ _L_argparse_sub_function_get_help() {
 	local L_v i _L_desc
 	L_list_functions_with_prefix_removed_v "${_L_opt_prefix[_L_opti]}"
 	for i in "${L_v[@]}"; do
-		_L_argparse_sub_function_get_function_description _L_desc "$i"
+		_L_argparse_sub_function_get_function_description _L_desc "${_L_opt_prefix[_L_opti]}$i"
 		L_array_append "$1" "$i"$'\n'"$_L_desc"
 	done
 }
@@ -5142,7 +5159,7 @@ complete --no-files --command %(prog_name)s --arguments "(%(complete_func)s)";
 _L_argparse_parse_internal_args() {
 	case "${1:-}" in
 	--L_argparse_print) _L_argparse_print; exit ;;
-	--L_argparse_parser_help) printf "%s\n" "${_L_parser_help[_L_parseri]:-}"; exit ;;
+	--L_argparse_parser_help) printf "%s\n" "${_L_parser_help[_L_parseri]:-${_L_parser_description[_L_parseri]:-}}"; exit ;;
 	--L_argparse_print_usage) L_argparse_print_usage; exit; ;;
 	--L_argparse_print_help) L_argparse_print_help; exit; ;;
 	--L_argparse_get_completion) _L_in_complete=1 ;;
