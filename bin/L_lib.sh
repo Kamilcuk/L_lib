@@ -4154,6 +4154,7 @@ _L_argparse_split_class_subparser() {
 		fi
 		local parent=$_L_parseri
 		while [[ "${1:-}" == "{" ]]; do
+			_L_parser__parent[_L_parseri+1]=$parent
 			_L_argparse_split_parse_args "${@:2}"
 			shift $(($#-_L_g_args_left))
 			if [[ "${1:-}" != "}" ]]; then
@@ -4163,7 +4164,6 @@ _L_argparse_split_class_subparser() {
 			if [[ -z "${_L_parser_name[_L_parseri]:-}" ]]; then
 				_L_argparse_split_fatal 'Subparser does not have name= property set'
 			fi
-			_L_parser__parent[_L_parseri]=$parent
 		done
 		_L_parseri=$parent
 		_L_g_args_left=$#
@@ -4185,6 +4185,10 @@ _L_argparse_split_common_subparser_function() {
 	*) _L_argparse_split_fatal "internal error class=${_L_opt__class[_L_opti]}" ;;
 	esac
 	_L_opt_action[_L_opti]="_subparser"
+	if [[ -n "${_L_parser__subparser[_L_parseri]:-}" ]]; then
+		_L_argparse_split_fatal "parser may not have multiple subparsers"
+	fi
+	_L_parser__subparser[_L_parseri]="${_L_opt__class[_L_opti]}"
 	_L_argparse_split_argument_common
 }
 
@@ -4257,7 +4261,6 @@ _L_argparse_sub_function_choices() {
 # @arg $1 <str> the function
 _L_argparse_sub_function_is_ok_to_call() {
 	local _L_func="$1" _L_subcall="${_L_opt_subcall[_L_opti]:-}" _L_func_declare
-	local -; set -x
 	L_is_true "$_L_subcall" || {
 		[[ "$_L_subcall" == "detect" ]] &&
 		_L_func_declare="$(declare -f "$_L_func")" &&
@@ -4266,22 +4269,26 @@ $_L_func\
 [[:space:]]*\\(\\)[[:space:]]*\\{.*[[:space:]]\
 L_argparse\
 ([[:space:]]|[[:space:]].*[[:space:]])\
-(help|description)=[^[:space:]].*\
-([[:space:]]|[[:space:]].*[[:space:]])\
 ----[[:space:]]+\"\\\$@\"\
 "
 	}
 }
 
+_L_argparse_sub_function_call_function() {
+	_L_parser_name[_L_parseri+1]="$1"
+	"${_L_opt_prefix[_L_opti]}$1" "${@:2}"
+}
+
 # @arg $1 <var> variable to assign the subparser description
 # @arg $2 <func> the function
 _L_argparse_sub_function_get_function_description() {
-	local _L_func=$2 _L_subparser_help _L_helpvar="${2}_help"
-	if _L_argparse_sub_function_is_ok_to_call "$_L_func"; then
-		if _L_subparser_help=$("$_L_func" --L_argparse_parser_help); then :; else
+	local _L_func="${_L_opt_prefix[_L_opti]}$2" _L_subparser_help _L_helpvar="${_L_opt_prefix[_L_opti]}${2}_help"
+	if _L_argparse_sub_function_is_ok_to_call "$2"; then
+		if _L_subparser_help=$(_L_argparse_sub_function_call_function "$2" --L_argparse_parser_help); then
+			printf -v "$1" "%s" "$_L_subparser_help"
+		else
 			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?"
 		fi
-		printf -v "$1" "%s" "$_L_subparser_help"
 	else
 		printf -v "$1" "%s" "${!_L_helpvar:-}"
 	fi
@@ -4292,7 +4299,7 @@ _L_argparse_sub_function_get_help() {
 	local L_v i _L_desc
 	L_list_functions_with_prefix_removed_v "${_L_opt_prefix[_L_opti]}"
 	for i in "${L_v[@]}"; do
-		_L_argparse_sub_function_get_function_description _L_desc "${_L_opt_prefix[_L_opti]}$i"
+		_L_argparse_sub_function_get_function_description _L_desc "$i"
 		L_array_append "$1" "$i"$'\n'"$_L_desc"
 	done
 }
@@ -4321,11 +4328,14 @@ _L_argparse_sub_function_complete() {
 		# complete function names
 		L_list_functions_with_prefix_removed_v "$_L_func"
 		for i in "${L_v[@]}"; do
-			_L_argparse_sub_function_get_description _L_desc "$i" || return $?
+			_L_argparse_sub_function_get_function_description _L_desc "$i" || return $?
 			L_argparse_compgen -W "${_L_sub_args[0]:-}$i" -D "$_L_desc" || return $?
 		done
-	elif _L_argparse_sub_function_is_ok_to_call "$_L_func"; then
-		"$_L_func" --L_argparse_get_completion "${_L_sub_args[@]:1}"
+	else
+		if _L_argparse_sub_function_is_ok_to_call "${_L_sub_args[0]}"; then
+			_L_argparse_sub_function_call_function "${_L_sub_args[0]}" --L_argparse_get_completion "${_L_sub_args[@]:1}"
+			exit "$?"
+		fi
 	fi
 }
 
@@ -4581,7 +4591,7 @@ _L_argparse_split_argument_common() {
 # @arg $1 variable to set with optspec
 # @arg $2 short option ex. -a
 _L_argparse_parser_get_short_option() {
-	for (($1=1; $1<_L_optmax; ++$1)); do
+	for (($1=1; $1<_L_optcnt; ++$1)); do
 		if [[ "${_L_opt__parseri[$1]}" == "$_L_parseri" && " ${_L_opt__options[$1]:-} " == *[$' \t\n']"$2"[$' \t\n']* ]]; then
 			return
 		fi
@@ -4615,7 +4625,7 @@ _L_argparse_parser_get_long_option() {
 }
 
 _L_argparse_parser_next() {
-	while ((++_L_opti < _L_optmax)); do
+	while ((++_L_opti < _L_optcnt)); do
 		if
 			[[ "${_L_opt__parseri[_L_opti]}" == "$_L_parseri" ]] &&
 			test "$1" "${_L_opt__options[_L_opti]:-}"
@@ -4826,7 +4836,7 @@ _L_argparse_optspec_gen_completion() {
 # COMP_TYPE == 37 -> menu-complete/menu-complete-backward
 # COMP_TYPE == 42 -> insert-completions
 # @see https://github.com/containers/podman/blob/main/completions/bash/podman
-_L_argparse_complete_bash_function() {
+_L_argparse_bash_completion_function() {
 	local cur prev words cword comp_args was_split split
 	local IFS=$'\n' sep=$'\035' _ COLUMNS="${COLUMNS:-80}" LINES="${LINES:-1}"
 	local longestcomp=1 longestdesc=0 i response mode comp desc tmp
@@ -4998,7 +5008,7 @@ _L_argparse_complete_bash_function() {
 	fi
 }
 
-_L_argparse_complete_bash_function_old() {
+_L_argparse_bash_completion_function_old() {
 	local compdesclen=$(( longestcomp + longestdesc + 4 ))
 	local compdesccolumns=$(( COLUMNS / compdesclen + !!(COLUMNS % compdesclen) ))
 	local compdesclines=$(( ${#COMPREPLY[@]} / compdesccolumns + !!(${#COMPREPLY[@]} % compdesccolumns) ))
@@ -5093,10 +5103,10 @@ _L_argparse_complete_bash_function_old() {
 
 
 # @description Bash completion code.
-_L_argparse_complete_bash='complete -F %(complete_func)s %(prog_name)s'
+_L_argparse_bash_completion='complete -F %(complete_func)s %(prog_name)s'
 
 # @description ZSH completion code.
-_L_argparse_complete_zsh=$'#compdef %(prog_name)s
+_L_argparse_zsh_completion=$'#compdef %(prog_name)s
 %(complete_func)s() {
 	local mode comp desc _ nosort=""
 	local -a response completions completions_with_descriptions
@@ -5134,7 +5144,7 @@ fi
 '
 
 # @description Fish completion code
-_L_argparse_complete_fish='
+_L_argparse_fish_completion='
 function %(complete_func)s;
 	set -l args (commandline -pco) (commandline -pct);
 	set -e args[1];
@@ -5164,12 +5174,12 @@ _L_argparse_parse_internal_args() {
 	--L_argparse_print_help) L_argparse_print_help; exit; ;;
 	--L_argparse_get_completion) _L_in_complete=1 ;;
 	--L_argparse_get_completion_zsh) _L_in_complete=1 _L_comp_shell=zsh ;;
-	--L_argparse_complete_bash|--L_argparse_complete_zsh|--L_argparse_complete_fish)
+	--L_argparse_bash_completion|--L_argparse_zsh_completion|--L_argparse_fish_completion)
 		local i=_${1##--} name
 		i=${!i}
-		if [[ "$1" == *bash ]]; then
-			i=$(declare -f _L_argparse_complete_bash_function)$'\n'"$i"$'\n'
-			i=${i//_L_argparse_complete_bash_function/%(complete_func)s}
+		if [[ "$1" == *bash* ]]; then
+			i=$(declare -f _L_argparse_bash_completion_function)$'\n'"$i"$'\n'
+			i=${i//_L_argparse_bash_completion_function/%(complete_func)s}
 		fi
 		printf -v name "%q" "$L_NAME"
 		i=${i//%(prog_name)s/$name}
@@ -5184,19 +5194,19 @@ _L_argparse_parse_internal_args() {
 		printf -v name "%q" "$L_NAME"
 		cat <<EOF
 # Bash: To load the completion script into the current session run:
-	eval "\$($name --L_argparse_complete_bash)"
+	eval "\$($name --L_argparse_bash_completion)"
 # Bash: To make it available using bash-completion project:
 	mdir -vp $bash_dst
-	$name --L_argparse_complete_bash > $bash_dst/$name
+	$name --L_argparse_bash_completion > $bash_dst/$name
 # Zsh: To load the completion script into the current session run:
-	eval "\$($name --L_argparse_complete_zsh)"
+	eval "\$($name --L_argparse_zsh_completion)"
 # Zsh: To make it available for all zsh sessions run
-	$name --L_argparse_complete_zsh > "\${fpath[1]}/_$name"
+	$name --L_argparse_zsh_completion > "\${fpath[1]}/_$name"
 # Fish: To load the completion script into the current session run:
-	eval "\$($name --L_argparse_complete_fish)"
+	eval "\$($name --L_argparse_fish_completion)"
 # Fish: To make it available for all fish sessions run:
 	mkdir -vp $fish_dst
-	$name --L_argparse_complete_fish > $fish_dst/$name.fish
+	$name --L_argparse_fish_completion > $fish_dst/$name.fish
 EOF
 		exit
 		;;
@@ -5530,14 +5540,20 @@ _L_argparse_split_parse_args() {
 			shift
 		done
 	}
-	{
+	# Is it a subparser?
+	if ((_L_parseri != 0)); then
 		# a subparser has to have a name
-		if ((_L_parseri != 0)); then
-			if [[ -z "${_L_parser_name[_L_parseri]:-}" ]]; then
-				_L_argparse_split_fatal "a subparser has to have a name="
-			fi
+		if [[ -z "${_L_parser_name[_L_parseri]:-}" ]]; then
+			_L_argparse_split_fatal "a subparser has to have a name="
 		fi
-	}
+		if ((_L_parseri == _L_parser__parent[_L_parseri])); then
+			_L_argparse_split_fatal "internal error: circular loop detected in subparsers"
+		fi
+		# Inherit values from parent parser
+		: "${_L_parser_show_default:=${_L_parser_show_default[_L_parser__parent[_L_parseri]]:-}}"
+		: "${_L_parser_allow_abbrev:=${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]:-}}"
+		: "${_L_parser_Adest:=${_L_parser_Adest[_L_parser__parent[_L_parseri]]:-}}"
+	fi
 	{
 		# validate Adest
 		if [[ -n "${_L_parser_Adest[_L_parseri]:-}" ]]; then
@@ -5571,8 +5587,8 @@ _L_argparse_split_parse_args() {
 }
 
 _L_argparse_print_var() {
-	local IFS=$' \t\n' v i r idx=() ignore="" out="" line="" style=table c OPTIND OPTARG OPTERR
-	while getopt "s:i:" c; do
+	local IFS=$' \t\n' v i r idx=() ignore="" out="" line="" style="" c OPTIND OPTARG OPTERR
+	while getopts "s:i:" c; do
 		case "$1" in
 		s) style="$OPTARG" ;;
 		i) idx+=("$OPTARG") ;;
@@ -5643,7 +5659,7 @@ _L_argparse_print_var() {
 
 # Print the parser values
 _L_argparse_print() {
-	echo "  _L_parseri=$_L_parseri _L_parsercnt=$_L_parsercnt _L_opti=$_L_opti _L_optmax=$_L_optmax"
+	echo "  _L_parseri=$_L_parseri _L_parsercnt=$_L_parsercnt _L_opti=$_L_opti _L_optcnt=$_L_optcnt"
 	_L_argparse_print_var _L_parser_
 	_L_argparse_print_var _L_opt_
 }
@@ -5660,54 +5676,70 @@ _L_argparse_print_curopt() {
 # Note: the last separator `----` is different to make it more clear and restrict parsing better.
 # @require associative arrays, i.e. Bash4.0. I could make it work with Bash3.2.
 L_argparse() {
-	local \
-		_L_parseri \
-		_L_parsercnt=0 \
-		_L_parser_prog=("$0") \
-		_L_parser_usage \
-		_L_parser_description \
-		_L_parser_epilog \
-		_L_parser_add_help \
-		_L_parser_allow_abbrev \
-		_L_parser_Adest \
-		_L_parser_show_default \
-		_L_parser_aliases \
-		_L_parser_help \
-		_L_parser_name \
-		_L_parser__parent=("") \
-		\
-		_L_opti=0 \
-		_L_optmax=0 \
-		_L_opt_action \
-		_L_opt_choices=() \
-		_L_opt_complete \
-		_L_opt_const \
-		_L_opt_default \
-		_L_opt_dest \
-		_L_opt_help \
-		_L_opt_metavar \
-		_L_opt_nargs \
-		_L_opt_required \
-		_L_opt_show_default \
-		_L_opt_type \
-		_L_opt_validate \
-		_L_opt_prefix \
-		_L_opt_subcall \
-		_L_opt__class \
-		_L_opt__desc \
-		_L_opt__index \
-		_L_opt__isarray=() \
-		_L_opt__options \
-		_L_opt__parseri \
-		\
-		_L_in_complete=0 \
-		_L_comp_shell="" \
-		_L_g_args_left \
-		#
+	if L_var_is_set _L_parseri; then
+		local _L_parsercur=$((_L_parseri + 1))
+		_L_parser__parent[_L_parsercur]=$_L_parseri
+	else
+		# _L_parser_ - parser options
+		# _L_parseri - current index in _L_parser_
+		# _L_parsercnt - count of elements in _L_parser_ arrays
+		# _L_opt_ - options and arguments and subparsers options
+		# _L_opti - current index in _L_opt_
+		# _L_optcnt - max elements in _L_opt_
+		local \
+			_L_parsercur=0 \
+			_L_parseri=0 \
+			_L_parsercnt=0 \
+			_L_parser_prog=("$L_NAME") \
+			_L_parser_usage \
+			_L_parser_description \
+			_L_parser_epilog \
+			_L_parser_add_help \
+			_L_parser_allow_abbrev \
+			_L_parser_Adest \
+			_L_parser_show_default \
+			_L_parser_aliases \
+			_L_parser_help \
+			_L_parser_name \
+			_L_parser__parent=() \
+			_L_parser__subparser \
+			\
+			_L_opti=0 \
+			_L_optcnt=0 \
+			_L_opt_action \
+			_L_opt_choices=() \
+			_L_opt_complete \
+			_L_opt_const \
+			_L_opt_default \
+			_L_opt_dest \
+			_L_opt_help \
+			_L_opt_metavar \
+			_L_opt_nargs \
+			_L_opt_required \
+			_L_opt_show_default \
+			_L_opt_type \
+			_L_opt_validate \
+			_L_opt_prefix \
+			_L_opt_subcall \
+			_L_opt__class \
+			_L_opt__desc \
+			_L_opt__index \
+			_L_opt__isarray=() \
+			_L_opt__options \
+			_L_opt__parseri
+		# _L_in_complete - set if we are in completion.
+		# _L_comp_shell - if we are completing, set to Bash or Zsh or Fish.
+		# _L_g_args_left - set to $# on the end of parsing functions, so upper layer can shift properly.
+		local \
+			_L_in_complete=0 \
+			_L_comp_shell="" \
+			_L_g_args_left \
+			#
+	fi
 	local _L_sub_args=()  # Accumulated arguments of subparser.
 	local _L_sub_opti=-1  # The option index of the subparser argument.
 	_L_argparse_split_parse_args "$@" || return 2
-	(( _L_parseri=0, _L_optmax=_L_opti+1 ))
+	(( _L_parseri=_L_parsercur, _L_optcnt=_L_opti+1 ))
 	shift $(($#-_L_g_args_left))
 	if [[ "${1:-}" != "----" ]]; then
 		_L_argparse_split_fatal "missing separator ---- at $1"
@@ -5718,48 +5750,57 @@ L_argparse() {
 	{
 		# Handle subparser
 		while ((${#_L_sub_args[@]})); do
-			local _L_choices=() _L_opti=$_L_sub_opti _L_indexes=() _L_i _L_found_idx=-1 _L_guesses=()
+			local _L_subparsers=() _L_opti=$_L_sub_opti _L_indexes=() _L_i _L_subparseri=-1 _L_subparser_guesses=() _L_subparser_abbrev=()
 			case "${_L_opt__class[_L_opti]}" in
-			subparser) _L_argparse_sub_subparser_choices_indexes _L_choices _L_indexes ;;
-			function) _L_argparse_sub_function_choices _L_choices ;;
+			subparser) _L_argparse_sub_subparser_choices_indexes _L_subparsers _L_indexes ;;
+			function) _L_argparse_sub_function_choices _L_subparsers ;;
 			*) L_argparse_fatal "internal error class=${_L_opt__class[_L_opti]}" || return 2 ;;
 			esac
-			if ((!${#_L_choices[@]})); then
-				L_argparse_fatal "there are no available subparsers!" || return 1
+			if ((!${#_L_subparsers[@]})); then
+				L_argparse_fatal "internal error there are no available subparsers!" || return 1
 			fi
-			for _L_i in "${!_L_choices[@]}"; do
-				if [[ "${_L_choices[_L_i]}" == "${_L_sub_args[0]}" ]]; then
-					_L_found_idx=${_L_indexes[_L_i]:-1}
-					break
-				fi
-				if [[ "${_L_choices[_L_i]}" == *"${_L_sub_args[0]}"* ]]; then
-					_L_guesses+=("${_L_choices[_L_i]}")
-				fi
+			for _L_i in "${!_L_subparsers[@]}"; do
+				case "${_L_subparsers[_L_i]}" in
+				"${_L_sub_args[0]}") _L_subparseri=${_L_indexes[_L_i]:-1}; break ;;
+				"${_L_sub_args[0]}"*)
+					_L_subparser_guesses+=("${_L_subparsers[_L_i]}")
+					if L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-true}"; then
+						_L_subparser_abbrev+=("$_L_i")
+					fi
+					;;
+				*"${_L_sub_args[0]}"*) _L_subparser_guesses+=("${_L_subparsers[_L_i]}") ;;
+				esac
 			done
-			if ((_L_found_idx == -1)); then
-				if ((_L_in_complete)); then
-					local IFS=$'\n'
-					L_argparse_compgen -W "${_L_choices[*]}" -D "" -- "${_L_sub_args[0]}" || exit $?
-					exit 0
+			if ((_L_subparseri == -1)); then
+				if ((${#_L_subparser_abbrev[@]} == 1)); then
+					# If allow_abbrev and there is only one abbreviation found, use it.
+					_L_subparseri=${_L_subparser_abbrev[0]}
+				else
+					# If no subparser is found
+					if ((_L_in_complete)); then
+						local IFS=$'\n'
+						L_argparse_compgen -W "${_L_subparsers[*]}" -D "" -- "${_L_sub_args[0]}" || exit $?
+						exit 0
+					fi
+					local i txt="unrecognized command \`${_L_sub_args[0]}\`"
+					if ((${#_L_subparser_guesses[@]})); then
+						L_sort_bash _L_subparser_guesses
+						txt+=$'\n\n'"Did you mean this?"$'\n'
+						for i in "${_L_subparser_guesses[@]}"; do
+							txt+=$'\t'"$i"$'\n'
+						done
+					fi
+					L_argparse_fatal "$txt" || return 1
+					return 1
 				fi
-				local i txt="unrecognized command \`${_L_sub_args[0]}\`"
-				if ((${#_L_guesses[@]})); then
-					L_sort_bash guesses
-					txt+=$'\n\n'"Did you mean this?"$'\n'
-					for i in "${_L_guesses[@]}"; do
-						txt+=$'\t'"$i"$'\n'
-					done
-				fi
-				L_argparse_fatal "$txt" || return 1
-				return 1
 			fi
-			# reset sub args for next loop
-			set -- "${_L_sub_args[@]}"
-			_L_sub_args=()
 			case "${_L_opt__class[_L_opti]}" in
-			function) "${_L_opt_prefix[_L_opti]}$1" "${@:2}" || return $? ;;
+			function) _L_argparse_sub_function_call_function "${_L_subparsers[_L_subparseri]}" "${_L_sub_args[@]:1}" ;;
 			subparser)
-				_L_parseri=$_L_found_idx
+				# Reset sub args for next loop.
+				set -- "${_L_sub_args[@]}"
+				_L_sub_args=()
+				_L_parseri=$_L_subparseri
 				_L_argparse_parse_args "${@:2}" || return $?
 				;;
 			esac
