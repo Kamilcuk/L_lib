@@ -4260,7 +4260,7 @@ _L_argparse_sub_function_choices() {
 # - There is ---- "$@" ending of L_argparse call in the function.
 # @arg $1 <str> the function
 _L_argparse_sub_function_is_ok_to_call() {
-	local _L_func="$1" _L_subcall="${_L_opt_subcall[_L_opti]:-}" _L_func_declare
+	local _L_func="${_L_opt_prefix[_L_opti]}$1" _L_subcall="${_L_opt_subcall[_L_opti]:-}" _L_func_declare
 	L_is_true "$_L_subcall" || {
 		[[ "$_L_subcall" == "detect" ]] &&
 		_L_func_declare="$(declare -f "$_L_func")" &&
@@ -5213,8 +5213,7 @@ EOF
 	--L_argparse_*)
 		local available_cmds
 		available_cmds="$(declare -f "${FUNCNAME[0]}" | grep -o -- "--L_argparse_[a-z_]\+" | sort -u || :)"
-		available_cmds="${available_cmds//$'\n'/ }"
-		L_fatal "unknown internal argument: $1, available: $available_cmds"
+		L_fatal "unknown internal argument: $1, available:"$'\n'"$available_cmds"
 		# shellcheck disable=SC2317
 		exit 1
 		;;
@@ -5761,11 +5760,11 @@ L_argparse() {
 			fi
 			for _L_i in "${!_L_subparsers[@]}"; do
 				case "${_L_subparsers[_L_i]}" in
-				"${_L_sub_args[0]}") _L_subparseri=${_L_indexes[_L_i]:-1}; break ;;
+				"${_L_sub_args[0]}") _L_subparseri=${_L_indexes[_L_i]:-$_L_i}; break ;;
 				"${_L_sub_args[0]}"*)
 					_L_subparser_guesses+=("${_L_subparsers[_L_i]}")
 					if L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-true}"; then
-						_L_subparser_abbrev+=("$_L_i")
+						_L_subparser_abbrev+=("${_L_indexes[_L_i]:-$_L_i}")
 					fi
 					;;
 				*"${_L_sub_args[0]}"*) _L_subparser_guesses+=("${_L_subparsers[_L_i]}") ;;
@@ -5794,15 +5793,12 @@ L_argparse() {
 					return 1
 				fi
 			fi
+			# Reset sub args so we do not loop forever.
+			set -- "${_L_sub_args[@]}"
+			_L_sub_args=()
 			case "${_L_opt__class[_L_opti]}" in
-			function) _L_argparse_sub_function_call_function "${_L_subparsers[_L_subparseri]}" "${_L_sub_args[@]:1}" ;;
-			subparser)
-				# Reset sub args for next loop.
-				set -- "${_L_sub_args[@]}"
-				_L_sub_args=()
-				_L_parseri=$_L_subparseri
-				_L_argparse_parse_args "${@:2}" || return $?
-				;;
+			function) _L_argparse_sub_function_call_function "${_L_subparsers[_L_subparseri]}" "${@:2}" || return $? ;;
+			subparser) _L_parseri=$_L_subparseri; _L_argparse_parse_args "${@:2}" || return $? ;;
 			esac
 		done
 	}
