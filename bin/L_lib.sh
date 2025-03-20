@@ -3924,6 +3924,16 @@ _L_argparse_print_help_indenter() {
 	return
 }
 
+# @description percent format help message
+# @arg $1 <var> Variable name containing text to print.
+# @arg [$2] <int> if set to 1, format also %(default)s
+_L_argparse_percent_format_help() {
+	printf -v "$1" "%s" "${!1//%(prog)s/$_L_prog}"
+	if ((${2:-0})); then
+		printf -v "$1" "%s" "${!1//%(default)s/${_L_opt_default[_L_opti]:-}}"
+	fi
+}
+
 # @description Get help text.
 # @arg $1 <var> variable to assign
 # @env _L_parser
@@ -3932,8 +3942,7 @@ _L_argparse_optspec_get_help() {
 	if [[ "$L_v" == "SUPPRESS" ]]; then
 		return 1
 	fi
-	# L_v=${L_v//%(prog)s/$_L_prog}
-	# L_v=${L_v//%(default)s/${_L_opt_default[_L_opti]:-}}
+	_L_argparse_percent_format_help L_v 1
 	if L_is_true "${_L_opt_show_default[_L_opti]:-${_L_parser_show_default[_L_parseri]:-0}}" && L_var_is_set "_L_opt_default[_L_opti]"; then
 		printf -v "$1" "%s(default: %q)" "$L_v${L_v:+ }" "${_L_opt_default[_L_opti]}"
 	else
@@ -4028,7 +4037,12 @@ L_argparse_print_help() {
 	}
 	{
 		# stores all the stuff after usage
-		local _L_help_help="${_L_parser_description[_L_parseri]:+$'\n'${_L_parser_description[_L_parseri]%%$'\n'}$'\n'}"
+		local _L_help_help="" L_v="${_L_parser_description[_L_parseri]:-${_L_parser_help[_L_parseri]:-}}"
+		if [[ -n "${L_v}" ]]; then
+			L_strip_v "$L_v"
+			_L_argparse_percent_format_help L_v
+			_L_help_help+=$'\n'"$L_v"$'\n'
+		fi
 		local _L_opthelp _L_notrequired _L_metavar
 	}
 	{
@@ -4100,7 +4114,12 @@ L_argparse_print_help() {
 		# output
 		echo "Usage: ${_L_parser_usage:-$_L_prog$_L_options_usage$_L_args_usage}"
 		if ((!_L_short)); then
-			_L_help_help+=${_L_parser_epilog[_L_parseri]:+$'\n'${_L_parser_epilog[_L_parseri]%%$'\n'}}
+			local L_v="${_L_parser_epilog[_L_parseri]:-}"
+			if [[ -n "${L_v}" ]]; then
+				L_strip_v "$L_v"
+				_L_argparse_percent_format_help L_v
+				_L_help_help+=$'\n'"$L_v"
+			fi
 			echo "${_L_help_help%%$'\n'}"
 		fi
 	}
@@ -4123,9 +4142,21 @@ EOF
 	exit 123
 }
 
+# @description Add -h --help option
+# @example L_argparse -- "${L_argparse_template_help[@]}" ---- "$@"
+# @see L_argparse_template_verbose
 L_argparse_template_help=(-h --help help="show this help message and exit" action=help)
+# @description Add -v --verbose option that increases log level
+# @example L_argparse -- "${L_argparse_template_verbose[@]}" ---- "$@"
+# @see L_argparse_template_quiet
 L_argparse_template_verbose=(-v --verbose help="be more verbose" action=eval:'L_log_level_inc')
+# @description Add -q --quiet options that decreses log level
+# @example L_argparse -- "${L_argparse_template_quiet[@]}" ---- "$@"
+# @see L_argparse_template_dryrun
 L_argparse_template_quiet=(-q --quiet help="be more quiet" action=eval:'L_log_level_dec')
+# @description Add -n --dryrun argument to argparse.
+# @example L_argparse -- "${_L_argparse_template_dryrun[@]}" ---- "$@"
+# @see L_argparse_template_help
 L_argparse_template_dryrun=(-n --dryrun help="do not run; just print" action=eval:'L_dryrun=1')
 
 # @env _L_split_args
@@ -4274,23 +4305,38 @@ L_argparse\
 	}
 }
 
+_L_argparse_sub_function_has_helpvar() {
+	local _L_helpvar="${_L_opt_prefix[_L_opti]}${2//-/_}_help"
+	if L_is_valid_variable_name "$_L_helpvar" && [[ -n "${!_L_helpvar:-}" ]]; then
+		printf -v "$1" "%s" "${!_L_helpvar}"
+	else
+		return 1
+	fi
+}
+
 _L_argparse_sub_function_call_function() {
 	_L_parser_name[_L_parseri+1]="$1"
+	local _L_help
+	if _L_argparse_sub_function_has_helpvar _L_help "$1"; then
+		_L_parser_help[_L_parseri+1]="$_L_help"
+	fi
 	"${_L_opt_prefix[_L_opti]}$1" "${@:2}"
 }
 
 # @arg $1 <var> variable to assign the subparser description
 # @arg $2 <func> the function
 _L_argparse_sub_function_get_function_description() {
-	local _L_func="${_L_opt_prefix[_L_opti]}$2" _L_subparser_help _L_helpvar="${_L_opt_prefix[_L_opti]}${2}_help"
-	if _L_argparse_sub_function_is_ok_to_call "$2"; then
+	local _L_func="${_L_opt_prefix[_L_opti]}$2" _L_subparser_help _L_help
+	if _L_argparse_sub_function_has_helpvar _L_help "$2"; then
+		printf -v "$1" "%s" "$_L_help"
+	elif _L_argparse_sub_function_is_ok_to_call "$2"; then
 		if _L_subparser_help=$(_L_argparse_sub_function_call_function "$2" --L_argparse_parser_help); then
 			printf -v "$1" "%s" "$_L_subparser_help"
 		else
 			_L_argparse_split_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?"
 		fi
 	else
-		printf -v "$1" "%s" "${!_L_helpvar:-}"
+		printf -v "$1" "%s" ""
 	fi
 }
 
@@ -4516,7 +4562,11 @@ _L_argparse_split_argument_common() {
 		# apply defaults depending on action
 		case "${_L_opt_action[_L_opti]:=store}" in
 		store)
-			: "${_L_opt_nargs[_L_opti]:=1}"
+			if L_var_is_set "_L_opt_default[_L_opti]"; then
+				: "${_L_opt_nargs[_L_opti]:="?"}"
+			else
+				: "${_L_opt_nargs[_L_opti]:=1}"
+			fi
 			;;
 		store_const)
 			if ! L_var_is_set "_L_opt_const[_L_opti]"; then
@@ -4557,12 +4607,13 @@ _L_argparse_split_argument_common() {
 			if ! bash -nc "${_L_opt_action[_L_opti]#eval:}"; then
 				_L_argparse_split_fatal "action=${_L_opt_action[_L_opti]} is invalid"
 			fi
+			: "${_L_opt_nargs[_L_opti]:=0}"
 			;;
 		remainder)
 			if [[ -n "${_L_opt__options[_L_opti]:-}" ]]; then
 				_L_argparse_split_fatal "action=${_L_opt_action[_L_opti]} can be used with positional args only"
 			fi
-			: "${_L_opt_nargs[_L_opti]=*}"
+			: "${_L_opt_nargs[_L_opti]:="*"}"
 			;;
 		_subparser|count|help) ;;
 		*) _L_argparse_split_fatal "invalid action=${_L_opt_action[_L_opti]:-}"
