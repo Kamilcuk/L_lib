@@ -1892,7 +1892,7 @@ _L_test_z_argparse6() {
 	{
 		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
 		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
-		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=auto ----)
+		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=detect ----)
 		local one two three
 		L_unittest_cmd -e 100 -r "1 one=one three=" "${cmd[@]}" 1 --one one
 		L_unittest_cmd -r "2 two=AA three=" "${cmd[@]}" 2 --two AA

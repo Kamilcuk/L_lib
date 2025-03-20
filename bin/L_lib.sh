@@ -4259,7 +4259,7 @@ _L_argparse_split_class_function() {
 _L_argparse_sub_subparser_choices_indexes() {
 	local i
 	for ((i=0; i<_L_parsercnt; ++i)); do
-		if [[ "${_L_parser__parent[i]}" == "$_L_parseri" && "${_L_parser_name[i]}" == "${3:-}"* ]]; then
+		if [[ "${_L_parser__parent[i]:-}" == "$_L_parseri" && "${_L_parser_name[i]}" == "${3:-}"* ]]; then
 			L_array_append "$1" "${_L_parser_name[i]}"
 			L_array_append "$2" "$i"
 		fi
@@ -4562,7 +4562,7 @@ _L_argparse_split_argument_common() {
 		# apply defaults depending on action
 		case "${_L_opt_action[_L_opti]:=store}" in
 		store)
-			if L_var_is_set "_L_opt_default[_L_opti]"; then
+			if ((${#_L_opt_choices[_L_opti]})) && L_var_is_set "_L_opt_default[_L_opti]"; then
 				: "${_L_opt_nargs[_L_opti]:="?"}"
 			else
 				: "${_L_opt_nargs[_L_opti]:=1}"
