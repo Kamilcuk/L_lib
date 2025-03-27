@@ -406,8 +406,6 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @section basic
 # @description Some base simple definitions for every occasion.
 
-# @arg $1 str assertiong string description
-# @arg $@ command to test
 L_assert_fail() {
 	set +x
 	L_print_traceback >&2
@@ -420,12 +418,23 @@ L_assert_fail() {
 # As last resort, use `eval "[[ ${var@Q} = ${var@Q} ]]"` if you really want to use it,
 # Better prefer write and use wrapper functions, like `L_regex_match` or `L_glob_match`.
 # To invert the test use `L_not` which just executes `! "$@"`.
+# When assertion fails, exit with 249.
 # @arg $1 str assertiong string description
 # @arg $@ command to test
 # @example L_assert 'wrong number of arguments' [ "$#" = 0 ]
 L_assert() {
 	if ! "${@:2}"; then
 		L_assert_fail "$@"
+	fi
+}
+
+# @description Assert the command starting from second arguments returns success.
+# If assertion fails, return 249.
+# @see L_assert
+L_assert_return() {
+	if ! "${@:2}"; then
+		printf "%sassertion (%s) failed%s\n" "${FUNCNAME[1]:+${FUNCNAME[1]}: }" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
+		return 249
 	fi
 }
 
@@ -476,7 +485,7 @@ L_regex_findall_v() {
 #   L_regex_replace -v out 'world world' 'w[^ ]*' 'hello'
 #   echo "$out"
 L_regex_replace() {
-	local OPTIND OPTERR _L_countmax=1 _L_count=0 _L_v="" _L_backref=1 _L_count_v="" _L_i _L_repl
+	local OPTIND OPTARG OPTERR _L_countmax=1 _L_count=0 _L_v="" _L_backref=1 _L_count_v="" _L_i _L_repl
 	while getopts "hgBv:c:n:" _L_i; do
 		case $_L_i in
 		g) _L_countmax=-1 ;;
@@ -851,6 +860,9 @@ L_handle_v() {
 		esac
 		;;
 	-v)
+		if (($# < 3)); then
+			L_assert_fail "${FUNCNAME[1]}: -v: option requires argument" || return $?
+		fi
 		if [[ "$3" == -- ]]; then
 			"${FUNCNAME[1]}"_v "${@:4}" || _L_r=$?
 		else
@@ -878,7 +890,7 @@ L_handle_v() {
 }
 
 L_handle_v_getopts() {
-	local OPTARG OPTIND OPTERR L_v=() _L_r=0 _L_v=""
+	local OPTIND OPTARG OPTERR L_v=() _L_r=0 _L_v=""
 	while getopts v: _L_r; do
 		case $_L_r in
 		v) _L_v="$OPTARG" ;;
@@ -1554,7 +1566,7 @@ L_array_reverse() {
 # @option -s <int> skip first n lines
 # @arg $1 <var> array nameref
 L_array_read() {
-	local OPTIND OPTARG _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
+	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
 	while getopts d:u:s _L_c; do
 		case $_L_c in
 		d) _L_d=$OPTARG ;;
@@ -1774,7 +1786,7 @@ L_min_v() {
 #         a     b c
 #         d     e f
 L_table() {
-	local OPTARG OPTIND IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
+	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
 	while getopts v:s:o:R: _L_i; do
 		case $_L_i in
 		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
@@ -1975,7 +1987,7 @@ _L_pretty_print_nested() {
 # @option -C Disable compact output for arrays, i.e. each key is on separate line.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
-	local OPTARG OPTIND OPTERR _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0 _L_pp_line="" _L_pp_compact=0 _L_pp_prefix_sav=""
+	local OPTIND OPTARG OPTERR _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0 _L_pp_line="" _L_pp_compact=0 _L_pp_prefix_sav=""
 	while getopts :p:v:w:nc _L_pp_opt; do
 		case $_L_pp_opt in
 		p) _L_pp_prefix="$OPTARG " ;;
@@ -2041,7 +2053,7 @@ _L_argskeywords_assign() {
 # @arg $@ Arguments to parse
 # @example
 #   range() {
-#		local start stop step
+#      local start stop step
 #       L_argskeywords start stop step=1 -- "$@" || return 2
 #       for ((; start < stop; start += stop)); do echo "$start"; done
 #   }
@@ -2049,23 +2061,23 @@ _L_argskeywords_assign() {
 #   range 1 6
 #
 #   max() {
-#		local arg1 arg2 args key
-#		L_argskeywords arg1 arg2 @args key='' -- "$@" || return 2
-#		...
-#	}
-#	max 1 2 3 4
+#      local arg1 arg2 args key
+#      L_argskeywords arg1 arg2 @args key='' -- "$@" || return 2
+#      ...
+#   }
+#   max 1 2 3 4
 #
-#	int() {
-#		local string base
-#		L_argskeywords string / base=10 -- "$@" || return 2
-#		...
-#	}
-#	int 10 7 # error
-#	int 10 base=7
+#   int() {
+#      local string base
+#      L_argskeywords string / base=10 -- "$@" || return 2
+#      ...
+#   }
+#   int 10 7 # error
+#   int 10 base=7
 L_argskeywords() {
 	{
 		# parse arguments
-		local OPTARG OPTIND OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]}:${FUNCNAME[0]}:" _L_asa="" _L_use_map=0
+		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]}:${FUNCNAME[0]}:" _L_asa="" _L_use_map=0
 		while getopts A:MEe: _L_i; do
 			case $_L_i in
 			A) _L_asa=$OPTARG ;;
@@ -2291,7 +2303,7 @@ L_LOGLEVEL_COLORS=(
 _L_logconf_configured=0
 # @description int current global log level
 _L_logconf_level=$L_LOGLEVEL_INFO
-# @description should we use the color for logging output
+# @description 1 or ''. Should we use the color for logging output?
 L_logconf_color=1
 # @description if this regex is set, allow elements
 _L_logconf_selecteval=true
@@ -2300,7 +2312,36 @@ _L_logconf_formateval='L_log_format_default "$@"'
 # @description default outputting function
 _L_logconf_outputeval='L_log_output_to_stderr "$@"'
 
+_L_log_configure_help() {
+	cat <<EOF
+L_log_configure [OPTIONS]
+
+Options:
+  -h               Print help and return 0.
+  -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
+  -l <LOGLEVEL>    Set loglevel. Can be 'info' or "\$L_LOGLEVEL_INFO INFO" or 30. Default: $_L_logconf_level
+  -c <BOOL>        Enable/disable the use of color. Default: $L_logconf_color
+  -f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_logconf_formateval
+  -s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_logconf_selecteval
+  -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: $_L_logconf_outputeval
+
+EOF
+cat <<'EOF'
+Examples:
+  L_log_configure \
+    -l debug \
+    -c 0 \
+    -f 'printf -v L_logrecord_msg "%s" "${@:2}"' \
+    -o 'printf "%s\n" "$@" >&2' \
+    -s 'L_log_select_source_regex ".*/script.sh"' \
+    -s 'L_log_select_source_regex ".*/script.sh" && L_log_select_function_regex "L_*"' \
+    -f 'L_log_format_default "$@"' \
+    -f 'L_log_format_long "$@"'
+EOF
+}
+
 # @description configure L_log system
+# @option -h               Print help and return 0.
 # @option -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
 # @option -l <LOGLEVEL>    Set loglevel. Can be \$L_LOGLEVEL_INFO INFO or 30. Default: $_L_logconf_level
 # @option -c <BOOL>        Enable/disable the use of color. Default: $L_logconf_color
@@ -2309,48 +2350,46 @@ _L_logconf_outputeval='L_log_output_to_stderr "$@"'
 # @option -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: $_L_logconf_outputeval
 # @noargs
 # @example
-# 	L_log_configure \
-# 		-l debug \
-# 		-c 0 \
-# 		-f 'printf -v L_logrecord_msg "%s" "${@:2}"' \
-# 		-o 'printf "%s\n" "$@" >&2' \
-# 		-s 'L_log_select_source_regex ".*/script.sh"'
+#   L_log_configure \
+#     -l debug \
+#     -c 0 \
+#     -f 'printf -v L_logrecord_msg "%s" "${@:2}"' \
+#     -o 'printf "%s\n" "$@" >&2' \
+#     -s 'L_log_select_source_regex ".*/script.sh"'
 L_log_configure() {
-	local OPTARG OPTIND OPTERR _L_opt
-	while getopts rl:c:f:s:o: _L_opt; do
-		if ((_L_logconf_configured)); then
+	local OPTIND OPTARG OPTERR _L_opt
+	while getopts hrl:c:f:s:o: _L_opt; do
+		case $_L_opt in
+			h) _L_log_configure_help; return 0; ;;
+			r) _L_logconf_configured=0 ;;
+			[lcfso]) ;;
+			*) L_assert_return "invalid argument: opt=$_L_opt OPTARG=$OPTARG" || return $?; ;;
+		esac
+		if ((!_L_logconf_configured)); then
 			case $_L_opt in
-				r) _L_logconf_configured=0 ;;
-				[lcfso]) ;;
-				*) L_fatal "invalid arguments: $_L_opt $OPTARG" ;;
-			esac
-		else
-			case $_L_opt in
-				r) _L_logconf_configured=0 ;;
 				l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
 				c) L_exit_to_1null L_logconf_color L_is_true "$OPTARG" ;;
 				f) _L_logconf_formateval=$OPTARG ;;
 				s) _L_logconf_selecteval=$OPTARG ;;
 				o) _L_logconf_outputeval=$OPTARG ;;
-				*) L_fatal "invalid arguments: opt=$_L_opt OPTARG=$OPTARG" ;;
 			esac
 		fi
 	done
 	shift $((OPTIND-1))
-	L_assert "invalid arguments: $*" test $# -eq 0
+	L_assert_return "invalid arguments: $*" test $# -eq 0 || return $?
 	_L_logconf_configured=1
 }
 
 # @description increase log level
 # @arg $1 <int> amount, default: 10
 L_log_level_inc() {
-	((_L_logconf_level-=${1:-10}))
+	_L_logconf_level=$(( _L_logconf_level - ${1:-10} ))
 }
 
 # @description decrease log level
 # @arg $1 <int> amount, default: 10
 L_log_level_dec() {
-	((_L_logconf_level+=${1:-10}))
+	_L_logconf_level=$(( _L_logconf_level + ${1:-10} ))
 }
 
 # @description int positive stack level to omit when printing caller information
@@ -2421,6 +2460,13 @@ L_log_select_source_regex() {
 	[[ "${BASH_SOURCE[L_logrecord_stacklevel]}" =~ $* ]]
 }
 
+# @description Finction that can be passed to filtereval to filter specific bash source name.
+# @arg $1 Regex to match against BASH_SOURCE
+# @see L_log_configure
+L_log_select_function_regex() {
+	[[ "${FUNCNAME[L_logrecord_stacklevel]}" =~ $* ]]
+}
+
 # @description Default logging formatting
 # @arg $1 str log line printf format string
 # @arg $@ any log line printf arguments
@@ -2458,7 +2504,7 @@ L_log_format_default() {
 # @see L_log_configure
 L_log_format_long() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
-	printf -v L_logrecord_msg "%s""%(%Y%m%dT%H%M%S)s: %s:%s:%d: %s $1""%s" \
+	printf -v L_logrecord_msg "%s""%(%Y-%m-%dT%H:%M:%S%z)T: %s:%s:%d: %s $1""%s" \
 		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
 		-1 \
 		"$L_NAME" \
@@ -2515,7 +2561,7 @@ L_log_handle() {
 # @set L_logrecord_loglevel
 # @set L_logrecord_stacklevel
 L_log() {
-	local OPTARG OPTIND _L_opt
+	local OPTIND OPTARG OPTERR _L_opt
 	L_logrecord_loglevel=$L_LOGLEVEL_INFO
 	while getopts :s:l: _L_opt; do
 		case "$_L_opt" in
@@ -2612,7 +2658,7 @@ L_logrun() {
 # @arg $@ command to execute
 # @env L_dryrun
 L_run() {
-	local OPTARG OPTIND _L_opt _L_logargs=()
+	local OPTIND OPTARG OPTERR _L_opt _L_logargs=()
 	while getopts l:s: _L_opt; do
 		case $_L_opt in
 			l) _L_logargs+=(-l "$OPTARG") ;;
@@ -2721,7 +2767,7 @@ _L_sort_compare_numeric() { (( $1 > $2 )); }
 # @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
 # @arg $1 array nameref
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTARG OPTIND OPTERR _L_c _L_array _L_sort_compare="_L_sort_compare" _L_sort_reverse=""
+	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare="_L_sort_compare" _L_sort_reverse=""
 	while getopts "znrc:" _L_c; do
 		case $_L_c in
 			z) ;;
@@ -3202,7 +3248,7 @@ L_unittest_cmd() {
 	else
 		local _L_uopt_setx=0
 	fi
-	local OPTARG OPTIND _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
+	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
 	while getopts ciIjxXv:r:o:e: _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_curenv=1 ;;
@@ -5866,6 +5912,13 @@ L_argparse() {
 # @section proc
 # Allows to open multiple processes connected via pipe.
 
+# @description Check if file descriptor is open.
+# @arg $1 file descriptor
+L_is_fd_open() {
+	# shellcheck disable=SC2188
+	{ >&"$1"; } 2>/dev/null
+}
+
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd() {
@@ -5919,13 +5972,6 @@ L_pipe() {
 	return 1
 }
 
-# @description Check if file descriptor is open.
-# @arg $1 file descriptor
-L_is_fd_open() {
-	# shellcheck disable=SC2188
-	{ >&"$1"; } 2>/dev/null
-}
-
 _L_proc_init_setup_redir() {
 	local redir="$1" mode="$2" val="${!3}" ret="" fd=()
 	if [[ -n "$mode" ]]; then
@@ -5963,26 +6009,27 @@ _L_proc_init_setup_redir() {
 	printf -v "$3" "%s" "$ret"
 }
 
-# @description The gold old popen. Coproc replacement.
+# @description
+# Process open. Coproc replacement.
 # The options are in three groups:
-#  -I and -i for stdin,
-#  -O and -o fr stdout,
-#  -E and -e for stderr.
+#   -I and -i for stdin,
+#   -O and -o fr stdout,
+#   -E and -e for stderr.
 # Uppercase letter option specifies the mode for the file descriptor.
 # There are following modes available that you can give to -I -O and -E:
-#  - input - -i specifies the string to forward to stdin. Only allowed for -I.
-#  - stdout - connect file descriptor to stdout. -o or -e value are ignored.
-#  - stderr - connect file descriptor to stderr. -o or -e value are ignored.
-#  - pipe - create a fifo and connect file descriptor to it. -i -o or -e option specifies part of the temporary filename.
-#  - file - connect file descriptor to file specified by -i -o or -e option
-#  - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
+#   - input - -i specifies the string to forward to stdin. Only allowed for -I.
+#   - stdout - connect file descriptor to stdout. -o or -e value are ignored.
+#   - stderr - connect file descriptor to stderr. -o or -e value are ignored.
+#   - pipe - create a fifo and connect file descriptor to it. -i -o or -e option specifies part of the temporary filename.
+#   - file - connect file descriptor to file specified by -i -o or -e option
+#   - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
 # The first argument specifies an output variable that will be assigned as an array with the following indexes:
-#  - [0] - if -Ipipe will store the file descriptor connected to stdin of the program, otherwise empty.
-#  - [1] - if -Opipe will store the file descriptor connected to stdout of the program, otherwise empty.
-#  - [2] - if -Epipe will store the file descriptor connected to stderr of the program, otherwise empty.
-#  - [3] - stores the pid of the program.
-#  - [4] - stores the generated command.
-#  - [5] - stores exitcode.
+#   - [0] - if -Ipipe will store the file descriptor connected to stdin of the program, otherwise empty.
+#   - [1] - if -Opipe will store the file descriptor connected to stdout of the program, otherwise empty.
+#   - [2] - if -Epipe will store the file descriptor connected to stderr of the program, otherwise empty.
+#   - [3] - stores the pid of the program.
+#   - [4] - stores the generated command.
+#   - [5] - stores exitcode.
 # You can use getters L_proc_get_* to extract the data from array elements.
 #
 # @option -I <str> stdin mode
@@ -6003,7 +6050,7 @@ _L_proc_init_setup_redir() {
 #   echo "$line"
 #   echo "$exitcode"
 L_proc_popen() {
-	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTERR OPTARG _L_cmd _L_toclose=() _L_dryrun=0 _L_i _L_addpipe=()
+	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTARG OPTERR _L_cmd _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=()
 	# Parse arguments.
 	while getopts "i:I:o:O:e:E:p:n" _L_opt; do
 		case "$_L_opt" in
@@ -6087,6 +6134,7 @@ L_proc_read() {
 # @arg $@ any builtin read options
 # @see L_proc_read
 L_proc_read_stderr() {
+	local -;set -x
 	local L_v
 	L_proc_get_stderr_v "$1"
 	read -r -u "$L_v" "${@:2}"
@@ -6187,10 +6235,11 @@ L_proc_wait() {
 	fi
 	L_proc_get_exitcode_v "$1"
 	if [[ -z "$L_v" ]]; then
+		L_proc_get_pid_v "$1"
 		{
 			# evaluate timeout
 			if [[ -n "$_L_timeout" ]] && L_hash waitpid; then
-				L_exit_to _L_ret waitpid -t "$_L_timeout" "$L_v"
+				L_exit_to _L_ret waitpid -e -t "$_L_timeout" "$L_v"
 				case "$_L_ret" in
 				0) _L_timeout="" ;; # pid finished
 				3) return 1 ;; # timeout expired
@@ -6204,16 +6253,15 @@ L_proc_wait() {
 				esac
 			fi
 			if [[ -n "$_L_timeout" ]]; then
-				_L_ret=$SECONDS
+				_L_timeout=$((SECONDS + _L_timeout))
 				while kill -0 "$L_v" 2>/dev/null; do
-					if ((SECONDS >= _L_ret + _L_timeout)); then
+					if ((SECONDS >= _L_timeout)); then
 						return 1
 					fi
-					sleep 0.5
+					sleep 0.1
 				done
 			fi
 		}
-		L_proc_get_pid_v "$1"
 		wait "$L_v" && L_v=$? || L_v=$?
 		L_array_set "$1" 5 "$L_v"
 	fi
@@ -6232,8 +6280,8 @@ L_proc_wait() {
 # @arg $1 L_proc variable
 # @exitcode 0 if communication was successful
 L_proc_communicate() {
-	local _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
-	while getopts "i:o:e:t:kv" _L_opt; do
+	local OPTIND OPTARG OPTERR _L_tmp _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
+	while getopts "i:o:e:t:kv:" _L_opt; do
 		case "$_L_opt" in
 		i) _L_input="$OPTARG" ;;
 		o) _L_output="$OPTARG" ;;
@@ -6249,12 +6297,16 @@ L_proc_communicate() {
 		L_proc_printf "$1" "%s" "$_L_input"
 	fi
 	L_proc_close_stdin "$1"
-	if [[ -n "$_L_stdout" ]]; then
-		L_proc_read "$1" -d '' ${_L_timeout:+-t"$_L_timeout"} "$_L_output" || return 128
+	if [[ -n "$_L_output" ]]; then
+		L_proc_get_stdout_v "$1"
+		_L_tmp=$(${_L_timeout:+timeout} ${_L_timeout:+"$_L_timeout"} cat <&"$L_v")
+		printf -v "$_L_output" "%s" "$_L_tmp"
 	fi
 	L_proc_close_stdout "$1"
-	if [[ -n "$_L_stderr" ]]; then
-		L_proc_read_stderr "$1" -d '' ${_L_timeout:+-t"$_L_timeout"} "$_L_error" || return 129
+	if [[ -n "$_L_error" ]]; then
+		L_proc_get_stderr_v "$1"
+		_L_tmp=$(${_L_timeout:+timeout} ${_L_timeout:+"$_L_timeout"} cat <&"$L_v")
+		printf -v "$_L_error" "%s" "$_L_tmp"
 	fi
 	L_proc_close_stderr "$1"
 	if ((_L_kill)); then
@@ -6481,7 +6533,7 @@ _L_lib_main_cmd() {
 }
 
 _L_lib_main() {
-	local _L_mode="" _L_sourced=0 OPTARG OPTIND OPTERR _L_opt _L_init=1
+	local _L_mode="" _L_sourced=0 OPTIND OPTARG OPTERR _L_opt _L_init=1
 	while getopts nsLh-: _L_opt; do
 		case $_L_opt in
 		n) _L_init=0 ;;

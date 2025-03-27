@@ -1925,9 +1925,65 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		declare a pid cmd exitcode
+		L_proc_popen proc bash -c 'sleep 0.5; exit 123'
+		while L_proc_poll proc; do
+			sleep 0.1
+		done
+		L_proc_get_exitcode -v exitcode proc
+		L_unittest_vareq exitcode 123
+	}
+	{
+		declare proc tmp exitcode
+		L_proc_popen proc bash -c 'sleep 1.5; exit 123'
+		L_exit_to tmp L_proc_wait -t 1 -v exitcode proc
+		L_unittest_vareq tmp 1
+		L_exit_to tmp L_proc_wait -t 1 -v exitcode proc
+		L_unittest_vareq tmp 0
+		L_unittest_vareq exitcode 123
+	}
+	{
+		declare a pid cmd exitcode
+		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
+		L_proc_get_stdin -v a proc
+		L_proc_get_stdout -v a proc
+		L_proc_get_stderr -v a proc
+		L_proc_get_pid -v pid proc
+		L_proc_get_cmd -v cmd proc
+		L_proc_get_exitcode -v exitcode proc
+		L_proc_printf proc "%s\n" "Hello world"
+		L_proc_close_stdin proc
+		L_proc_read proc line
+		L_proc_wait -c -v exitcode proc
+		L_unittest_vareq line "Hello World"
+		L_unittest_vareq exitcode 0
+	}
+	{
+		declare stdout stderr proc
+		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]" >&1; exit 101'
+		L_proc_read proc line
+		L_unittest_vareq line stdout
+		L_proc_communicate -i "input" -o stdout -e stderr -t 1 -v exitcode proc
+		L_unittest_vareq stdout "INPUT"
+		L_unittest_vareq stderr "stderr"
+		L_unittest_vareq exitcode 101
+	}
+	{
 		local leftovers=(/tmp/L_*)
 		L_unittest_arreq leftovers "/tmp/L_*"
 	}
+}
+
+_L_test_all_getopts_have_local_OPTIND_OPTARG_OPTERR() {
+	declare funcs1 funcs2 func tmp
+	L_list_functions_with_prefix -v funcs1 L_
+	L_list_functions_with_prefix -v funcs2 _L_
+	for func in "${funcs1[@]}" "${funcs2[@]}"; do
+		tmp=$(declare -f "$func")
+		if [[ "$tmp" == *"while getopts"* ]]; then
+			L_unittest_cmd L_regex_match "$tmp" "local.*OPTIND OPTARG OPTERR"
+		fi
+	done
 }
 
 . "$(dirname "$0")"/../bin/L_lib.sh test "$@"
