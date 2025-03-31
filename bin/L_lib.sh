@@ -319,7 +319,7 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # @description check if bash has specific feature
 
 # shellcheck disable=SC2004
-# note: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
+# NOTE: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
 L_BASH_VERSION=$((BASH_VERSINFO[0] << 16 | BASH_VERSINFO[1] << 8 | BASH_VERSINFO[2]))
 L_HAS_BASH5_3=$((    L_BASH_VERSION >= 0x050300))
 L_HAS_BASH5_2=$((    L_BASH_VERSION >= 0x050200))
@@ -974,7 +974,6 @@ EOF
 }
 
 # @description Output a string with the same quotating style as does bash in set -x
-
 # @option -v <var> variable to set
 # @arg $@ arguments to quote
 L_quote_setx() { L_handle_v "$@"; }
@@ -1414,7 +1413,7 @@ L_float_cmp() {
 }
 
 # shellcheck disable=SC2059
-# @descripriont print a string with percent format
+# @description print a string with percent format
 # A simple implementation of percent formatting in bash using regex and printf.
 # @arg $1 format string
 # @arg $@ arguments
@@ -5904,6 +5903,12 @@ L_argparse() {
 		if ((_L_in_complete)); then
 			exit
 		fi
+	}
+	{
+		# If L_argparse finished, dissallow nesting. Explicitly unset parent(!) scope _L_parseri.
+		# The variables are still set, as we can be "inside" a function chain.
+		# main -> L_argparse -> somefunction() { L_argparse; <here should be no nesting> }
+		unset _L_parseri
 	}
 }
 
