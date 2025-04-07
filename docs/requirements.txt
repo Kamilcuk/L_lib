@@ -1,0 +1,4 @@
+mkdocs
+mkdocstrings-sh
+mkdocs-section-index
+mkdocs-material

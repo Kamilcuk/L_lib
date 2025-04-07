@@ -1,0 +1,124 @@
+---
+site_name: "L_lib.sh"
+site_url: "https://kamilcuk.github.io/L_lib.sh"
+repo_url: "https://github.com/kamilcuk/L_lib.sh"
+repo_name: "kamilcuk/L_lib.sh"
+watch: [mkdocs.yml, README.md, bin]
+copyright: Copyright &copy; 2025 Kamil Cukrowski
+edit_uri: edit/main/docs/
+
+nav:
+  - Overview:
+      - Index: index.md
+      - Bash expansions: expansions.md
+  - Documentation:
+      - L_color: section/L_color.md
+      - L_ansi: section/L_ansi.md
+      - L_has: section/L_has.md
+      - basic: section/basic.md
+      - Lists: section/lists.md
+      - Utilities: section/utilities.md
+      - L_trap: section/L_trap.md
+      - L_log: section/L_log.md
+      - L_argparse: section/L_argparse.md
+      - L_unittest: section/L_unittest.md
+      - all: section/L_lib.md
+
+theme:
+  name: material
+  features:
+  - announce.dismiss
+  - content.action.edit
+  - content.action.view
+  - content.code.annotate
+  - content.code.copy
+  - content.tooltips
+  - navigation.footer
+  - navigation.instant.preview
+  - navigation.path
+  - navigation.sections
+  - navigation.tabs
+  - navigation.tabs.sticky
+  - navigation.top
+  - search.highlight
+  - search.suggest
+  - toc.follow
+  palette:
+  - media: "(prefers-color-scheme)"
+    toggle:
+      icon: material/brightness-auto
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    primary: teal
+    accent: purple
+    toggle:
+      icon: material/weather-sunny
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    primary: black
+    accent: lime
+    toggle:
+      icon: material/weather-night
+      name: Switch to system preference
+
+markdown_extensions:
+- attr_list
+- admonition
+# - callouts
+- footnotes
+- pymdownx.blocks.admonition
+- pymdownx.blocks.tab:
+    alternate_style: true
+    slugify: !!python/object/apply:pymdownx.slugs.slugify
+      kwds:
+        case: lower
+- pymdownx.emoji:
+    emoji_index: !!python/name:material.extensions.emoji.twemoji
+    emoji_generator: !!python/name:material.extensions.emoji.to_svg
+- pymdownx.magiclink
+- pymdownx.snippets:
+    base_path: [!relative $config_dir]
+    check_paths: true
+- pymdownx.superfences
+- pymdownx.tabbed:
+    alternate_style: true
+    slugify: !!python/object/apply:pymdownx.slugs.slugify
+      kwds:
+        case: lower
+- pymdownx.tasklist:
+    custom_checkbox: true
+- toc:
+    permalink: true
+
+
+plugins:
+- search
+- autorefs
+# - markdown-exec
+- section-index
+- mkdocstrings:
+    default_handler: sh
+    handlers:
+      sh:
+        options:
+          includeregex: "^L_.*"
+          source_url: "https://github.com/Kamilcuk/L_lib/blob/main/{file}#L{line}"
+
+extra:
+  social:
+  - icon: fontawesome/brands/github
+    link: https://github.com/kamilcuk
+  analytics:
+    feedback:
+      title: Was this page helpful?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: This page was helpful
+          data: 1
+          note: Thanks for your feedback!
+        - icon: material/emoticon-sad-outline
+          name: This page could be improved
+          data: 0
+          note: Let us know how we can improve this page.

@@ -21,14 +21,14 @@
 
 # Globals [[[
 # @section globals
-#@description some global variables
+# @description some global variables
 
-# @description version of the library
+# @description Version of the library
 L_LIB_VERSION=0.1.8
-# @description The basename part of $0
+# @description The basename part of $0.
 L_NAME=${0##*/}
 if [[ "$0" == */* ]]; then
-# @description The directory part of $0
+# @description The directory part of $0.
 L_DIR=${0%/*}
 else
 	L_DIR=$PWD
@@ -37,12 +37,9 @@ fi
 # ]]]
 # Colors [[[
 # @section colors
-# @description colors to use
-# Use the `L_*` colors for colored output.
-# Use L_RESET or L_COLORRESET  to reset to defaults.
-# Use L_color_detect to detect if the terimnla is supposed to support colors.
-# @example:
-#    echo "$L_RED""hello world""$L_RESET"
+# @description Variables storing xterm ANSI escape sequences for colors.
+# @example
+# echo "$L_RED""hello world""$L_RESET"
 
 # @description Text to be evaled to enable colors.
 _L_COLOR_SWITCH="
@@ -51,7 +48,8 @@ L_BOLD=$'\E[1m'
 L_BRIGHT=$'\E[1m'
 L_DIM=$'\E[2m'
 L_FAINT=$'\E[2m'
-# @description Italic font.
+L_ITALIC=$'\E[3m'
+# @description Standaout means italic font.
 L_STANDOUT=$'\E[3m'
 L_UNDERLINE=$'\E[4m'
 L_BLINK=$'\E[5m'
@@ -132,21 +130,21 @@ L_RESET=$'\E[m'
 
 "
 
-# @description
+# @description The L_ color variables are set to the ANSI escape sequences.
 # @noargs
 L_color_enable() {
 	eval "${_L_COLOR_SWITCH}"
 }
 
-# @description
+# @description The L_ color variables are set to empty strings.
 # @noargs
 L_color_disable() {
 	eval "${_L_COLOR_SWITCH//=/= #}"
 }
 
 # @description Detect if colors should be used on the terminal.
-# @exitcode 0 if colors should be used, nonzero otherwise
-# @arg [$1] file descriptor to check, default 1
+# @return 0 if colors should be used, nonzero otherwise
+# @arg [$1] file descriptor to check, default: 1
 # @see https://no-color.org/
 # @env TERM
 # @env NO_COLOR
@@ -715,7 +713,7 @@ L_isdigit() { [[ "$*" != *[^0-9]* ]]; }
 
 # @description Return 0 if argument could be a variable name
 # @arg $1 string to check
-L_is_valid_variable_name() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*$'; }
+L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
 # L_is_valid_variable_name() { [[ ${1:0:1} == [a-zA-Z_] && ( ${#1} == 1 || ${1:1} != *[^a-zA-Z0-9_]* ) ]]; }
 # L_is_valid_variable_name() { [[ $1 == [a-zA-Z_]*([a-zA-Z0-9_]) ]]; }
 
@@ -725,28 +723,22 @@ L_is_valid_variable_name() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*$'; }
 #	L_is_valid_variable_or_array_element aa           # true
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
 #	L_is_valid_variable_or_array_element 'arr[elem'   # false
-L_is_valid_variable_or_array_element() { L_regex_match "$1" '^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$'; }
+L_is_valid_variable_or_array_element() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$ ]]; }
 
 # @description Return 0 if the string characters is an integer
 # @arg $1 string to check
-L_is_integer() { L_regex_match "$1" '^[-+]?[0-9]+$'; }
+L_is_integer() { [[ "$1" =~ ^[-+]?[0-9]+$ ]]; }
 # L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} -gt 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
 # L_is_integer() { [[ $1 == ?([+-])+([0-9]) ]]; }
 
 # @description Return 0 if the string characters is a float
 # @arg $1 string to check
-L_is_float() { L_regex_match "$1" '^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$'; }
+L_is_float() { [[ "$1" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
 # L_is_float() { [[ "$*" == ?([+-])@(+([0-9])?(.)|*([0-9]).+([0-9])) ]]; }
 
 # @description Send signal to itself
 # @arg $1 signal to send, see kill -l
 L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
-
-
-# ]]]
-# uncategorized [[[
-# @section uncategorized
-# @description many functions without any particular grouping
 
 # @description newline
 L_NL=$'\n'
@@ -824,8 +816,9 @@ L_RBRACE='}'
 L_UUID=921c7f46-e0d8-4170-91e9-7055ee30d1e2
 # @description 255 bytes with all possible 255 values
 L_ALLCHARS=$'\001\002\003\004\005\006\007\010\011\012\013\014\015\016\017\020\021\022\023\024\025\026\027\030\031\032\033\034\035\036\037\040\041\042\043\044\045\046\047\050\051\052\053\054\055\056\057\060\061\062\063\064\065\066\067\070\071\072\073\074\075\076\077\100\101\102\103\104\105\106\107\110\111\112\113\114\115\116\117\120\121\122\123\124\125\126\127\130\131\132\133\134\135\136\137\140\141\142\143\144\145\146\147\150\151\152\153\154\155\156\157\160\161\162\163\164\165\166\167\170\171\172\173\174\175\176\177\200\201\202\203\204\205\206\207\210\211\212\213\214\215\216\217\220\221\222\223\224\225\226\227\230\231\232\233\234\235\236\237\240\241\242\243\244\245\246\247\250\251\252\253\254\255\256\257\260\261\262\263\264\265\266\267\270\271\272\273\274\275\276\277\300\301\302\303\304\305\306\307\310\311\312\313\314\315\316\317\320\321\322\323\324\325\326\327\330\331\332\333\334\335\336\337\340\341\342\343\344\345\346\347\350\351\352\353\354\355\356\357\360\361\362\363\364\365\366\367\370\371\372\373\374\375\376\377'
-
+# @description All lowercase characters a-z
 L_ASCII_LOWERCASE="abcdefghijklmnopqrstuvwxyz"
+# @description All uppercase characters A-Z
 L_ASCII_UPPERCASE="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 # @description wrapper function for handling -v arguments to other functions
@@ -1245,7 +1238,7 @@ L_basename_v() { L_v=${*##*/}; }
 # @option -v <var> var
 # @arg $1 path
 L_dirname() { L_handle_v "$@"; }
-L_dirname_v() { L_v=${*%/*}; }
+L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
 
 # @description Produces a string properly quoted for JSON inclusion
 # Poor man's jq
@@ -1456,7 +1449,6 @@ L_fstring() {
 	printf "$_L_fmt" ${_L_args[@]+"${_L_args[@]}"}
 }
 
-
 # ]]]
 # Lists [[[
 # @section Lists
@@ -1465,6 +1457,7 @@ L_fstring() {
 # @description Get array length.
 # @option -v <var> Output variable
 # @arg $1 <var array nameref
+# @example L_array_len arr
 L_array_len() { L_handle_v "$@"; }
 
 if ((L_HAS_NAMEREF)); then
@@ -1474,23 +1467,28 @@ L_array_len_v() { local -n _L_arr="$1"; L_v=${#_L_arr[@]}; }
 # @description Set elements of array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to set
+# @example L_array_assign arr 1 2 3
 L_array_assign() { local -n _L_arr="$1"; _L_arr=("${@:2}"); }
 
 # @description Assign element of an array
 # @arg $1 <var> array nameref
 # @arg $2 <int> array index
 # @arg $3 <str> value to assign
+# @example L_array_assign arr 5 "Hello"
 L_array_set() { local -n _L_arr="$1"; _L_arr["$2"]="$3"; }
 
 # @description Append elements to array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to append
+# @example L_array_append arr "Hello" "World"
 L_array_append() { local -n _L_arr="$1"; _L_arr+=("${@:2}"); }
 
 # @description Insert element at specific position in an array.
+# This will move all elements from the position to the end of the array.
 # @arg $1 <var> array nameref
 # @arg $2 <int> index position
 # @arg $@ elements to append
+# @example L_array_insert arr 2 "Hello" "World"
 L_array_insert() { local -n _L_arr="$1"; _L_arr=(${_L_arr[@]+"${_L_arr[@]::$2}"} "${@:3}" ${_L_arr[@]+"${_L_arr[@]:$2}"}); }
 
 # @description Remove first array element.
@@ -1499,10 +1497,12 @@ L_array_pop_front() { local -n _L_arr="$1"; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"
 
 # @description Remove last array element.
 # @arg $1 <var> array nameref
+# @example L_array_pop_back arr
 L_array_pop_back() { local -n _L_arr="$1"; unset "_L_arr[${#_L_arr[@]}-1]"; }
 
 # @description Return success, if all array elements are in sequence from 0.
 # @arg $1 <var> array nameref
+# @example if L_array_is_dense arr; then echo "Array is dense"; fi
 L_array_is_dense() {
 	local -n _L_arr="$1"
 	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
@@ -1531,15 +1531,22 @@ fi  # L_HAS_NAMEREF
 # @description Append elements to the front of the array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to append
+# @example L_array_prepend arr "Hello" "World"
 L_array_prepend() { L_array_insert "$1" 0 "${@:2}"; }
 
 # @description Clear an array.
 # @arg $1 <var> array nameref
+# @example L_array_clear arr
 L_array_clear() { L_array_assign "$1"; }
 
 # @description Assign array elements to variables in order.
 # @arg $1 <var> array nameref
 # @arg $@ variables to assign to
+# @example
+#   arr=("Hello" "World")
+#   L_array_extract arr var1 var2
+#   echo "$var1"  # prints Hello
+#   echo "$var2"  # prints World
 L_array_extract() {
 	local _L_v _L_i=0 _L_r
 	for _L_v in "${@:2}"; do
@@ -1550,6 +1557,10 @@ L_array_extract() {
 
 # @description Reverse elements in an array.
 # @arg $1 <var> array nameref
+# @example
+# 	arr=("world" "Hello")
+# 	L_array_reverse arr
+# 	echo "${arr[@]}"  # prints Hello world
 L_array_reverse() {
 	# eval is the fastest, see scripts/array_reverse_test.sh
 	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
@@ -1559,11 +1570,12 @@ L_array_reverse() {
 	fi
 }
 
-# @description wrapper for readarray for bash versions that do not have it
-# @option -d <str> separator to use
+# @description Wrapper for readarray for bash versions that do not have it.
+# @option -d <str> separator to use, default: newline
 # @option -u <fd> file descriptor to read from
 # @option -s <int> skip first n lines
 # @arg $1 <var> array nameref
+# @example L_array_read arr <file
 L_array_read() {
 	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
 	while getopts d:u:s _L_c; do
@@ -1594,11 +1606,15 @@ L_array_read() {
 	fi
 }
 
-# @description pipe an array to a command and then read back
-# @option -z use null byte as separator
-# @arg $1 <var> array nameref
-# @arg $@ <cmd> command to pipe to
+# @description Pipe an array to a command and then read back into an array.
+# @option -z Use null byte as separator instead of newline.
+# @arg $1 array nameref
+# @arg $@ command to pipe to
 # shellcheck disable=SC2059
+# @example
+#   arr=("Hello" "World")
+#   L_array_pipe arr tr '[:upper:]' '[:lower:]'
+#   echo "${arr[@]}"  # prints hello world
 L_array_pipe() {
 	if [[ "$1" == -z ]]; then
 		local _L_i=0 _L_arr="$2" _L_arrpnt="${2}[@]"
@@ -1628,6 +1644,10 @@ L_array_pipe() {
 # @description check if array variable contains value
 # @arg $1 array nameref
 # @arg $2 needle
+# @example
+#   arr=("Hello" "World")
+#   L_array_contains arr "Hello"
+#   echo $?  # prints 0
 L_array_contains() {
 	local _L_arr="$1[@]"
 	L_args_contain "$2" ${!_L_arr:+"${!_L_arr}"}
@@ -1636,6 +1656,10 @@ L_array_contains() {
 # @description Remove elements from array for which expression evaluates to failure.
 # @arg $1 array nameref
 # @arg $2 expression to `eval`uate with array element of index L_i and value $1
+# @example
+#  arr=("Hello" "World")
+#  L_array_filter_eval arr '[[ "$1" == "Hello" ]]'
+#  echo "${arr[@]}"  # prints Hello
 L_array_filter_eval() {
 	local L_i _L_array _L_expr _L_v
 	_L_v="$1[@]"
@@ -1655,6 +1679,10 @@ L_array_filter_eval() {
 # @arg $1 <var> array nameref
 # @arg $2 <str> string to join elements with
 # @see L_args_join
+# @example
+#   arr=("Hello" "World")
+#   L_array_join -v res arr ", "
+#   echo "$res"  # prints Hello, World
 L_array_join() { L_handle_v "$@"; }
 L_array_join_v() {
 	local _L_arr="$1[@]"
@@ -1665,6 +1693,10 @@ L_array_join_v() {
 # @option -v <var> Output variable
 # @arg $1 <str> separator
 # @arg $@ arguments to join
+# @see L_array_join
+# @example
+#   L_args_join -v res ", " "Hello" "World"
+#   echo "$res"  # prints Hello, World
 L_args_join() { L_handle_v "$@"; }
 L_args_join_v() {
 	printf -v L_v "${1//%/%%}%s" "${@:2}"
@@ -1691,7 +1723,7 @@ L_args_andjoin_v() {
 	1) L_v=$1 ;;
 	*)
 		printf -v L_v ", %s" "${@:1:$#-1}"
-		L_v="${L_v#, } and ${*:$#}"
+		L_v="${L_v#, }"" and ""${*:$#}"
 		;;
 	esac
 }
@@ -1699,6 +1731,9 @@ L_args_andjoin_v() {
 # @description check if arguments starting from second contain the first argument
 # @arg $1 needle
 # @arg $@ heystack
+# @example
+#   L_args_contain "Hello" "Hello" "World"
+#   echo $?  # prints 0
 L_args_contain() {
 	local IFS=$'\x1D' i
 	if [[ "${*//"$IFS"}" == "$*" ]]; then
@@ -1717,6 +1752,9 @@ L_args_contain() {
 # @option -v <var>
 # @arg $1 needle
 # @arg $@ heystack
+# @example
+#   L_args_index -v res "World" "Hello" "World"
+#   echo "$res"  # prints 1
 L_args_index() { L_handle_v "$@"; }
 L_args_index_v() {
 	local _L_needle=$1 _L_start=$#
@@ -1780,7 +1818,7 @@ L_min_v() {
 # @option -R <list[int]> Right align columns with these indexes
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
-#     L_table -R1-2 "name1 name2 name3" "a b c" "d e f"
+#     $ L_table -R1-2 "name1 name2 name3" "a b c" "d e f"
 #     name1 name2 name3
 #         a     b c
 #         d     e f

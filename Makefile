@@ -108,28 +108,13 @@ run-%:
 4.0run: run-4.0
 3.2run: run-3.2
 
-shdoc:
-	if [[ ! -e shdoc ]]; then git clone https://github.com/kamilcuk/shdoc.git; fi
-doc: shdoc
-	rm -vf public/index.md public/index.html
-	docker buildx build --pull --target doc --output type=local,dest=public .
-	$(MAKE) doctest
-	@echo SUCCESS doc
-doctest:
-	grep -qw L_LOGLEVEL_CRITICAL public/index.md
-	grep -qw L_dryrun public/index.md
-	grep -qw _L_logconf_level public/index.md
-	grep -qw L_sort public/index.md
-	grep -qw L_log_level_to_int public/index.md
-	grep -qw L_asa_set public/index.md
-	grep -qw L_asa_dump public/index.md
-	ls -la public
-	test $$(find public -type f | wc -l) = 2
-docopen: doc
-	xdg-open "file://$$(readlink -f public/index.html)#l_asa_get"
-md: shdoc
-	rm -f public/index.md
-	docker build --target md --output public .
-md_open:
-	xdg-open public/index.md
-.PHONY: test shellcheck shdoc doc docopen md md_open
+.PHONY: docs_build docs_serve
+_docs:
+	uvx --with-requirements=./docs/requirements.txt mkdocs $(WHAT)
+docs_build: WHAT = build
+docs_buils: _docs
+docs_serve: WHAT = serve
+docs_serve: _docs
+docs_serve2:
+	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve
+
