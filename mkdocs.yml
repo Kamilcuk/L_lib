@@ -104,6 +104,7 @@ plugins:
       sh:
         options:
           includeregex: "^L_.*"
+          excluderegex: "^_L_.*$"
           source_url: "https://github.com/Kamilcuk/L_lib/blob/main/{file}#L{line}"
 
 extra:
