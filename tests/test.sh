@@ -1505,7 +1505,7 @@ _L_test_z_argparse1() {
 	}
 	{
 		L_log "usage"
-		L_unittest_cmd -I -- L_argparse prog=prog -- bar nargs=3 help="This is a bar argument" ---- --help
+		L_unittest_cmd -N -- L_argparse prog=prog -- bar nargs=3 help="This is a bar argument" ---- --help
 	}
 	{
 		L_log "required"
@@ -1820,7 +1820,7 @@ _L_test_z_argparse4() {
 		L_unittest_cmd -r filenames -- L_argparse -- --asome -- dest complete=filenames nargs=3 ---- --L_argparse_get_completion -a b c
 		L_unittest_cmd -r filenames -- L_argparse -- --asome -- dest complete=filenames nargs="?" ---- --L_argparse_get_completion -a b
 		L_unittest_cmd -r filenames -- L_argparse -- --asome -- dest complete=filenames nargs="?" ---- --L_argparse_get_completion --ignoreme b
-		L_unittest_cmd -I ! L_argparse -- --asome nargs="**"
+		L_unittest_cmd -f L_argparse -- --asome nargs="**"
 	}
 	{
 		L_argparse -- --foo action=store_true -- arg nargs="*" ---- a b c

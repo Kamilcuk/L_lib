@@ -2739,6 +2739,7 @@ L_shuf_bash() {
 }
 
 # @description Shuffle an array using shuf command
+# @option -z --zero-terminated use zero separated stream with shuf -z
 # @arg $* any options are forwarded to shuf command
 # @arg $-1 array nameref
 L_shuf_cmd() {
@@ -2752,7 +2753,11 @@ L_shuf_cmd() {
 # @description Shuffle an array
 # @arg $1 array nameref
 L_shuf() {
-	L_shuf_cmd "$@"
+	if L_hash shuf; then
+		L_shuf_cmd "$@"
+	else
+		L_shuf_bash "$@"
+	fi
 }
 
 # shellcheck disable=SC2030,SC2031,SC2035
@@ -2795,8 +2800,7 @@ _L_sort_compare() { [[ "$1" > "$2" ]]; }
 # @description default numeric compare function
 _L_sort_compare_numeric() { (( $1 > $2 )); }
 
-# @description quicksort an array in place in pure bash
-# Is faster then sort and redirection.
+# @description Quicksort an array in place in pure bash.
 # @see L_sort
 # @option -z ignored. Always zero sorting
 # @option -n numeric sort, otherwise lexical
@@ -2829,6 +2833,10 @@ L_sort_bash() {
 }
 
 # @description Sort an array using sort command.
+# Even in most optimized code that I could write for bash sorting,
+# still executing sort command is faster.
+# The difference becomes significant for large arrays.
+# Sorting 100 element array with bash is 0.049s and with sort is 0.022s.
 # @option -z --zero-terminated use zero separated stream with sort -z
 # @option -n numeric sort
 # @arg $* any options are forwarded to sort command
@@ -2846,10 +2854,8 @@ L_sort_cmd() {
 }
 
 # @description Sort a bash array.
-# Even in most optimized code that I could write for bash sorting,
-# still executing sort command is faster.
-# The difference becomes significant for large arrays.
-# Sorting 100 element array with bash is 0.049s and with sort is 0.022s.
+# If sort command exists, use L_sort_cmd, otherwise use L_sort_bash.
+# If you have a custom sorter, use L_sort_bash, otherwise prefer L_sort_cmd for speed.
 # @option -z Use zero separated stream with sort -z
 # @option -n numeric sort
 # @option -r reverse sort
@@ -2969,6 +2975,7 @@ L_trap_err() {
 }
 
 # @description Enable ERR trap with L_trap_err as callback
+# set -eEo functrace and register trap 'L_trap_err $?' ERR.
 # @example
 #  L_trap_err_enable
 L_trap_err_enable() {
@@ -3107,11 +3114,11 @@ L_trap_pop() {
 # @example
 #    L_unittest_eq 1 1
 
-# @description accumulator for unittests failures
+# @description Integer that increases with every failed test.
 : "${L_unittest_fails:=0}"
-# @description set to 1 to exit immediately when a test fails
+# @description Set this variable to 1 to exit immediately when a test fails.
 : "${L_unittest_exit_on_error:=0}"
-# @description set to 1 to disable set -x inside L_unittest functions, set to 0 to dont
+# @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
 : "${L_unittest_unset_x:=$L_HAS_LOCAL_DASH}"
 
 # @description internal unittest function
@@ -3156,7 +3163,8 @@ _L_unittest_internal() {
 	fi
 } >&2
 
-# @description execute all functions starting with prefix
+# @description
+# Get all functions that start with a prefix specified with -P and execute them one by one.
 # @option -h help
 # @option -P <prefix> Get functions with this prefix to test
 # @option -r <regex> filter tests with regex
@@ -3209,16 +3217,9 @@ EOF
 	fi
 }
 
-# @description Test is eval of a string return success.
-# @arg $1 string to eval-ulate
-# @arg $@ error message
-L_unittest_eval() {
-	_L_unittest_internal "test eval ${1}" "${*:2}" eval "$1" || :
-}
-
 # shellcheck disable=SC2035
-# @description Check if command exits with specified exitcode
-# @arg $1 exit code
+# @description Check if command exits with specified exitcode.
+# @arg $1 <int> exit code the command should exit with
 # @arg $@ command to execute
 L_unittest_checkexit() {
 	local _L_ret=0 _L_shouldbe _L_invert=0
@@ -3259,24 +3260,28 @@ _L_unittest_cmd_exit_trap() {
 	exit 1
 }
 
-_L_unittest_cmd_coproc() {
-	mapfile -t -d '' _L_very_unique_name
-	printf "%s" "${_L_very_unique_name[@]}"
-}
-
-# @description Test execution of a command and its output.
-# Local variables start with _L_u*. Options with _L_uopt_*.
-# @option -c Run in current execution environment shell using coproc, instead of subshell
-# @option -i Invert exit status. You can also use `!` in front of the command.
-# @option -I Redirect stdout and stderr of the command to /dev/null
-# @option -j Redirect stderr to stdout of the command.
+# @description Test execution of a command and capture and test it's stdout and/or stderr output.
+# Local variables used by this function start with _L_u*. Options with _L_uopt_*.
+# This function optionally runs the command in the current shell or not depending on options.
+# @option -h Print this help and exit.
+# @option -c Run in current execution environment, instead of using a subshell.
+# @option -i Invert exit status. You can also use `!` or `L_not` in front of the command.
+# @option -I Do not close stdin <&1 . By default it is closed.
+# @option -f Expect the command to fail. Equal to -ijN.
+# @option -N Redirect stdout of the command to >/dev/null.
+# @option -j Redirect stderr to stdout of the command. 2>&1
 # @option -x Run the command inside set -x
 # @option -X Do not modify set -x
-# @option -v <str> Capture stdout and stderr into this variable.
-# @option -r <regex> Compare output with this regex
-# @option -o <str> Compare output with this string
+# @option -v <var> Capture stdout of the command into this variable. Use -j to capture also stderr.
+# @option -r <regex> Compare output of the command with this regex.
+# @option -o <str> Compare output of the command with this string.
 # @option -e <int> Command should exit with this exit status (default: 0)
-# @arg $@ command to execute. Can start with `!`.
+# @arg $@ Command to execute.
+# If a command starts with `!`, this implies -i and, if one of -v -r -o option is used, it implies -j.
+# @example
+#   echo Hello world /tmp/1
+#   L_unittest_cmd -r 'world' grep world /tmp/1
+#   L_unittest_cmd -r 'No such file or directory' ! grep something not_existing_file
 L_unittest_cmd() {
 	if ((L_unittest_unset_x)) && [[ $- = *x* ]]; then
 		local -
@@ -3285,13 +3290,16 @@ L_unittest_cmd() {
 	else
 		local _L_uopt_setx=0
 	fi
-	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0
-	while getopts ciIjxXv:r:o:e: _L_uc; do
+	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0 _L_uopt_closestdin=1
+	while getopts hcifINjxXv:r:o:e: _L_uc; do
 		case $_L_uc in
+		h) sed '/^$/,/^L_unittest_cmd()$/!d' "${BASH_SOURCE[0]}"; exit 0 ;;
 		c) _L_uopt_curenv=1 ;;
 		i) _L_uopt_invert=1 ;;
-		I) _L_uopt_capture=1 ;;
-		j) _L_uopt_capture=1 _L_uopt_stdjoin=1 ;;
+		f) _L_uopt_invert=1 _L_uopt_devnull=1 _L_uopt_stdjoin=1 ;;
+		I) _L_uopt_closestdin=0 ;;
+		N) _L_uopt_devnull=1 ;;
+		j) _L_uopt_stdjoin=1 ;;
 		x) _L_uopt_setx=1 ;;
 		X) _L_uopt_setx=0 ;;
 		v) _L_uopt_capture=1 _L_uopt_v=$OPTARG ;;
@@ -3314,58 +3322,50 @@ L_unittest_cmd() {
 		set -- L_setx "$@"
 	fi
 	#
+	printf -v _L_uc " %q" "$@"
+	if ((_L_uopt_closestdin)); then
+		printf -v _L_uc "%s <&-" "$_L_uc"
+	fi
+	if ((_L_uopt_devnull)); then
+		printf -v _L_uc "%s >/dev/null" "$_L_uc"
+	fi
+	if ((_L_uopt_stdjoin)); then
+		printf -v _L_uc "%s 2>&1" "$_L_uc"
+	fi
+	#
 	if ((_L_uopt_curenv)); then
 		L_trap_push '_L_unittest_cmd_exit_trap $?' EXIT
 		# shellcheck disable=2030,2093,1083
 		if ((_L_uopt_capture)); then
-			if ((0)); then
-				# Use coproc
-				coproc _L_unittest_cmd_coproc
-				if ((_L_uopt_stdjoin)); then
-					"$@" >&"${COPROC[1]}" 2>&1 || _L_uret=$?
-				else
-					"$@" >&"${COPROC[1]}" || _L_uret=$?
-				fi
-				exec {COPROC[1]}>&-
-				_L_out=$(cat <&"${COPROC[0]}")
-				exec {COPROC[0]}>&-
-				wait "$COPROC_PID"
-			else
-				# Use temporary file
-				local _L_utmpf
-				_L_utmpf=$(mktemp)
-				# shellcheck disable=SC2094
+			# Use temporary file
+			local _L_utmpf
+			_L_utmpf=$(mktemp)
+			# No trap EXIT - literally next command removes the file.
+			# shellcheck disable=SC2094
+			{
 				{
-					{
-						rm "$_L_utmpf"
-						if ((_L_uopt_stdjoin)); then
-							"$@" 2>&1 || _L_uret=$?
-						else
-							"$@" || _L_uret=$?
-						fi
-					} >"$_L_utmpf" 111<&-
-					_L_uout=$(cat <&111)
-				} 111<"$_L_utmpf"
-			fi
+					rm "$_L_utmpf"
+					eval "$_L_uc" || _L_uret=$?
+				} >"$_L_utmpf" 111<&-
+				_L_uout=$(cat <&111)
+			} 111<"$_L_utmpf"
 		else
-			"$@" || _L_uret=$?
+			eval "$_L_uc" || _L_uret=$?
 		fi
 		L_trap_pop EXIT
-	else
+	else  # _L_uopt_curenv
+		printf -v _L_uc "trap - ERR; %s" "$_L_uc"
 		if ((_L_uopt_capture)); then
-			if ((_L_uopt_stdjoin)); then
-				_L_uout=$(trap - ERR; "$@" 2>&1) || _L_uret=$?
-			else
-				_L_uout=$(trap - ERR; "$@") || _L_uret=$?
-			fi
+			_L_uout=$( eval "$_L_uc" ) || _L_uret=$?
 		else
-			( trap - ERR; "$@" ) || _L_uret=$?
+			( eval "$_L_uc" ) || _L_uret=$?
 		fi
-	fi
+	fi  # _L_uopt_curenv
 	#
 	# shellcheck disable=2035
 	# Invert exit code if !
-	if ((_L_uopt_invert ? _L_uret = !_L_uret, 1 : 0)); then
+	if ((_L_uopt_invert)); then
+		_L_uret=$(( !_L_uret ))
 		# For nice output
 		set -- "!" "$@"
 	fi
@@ -3383,29 +3383,11 @@ L_unittest_cmd() {
 		fi
 	fi
 	if [[ -n "$_L_uopt_v" ]]; then
-		eval "$_L_uopt_v=\$_L_uout"
-	fi
-} <&-
-
-# @description Check if the content of files is equal
-# @arg $1 first file
-# @arg $2 second file
-# @example L_unittest_cmpfiles <(testfunc $1) <(echo shluldbethis)
-L_unittest_cmpfiles() {
-	local op='='
-	if [[ "$1" = "!" ]]; then
-		op='!='
-		shift
-	fi
-	local a b
-	a=$(<"$1")
-	b=$(<"$2")
-	if ! _L_unittest_internal "test pipes${3:+ $3}" "${4:-}" [ "$a" "$op" "$b" ]; then
-		_L_unittest_showdiff "$a" "$b"
-		return 1
+		printf -v "$_L_uopt_v" "%s" "$_L_uout"
 	fi
 }
 
+# @description Use to present if two variables differ.
 _L_unittest_showdiff() {
 	L_assert "" test $# = 2
 	if L_hash diff; then
@@ -3419,7 +3401,7 @@ _L_unittest_showdiff() {
 	fi
 }
 
-# @description test if varaible has value
+# @description Test if a variable has specific value.
 # @arg $1 variable nameref
 # @arg $2 value
 L_unittest_vareq() {
@@ -3431,7 +3413,7 @@ L_unittest_vareq() {
 	fi
 }
 
-# @description test if two strings are equal
+# @description Test if two strings are equal.
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_eq() {
@@ -3443,7 +3425,7 @@ L_unittest_eq() {
 	fi
 }
 
-# @description test if array is equal to elements
+# @description Test if array is equal to elements.
 # @arg $1 array variable
 # @arg $@ values
 L_unittest_arreq() {
@@ -3473,7 +3455,7 @@ L_unittest_arreq() {
 	done
 }
 
-# @description test two strings are not equal
+# @description Test two strings are not equal.
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_ne() {
@@ -3497,7 +3479,7 @@ L_unittest_regex() {
 	fi
 }
 
-# @description test if a string contains other string
+# @description Test if a string contains other string.
 # @arg $1 string
 # @arg $2 needle
 L_unittest_contains() {
@@ -6623,7 +6605,6 @@ _L_lib_main() {
 		_L_pre=""
 		printf -v _L_pre "%s\n" "${!_L_@}"
 		L_trap_err_enable
-		trap 'L_trap_err $?' EXIT
 		_L_lib_run_tests "$@"
 		printf "%s\n" "${!_L_@}" | diff <(printf "%s" "$_L_pre") -
 		;;

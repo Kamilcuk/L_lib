@@ -18,10 +18,11 @@ nav:
       - basic: section/basic.md
       - Lists: section/lists.md
       - Utilities: section/utilities.md
+      - sort: section/sort.md
       - L_trap: section/L_trap.md
       - L_log: section/L_log.md
-      - L_argparse: section/L_argparse.md
       - L_unittest: section/L_unittest.md
+      - L_argparse: section/L_argparse.md
       - all: section/L_lib.md
 
 theme:
