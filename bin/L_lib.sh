@@ -406,8 +406,8 @@ L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2
 L_HAS_ARRAY=$L_HAS_BASH1_14_7
 
 # ]]]
-# basic [[[
-# @section basic
+# stdlib [[[
+# @section stdlib
 # @description Some base simple definitions for every occasion.
 
 L_assert_fail() {
@@ -1007,6 +1007,7 @@ L_quote_bin_printf() { L_handle_v "$@"; }
 L_quote_bin_printf_v() { L_v=$(exec printf " %q" "$@"); L_v=${L_v:1}; }
 
 # @description Convert a string to a number.
+# @option -v <var> variable to set
 L_strhash() { L_handle_v "$@"; }
 L_strhash_v() {
 	if L_hash cksum; then
@@ -1025,6 +1026,7 @@ L_strhash_v() {
 }
 
 # @description Convert a string to a number in pure bash.
+# @option -v <var> variable to set
 L_strhash_bash() { L_handle_v "$@"; }
 L_strhash_bash_v() {
 	local _L_c
@@ -1162,7 +1164,7 @@ L_rstrip_v() {
 
 
 # @description list functions with prefix
-# @option -v <var> var
+# @option -v <var> variable to set
 # @arg $1 prefix
 L_list_functions_with_prefix() { L_handle_v "$@"; }
 # shellcheck disable=SC2207
@@ -1257,6 +1259,7 @@ L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
 # Poor man's jq
 # @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
 # @see https://stackoverflow.com/a/27516892/9072753
+# @option -v <var> variable to set
 # @example
 #    L_json_escape -v tmp "some string"
 #    echo "{\"key\":$tmp}" | jq .
@@ -1327,7 +1330,6 @@ L_abbreviation_v() {
 			fi
 			shift
 		done
-		declare -p L_v
 	fi
 }
 
@@ -1421,51 +1423,69 @@ L_float_cmp() {
 # shellcheck disable=SC2059
 # @description print a string with percent format
 # A simple implementation of percent formatting in bash using regex and printf.
+# @option -v <var> Output variable
 # @arg $1 format string
 # @arg $@ arguments
 # @example
 #   name=John
 #   declare -A age=([John]=42)
 #   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
-L_percent_format() {
-	local _L_fmt=$1 _L_args=()
-	while L_regex_match "$_L_fmt" '^(.*[^%](%%)*)?%\(([^\)]+)\)(.*)$'; do
-		# declare -p BASH_REMATCH >&2
-		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]}"
-		if [[ -z "${BASH_REMATCH[3]+var}" ]]; then
-			printf "${FUNCNAME[0]}: Variable %s is not set.\n" "${BASH_REMATCH[2]}" >&2
+L_percent_format() { L_handle_v "$@"; }
+L_percent_format_v() {
+	local _L_fmt=$1 _L_args=("")
+	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
+		#                                    12     3            4   5         6                    7
+		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[7]}" ]
+		_L_fmt="${BASH_REMATCH[7]}"
+		if [[ -n "${BASH_REMATCH[1]}" ]]; then
+			_L_args[0]+="${BASH_REMATCH[1]}"
 		fi
-		_L_args=("${!BASH_REMATCH[3]:-}" ${_L_args[@]+"${_L_args[@]}"})
+		if [[ -n "${BASH_REMATCH[5]}" ]]; then
+			_L_args[0]+="%${BASH_REMATCH[6]}"
+			_L_args+=("${!BASH_REMATCH[5]}")
+		fi
 	done
-	printf "$_L_fmt" ${_L_args[@]+"${_L_args[@]}"}
+	printf -v L_v "${_L_args[@]}"
 }
 
 # shellcheck disable=SC2059
 # @description print a string with f-string format
 # A simple implementation of f-strings in bash using regex and printf.
+# @option -v <var> Output variable
 # @arg $1 format string
 # @example
 #  name=John
-#  age=21
-#  fstring 'Hello, {$name}! You are {$age:10s} years old.\n'
-L_fstring() {
-	local _L_fmt=$1 _L_args=() _L_tmp
-	_L_fmt="${_L_fmt//'{{'/$'\x01'}"
-	while L_regex_match "$_L_fmt" '^(.*[^\{])?\{([^:\}]+)(:([^\}]*))?\}(.*)$'; do
-		# declare -p BASH_REMATCH
-		_L_fmt="${BASH_REMATCH[1]}%${BASH_REMATCH[4]:-s}${BASH_REMATCH[5]}"
-		eval "_L_tmp=${BASH_REMATCH[2]}"
-		_L_args=("$_L_tmp" ${_L_args[@]+"${_L_args[@]}"})
+#  declare -A age=([John]=42)
+#  L_fstring 'Hello, {name}! You are {age[John]:10s} years old.\n'
+L_fstring() { L_handle_v "$@"; }
+L_fstring_v() {
+	local _L_fmt="$*" _L_args=("") _L_tmp
+	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
+		#                                    12     3                         4   5       6 7             8
+		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[8]}" ]
+		_L_fmt="${BASH_REMATCH[8]}"
+		if [[ -n "${BASH_REMATCH[1]}" ]]; then
+			_L_tmp="${BASH_REMATCH[1]//'{{'/'{'}"
+			_L_tmp="${_L_tmp//'}}'/'}'}"
+			_L_args[0]+="${_L_tmp//%/%%}"
+		fi
+		# Handle formatting expression
+		if [[ -n "${BASH_REMATCH[5]}" ]]; then
+			_L_args[0]+="%""${BASH_REMATCH[7]}"
+			# Default to %s
+			if [[ "${_L_args[0]:${#_L_args[0]}-1}" != [a-zA-Z] ]]; then
+				_L_args[0]+="s"
+			fi
+			_L_args+=("${!BASH_REMATCH[5]}")
+		fi
 	done
-	_L_fmt="${_L_fmt//$'\x01'/$L_LBRACE}"
-	_L_fmt="${_L_fmt//'}}'/$L_RBRACE}"
-	printf "$_L_fmt" ${_L_args[@]+"${_L_args[@]}"}
+	printf -v L_v "${_L_args[@]}"
 }
 
 # ]]]
-# Lists [[[
-# @section Lists
-# @description Operations on various lists, arrays and arguments. L_array_* L_args_* and others.
+# array [[[
+# @section array
+# @description Operations on various lists, arrays and arguments. L_array_*
 
 # @description Get array length.
 # @option -v <var> Output variable
@@ -1702,6 +1722,21 @@ L_array_join_v() {
 	L_args_join_v "$2" ${!_L_arr:+"${!_L_arr}"}
 }
 
+# @description
+# @option -v <var> Output variable
+# @arg $1 <var> array nameref
+# @see L_args_andjoin
+L_array_andjoin() { L_handle_v "$@"; }
+L_array_andjoin_v() {
+	local _L_arr="$1[@]"
+	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
+}
+
+# ]]]
+# args [[[
+# @section args
+# @description Operations on list of arguments.
+
 # @description Join arguments with separator
 # @option -v <var> Output variable
 # @arg $1 <str> separator
@@ -1714,16 +1749,6 @@ L_args_join() { L_handle_v "$@"; }
 L_args_join_v() {
 	printf -v L_v "${1//%/%%}%s" "${@:2}"
 	L_v=${L_v:${#1}}
-}
-
-# @description
-# @option -v <var> Output variable
-# @arg $1 <var> array nameref
-# @see L_args_andjoin
-L_array_andjoin() { L_handle_v "$@"; }
-L_array_andjoin_v() {
-	local _L_arr="$1[@]"
-	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
 }
 
 # @description Join arguments with ", " and last with " and "
@@ -1741,7 +1766,7 @@ L_args_andjoin_v() {
 	esac
 }
 
-# @description check if arguments starting from second contain the first argument
+# @description Check if arguments starting from second contain the first argument.
 # @arg $1 needle
 # @arg $@ heystack
 # @example
@@ -1761,7 +1786,7 @@ L_args_contain() {
 	fi
 }
 
-# @description get index number of argument equal to the first argument
+# @description Get index number of argument equal to the first argument.
 # @option -v <var>
 # @arg $1 needle
 # @arg $@ heystack
@@ -1770,16 +1795,24 @@ L_args_contain() {
 #   echo "$res"  # prints 1
 L_args_index() { L_handle_v "$@"; }
 L_args_index_v() {
-	local _L_needle=$1 _L_start=$#
-	shift
-	while (($#)); do
-		if [[ "$1" == "$_L_needle" ]]; then
-			L_v=$((_L_start-1-$#))
-			return 0
-		fi
+	local _L_needle=$1 _L_start=$# IFS=$'\x1D'
+	if [[ "${*//"$IFS"}" == "$*" ]]; then
+		L_v="$IFS${*:2}$IFS"
+		L_v="${L_v%$IFS$1$IFS*}"
+		L_v="${L_v//[^$IFS]}"
+		L_v=${#L_v}
+		[[ "$L_v" -lt "$#" ]]
+	else
 		shift
-	done
-	return 1
+		while (($#)); do
+			if [[ "$1" == "$_L_needle" ]]; then
+				L_v=$((_L_start-1-$#))
+				return 0
+			fi
+			shift
+		done
+		return 1
+	fi
 }
 
 # @description return max of arguments
@@ -1819,8 +1852,8 @@ L_min_v() {
 }
 
 # ]]]
-# Utilities [[[
-# @section Utilities
+# utilities [[[
+# @section utilities
 # @description Various self contained functions that could be separate programs.
 
 # shellcheck disable=SC1105,SC2201,SC2102,SC2035,SC2211,SC2283,SC2094
@@ -2732,9 +2765,9 @@ L_run() {
 
 
 # ]]]
-# Sort [[[
-# @section Sort
-# @description sorting function
+# sort [[[
+# @section sort
+# @description Array sorting function.
 
 # @description Shuffle an array
 # @arg $1 array nameref
@@ -6124,26 +6157,37 @@ L_proc_popen() {
 }
 
 # @description Get file descriptor for stdin of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_stdin() { L_handle_v "$@"; }
 L_proc_get_stdin_v() { L_v="$1[0]"; L_v="${!L_v}"; }
+
 # @description Get file descriptor for stdout of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_stdout() { L_handle_v "$@"; }
 L_proc_get_stdout_v() { L_v="$1[1]"; L_v="${!L_v}"; }
+
 # @description Get file descriptor for stderr of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_stderr() { L_handle_v "$@"; }
 L_proc_get_stderr_v() { L_v="$1[2]"; L_v="${!L_v}"; }
+
 # @description Get PID of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_pid() { L_handle_v "$@"; }
 L_proc_get_pid_v() { L_v="$1[3]"; L_v="${!L_v}"; }
+
 # @description Get command of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_cmd() { L_handle_v "$@"; }
 L_proc_get_cmd_v() { L_v="$1[4]"; L_v="${!L_v}"; }
+
 # @description Get exitcode of L_proc.
+# @option -v <var> variable to set
 # @arg $1 L_proc variable
 L_proc_get_exitcode() { L_handle_v "$@"; }
 L_proc_get_exitcode_v() { L_v="$1[5]"; L_v="${!L_v}"; }

@@ -228,7 +228,7 @@ _L_test_exit_to_1null() {
 	}
 }
 
-_L_test_other() {
+_L_test_format() {
 	{
 		local name=John
 		local age=21
@@ -237,10 +237,50 @@ _L_test_other() {
 		L_unittest_cmd -o "Hello, %John! You are %%        21 years old." \
 			L_percent_format "Hello, %%%(name)s! You are %%%%%(age)10s years old.\n"
 		L_unittest_cmd -o "Hello, John! You are         21 years old." \
-			L_fstring 'Hello, {$name}! You are {$age:10s} years old.\n'
+			L_fstring 'Hello, {name}! You are {age:10s} years old.\n'
 		L_unittest_cmd -o "Hello, {John}! You are {{        21}} years old." \
-			L_fstring 'Hello, {{{$name}}}! You are {{{{{$age:10s}}}}} years old.\n'
+			L_fstring 'Hello, {{{name}}}! You are {{{{{age:10s}}}}} years old.\n'
 	}
+	{
+		L_unittest_cmd -o "21" \
+			L_percent_format "%(age)s"
+		L_unittest_cmd -o "21 " \
+			L_percent_format "%(age)s "
+		L_unittest_cmd -o " 21" \
+			L_percent_format " %(age)s"
+		L_unittest_cmd -o "21" \
+			L_fstring "{age}"
+		L_unittest_cmd -o "21" \
+			L_fstring "{age:}"
+		L_unittest_cmd -o "21" \
+			L_fstring "{age:d}"
+		L_unittest_cmd -o " 21" \
+			L_fstring " {age:d}"
+		L_unittest_cmd -o "21 " \
+			L_fstring "{age:d} "
+		L_unittest_cmd -o "{" \
+			L_fstring "{{"
+		L_unittest_cmd -o "}" \
+			L_fstring "}}"
+		L_unittest_cmd -o "%%%" \
+			L_fstring "%%%"
+	}
+	{
+		L_unittest_cmd ! L_percent_format "%(age)"
+		L_unittest_cmd ! L_percent_format "%()"
+		L_unittest_cmd ! L_percent_format "%("
+		L_unittest_cmd ! L_percent_format "%)d"
+		L_unittest_cmd ! L_percent_format "%"
+		L_unittest_cmd ! L_fstring "{age"
+		L_unittest_cmd ! L_fstring "age}"
+		L_unittest_cmd ! L_fstring "{}"
+		L_unittest_cmd ! L_fstring "{:}"
+		L_unittest_cmd ! L_fstring "}"
+		L_unittest_cmd ! L_fstring "{"
+	}
+}
+
+_L_test_other() {
 	{
 		local max=-1
 		L_max -v max 1 2 3 4

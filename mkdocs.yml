@@ -15,9 +15,10 @@ nav:
       - color: section/color.md
       - ansi: section/ansi.md
       - has: section/has.md
-      - basic: section/basic.md
-      - Lists: section/lists.md
-      - Utilities: section/utilities.md
+      - stdlib: section/stdlib.md
+      - array: section/array.md
+      - args: section/args.md
+      - utilities: section/utilities.md
       - sort: section/sort.md
       - trap: section/trap.md
       - log: section/log.md

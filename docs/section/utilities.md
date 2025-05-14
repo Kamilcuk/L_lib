@@ -1,3 +1,1 @@
-# Utilities
-
-::: bin/L_lib.sh Utilities
+::: bin/L_lib.sh utilities
