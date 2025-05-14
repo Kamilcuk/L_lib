@@ -14,8 +14,8 @@ RUN test.sh
 #   ./shellcheckparser_off.sh L_lib.sh >L_lib.sh.tmp && \
 #   mv -v L_lib.sh.tmp L_lib.sh
 FROM koalaman/shellcheck AS shellcheck
-COPY bin/L_lib.sh .
-RUN ["shellcheck", "L_lib.sh"]
+COPY bin/L_lib.sh /
+RUN ["shellcheck", "/L_lib.sh"]
 
 FROM alpine AS md1
 RUN apk add --no-cache pandoc gawk
@@ -29,7 +29,10 @@ RUN set -x && mkdir -vp public && \
 FROM scratch AS md
 COPY --from=md1 public /
 
-FROM md1 AS doc1
-RUN pandoc --number-sections -f markdown public/index.md >public/index.html
+FROM python AS doc1
+COPY docs/requirements.txt docs/requirements.txt
+RUN pip install -e docs/requirements.txt
+COPY docs docs
+RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 public /

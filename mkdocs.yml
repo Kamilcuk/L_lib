@@ -12,18 +12,18 @@ nav:
       - Index: index.md
       - Bash expansions: expansions.md
   - Documentation:
-      - L_color: section/L_color.md
-      - L_ansi: section/L_ansi.md
-      - L_has: section/L_has.md
+      - color: section/color.md
+      - ansi: section/ansi.md
+      - has: section/has.md
       - basic: section/basic.md
       - Lists: section/lists.md
       - Utilities: section/utilities.md
       - sort: section/sort.md
-      - L_trap: section/L_trap.md
-      - L_log: section/L_log.md
-      - L_unittest: section/L_unittest.md
-      - L_argparse: section/L_argparse.md
-      - all: section/L_lib.md
+      - trap: section/trap.md
+      - log: section/log.md
+      - unittest: section/unittest.md
+      - argparse: section/argparse.md
+      - all: section/all.md
 
 theme:
   name: material

@@ -35,11 +35,13 @@ else
 fi
 
 # ]]]
-# Colors [[[
+# colors [[[
 # @section colors
 # @description Variables storing xterm ANSI escape sequences for colors.
-# @example
-# echo "$L_RED""hello world""$L_RESET"
+# Variables with `L_ANSI_` prefix are constant.
+# Variables without `L_ANSI_` prefix are set or empty depending on `L_color_detect function.
+# The `L_color_detect` function can be used to detect if the terminal and user wishes to have output with colors.
+# @example echo "$L_RED""hello world""$L_RESET"
 
 # @description Text to be evaled to enable colors.
 _L_COLOR_SWITCH="
@@ -158,18 +160,16 @@ L_term_has_color() {
 # @arg [$1] file descriptor to check, default 1
 L_color_detect() {
 	if L_term_has_color "$@"; then
-		L_color_enable
+		if [[ -z "$L_BOLD" ]]; then
+			L_color_enable
+		fi
 	else
-		L_color_disable
+		if [[ -n "$L_BOLD" ]]; then
+			L_color_disable
+		fi
 	fi
 }
 L_color_detect
-
-
-# ]]]
-# Color constants [[[
-# @section color constants
-# @description color constants. Prefer to use colors above with color usage detection.
 
 L_ANSI_BOLD=$'\E[1m'
 L_ANSI_BRIGHT=$'\E[1m'
@@ -257,7 +257,8 @@ L_ANSI_RESET=$'\E[m'
 # ]]]
 # Ansi [[[
 # @section ansi
-# @description manipulating cursor positions
+# @description Very basic functions for manipulating cursor position and color.
+# @note incomplete
 
 L_ansi_up() { printf '\E[%dA' "$@"; }
 L_ansi_down() { printf '\E[%dB' "$@"; }
@@ -314,41 +315,46 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # ]]]
 # has [[[
 # @section has
-# @description check if bash has specific feature
+# @description Set of integer variables for checking if Bash has specific feature.
 
+# Bash version expressed as a hexadecimal integer variable with digits 0xMMIIPP,
+# where MM is major part, II is minor part and PP is patch part of version.
 # shellcheck disable=SC2004
-# NOTE: bash 4.4.24 segfaults when BASH_VERSINFO[0] is not inside ${ }
 L_BASH_VERSION=$((BASH_VERSINFO[0] << 16 | BASH_VERSINFO[1] << 8 | BASH_VERSINFO[2]))
-L_HAS_BASH5_3=$((    L_BASH_VERSION >= 0x050300))
-L_HAS_BASH5_2=$((    L_BASH_VERSION >= 0x050200))
-L_HAS_BASH5_1=$((    L_BASH_VERSION >= 0x050100))
-L_HAS_BASH5=$((      L_BASH_VERSION >= 0x050000))
-L_HAS_BASH4_4=$((    L_BASH_VERSION >= 0x040400))
-L_HAS_BASH4_3=$((    L_BASH_VERSION >= 0x040300))
-L_HAS_BASH4_2=$((    L_BASH_VERSION >= 0x040200))
-L_HAS_BASH4_1=$((    L_BASH_VERSION >= 0x040100))
-L_HAS_BASH4=$((      L_BASH_VERSION >= 0x040000))
-L_HAS_BASH3_2=$((    L_BASH_VERSION >= 0x030200))
-L_HAS_BASH3_1=$((    L_BASH_VERSION >= 0x030100))
-L_HAS_BASH3=$((      L_BASH_VERSION >= 0x030000))
-L_HAS_BASH2_5=$((    L_BASH_VERSION >= 0x020500))
-L_HAS_BASH2_4=$((    L_BASH_VERSION >= 0x020400))
-L_HAS_BASH2_3=$((    L_BASH_VERSION >= 0x020300))
-L_HAS_BASH2_2=$((    L_BASH_VERSION >= 0x020200))
-L_HAS_BASH2_1=$((    L_BASH_VERSION >= 0x020100))
-L_HAS_BASH2=$((      L_BASH_VERSION >= 0x020000))
-L_HAS_BASH1_14_7=$(( L_BASH_VERSION >= 0x010E07))
+L_HAS_BASH5_3=$((   L_BASH_VERSION >= 0x050300))
+L_HAS_BASH5_2=$((   L_BASH_VERSION >= 0x050200))
+L_HAS_BASH5_1=$((   L_BASH_VERSION >= 0x050100))
+L_HAS_BASH5=$((     L_BASH_VERSION >= 0x050000))
+L_HAS_BASH4_4=$((   L_BASH_VERSION >= 0x040400))
+L_HAS_BASH4_3=$((   L_BASH_VERSION >= 0x040300))
+L_HAS_BASH4_2=$((   L_BASH_VERSION >= 0x040200))
+L_HAS_BASH4_1=$((   L_BASH_VERSION >= 0x040100))
+L_HAS_BASH4=$((     L_BASH_VERSION >= 0x040000))
+L_HAS_BASH3_2=$((   L_BASH_VERSION >= 0x030200))
+L_HAS_BASH3_1=$((   L_BASH_VERSION >= 0x030100))
+L_HAS_BASH3=$((     L_BASH_VERSION >= 0x030000))
+L_HAS_BASH2_5=$((   L_BASH_VERSION >= 0x020500))
+L_HAS_BASH2_4=$((   L_BASH_VERSION >= 0x020400))
+L_HAS_BASH2_3=$((   L_BASH_VERSION >= 0x020300))
+L_HAS_BASH2_2=$((   L_BASH_VERSION >= 0x020200))
+L_HAS_BASH2_1=$((   L_BASH_VERSION >= 0x020100))
+L_HAS_BASH2=$((     L_BASH_VERSION >= 0x020000))
+L_HAS_BASH1_14_7=$((L_BASH_VERSION >= 0x010E07))
 
 # @description New shell option: patsub_replacement. When enabled, a `&' in the replacement
 L_HAS_PATSUB_REPLACEMENT=$L_HAS_BASH5_2
 # @description SRANDOM: a new variable that expands to a 32-bit random number
 L_HAS_SRANDOM=$L_HAS_BASH5_1
+# @description supports ${parameter@Q}
+L_HAS_Q_EXPANSION=$L_HAS_BASH4_4
+# @description supports ${parameter@a}
+L_HAS_a_EXPANSION=$L_HAS_BASH_4_4
+# @description supports ${parameter@A}
+L_HAS_A_EXPANSION=$L_HAS_BASH_4_4
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 # @description The `mapfile' builtin now has a -d option
 L_HAS_MAPFILE_D=$L_HAS_BASH4_4
-# @description Bash 4.4 introduced ${var@Q}
-L_HAS_AT_Q=$L_HAS_BASH4_4
 # @description The declare builtin no longer displays array variables using the compound
 # assignment syntax with quotes; that will generate warnings when re-used as
 # input, and isn't necessary.
@@ -436,15 +442,10 @@ L_assert_return() {
 	fi
 }
 
-if ((L_HAS_UNQUOTED_REGEX)); then
 # @description Wrapper around =~ for contexts that require a function.
 # @arg $1 string to match
 # @arg $2 regex to match against
 L_regex_match() { [[ "$1" =~ $2 ]]; }
-else
-# shellcheck disable=SC2076
-L_regex_match() { [[ "$1" =~ "$2" ]]; }
-fi
 
 # @description Produce a string that is a regex escaped version of the input.
 # @option -v <var> variable to set
@@ -632,6 +633,14 @@ L_var_is_set() { [[ -n "${!1+yes}" ]]; }
 # @exitcode 0 if variable is set, nonzero otherwise
 L_var_is_notnull() { [[ -n "${!1:+yes}" ]]; }
 
+if ((L_HAS_a_EXPANSION)); then
+	L_var_is_notarray() { [[ "${!1@a}" != *[aA]* ]]; }
+	L_var_is_array() { [[ "${!1@a}" == *a* ]]; }
+	L_var_is_associative() { [[ "${!1@a}" == *A* ]]; }
+	L_var_is_readonly() { [[ "${!1@a}" == *r* ]]; }
+	L_var_is_integer() { [[ "${!1@a}" == *i* ]]; }
+	L_var_is_exported() { [[ "${!1@a}" == *x* ]]; }
+else
 # @description Return 0 if variable is not set or is not an array neither an associative array
 # @arg $1 variable nameref
 L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -"[^aA]* ]]; }
@@ -656,6 +665,7 @@ L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^decla
 # @description Return 0 if variable is exported.
 # @arg $1 variable nameref
 L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*x"; }
+fi
 
 # @description Return 0 if the string happend to be something like true.
 # Return 0 when argument is case-insensitive:
@@ -711,14 +721,17 @@ L_isprint() { [[ "$*" != *[^[:print:]]* ]]; }
 # @arg $1 string to check
 L_isdigit() { [[ "$*" != *[^0-9]* ]]; }
 
-# @description Return 0 if argument could be a variable name
+# @description Return 0 if argument could be a variable name.
+# This function is used to make sure that eval "$1=" will e correct if L_is_valid_variable_name "$1".
 # @arg $1 string to check
+# @see L_is_valid_variable_or_array_element
 L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
 # L_is_valid_variable_name() { [[ ${1:0:1} == [a-zA-Z_] && ( ${#1} == 1 || ${1:1} != *[^a-zA-Z0-9_]* ) ]]; }
 # L_is_valid_variable_name() { [[ $1 == [a-zA-Z_]*([a-zA-Z0-9_]) ]]; }
 
-# @description Return 0 if argument could be a variable name or array element
+# @description Return 0 if argument could be a variable name or array element.
 # @arg $1 string to check
+# @see L_is_valid_variable_name
 # @example
 #	L_is_valid_variable_or_array_element aa           # true
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
@@ -3267,7 +3280,7 @@ _L_unittest_cmd_exit_trap() {
 # @option -c Run in current execution environment, instead of using a subshell.
 # @option -i Invert exit status. You can also use `!` or `L_not` in front of the command.
 # @option -I Do not close stdin <&1 . By default it is closed.
-# @option -f Expect the command to fail. Equal to -ijN.
+# @option -f Expect the command to fail. Equal to `-i -j -N`.
 # @option -N Redirect stdout of the command to >/dev/null.
 # @option -j Redirect stderr to stdout of the command. 2>&1
 # @option -x Run the command inside set -x

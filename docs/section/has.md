@@ -2,7 +2,7 @@
 
 ```
 if ((L_HAS_SRANDOM)); then
-  echo "SRANDOM is supported"
+  echo "SRANDOM is supported $SRANDOM"
 else
   echo "SRANDOM is not supported"
 fi

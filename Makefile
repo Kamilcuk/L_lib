@@ -5,7 +5,7 @@ export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
 ARGS ?=
-DOCKERTERM = $(value MAKE_TERMOUT, -ti -eTERM)
+DOCKERTERM = -eTERM -$(shell [ -t 0 ] && echo t)i
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
 define NL
@@ -55,7 +55,7 @@ shellcheckvimall: shellcheckvim
 
 term-%:
 	@touch .bash_history
-	docker run --rm -eTERM -ti -u $(shell id -u):$(shell id -g) \
+	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
@@ -112,7 +112,7 @@ run-%:
 _docs:
 	uvx --with-requirements=./docs/requirements.txt mkdocs $(WHAT)
 docs_build: WHAT = build
-docs_buils: _docs
+docs_build: _docs
 docs_serve: WHAT = serve
 docs_serve: _docs
 docs_serve2:
