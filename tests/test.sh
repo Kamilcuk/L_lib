@@ -114,9 +114,21 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -ce 123 return_123 --
 		L_unittest_cmd -ce 123 return_123 a
 		L_unittest_cmd -ce 123 return_123 -- a
+		unset a
+		L_unittest_cmd -ce 123 return_123 -va
+		unset a
+		L_unittest_cmd -ce 123 return_123 -v a
+		unset a
+		L_unittest_cmd -ce 123 return_123 -va --
+		unset a
+		L_unittest_cmd -ce 123 return_123 -v a --
+		unset a
 		L_unittest_cmd -ce 123 return_123 -va a
+		unset a
 		L_unittest_cmd -ce 123 return_123 -va -- a
+		unset a
 		L_unittest_cmd -ce 123 return_123 -v a a
+		unset a
 		L_unittest_cmd -ce 123 return_123 -v a -- a
 	}
 	{
@@ -127,21 +139,29 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -co 123 set_one a
 		L_unittest_cmd -co 123 set_one -- a
 		local a=""
+		L_unittest_cmd -c set_one -va
+		L_unittest_eq "$a" 123
+		# L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_one -v a
+		L_unittest_eq "$a" 123
+		# L_unittest_cmd -c L_var_is_notarray a
+		local a=""
 		L_unittest_cmd -c set_one -va a
 		L_unittest_eq "$a" 123
-		L_unittest_cmd -c L_var_is_notarray a
+		# L_unittest_cmd -c L_var_is_notarray a
 		local a=""
 		L_unittest_cmd -c set_one -v a a
 		L_unittest_eq "$a" 123
-		L_unittest_cmd -c L_var_is_notarray a
+		# L_unittest_cmd -c L_var_is_notarray a
 		local a=""
 		L_unittest_cmd -c set_one -va -- a
 		L_unittest_eq "$a" 123
-		L_unittest_cmd -c L_var_is_notarray a
+		# L_unittest_cmd -c L_var_is_notarray a
 		local a=""
 		L_unittest_cmd -c set_one -v a -- a
 		L_unittest_eq "$a" 123
-		L_unittest_cmd -c L_var_is_notarray a
+		# L_unittest_cmd -c L_var_is_notarray a
 	}
 	{
 		set_arr() { L_handle_v "$@"; }

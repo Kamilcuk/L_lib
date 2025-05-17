@@ -1,4 +1,4 @@
 mkdocs
-mkdocstrings-sh
+mkdocstrings-sh>=0.0.3
 mkdocs-section-index
 mkdocs-material

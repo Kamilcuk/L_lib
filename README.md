@@ -63,15 +63,15 @@ See list of variables at https://kamilcuk.github.io/L_lib/#colors .
 
 ## Logging
 
-See [doc/logging.md](doc/logging.md) for documentation.
+See [docs/section/logging.md](docs/section/log.md) for documentation.
 
 ## Argument parsing
 
-See [doc/argparse.md](doc/argparse.md) for documentation.
+See [docs/section/argparse.md](docs/section/argparse.md) for documentation.
 
 ## Unittest
 
-See [doc/unittest.md](doc/unittest.md) for documentation.
+See [docs/section/unittest.md](docs/section/unittest.md) for documentation.
 
 ## Version
 

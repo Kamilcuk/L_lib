@@ -22,6 +22,7 @@
 # Globals [[[
 # @section globals
 # @description some global variables
+# @note stable
 
 # @description Version of the library
 L_LIB_VERSION=0.1.8
@@ -42,6 +43,7 @@ fi
 # Variables without `L_ANSI_` prefix are set or empty depending on `L_color_detect function.
 # The `L_color_detect` function can be used to detect if the terminal and user wishes to have output with colors.
 # @example echo "$L_RED""hello world""$L_RESET"
+# @note stable
 
 # @description Text to be evaled to enable colors.
 _L_COLOR_SWITCH="
@@ -258,7 +260,7 @@ L_ANSI_RESET=$'\E[m'
 # Ansi [[[
 # @section ansi
 # @description Very basic functions for manipulating cursor position and color.
-# @note incomplete
+# @note unstable
 
 L_ansi_up() { printf '\E[%dA' "$@"; }
 L_ansi_down() { printf '\E[%dB' "$@"; }
@@ -316,6 +318,7 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # has [[[
 # @section has
 # @description Set of integer variables for checking if Bash has specific feature.
+# @note stable
 
 # Bash version expressed as a hexadecimal integer variable with digits 0xMMIIPP,
 # where MM is major part, II is minor part and PP is patch part of version.
@@ -343,14 +346,15 @@ L_HAS_BASH1_14_7=$((L_BASH_VERSION >= 0x010E07))
 
 # @description New shell option: patsub_replacement. When enabled, a `&' in the replacement
 L_HAS_PATSUB_REPLACEMENT=$L_HAS_BASH5_2
+# @description There is a new parameter transformation operator: @k. This is like @K, but
+L_HAS_k_EXPANSION=$L_HAS_BASH5_2
 # @description SRANDOM: a new variable that expands to a 32-bit random number
 L_HAS_SRANDOM=$L_HAS_BASH5_1
-# @description supports ${parameter@Q}
-L_HAS_Q_EXPANSION=$L_HAS_BASH4_4
-# @description supports ${parameter@a}
-L_HAS_a_EXPANSION=$L_HAS_BASH_4_4
-# @description supports ${parameter@A}
-L_HAS_A_EXPANSION=$L_HAS_BASH_4_4
+# @description New `U', `u', and `L' parameter transformations to convert to uppercas
+# @description New `K' parameter transformation to display associative arrays as key-
+L_HAS_UuLK_EXPASIONS=$L_HAS_BASH5_0
+# @description There is a new ${parameter@spec} family of operators to transform the value of `parameter'.
+L_HAS_QEPAa_EXPANSIONS=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced function scoped `local -`
 L_HAS_LOCAL_DASH=$L_HAS_BASH4_4
 # @description The `mapfile' builtin now has a -d option
@@ -409,6 +413,7 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # stdlib [[[
 # @section stdlib
 # @description Some base simple definitions for every occasion.
+# @note stable
 
 L_assert_fail() {
 	set +x
@@ -550,13 +555,13 @@ L_unsetx() {
 else
 	L_setx() {
 		# shellcheck disable=SC2064
-		trap "$(set +o)" RETURN
+		trap "$(shopt -po xtrace)" RETURN
 		set -x
 		"$@"
 	}
 	L_unsetx() {
 		# shellcheck disable=SC2064
-		trap "$(set +o)" RETURN
+		trap "$(shopt -po xtrace)" RETURN
 		set +x
 		"$@"
 	}
@@ -633,7 +638,9 @@ L_var_is_set() { [[ -n "${!1+yes}" ]]; }
 # @exitcode 0 if variable is set, nonzero otherwise
 L_var_is_notnull() { [[ -n "${!1:+yes}" ]]; }
 
-if ((L_HAS_a_EXPANSION)); then
+if ((0 && L_HAS_QEPAa_EXPANSIONS)); then
+	# These do not work with unset variables under set -u, instead the shell exits.
+	# If calling a subshell, you might as well just call declare.
 	L_var_is_notarray() { [[ "${!1@a}" != *[aA]* ]]; }
 	L_var_is_array() { [[ "${!1@a}" == *a* ]]; }
 	L_var_is_associative() { [[ "${!1@a}" == *A* ]]; }
@@ -666,6 +673,192 @@ L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^decla
 # @arg $1 variable nameref
 L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*x"; }
 fi
+
+# @description Send signal to itself
+# @arg $1 signal to send, see kill -l
+L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
+
+# @description Wrapper function for handling -v arguments to other functions.
+# It calls a function called `<caller>_v` with arguments, but without `-v <var>`.
+# The function `<caller>_v` should set the variable nameref L_v to the returned value.
+#   just: L_v=$value
+#   or: L_v=(a b c)
+# When the caller function is called without -v, the values of L_v is printed to stdout with a newline.
+# Otherwise, the value is a nameref to user requested variable and nothing is printed.
+# @option -v <var> variable to set
+# @arg $@ arbitrary function arguments
+# @exitcode Whatever exitcode does the `<caller>_v` funtion exits with.
+# @example:
+#    L_hello() { L_handle_v "$@"; }
+#    L_hello_v() { L_v=(hello world); }
+#    L_hello          # outputs two lines 'hello' and 'world'
+#    L_hello -v var   # assigns var=(hello world)
+L_handle_v() {
+	local L_v _L_r=0
+	case "${1:-}" in
+	-v?*)
+		if ! L_is_valid_variable_name "${1##-v}"; then
+			L_assert_fail "not a valid identifier: ${1##-v}" || return $?
+		fi
+		if [[ "${2:-}" == -- ]]; then
+			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
+		else
+			"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
+		fi
+		eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})'
+		;;
+	-v)
+		if ! L_is_valid_variable_name "${2:-}"; then
+			L_assert_fail "not a valid identifier: $2"
+		fi
+		if [[ "${3:-}" == -- ]]; then
+			"${FUNCNAME[1]}"_v "${@:4}" || _L_r=$?
+		else
+			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
+		fi
+		eval "$2"'=(${L_v[@]+"${L_v[@]}"})'
+		;;
+	--)
+		"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
+		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
+		;;
+	*)
+		"${FUNCNAME[1]}"_v "$@" || _L_r=$?
+		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
+	esac ||
+		return $? &&
+		return "$_L_r"
+}
+
+# @description L_handle_v implementation using getopts. I think it is slower.
+_L_handle_v_getopts() {
+	local OPTIND OPTARG OPTERR L_v=() _L_r=0 _L_v=""
+	while getopts v: _L_r; do
+		case $_L_r in
+		v) _L_v="$OPTARG" ;;
+		?) printf "Usage: %s [-v var] args ...\n" "${FUNCNAME[1]}" >&2; exit 2 ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	"${FUNCNAME[1]}"_v "$@" || _L_r=$?
+	case "${#L_v[@]}/$_L_v" in
+	*/)
+		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} ;;
+	0/*)
+		if L_var_is_array "$_L_v"; then eval "$_L_v=()"; fi ;;
+	1/*)
+		printf -v "$_L_v" "%s" "${L_v:-}" ;;
+	*/*)
+		if ! L_is_valid_variable_name "$2"; then
+			L_assert_fail "not a valid identifier: $2"
+		fi
+		eval "$2"'=("${L_v[@]}")'
+	esac &&
+	return "$_L_r"
+}
+
+# shellcheck disable=SC2059
+# @description Append to the first argument if first argument is not null.
+# If first argument is an empty string, print the line.
+# Used by functions optically taking a -v argument or printing to stdout,
+# when such functions want to append the printf output to a variable
+# for example in a loop or similar.
+# @arg $1 variable to append to or empty string
+# @arg $2 printf format specification
+# @arg $@ printf arguments
+# @example
+#
+#    func() {
+#       if [[ "$1" == -v ]]; then
+#          var=$2
+#          shift 2
+#		fi
+#		L_printf_append "$var" "%s" "Hello "
+#		L_printf_append "$var" "%s" "world\n"
+#	 }
+#	 func
+#	 func -v var
+L_printf_append() {
+	printf ${1:+"-v$1"} ${1:+"%s"}"$2" ${1:+"${!1:-}"} "${@:3}"
+}
+
+L_kill_all_jobs() {
+	local IFS='[]' j _
+	while read -r _ j _; do
+		kill "%$j"
+	done <<<"$(jobs)"
+}
+
+L_wait_all_jobs() {
+	local IFS='[]' j _
+	while read -r _ j _; do
+		wait "%$j"
+	done <<<"$(jobs)"
+}
+
+# @description An array to execute a command nicest way possible.
+# @example "${L_NICE[@]}" make -j $(nproc)
+L_NICE=(nice -n 40 ionice -c 3)
+if L_hash ,nice; then
+	L_NICE=(",nice")
+elif L_hash chrt; then
+	L_NICE+=(chrt -i 0)
+fi
+
+# @description execute a command in nicest possible way
+# @arg $@ command to execute
+L_nice() {
+	"${L_NICE[@]}" "$@"
+}
+
+_L_sudo_args_get_v() {
+	local envs=""
+	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
+		if [[ -n "${!i:-}" ]]; then
+			envs="${envs:---preserve-env=}${envs:+,}$i"
+		fi
+	done
+	if ((${#envs})); then
+		L_v=("$envs")
+	else
+		L_v=()
+	fi
+}
+
+# @description Execute a command with sudo if not root, otherwise just execute the command.
+# Preserves all proxy environment variables.
+L_sudo() {
+	local sudo=()
+	if ((UID != 0)) && hash sudo 2>/dev/null; then
+		local -a L_v=()
+		_L_sudo_args_get
+		sudo=(sudo -n "${L_v[@]}")
+	fi
+	L_run "${sudo[@]}" "$@"
+}
+
+# @description capture exit code of a command to a variable
+# @option -v <var> var
+# @arg $@ command to execute
+L_capture_exit() { L_handle_v "$@"; }
+L_capture_exit_v() { if "$@"; then L_v=$?; else L_v=$?; fi; }
+
+# @option -v <var> var
+# @arg $1 path
+L_basename() { L_handle_v "$@"; }
+L_basename_v() { L_v=${*##*/}; }
+
+# @option -v <var> var
+# @arg $1 path
+L_dirname() { L_handle_v "$@"; }
+L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
+
+
+# ]]]
+# string [[[
+# @section string
+# @description Collection of functions to manipulate strings.
+# @note stable
 
 # @description Return 0 if the string happend to be something like true.
 # Return 0 when argument is case-insensitive:
@@ -749,10 +942,6 @@ L_is_integer() { [[ "$1" =~ ^[-+]?[0-9]+$ ]]; }
 L_is_float() { [[ "$1" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
 # L_is_float() { [[ "$*" == ?([+-])@(+([0-9])?(.)|*([0-9]).+([0-9])) ]]; }
 
-# @description Send signal to itself
-# @arg $1 signal to send, see kill -l
-L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
-
 # @description newline
 L_NL=$'\n'
 # @description tab
@@ -834,124 +1023,9 @@ L_ASCII_LOWERCASE="abcdefghijklmnopqrstuvwxyz"
 # @description All uppercase characters A-Z
 L_ASCII_UPPERCASE="ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-# @description wrapper function for handling -v arguments to other functions
-# It calls a function called `<caller>_v` with arguments without `-v <var>`
-# The function `<caller>_v` should set the variable nameref L_v to the returned value
-#   just: L_v=$value
-#   or: L_v=(a b c)
-# When the caller function is called without -v, the values of L_v is printed to stdout with a newline.
-# Otherwise, the value is a nameref to user requested variable and nothing is printed.
-# @arg $@ arbitrary function arguments
-# @exitcode Whatever exitcode does the `<caller>_v` funtion exits with.
-# @example:
-#    L_add() { L_handle_v "$@"; }
-#    L_add_v() { L_v="$(($1 + $2))"; }
-L_handle_v() {
-	local L_v=() _L_r=0
-	case "${1:-}" in
-	-v?*)
-		if [[ "$2" == -- ]]; then
-			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
-		else
-			"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
-		fi
-		case ${#L_v[@]} in
-		0) if L_var_is_array "${1##-v}"; then eval "${1##-v}=()"; fi ;;
-		1) printf -v "${1##-v}" "%s" "${L_v:-}" ;;
-		*)
-			if ! L_is_valid_variable_name "${1##-v}"; then
-				L_assert_fail "not a valid identifier: ${1##-v}"
-			fi
-			eval "${1##-v}"'=("${L_v[@]}")'
-		esac
-		;;
-	-v)
-		if (($# < 3)); then
-			L_assert_fail "${FUNCNAME[1]}: -v: option requires argument" || return $?
-		fi
-		if [[ "$3" == -- ]]; then
-			"${FUNCNAME[1]}"_v "${@:4}" || _L_r=$?
-		else
-			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
-		fi
-		case ${#L_v[@]} in
-		0) if L_var_is_array "$2"; then eval "$2=()"; fi ;;
-		1) printf -v "$2" "%s" "${L_v:-}" ;;
-		*)
-			if ! L_is_valid_variable_name "$2"; then
-				L_assert_fail "not a valid identifier: $2"
-			fi
-			eval "$2"'=("${L_v[@]}")'
-		esac
-		;;
-	--)
-		"${FUNCNAME[1]}"_v "${@:2}" || _L_r=$?
-		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
-		;;
-	*)
-		"${FUNCNAME[1]}"_v "$@" || _L_r=$?
-		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"}
-	esac &&
-	return "$_L_r"
-}
-
-L_handle_v_getopts() {
-	local OPTIND OPTARG OPTERR L_v=() _L_r=0 _L_v=""
-	while getopts v: _L_r; do
-		case $_L_r in
-		v) _L_v="$OPTARG" ;;
-		?) printf "Usage: %s [-v var] args ...\n" "${FUNCNAME[1]}" >&2; exit 2 ;;
-		esac
-	done
-	shift "$((OPTIND-1))"
-	"${FUNCNAME[1]}"_v "$@" || _L_r=$?
-	case "${#L_v[@]}/$_L_v" in
-	*/)
-		${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} ;;
-	0/*)
-		if L_var_is_array "$_L_v"; then eval "$_L_v=()"; fi ;;
-	1/*)
-		printf -v "$_L_v" "%s" "${L_v:-}" ;;
-	*/*)
-		if ! L_is_valid_variable_name "$2"; then
-			L_assert_fail "not a valid identifier: $2"
-		fi
-		eval "$2"'=("${L_v[@]}")'
-	esac &&
-	return "$_L_r"
-}
-
-# shellcheck disable=SC2329
-
-# shellcheck disable=SC2059
-# @description Append to the first argument if first argument is not null.
-# If first argument is an empty string, print the line.
-# Used by functions optically taking a -v argument or printing to stdout,
-# when such functions want to append the printf output to a variable
-# for example in a loop or similar.
-# @arg $1 variable to append to or empty string
-# @arg $2 printf format specification
-# @arg $@ printf arguments
-# @example
-#
-#    func() {
-#       if [[ "$1" == -v ]]; then
-#          var=$2
-#          shift 2
-#		fi
-#		L_printf_append "$var" "%s" "Hello "
-#		L_printf_append "$var" "%s" "world\n"
-#	 }
-#	 func
-#	 func -v var
-L_printf_append() {
-	printf ${1:+"-v$1"} ${1:+"%s"}"$2" ${1:+"${!1:-}"} "${@:3}"
-}
-
-L_copyright_gpl30orlater() {
-	cat <<EOF
-$L_NAME Copyright (C) $*
-
+# @description The GPL3 or later License notice.
+# @see https://www.gnu.org/licenses/gpl-howto.en.html#license-notices
+L_GPL_LICENSE_NOTICE_3_OR_LATER="\
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -964,20 +1038,12 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
-EOF
-}
+"
 
 # @description notice that the software is a free software.
 L_FREE_SOFTWARE_NOTICE="\
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
-
-L_free_software_copyright() {
-	cat <<EOF
-$L_NAME Copyright (C) $*
-$L_FREE_SOFTWARE_NOTICE
-EOF
-}
 
 # @description Output a string with the same quotating style as does bash in set -x
 # @option -v <var> variable to set
@@ -1183,78 +1249,6 @@ L_list_functions_with_prefix_removed_v() {
 	L_v=("${L_v[@]/#"$1"}")
 }
 
-
-L_kill_all_jobs() {
-	local IFS='[]' j _
-	while read -r _ j _; do
-		kill "%$j"
-	done <<<"$(jobs)"
-}
-
-L_wait_all_jobs() {
-	local IFS='[]' j _
-	while read -r _ j _; do
-		wait "%$j"
-	done <<<"$(jobs)"
-}
-
-# @description An array to execute a command nicest way possible.
-# @example "${L_NICE[@]}" make -j $(nproc)
-L_NICE=(nice -n 40 ionice -c 3)
-if L_hash ,nice; then
-	L_NICE=(",nice")
-elif L_hash chrt; then
-	L_NICE+=(chrt -i 0)
-fi
-
-# @description execute a command in nicest possible way
-# @arg $@ command to execute
-L_nice() {
-	"${L_NICE[@]}" "$@"
-}
-
-_L_sudo_args_get_v() {
-	local envs=""
-	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
-		if [[ -n "${!i:-}" ]]; then
-			envs="${envs:---preserve-env=}${envs:+,}$i"
-		fi
-	done
-	if ((${#envs})); then
-		L_v=("$envs")
-	else
-		L_v=()
-	fi
-}
-
-# @description Execute a command with sudo if not root, otherwise just execute the command.
-# Preserves all proxy environment variables.
-L_sudo() {
-	local sudo=()
-	if ((UID != 0)) && hash sudo 2>/dev/null; then
-		local -a L_v=()
-		_L_sudo_args_get
-		sudo=(sudo -n "${L_v[@]}")
-	fi
-	L_run "${sudo[@]}" "$@"
-}
-
-# @description capture exit code of a command to a variable
-# @option -v <var> var
-# @arg $@ command to execute
-L_capture_exit() { L_handle_v "$@"; }
-L_capture_exit_v() { if "$@"; then L_v=$?; else L_v=$?; fi; }
-
-# @option -v <var> var
-# @arg $1 path
-L_basename() { L_handle_v "$@"; }
-L_basename_v() { L_v=${*##*/}; }
-
-# @option -v <var> var
-# @arg $1 path
-L_dirname() { L_handle_v "$@"; }
-L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
-
 # @description Produces a string properly quoted for JSON inclusion
 # Poor man's jq
 # @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
@@ -1308,9 +1302,7 @@ L_json_escape_v() {
 # @option -v <var> Store the result in the array var.
 # @arg $1 prefix
 # @arg $@ elements
-# @see L_abbreviation_nonewline
 L_abbreviation() { L_handle_v "$@"; }
-# @set L_v
 L_abbreviation_v() {
 	local cur=$1 IFS=$'\n'
 	shift
@@ -2343,7 +2335,7 @@ L_version_cmp() {
 }
 
 # ]]]
-# Log [[[
+# log [[[
 # @section log
 # @description logging library
 # This library is meant to be similar to python logging library.
@@ -3063,7 +3055,7 @@ if ((L_HAS_LOCAL_DASH)); then
 	L_TRAP_RETURN_RESTORE_SET_AND_SHOPT='local -; trap "$(shopt -p)" RETURN'
 else
 	L_TRAP_RETURN_RESTORE_SET='trap "$(set +o)" RETURN'
-	L_TRAP_RETURN_RESTORE_SET_AND_SHOPT='trap "$(set +o); $(shopt -p)" RETURN'
+	L_TRAP_RETURN_RESTORE_SET_AND_SHOPT='trap "$(set +o; shopt -p)" RETURN'
 fi
 
 # @description String of trap number and name separated by spaces
@@ -3151,12 +3143,13 @@ L_trap_pop() {
 		fi
 }
 
-# shellcheck disable=SC2064,SC2016
-
 # ]]]
-# Unittest [[[
-# @section Unittest
-# @description testing library
+# unittest [[[
+# @section unittest
+# @description Testing library
+# Simple unittesting library that does simple comparison.
+# Testing library for testing if variables are commands are returning as expected.
+# @note rather stable
 # @example
 #    L_unittest_eq 1 1
 
