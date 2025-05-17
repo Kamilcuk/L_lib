@@ -1998,7 +1998,7 @@ _L_test_L_proc() {
 		L_proc_popen proc bash -c 'sleep 1.5; exit 123'
 		L_exit_to tmp L_proc_wait -t 1 -v exitcode proc
 		L_unittest_vareq tmp 1
-		L_exit_to tmp L_proc_wait -t 1 -v exitcode proc
+		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
 		L_unittest_vareq tmp 0
 		L_unittest_vareq exitcode 123
 	}

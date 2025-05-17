@@ -166,7 +166,7 @@ L_color_detect() {
 			L_color_enable
 		fi
 	else
-		if [[ -n "$L_BOLD" ]]; then
+		if [[ -z "${L_BOLD+yes}" || -n "$L_BOLD" ]]; then
 			L_color_disable
 		fi
 	fi
@@ -352,7 +352,7 @@ L_HAS_k_EXPANSION=$L_HAS_BASH5_2
 L_HAS_SRANDOM=$L_HAS_BASH5_1
 # @description New `U', `u', and `L' parameter transformations to convert to uppercas
 # @description New `K' parameter transformation to display associative arrays as key-
-L_HAS_UuLK_EXPASIONS=$L_HAS_BASH5_0
+L_HAS_UuLK_EXPASIONS=$L_HAS_BASH5
 # @description There is a new ${parameter@spec} family of operators to transform the value of `parameter'.
 L_HAS_QEPAa_EXPANSIONS=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced function scoped `local -`
@@ -1412,7 +1412,6 @@ L_float_cmp() {
 	esac
 }
 
-# shellcheck disable=SC2059
 # @description print a string with percent format
 # A simple implementation of percent formatting in bash using regex and printf.
 # @option -v <var> Output variable
@@ -1423,6 +1422,7 @@ L_float_cmp() {
 #   declare -A age=([John]=42)
 #   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
 L_percent_format() { L_handle_v "$@"; }
+# shellcheck disable=SC2059
 L_percent_format_v() {
 	local _L_fmt=$1 _L_args=("")
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
@@ -1440,7 +1440,6 @@ L_percent_format_v() {
 	printf -v L_v "${_L_args[@]}"
 }
 
-# shellcheck disable=SC2059
 # @description print a string with f-string format
 # A simple implementation of f-strings in bash using regex and printf.
 # @option -v <var> Output variable
@@ -1450,6 +1449,7 @@ L_percent_format_v() {
 #  declare -A age=([John]=42)
 #  L_fstring 'Hello, {name}! You are {age[John]:10s} years old.\n'
 L_fstring() { L_handle_v "$@"; }
+# shellcheck disable=SC2059
 L_fstring_v() {
 	local _L_fmt="$*" _L_args=("") _L_tmp
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
@@ -1457,8 +1457,8 @@ L_fstring_v() {
 		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[8]}" ]
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
-			_L_tmp="${BASH_REMATCH[1]//'{{'/'{'}"
-			_L_tmp="${_L_tmp//'}}'/'}'}"
+			_L_tmp="${BASH_REMATCH[1]//$L_LBRACE$L_LBRACE/$L_LBRACE}"
+			_L_tmp="${_L_tmp//$L_RBRACE$L_RBRACE/$L_RBRACE}"
 			_L_args[0]+="${_L_tmp//%/%%}"
 		fi
 		# Handle formatting expression
@@ -1790,7 +1790,7 @@ L_args_index_v() {
 	local _L_needle=$1 _L_start=$# IFS=$'\x1D'
 	if [[ "${*//"$IFS"}" == "$*" ]]; then
 		L_v="$IFS${*:2}$IFS"
-		L_v="${L_v%$IFS$1$IFS*}"
+		L_v="${L_v%"$IFS$1$IFS"*}"
 		L_v="${L_v//[^$IFS]}"
 		L_v=${#L_v}
 		[[ "$L_v" -lt "$#" ]]
@@ -3384,12 +3384,12 @@ L_unittest_cmd() {
 			{
 				{
 					rm "$_L_utmpf"
-					eval "$_L_uc" || _L_uret=$?
+					eval "$_L_uc || _L_uret=\$?"
 				} >"$_L_utmpf" 111<&-
 				_L_uout=$(cat <&111)
 			} 111<"$_L_utmpf"
 		else
-			eval "$_L_uc" || _L_uret=$?
+			eval "$_L_uc || _L_uret=\$?"
 		fi
 		L_trap_pop EXIT
 	else  # _L_uopt_curenv
@@ -6320,7 +6320,7 @@ L_proc_wait() {
 				3) return 1 ;; # timeout expired
 				esac
 			fi
-			if [[ -n "$_L_timeout" ]] && L_hash timeout tail && _L_ret=$(tail --help) && [[ "$_L_ret" == *"--pid"* ]]; then
+			if [[ -n "$_L_timeout" ]] && L_hash timeout tail && _L_ret=$(tail --help 2>&1) && [[ "$_L_ret" == *"--pid"* ]]; then
 				L_exit_to _L_ret timeout "$_L_timeout" tail --pid="$L_v" -f /dev/null
 				case "$_L_ret" in
 				0) _L_timeout="" ;; # pid finished
