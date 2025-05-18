@@ -52,10 +52,6 @@ jobs:
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: kamilcuk/shdoc
-          path: shdoc
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:

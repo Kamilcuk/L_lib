@@ -5,3 +5,4 @@ profile.*
 *.dot
 .bash_history
 perf*
+.venv
