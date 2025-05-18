@@ -2954,7 +2954,7 @@ L_print_traceback() {
 						fi
 						printf "%s%-5d%s%3s%s%s\n" \
 							"$L_BLUE$L_BOLD" \
-							"$((min+j))" \
+							"$((min+j+1))" \
 							"$L_COLORRESET" \
 							"${cur:+">> $L_RED"}" \
 							"${lines[j]:-}" \
