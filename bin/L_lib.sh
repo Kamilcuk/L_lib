@@ -857,6 +857,56 @@ L_basename_v() { L_v=${*##*/}; }
 L_dirname() { L_handle_v "$@"; }
 L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
 
+# @description convert exit code to the word yes or to nothing
+# @arg $1 variable
+# @arg $@ command to execute
+# @example
+#     L_exit_to_1null suceeded test "$#" = 0
+#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
+L_exit_to_1null() {
+	if "${@:2}"; then
+		printf -v "$1" "1"
+	else
+		printf -v "$1" "%s" ""
+	fi
+}
+
+# @description convert exit code to the word yes or to unset variable
+# @arg $1 variable
+# @arg $@ command to execute
+# @example
+#     L_exit_to_1null suceeded test "$#" = 0
+#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
+L_exit_to_1unset() {
+	if "${@:2}"; then
+		printf -v "$1" "1"
+	else
+		unset "$1"
+	fi
+}
+
+# @description store exit status of a command to a variable
+# @arg $1 variable
+# @arg $@ command to execute
+L_exit_to() {
+	if "${@:2}"; then
+		printf -v "$1" 0
+	else
+		# shellcheck disable=2059
+		printf -v "$1" "$?"
+	fi
+}
+
+# @description store 1 if command exited with 0, store 0 if command exited with nonzero
+# @arg $1 variable
+# @arg $@ command to execute
+L_exit_to_10() {
+	if "${@:2}"; then
+		printf -v "$1" 1
+	else
+		printf -v "$1" 0
+	fi
+}
 
 # ]]]
 # string [[[
@@ -1326,58 +1376,6 @@ L_abbreviation_v() {
 			fi
 			shift
 		done
-	fi
-}
-
-# @description convert exit code to the word yes or to nothing
-# @arg $1 variable
-# @arg $@ command to execute
-# @example
-#     L_exit_to_1null suceeded test "$#" = 0
-#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
-L_exit_to_1null() {
-	if "${@:2}"; then
-		printf -v "$1" "1"
-	else
-		printf -v "$1" "%s" ""
-	fi
-}
-
-
-# @description convert exit code to the word yes or to unset variable
-# @arg $1 variable
-# @arg $@ command to execute
-# @example
-#     L_exit_to_1null suceeded test "$#" = 0
-#     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
-L_exit_to_1unset() {
-	if "${@:2}"; then
-		printf -v "$1" "1"
-	else
-		unset "$1"
-	fi
-}
-
-# @description store exit status of a command to a variable
-# @arg $1 variable
-# @arg $@ command to execute
-L_exit_to() {
-	if "${@:2}"; then
-		printf -v "$1" 0
-	else
-		# shellcheck disable=2059
-		printf -v "$1" "$?"
-	fi
-}
-
-# @description store 1 if command exited with 0, store 0 if command exited with nonzero
-# @arg $1 variable
-# @arg $@ command to execute
-L_exit_to_10() {
-	if "${@:2}"; then
-		printf -v "$1" 1
-	else
-		printf -v "$1" 0
 	fi
 }
 
