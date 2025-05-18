@@ -327,23 +327,27 @@ L_BASH_VERSION=$((BASH_VERSINFO[0] << 16 | BASH_VERSINFO[1] << 8 | BASH_VERSINFO
 L_HAS_BASH5_3=$((   L_BASH_VERSION >= 0x050300))
 L_HAS_BASH5_2=$((   L_BASH_VERSION >= 0x050200))
 L_HAS_BASH5_1=$((   L_BASH_VERSION >= 0x050100))
-L_HAS_BASH5=$((     L_BASH_VERSION >= 0x050000))
+L_HAS_BASH5_0=$((   L_BASH_VERSION >= 0x050000))
 L_HAS_BASH4_4=$((   L_BASH_VERSION >= 0x040400))
 L_HAS_BASH4_3=$((   L_BASH_VERSION >= 0x040300))
 L_HAS_BASH4_2=$((   L_BASH_VERSION >= 0x040200))
 L_HAS_BASH4_1=$((   L_BASH_VERSION >= 0x040100))
-L_HAS_BASH4=$((     L_BASH_VERSION >= 0x040000))
+L_HAS_BASH4_0=$((   L_BASH_VERSION >= 0x040000))
 L_HAS_BASH3_2=$((   L_BASH_VERSION >= 0x030200))
 L_HAS_BASH3_1=$((   L_BASH_VERSION >= 0x030100))
-L_HAS_BASH3=$((     L_BASH_VERSION >= 0x030000))
+L_HAS_BASH3_0=$((   L_BASH_VERSION >= 0x030000))
 L_HAS_BASH2_5=$((   L_BASH_VERSION >= 0x020500))
 L_HAS_BASH2_4=$((   L_BASH_VERSION >= 0x020400))
 L_HAS_BASH2_3=$((   L_BASH_VERSION >= 0x020300))
 L_HAS_BASH2_2=$((   L_BASH_VERSION >= 0x020200))
 L_HAS_BASH2_1=$((   L_BASH_VERSION >= 0x020100))
-L_HAS_BASH2=$((     L_BASH_VERSION >= 0x020000))
+L_HAS_BASH2_0=$((   L_BASH_VERSION >= 0x020000))
 L_HAS_BASH1_14_7=$((L_BASH_VERSION >= 0x010E07))
 
+# @description `compgen' has a new option: -V varname. If supplied, it stores the generated
+L_HAS_COMPGEN_V=$L_HAS_BASH5_3
+# @description New form of command substitution: ${ command; } or ${|command;} to capture
+L_HAS_NO_FORK_COMMAND_SUBSTITUTION=$L_HAS_BASH5_3
 # @description New shell option: patsub_replacement. When enabled, a `&' in the replacement
 L_HAS_PATSUB_REPLACEMENT=$L_HAS_BASH5_2
 # @description There is a new parameter transformation operator: @k. This is like @K, but
@@ -352,7 +356,7 @@ L_HAS_k_EXPANSION=$L_HAS_BASH5_2
 L_HAS_SRANDOM=$L_HAS_BASH5_1
 # @description New `U', `u', and `L' parameter transformations to convert to uppercas
 # @description New `K' parameter transformation to display associative arrays as key-
-L_HAS_UuLK_EXPASIONS=$L_HAS_BASH5
+L_HAS_UuLK_EXPASIONS=$L_HAS_BASH5_0
 # @description There is a new ${parameter@spec} family of operators to transform the value of `parameter'.
 L_HAS_QEPAa_EXPANSIONS=$L_HAS_BASH4_4
 # @description Bash 4.4 introduced function scoped `local -`
@@ -377,17 +381,17 @@ L_HAS_TEST_V=$L_HAS_BASH4_1
 # @description `printf -v' can now assign values to array indices.
 L_HAS_PRINTF_V_ARRAY=$L_HAS_BASH4_1
 # @description Bash 4.0 introduced declare -A var=$([a]=b)
-L_HAS_ASSOCIATIVE_ARRAY=$L_HAS_BASH4
+L_HAS_ASSOCIATIVE_ARRAY=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced mapfile
-L_HAS_MAPFILE=$L_HAS_BASH4
+L_HAS_MAPFILE=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced readarray
-L_HAS_READARRAY=$L_HAS_BASH4
+L_HAS_READARRAY=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced case fallthrough ;& and ;;&
-L_HAS_CASE_FALLTHROUGH=$L_HAS_BASH4
+L_HAS_CASE_FALLTHROUGH=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced ${var,,} and ${var^^} expansions
-L_HAS_LOWERCASE_UPPERCASE_EXPANSION=$L_HAS_BASH4
+L_HAS_LOWERCASE_UPPERCASE_EXPANSION=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced BASHPID variable
-L_HAS_BASHPID=$L_HAS_BASH4
+L_HAS_BASHPID=$L_HAS_BASH4_0
 # @description Bash 3.2 introduced coproc
 L_HAS_COPROC=$L_HAS_BASH3_2
 # @description [[ =~ has to be quoted or not, no one knows.
@@ -403,7 +407,7 @@ L_HAS_PREFIX_EXPANSION=$L_HAS_BASH2_4
 # @description Bash 2.05 introduced <<<"string"
 L_HAS_HERE_STRING=$L_HAS_BASH2_5
 # @description Bash 2.0 introduced ${!var} expansion
-L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2
+L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2_0
 # @description Bash 1.14.7 introduced arrays
 # Bash 1.14.7 also introduced:
 # New variables: DIRSTACK, PIPESTATUS, BASH_VERSINFO, HOSTNAME, SHELLOPTS, MACHTYPE.  The first three are array variables.
@@ -1623,7 +1627,7 @@ L_array_read() {
 		if [[ -z "$_L_d" ]]; then
 			while IFS= "${_L_read[@]}" -d '' "$1[$((_L_i++))]"; do :; done
 			unset "$1[$((_L_i-1))]"
-		elif ((!L_HAS_BASH4)); then
+		elif ((!L_HAS_BASH4_0)); then
 			IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1" || :
 		else
 			IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1"

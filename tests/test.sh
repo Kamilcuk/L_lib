@@ -56,7 +56,7 @@ _L_test_basic() {
 	{
 		L_unittest_checkexit 1 L_var_is_set _L_variable
 		local _L_variable
-		if ((L_HAS_BASH4)); then
+		if ((L_HAS_BASH4_0)); then
 			# In bash 3.2 local sets the variable to empty. On newers it doesn't set.
 			L_unittest_checkexit 1 L_var_is_set _L_variable
 		fi
@@ -187,7 +187,7 @@ _L_test_a_handle_v() {
 
 _L_test_str() {
 	local tmp IFS="!@#"
-	if ((!L_HAS_BASH4)); then
+	if ((!L_HAS_BASH4_0)); then
 		# Bash3.2 is not able to split "${@:2}" correctly when IFS does not contain space.
 		local IFS=" "
 	fi
@@ -1296,7 +1296,7 @@ _L_test_map() {
 		}
 	}
 	{
-		if ((L_HAS_BASH4)); then local IFS=bc; fi
+		if ((L_HAS_BASH4_0)); then local IFS=bc; fi
 		local map tmp
 		L_map_init map
 		L_map_set map "/bin/ba*" "/dev/*"
