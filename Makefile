@@ -44,10 +44,9 @@ shellcheck:
 shellcheckall:
 	docker build --target shellcheckall .
 shellchecklocal:
-	# shellcheck $(ARGS) bin/L_lib.sh
-	scripts/shellcheckparser_off.sh bin/L_lib.sh | shellcheck $(ARGS) -
+	shellcheck $(ARGS) bin/L_lib.sh
 shellcheckvim:
-	scripts/shellcheckparser_off.sh bin/L_lib.sh | shellcheck -fgcc $(ARGS) - | sed 's@^-:@bin/L_lib.sh:@'
+	shellcheck -fgcc $(ARGS) bin/L_lib.sh | sed 's@^-:@bin/L_lib.sh:@'
 shellcheckvimstyle: ARGS = -Sstyle
 shellcheckvimstyle: shellcheckvim
 shellcheckvimall: ARGS = -oall -Sstyle
