@@ -117,6 +117,6 @@ docs_serve: WHAT = serve
 docs_serve: _docs
 docs_serve2:
 	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve
-doc:
+docs_docker:
 	docker build --target doc --output type=local,dest=./public .
 
