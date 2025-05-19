@@ -1476,6 +1476,79 @@ L_fstring_v() {
 	printf -v L_v "${_L_args[@]}"
 }
 
+# @description Convert a string to hex dump.
+# @option -v <var> Output variable
+L_hexdump() { L_handle_v "$@"; }
+L_hexdump_v() {
+	if L_hash xxd; then
+		L_v=$(printf "%s" "$*" | xxd -p)
+	else
+		local _L_i _L_a="$*" LC_ALL=C
+		L_v=""
+		for ((_L_i=0;_L_i<${#_L_a};++_L_i)); do
+			printf -v L_v "%s%x" "$L_v" "'${_L_a:$_L_i:1}"
+		done
+	fi
+}
+
+# @description Encode a string in percent encoding.
+# @option -v <var> Output variable
+L_urlencode() { L_handle_v "$@"; }
+L_urlencode_v() {
+	local _L_i _L_a="$*" LC_ALL=C _L_c
+	L_v=""
+	for ((_L_i=0;_L_i<${#_L_a};++_L_i)); do
+		_L_c=${_L_a:$_L_i:1}
+		case "$_L_c" in
+		[A-Za-z0-9_~-]) L_v+=$_L_c ;;
+		*) printf -v L_v "%s%%%02x" "$L_v" "'$_L_c" ;;
+		esac
+	done
+}
+
+# @description Decode percent encoding.
+# @option -v <var> Output variable
+L_urldecode() { L_handle_v "$@"; }
+L_urldecode_v() {
+	local _L_a="$*" LC_ALL=C
+	L_v=""
+	while [[ -n "$_L_a" ]]; do
+		case "$_L_a" in
+		%[0-9a-fA-Z][0-9a-fA-Z]*) printf -v L_v "%s\x${_L_a:1:2}" "$L_v"; _L_a="${_L_a:3}" ;;
+		%%*) L_v+="%"; _L_a="${_L_a:2}" ;;
+		*) L_v+="${_L_a:0:1}"; _L_a="${_L_a:1}" ;;
+		esac
+	done
+}
+
+# @description Escape characters for html.
+# @option -v <var> Output variable
+L_html_escape() { L_handle_v "$@"; }
+L_html_escape_v() {
+	L_v="$*"
+	L_v=${L_v//"&"/"&amp;"}
+	L_v=${L_v//"<"/"&lt;"}
+	L_v=${L_v//">"/"&gt;"}
+	L_v=${L_v//'"'/"&qout;"}
+	L_v=${L_v//"'"/"&#39;"}
+}
+
+# @description Replace multiple characters in a string in order.
+# @option -v <var> Output variable
+# @arg $1 String to operate on.
+# @arg $2 String to replace.
+# @arg $3 Replacement.
+# @arg $@ String to replace and replacement can be repeated multiple times.
+L_str_replace() { L_handle_v "$@"; }
+L_str_replace_v() {
+	L_v="$1"
+	shift
+	while (($# > 2)); do
+		L_v="${L_v//"$1"/"$2"}"
+		shift 2
+	done
+}
+
 # ]]]
 # array [[[
 # @section array
