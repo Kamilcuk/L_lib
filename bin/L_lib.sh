@@ -3147,6 +3147,7 @@ _L_TRAP_L_init() {
 	_L_TRAP_L=${_L_TRAP_L//)}
 	# _L_TRAP_L=${_L_TRAP_L// }
 	_L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } "
+	# shellcheck disable=SC2317
 	_L_TRAP_L_init() { :; }
 }
 
