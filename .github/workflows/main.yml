@@ -54,7 +54,7 @@ jobs:
 
   deploy_docker:
     needs: [test, shellcheck, build_pages]
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
