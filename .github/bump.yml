@@ -1,0 +1,18 @@
+# .github/bump.yml
+# configuration of MeilCli/bump-release-action
+---
+release:
+  title-prefix: 'v'
+  initial-version: '0.1.9'
+  tag-prefix: 'v'
+branch:
+  base-branch: 'main'
+  version-branch-prefix: 'v'
+  bump-version-commit-prefix: 'v'
+categories:
+  - title: 'Changes'
+    commits:
+      - ''
+files:
+  - file-path: 'bin/L_lib.sh'
+    line: 28
