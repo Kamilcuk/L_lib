@@ -4014,8 +4014,7 @@ fi
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
-# @env _L_parser The arguments passed to ArgumentParser() constructor
-# @env _L_parser The current parser
+# @note stable
 
 # @description Print argument parsing error and exit.
 # @env L_NAME
@@ -4212,7 +4211,7 @@ L_argparse_print_help() {
 			if ((_L_i == 0)); then
 				break
 			fi
-			((_L_i = _L_parser__parent[_L_i]))
+			_L_i=${_L_parser__parent[_L_i]}
 		done
 	}
 	{
@@ -4329,15 +4328,15 @@ L_argparse_template_help=(-h --help help="show this help message and exit" actio
 # @description Add -v --verbose option that increases log level
 # @example L_argparse -- "${L_argparse_template_verbose[@]}" ---- "$@"
 # @see L_argparse_template_quiet
-L_argparse_template_verbose=(-v --verbose help="be more verbose" action=eval:'L_log_level_inc')
+L_argparse_template_verbose=(-v --verbose help="be more verbose" eval='L_log_level_inc')
 # @description Add -q --quiet options that decreses log level
 # @example L_argparse -- "${L_argparse_template_quiet[@]}" ---- "$@"
 # @see L_argparse_template_dryrun
-L_argparse_template_quiet=(-q --quiet help="be more quiet" action=eval:'L_log_level_dec')
+L_argparse_template_quiet=(-q --quiet help="be more quiet" eval='L_log_level_dec')
 # @description Add -n --dryrun argument to argparse.
 # @example L_argparse -- "${_L_argparse_template_dryrun[@]}" ---- "$@"
 # @see L_argparse_template_help
-L_argparse_template_dryrun=(-n --dryrun help="do not run; just print" action=eval:'L_dryrun=1')
+L_argparse_template_dryrun=(-n --dryrun help="do not run; just print" eval='L_dryrun=1')
 
 # @env _L_split_args
 # @env _L_split_long_options
@@ -4396,10 +4395,6 @@ _L_argparse_split_common_subparser_function() {
 	*) _L_argparse_split_fatal "internal error class=${_L_opt__class[_L_opti]}" ;;
 	esac
 	_L_opt_action[_L_opti]="_subparser"
-	if [[ -n "${_L_parser__subparser[_L_parseri]:-}" ]]; then
-		_L_argparse_split_fatal "parser may not have multiple subparsers"
-	fi
-	_L_parser__subparser[_L_parseri]="${_L_opt__class[_L_opti]}"
 	_L_argparse_split_argument_common
 }
 
@@ -4633,6 +4628,7 @@ _L_argparse_split_call_argument() {
 			action=*) _L_opt_action[_L_opti]=${1#*=} ;;
 			nargs=*) _L_opt_nargs[_L_opti]=${1#*=} ;;
 			const=*) _L_opt_const[_L_opti]=${1#*=} ;;
+			eval=*) _L_opt_eval[_L_opti]=${1#*=} _L_opt_action[_L_opti]=eval ;;
 			default=*) _L_opt_default[_L_opti]=${1#*=} ;;
 			type=*) _L_opt_type[_L_opti]=${1#*=} ;;
 			choices=*) _L_opt_choices[_L_opti]=${1#*=} ;;
@@ -4655,8 +4651,8 @@ _L_argparse_split_call_argument() {
 				;;
 			[^a-zA-Z0-9]*|*[^a-zA-Z0-9_]*) _L_argparse_split_fatal "unsupported positional argument: $1" ;;
 			[a-zA-Z0-9]*)
-				if [[ -n "${_L_opt_desc[_L_opti]:-}" ]]; then
-					_L_argparse_split_fatal "desc supplied twice for positional argument: $1"
+				if [[ -n "${_L_opt_dest[_L_opti]:-}" ]]; then
+					_L_argparse_split_fatal "dest supplied twice for positional argument: $1"
 				fi
 				_L_opt_dest[_L_opti]=$1
 				;;
@@ -4669,15 +4665,12 @@ _L_argparse_split_call_argument() {
 	{
 		# Infer dest from options
 		if [[ -n "${_L_opt__options[_L_opti]:-}" ]]; then
-			if [[ -n "${_L_opt_desc[_L_opti]:-}" ]]; then
-				_L_argparse_split_fatal "desc supplied for option"
-			fi
 			: "${_L_opt_dest[_L_opti]:=${first_long_option:-${first_short_option:-}}}"
 			_L_opt__class[_L_opti]="option"
 		else
 			_L_opt__class[_L_opti]="argument"
 		fi
-		# assert dest is valid
+		# Assert dest is valid.
 		if ! L_is_valid_variable_name "${_L_opt_dest[_L_opti]}"; then
 			_L_argparse_split_fatal "dest=${_L_opt_dest[_L_opti]} is invalid"
 		fi
@@ -4783,9 +4776,9 @@ _L_argparse_split_argument_common() {
 			fi
 			_L_opt__isarray[_L_opti]=1
 			;;
-		eval:*)
-			if ! bash -nc "${_L_opt_action[_L_opti]#eval:}"; then
-				_L_argparse_split_fatal "action=${_L_opt_action[_L_opti]} is invalid"
+		eval)
+			if [[ -z "${_L_opt_eval[_L_opti]:-}" ]] || ! bash -nc "${_L_opt_eval[_L_opti]}"; then
+				_L_argparse_split_fatal "eval=${_L_opt_eval[_L_opti]} is invalid"
 			fi
 			: "${_L_opt_nargs[_L_opti]:=0}"
 			;;
@@ -4811,7 +4804,7 @@ _L_argparse_split_argument_common() {
 			if [[ "${_L_opt_nargs[_L_opti]}" -le 0 ]]; then
 				_L_argparse_split_fatal "nargs=${_L_opt_nargs[_L_opti]} is wrong"
 			fi
-			(( _L_opt__isarray[_L_opti] = _L_opt_nargs[_L_opti] > 1 , 1))
+			_L_opt__isarray[_L_opti]=$(( _L_opt_nargs[_L_opti] > 1 ))
 		esac
 	}
 	_L_opt__parseri[_L_opti]=$_L_parseri
@@ -4819,56 +4812,86 @@ _L_argparse_split_argument_common() {
 
 # @description
 # @env _L_parser
-# @arg $1 variable to set with optspec
-# @arg $2 short option ex. -a
-_L_argparse_parser_get_short_option() {
-	for (($1=1; $1<_L_optcnt; ++$1)); do
-		if [[ "${_L_opt__parseri[$1]}" == "$_L_parseri" && " ${_L_opt__options[$1]:-} " == *[$' \t\n']"$2"[$' \t\n']* ]]; then
-			return
+# @arg $1 Variable to set with optspec. Typically _L_opti
+# @arg $2 Option to search for, example -a or --option.
+_L_argparse_parser_find_option() {
+	printf -v "$1" 0
+	while _L_argparse_parser_next_option _L_opti; do
+		if [[ " ${_L_opt__options[$1]} " == *" $2 "* ]]; then
+			return 0
 		fi
 	done
 	return 1
+}
+
+# @description Get space separate list of all options of the current parser.
+# @arg $1 <var> variable to append options to
+# @set $1
+_L_argparse_get_all_options() {
+	local _L_opti=0
+	while _L_argparse_parser_next_option _L_opti; do
+		printf -v "$1" "%s" "${!1+${!1} }${_L_opt__options[_L_opti]}"
+	done
 }
 
 # @description
 # @env _L_parser
-# @arg $1 variable to set with optspec
-# @arg $2 long option ex. --option
+# @set $1
+# @arg $1 Variable to set with optspec. Typicall _L_opti.
+# @arg $2 Long option ex. --option
 _L_argparse_parser_get_long_option() {
-	if _L_argparse_parser_get_short_option "$1" "$2"; then
-		return
+	if _L_argparse_parser_find_option "$1" "$2"; then
+		return 0
 	elif L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-true}"; then
-		local IFS=$' \t\n' _L_abbrev_matches
-		if ! _L_abbrev_matches=$(compgen -W " ${_L_opt__options[*]} " -- "$2"); then
-			L_argparse_fatal "unrecognized arguments: $2" || return 1
+		local IFS=$' \t\n' _L_abbrev_matches options
+		_L_argparse_get_all_options options
+		if ! _L_abbrev_matches=$(compgen -W "$options" -- "$2"); then
+			L_argparse_fatal "unrecognized arguments: $2" || return $?
 		elif [[ "$_L_abbrev_matches" == *[$' \n']* ]]; then
-			L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches[*]}" || return 1
+			L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches[*]}" || return $?
 		else
-			if ! _L_argparse_parser_get_short_option "$1" "$_L_abbrev_matches"; then
-				L_argparse_fatal "internal error: could not get short option of $_L_abbrev_matches" || return 1
+			if ! _L_argparse_parser_find_option "$1" "$_L_abbrev_matches"; then
+				L_argparse_fatal "internal error: could not get short option of $_L_abbrev_matches" || return $?
 			fi
-			return
+			return 0
 		fi
 	else
-		L_argparse_fatal "unrecognized arguments: $2" || return 1
+		L_argparse_fatal "unrecognized arguments: $2" || return $?
 	fi
 	return 1
 }
 
+
+
+# description Iterate over all arguments of the current parser.
+# @arg $1 -z or -n depending if options should be zero or nonzero.
+# @arg $2 Index variable to set. Should be initialized to 0. Typically _L_opti.
+# @set $1
 _L_argparse_parser_next() {
-	while ((++_L_opti < _L_optcnt)); do
-		if
-			[[ "${_L_opt__parseri[_L_opti]}" == "$_L_parseri" ]] &&
-			test "$1" "${_L_opt__options[_L_opti]:-}"
-		then
+	while ((++$2 < _L_optcnt)); do
+		if [[ "${_L_opt__parseri[$2]}" == "$_L_parseri" ]] && test "$1" "${_L_opt__options[$2]:-}"; then
 			return
 		fi
 	done
 	return 1
 }
 
-_L_argparse_parser_next_argument() { _L_argparse_parser_next -z; }
-_L_argparse_parser_next_option() { _L_argparse_parser_next -n; }
+# description Iterate over all arguments of the current parser.
+# @arg $1 Index variable to set. Should be initialized to 0. Typically _L_opti.
+# @set $1
+# @see _L_argparse_parser_next
+# @example
+#   local _L_opti=0
+#   while _L_argparse_parser_next_argument _L_opti; do
+#     echo "Found argument: _L_opt_dest=${_L_opt_dest[_L_opti]}"
+#   done
+_L_argparse_parser_next_argument() { _L_argparse_parser_next -z "$1"; }
+
+# description Iterate over all options of the current parser.
+# @arg $1 Index variable to set. Should be initialized to 0. Typically _L_opti.
+# @set $1
+# @see _L_argparse_parser_next
+_L_argparse_parser_next_option() { _L_argparse_parser_next -n "$1"; }
 
 # @description validate values
 # @arg $@ value to assign to option
@@ -4940,7 +4963,7 @@ _L_argparse_optspec_dest_arr_append() {
 _L_argparse_optspec_execute_action() {
 	_L_assigned_options[_L_opti]=1
 	case ${_L_opt_action[_L_opti]} in
-	store|append|remainder|eval:*)
+	store|append|remainder|eval)
 		_L_argparse_optspec_validate_values "$@" || return 1
 	esac
 	case ${_L_opt_action[_L_opti]} in
@@ -4964,7 +4987,7 @@ _L_argparse_optspec_execute_action() {
 		;;
 	remainder) _L_argparse_optspec_dest_arr_append "$@" ;;
 	help) if ((!_L_in_complete)); then L_argparse_print_help; exit 0; fi ;;
-	eval:*) if ((!_L_in_complete)); then eval "${_L_opt_action[_L_opti]#eval:}"; fi ;;
+	eval) if ((!_L_in_complete)); then eval "${_L_opt_eval[_L_opti]}"; fi ;;
 	_subparser)
 		_L_argparse_optspec_dest_arr_append "$@"
 		_L_sub_args+=("$1")
@@ -5314,6 +5337,11 @@ _L_argparse_bash_completion_function_old() {
 		}
 	else
 		{
+			local end="..." tmp
+			# If terminal supports unicode.
+			if hash locale 2>/dev/null && tmp=$(locale charmap) 2>/dev/null && [[ "$tmp" == "UTF-8" ]]; then
+				end="…"
+			fi
 			# Simply pad descriptions max one per line with spaces until end of line.
 			for i in "${!COMPREPLY[@]}"; do
 				comp="${COMPREPLY[i]%%"$sep"*}"
@@ -5322,8 +5350,8 @@ _L_argparse_bash_completion_function_old() {
 				if [[ -n "$desc" ]]; then
 					# Truncate too long description for the columns.
 					printf -v comp "%-*s (%s)" "$longestcomp" "$comp" "$desc"
-					if ((${#comp} > COLUMNS)); then
-						comp="${comp::COLUMNS-1}…"
+					if ((COLUMNS > 10 && ${#comp} > COLUMNS)); then
+						comp="${comp::COLUMNS-${#end}}$end"
 					fi
 				fi
 				COMPREPLY[i]=$comp
@@ -5487,19 +5515,16 @@ _L_argparse_gen_option_names_completion() {
 		L_argparse_fatal "internal error ${FUNCNAME[0]}: $1" || return $?
 	fi
 	if ((_L_in_complete)); then
-		local _L_opti=0 IFS=$'\n'
-		while _L_argparse_parser_next_option _L_opti; do
-			local -a options="(${_L_opt__options[_L_opti]})"
-			if [[ "$IFS${options[*]}$IFS" == *"$IFS$1"* ]]; then
-				L_argparse_compgen -W "${options[*]}" -P "${2:-}" -- "$1" || return $?
-			fi
-		done
+		local _L_opti=0 IFS=$'\n' options
+		_L_argparse_get_all_options options
+		L_argparse_compgen -W "$options" -P "${2:-}" -- "$1" || return $?
 		exit
 	fi
 }
 
 # @description parse long option
 # @set _L_g_args_left
+# @arg $1 Should we fail? Used to parse -option as --option.
 # @arg $1 long option to parse
 # @arg $@ further arguments on command line
 _L_argparse_parse_args_long_option() {
@@ -5556,8 +5581,8 @@ _L_argparse_parse_args_long_option() {
 
 # @description parse short option
 # @set _L_g_args_left
-# @arg $1 long option to parse
-# @arg $@ further arguments on command line
+# @arg $1 Short option to parse. Has to start with one -.
+# @arg $@ Further arguments on command line.
 _L_argparse_parse_args_short_option() {
 	# Parse short option -euopipefail
 	local _L_i
@@ -5567,7 +5592,7 @@ _L_argparse_parse_args_short_option() {
 		local _L_values=(${_L_value:+"${_L_value}"})
 		local _L_comp_prefix=${1::_L_i+1}  # prefix for completion including the option
 		local _L_opti=0
-		if ! _L_argparse_parser_get_short_option _L_opti "$_L_option"; then
+		if ! _L_argparse_parser_find_option _L_opti "$_L_option"; then
 			L_argparse_fatal "unrecognized short option: $_L_option" || return $?
 			# This is special - if _L_in_complete, then we should ignore invalid options and carry on
 			_L_g_args_left=$(($#-1))
@@ -5627,7 +5652,7 @@ _L_argparse_parse_args() {
 		# Parse options on command line.
 		local _L_onlyargs=0  # When set, only positional arguments are parsed
 		local _L_arg_assigned=()  # arguments assigned currently to _L_optspec
-		local _L_assigned_options=()  # List of assigned _L_opt__index[_L_opti], used for checking required ones.
+		local _L_assigned_options=()  # List of assigned _L_opti, used for checking required ones.
 		local _L_opti=0  # Last evaluated positional argument.
 		while (($#)); do
 			if ((!_L_onlyargs)); then
@@ -5639,6 +5664,7 @@ _L_argparse_parse_args() {
 					_L_onlyargs=1; shift; continue
 					;;
 				--?*) _L_argparse_parse_args_long_option "$@" || return $? ;;
+				-?) _L_argparse_parse_args_short_option "$@" || return $? ;;
 				-?*) _L_argparse_parse_args_short_option "$@" || return $? ;;
 				-) if (($# == 1)); then _L_argparse_gen_option_names_completion "$1"; fi; ;;
 				esac
@@ -5688,7 +5714,7 @@ _L_argparse_parse_args() {
 	}
 	{
 		# Check if all required arguments have value.
-		local _L_required_arguments=()  # List of _L_opt__index[_L_opti] of required arguments.
+		local _L_required_arguments=()  # List of _L_opti of required arguments.
 		while
 			if ((${#_L_arg_assigned[@]} == 0)); then
 				_L_argparse_parser_next_argument _L_opti
@@ -5805,8 +5831,8 @@ _L_argparse_split_parse_args() {
 			((++_L_opti))
 			case "${2:-}" in
 			""|---*|--|"{"|"}") _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" ;;
-			call=function|class=f*|call=f*) _L_argparse_split_class_function "${@:3}" || return 2 ;;
-			call=subparser|class=s*|call=s*) _L_argparse_split_class_subparser "${@:3}" || return 2 ;;
+			call=function|class=function) _L_argparse_split_class_function "${@:3}" || return 2 ;;
+			call=subparser|class=subparser) _L_argparse_split_class_subparser "${@:3}" || return 2 ;;
 			call=*|class=*) _L_argparse_split_fatal "invalid arguments: $1 ${2:-}" ;;
 			*) _L_argparse_split_call_argument "${@:2}" || return 2 ;;
 			esac
@@ -5899,23 +5925,20 @@ _L_argparse_print_curopt() {
 }
 
 # @description Parse command line aruments according to specification.
-# This command takes groups of command line arguments separated by `--`  with sentinel `----` .
+# This command takes groups of command line arguments separated by `--` with sentinel `----` .
 # The first group of arguments are arguments _L_parser.
 # The next group of arguments are arguments _L_optspec.
 # The last group of arguments are command line arguments passed to `_L_argparse_parse_args`.
-# Note: the last separator `----` is different to make it more clear and restrict parsing better.
-# @require associative arrays, i.e. Bash4.0. I could make it work with Bash3.2.
+# @note the last separator `----` is different to make it more clear and restrict parsing better.
 L_argparse() {
 	if L_var_is_set _L_parseri; then
 		local _L_parsercur=$((_L_parseri + 1))
 		_L_parser__parent[_L_parsercur]=$_L_parseri
 	else
-		# _L_parser_ - parser options
-		# _L_parseri - current index in _L_parser_
-		# _L_parsercnt - count of elements in _L_parser_ arrays
-		# _L_opt_ - options and arguments and subparsers options
-		# _L_opti - current index in _L_opt_
-		# _L_optcnt - max elements in _L_opt_
+		# _L_parsercur - Index of current parser we should parse with.
+		# _L_parseri - Current index in _L_parser_.
+		# _L_parsercnt - Count of elements in _L_parser_ arrays.
+		# _L_parser__parent - Index of parent parser of a parser, in case of subparsers.
 		local \
 			_L_parsercur=0 \
 			_L_parseri=0 \
@@ -5931,15 +5954,23 @@ L_argparse() {
 			_L_parser_aliases \
 			_L_parser_help \
 			_L_parser_name \
-			_L_parser__parent=() \
-			_L_parser__subparser \
-			\
+			_L_parser__parent \
+			#
+		# _L_opti - Current index in _L_opt_.
+		# _L_optcnt - Count of options.
+		# _L_opt__class - Argument or option or function or subparser.
+		# _L_opt__isarray - 1 if argument is an array.
+		# _L_opt__options - space separated list of -o --options.
+		# _L_opt__parseri - The index of parent parser this option belongs to.
+		#                   When traversing all parser options, you have to filter on current parser index.
+		local \
 			_L_opti=0 \
 			_L_optcnt=0 \
 			_L_opt_action \
 			_L_opt_choices=() \
 			_L_opt_complete \
 			_L_opt_const \
+			_L_opt_eval \
 			_L_opt_default \
 			_L_opt_dest \
 			_L_opt_help \
@@ -5949,11 +5980,10 @@ L_argparse() {
 			_L_opt_show_default \
 			_L_opt_type \
 			_L_opt_validate \
+			_L_opt_deprecated \
 			_L_opt_prefix \
 			_L_opt_subcall \
 			_L_opt__class \
-			_L_opt__desc \
-			_L_opt__index \
 			_L_opt__isarray=() \
 			_L_opt__options \
 			_L_opt__parseri
@@ -5970,6 +6000,7 @@ L_argparse() {
 	local _L_sub_opti=-1  # The option index of the subparser argument.
 	_L_argparse_split_parse_args "$@" || return 2
 	(( _L_parseri=_L_parsercur, _L_optcnt=_L_opti+1 ))
+	unset _L_parsercur
 	shift $(($#-_L_g_args_left))
 	if [[ "${1:-}" != "----" ]]; then
 		_L_argparse_split_fatal "missing separator ---- at $1"
