@@ -11,19 +11,26 @@ nav:
   - Overview:
       - Index: index.md
       - Bash expansions: expansions.md
+      - Bugs: bugs.md
   - Documentation:
-      - color: section/color.md
+      - globals: section/globals.md
+      - colors: section/colors.md
       - ansi: section/ansi.md
       - has: section/has.md
       - stdlib: section/stdlib.md
+      - string: section/string.md
       - array: section/array.md
       - args: section/args.md
       - utilities: section/utilities.md
+      - log: section/log.md
       - sort: section/sort.md
       - trap: section/trap.md
-      - log: section/log.md
       - unittest: section/unittest.md
+      - map: section/map.md
+      - asa: section/asa.md
       - argparse: section/argparse.md
+      - proc: section/proc.md
+      - lib: section/lib.md
       - all: section/all.md
 
 theme:
