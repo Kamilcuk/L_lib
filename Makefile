@@ -5,7 +5,7 @@ export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
 ARGS ?=
-DOCKERTERM = -eTERM -$(shell [ -t 0 ] && echo t)i
+DOCKERTERM = -eTERM $(shell [ -t 0 ] && printf -- -t)
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
 define NL
@@ -17,6 +17,8 @@ endef
 all: test doc
 	@echo SUCCESS all
 
+test_parallel:
+	$(MAKE) -O -j$(shell nproc) test
 test: \
 		test_local \
 		shellcheck \
@@ -54,7 +56,7 @@ shellcheckvimall: shellcheckvim
 
 term-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
+	docker run --rm $(DOCKERTERM) -i -u $(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
@@ -62,7 +64,7 @@ term-%:
 		bash:$* -l $(ARGS)
 termnoload-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
+	docker run --rm $(DOCKERTERM) -i -u $(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		bash:$* -l $(ARGS)
