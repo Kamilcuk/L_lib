@@ -162,7 +162,7 @@ L_term_has_color() {
 # @arg [$1] file descriptor to check, default 1
 L_color_detect() {
 	if L_term_has_color "$@"; then
-		if [[ -z "$L_BOLD" ]]; then
+		if [[ -z "${L_BOLD:-}" ]]; then
 			L_color_enable
 		fi
 	else
