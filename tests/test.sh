@@ -1964,6 +1964,44 @@ _L_test_z_argparse6() {
 	}
 }
 
+_L_test_path() {
+	local P="A:B:C"
+	{
+		L_path_append P A
+		L_unittest_vareq P "A:B:C"
+		L_path_append P B
+		L_unittest_vareq P "A:B:C"
+		L_path_append P C
+		L_unittest_vareq P "A:B:C"
+		L_path_append P D
+		L_unittest_vareq P "A:B:C:D"
+		L_path_append P B
+		L_unittest_vareq P "A:B:C:D"
+	}
+	{
+		L_path_prepend P X
+		L_unittest_vareq P "X:A:B:C:D"
+		L_path_prepend P X
+		L_unittest_vareq P "X:A:B:C:D"
+		L_path_prepend P B
+		L_unittest_vareq P "X:A:B:C:D"
+		L_path_prepend P Y
+		L_unittest_vareq P "Y:X:A:B:C:D"
+	}
+	{
+		L_path_remove P X
+		L_unittest_vareq P "Y:A:B:C:D"
+		L_path_remove P D
+		L_unittest_vareq P "Y:A:B:C"
+		L_path_remove P X
+		L_unittest_vareq P "Y:A:B:C"
+		L_path_remove P Y
+		L_unittest_vareq P "A:B:C"
+		P="A:A:A"
+		L_path_remove P A
+		L_unittest_vareq P ""
+	}
+}
 
 _L_test_L_proc() {
 	local proc

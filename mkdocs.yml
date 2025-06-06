@@ -18,6 +18,8 @@ nav:
       - ansi: section/ansi.md
       - has: section/has.md
       - stdlib: section/stdlib.md
+      - exit_to: section/exit_to.md
+      - path: section/path.md
       - string: section/string.md
       - array: section/array.md
       - args: section/args.md
