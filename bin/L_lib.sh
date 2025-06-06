@@ -428,13 +428,19 @@ L_assert_fail() {
 
 # @description Assert the command starting from second arguments returns success.
 # Note: `[[` is a bash syntax sugar and is not a command.
-# As last resort, use `eval "[[ ${var@Q} = ${var@Q} ]]"` if you really want to use it,
-# Better prefer write and use wrapper functions, like `L_regex_match` or `L_glob_match`.
+# You could use `eval "[[ ${var@Q} = ${var@Q} ]]"`.
+# However to prevent quoting issues it is simpler to use wrapper functions.
+# The function `L_regex_match` `L_glob_match` `L_not` are useful for writing assertions.
 # To invert the test use `L_not` which just executes `! "$@"`.
-# When assertion fails, exit with 249.
+# `!` is not a standalone command or builtin, so it can't be used with this function.
 # @arg $1 str assertiong string description
 # @arg $@ command to test
-# @example L_assert 'wrong number of arguments' [ "$#" = 0 ]
+# @example
+#   L_assert 'wrong number of arguments' [ "$#" -eq 0 ]
+#   L_assert 'first argument must be equal to insert' test "$1" = "insert
+#   L_assert 'var has to match regex' L_regex_match "$var" ".*test.*"
+#   L_assert 'var has to not match regex' L_not L_regex_match "$var" "[yY][eE][sS]"
+#   L_assert 'var has to matcha glob' L_glob_match "$var" "*glob*"
 L_assert() {
 	if ! "${@:2}"; then
 		L_assert_fail "$@"
@@ -461,7 +467,6 @@ L_regex_match() { [[ "$1" =~ $2 ]]; }
 # @arg $@ string to escape
 L_regex_escape() { L_handle_v "$@"; }
 L_regex_escape_v() { L_v=${*//?/[&]}; }
-
 
 # @description Get all matches of a regex to an array.
 # @option -v <var> variable to set
@@ -609,7 +614,10 @@ L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]
 
 # @description Return 0 if the argument is a command.
 # Consider using L_hash instead.
-# @arg $1 command name
+# This differs from L_hash in the presence of an alias.
+# `command -v` detects aliases.
+# `hash` detects actual executables in PATH and bash functions.
+# @arg $@ commands names to check
 # @see L_hash
 L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 
@@ -617,19 +625,20 @@ L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 # A typical mnemonic to check if a command exists is `if hash awk 2>/dev/null`.
 # This saves to type the redirection.
 # @arg $@ commands to check
+# @see L_command_exists
 L_hash() { hash "$@" >/dev/null 2>&1; }
 
-# @description Return 0 if current script sourced
+# @description Return 0 if current script sourced.
 L_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
 
-# @description Return 0 if current script is not sourced
+# @description Return 0 if current script is not sourced.
 L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
 
-# @description Return 0 if running in bash shell
+# @description Return 0 if running in bash shell.
 # Portable with POSIX shell.
 L_is_in_bash() { [ -n "${BASH_VERSION:-}" ]; }
 
-# @description Return 0 if running in posix mode
+# @description Return 0 if running in posix mode.
 L_in_posix_mode() { case ":$SHELLOPTS:" in *:posix:*) ;; *) false ;; esac; }
 
 # @description Return 0 if variable is set
@@ -802,11 +811,19 @@ L_wait_all_jobs() {
 
 # @description An array to execute a command nicest way possible.
 # @example "${L_NICE[@]}" make -j $(nproc)
-L_NICE=(nice -n 40 ionice -c 3)
+L_NICE=()
 if L_hash ,nice; then
 	L_NICE=(",nice")
-elif L_hash chrt; then
-	L_NICE+=(chrt -i 0)
+else
+	if L_hash nice; then
+		L_NICE+=(nice -n 40)
+	fi
+	if L_hash ionice; then
+		L_NICE+=(ionice -c 3)
+	fi
+	if L_hash chrt; then
+		L_NICE+=(chrt -i 0)
+	fi
 fi
 
 # @description execute a command in nicest possible way
@@ -841,12 +858,6 @@ L_sudo() {
 	L_run "${sudo[@]}" "$@"
 }
 
-# @description capture exit code of a command to a variable
-# @option -v <var> var
-# @arg $@ command to execute
-L_capture_exit() { L_handle_v "$@"; }
-L_capture_exit_v() { if "$@"; then L_v=$?; else L_v=$?; fi; }
-
 # @option -v <var> var
 # @arg $1 path
 L_basename() { L_handle_v "$@"; }
@@ -856,6 +867,22 @@ L_basename_v() { L_v=${*##*/}; }
 # @arg $1 path
 L_dirname() { L_handle_v "$@"; }
 L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
+
+# ]]]
+# exit_to [[[
+# @section exit_to
+
+# @description store exit status of a command to a variable
+# @arg $1 variable
+# @arg $@ command to execute
+L_exit_to() {
+	if "${@:2}"; then
+		printf -v "$1" 0
+	else
+		# shellcheck disable=2059
+		printf -v "$1" "$?"
+	fi
+}
 
 # @description convert exit code to the word yes or to nothing
 # @arg $1 variable
@@ -885,18 +912,6 @@ L_exit_to_1unset() {
 	fi
 }
 
-# @description store exit status of a command to a variable
-# @arg $1 variable
-# @arg $@ command to execute
-L_exit_to() {
-	if "${@:2}"; then
-		printf -v "$1" 0
-	else
-		# shellcheck disable=2059
-		printf -v "$1" "$?"
-	fi
-}
-
 # @description store 1 if command exited with 0, store 0 if command exited with nonzero
 # @arg $1 variable
 # @arg $@ command to execute
@@ -906,6 +921,48 @@ L_exit_to_10() {
 	else
 		printf -v "$1" 0
 	fi
+}
+
+# ]]]
+# path [[[
+# @section path
+
+# @description Append a path to path variable is not already there.
+# @arg $1 Variable name. For example PATH
+# @arg $2 Path to append. For example /usr/bin
+# @arg [$3] Optional path separator. Default: ':'
+# @example L_path_append PATH ~/.local/bin
+L_path_append() {
+	case "${3:-:}${!1}${3:-:}" in
+	*"${3:-:}$2${3:-:}"*) ;;
+	*) printf -v "$1" "%s" "${!1}${3:-:}$2"
+	esac
+}
+
+# @description Prepend a path to path variable is not already there.
+# @arg $1 Variable name. For example PATH
+# @arg $2 Path to prepend. For example /usr/bin
+# @arg [$3] Optional path separator. Default: ':'
+# @example L_path_append PATH ~/.local/bin
+L_path_prepend() {
+	case "${3:-:}${!1}${3:-:}" in
+	*"${3:-:}$2${3:-:}"*) ;;
+	*) printf -v "$1" "%s" "$2${3:-:}${!1}"
+	esac
+}
+
+# @description Remove a path from a path variable.
+# @arg $1 Variable name. For example PATH
+# @arg $2 Path to prepend. For example /usr/bin
+# @arg [$3] Optional path separator. Default: ':'
+# @example L_path_append PATH ~/.local/bin
+L_path_remove() {
+	case "${!1}" in
+	"$2${3:-:}"*) printf -v "$1" "%s" "${!1#"$2${3:-:}"}"; L_path_remove "$@"; ;;
+	*"${3:-:}$2") printf -v "$1" "%s" "${!1%"${3:-:}$2"}"; L_path_remove "$@"; ;;
+	*"${3:-:}$2${3:-:}"*) printf -v "$1" "%s" "${!1//"${3:-:}$2${3:-:}"/"${3:-:}"}"; L_path_remove "$@"; ;;
+	"$2") printf -v "$1" "%s" "" ;;
+	esac
 }
 
 # ]]]
@@ -922,7 +979,7 @@ L_exit_to_10() {
 #  - y
 #  - t
 #  - any number except 0
-#  - the cahracter '+'
+#  - the character '+'
 # @arg $1 str
 L_is_true() { [[ "$1" == [+1-9TtYy]* ]]; }
 # L_is_true() { L_regex_match "$1" "^([+]|[+]?[1-9][0-9]*|[tT]|[tT][rR][uU][eE]|[yY]|[yY][eE][sS])$"; }
