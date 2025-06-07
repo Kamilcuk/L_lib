@@ -6311,26 +6311,36 @@ L_argparse() {
 
 # @description Check if file descriptor is open.
 # @arg $1 file descriptor
+# shellcheck disable=SC2188
 L_is_fd_open() {
-	# shellcheck disable=SC2188
 	{ >&"$1"; } 2>/dev/null
 }
 
+if ((L_HAS_VARIABLE_FD)); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd() {
 	local _L_fd
-	for _L_fd in {18..1023}; do
-		if ! L_is_fd_open "$_L_fd"; then
-			printf -v "$1" "%d" "$_L_fd"
-			if (($# == 1)); then
-				return
-			fi
-			shift
-		fi
+	for _L_fd; do
+		exec {_L_fd}>/dev/null
+		printf -v "$1" "%d" "$_L_fd"
 	done
-	return 1
 }
+else
+	L_get_free_fd() {
+		local _L_fd
+		for _L_fd in {18..1023}; do
+			if ! L_is_fd_open "$_L_fd"; then
+				printf -v "$1" "%d" "$_L_fd"
+				if (($# == 1)); then
+					return
+				fi
+				shift
+			fi
+		done
+		return 1
+	}
+fi
 
 # @description Open two connected file descriptors.
 # This intenrally creates a temporary file with mkfifo
@@ -6374,6 +6384,8 @@ _L_proc_init_setup_redir() {
 	if [[ -n "$mode" ]]; then
 		L_printf_append _L_cmd " %s" "$redir"
 		case "$mode" in
+		null) L_printf_append _L_cmd "/dev/null" ;;
+		close) L_printf_append _L_cmd "%s" "&-" ;;
 		input)
 			L_assert 'you can only input string to stdin' test "$redir" = "<"
 			L_printf_append _L_cmd " <(printf %s %q)" "$val"
@@ -6383,7 +6395,7 @@ _L_proc_init_setup_redir() {
 		pipe)
 			L_pipe fd "${TMPDIR:-/tmp}/L_proc_${val}_XXXXXXXX"
 			# Pipe file descriptors are inverted depending on the direction.
-			if [[ "$redir" == "<" ]]; then
+			if [[ "$redir" == "0<" ]]; then
 				fd=("${fd[1]}" "${fd[0]}")
 			fi
 			_L_toclose+=" ${fd[1]}>&-"
@@ -6398,9 +6410,8 @@ _L_proc_init_setup_redir() {
 			L_assert "file does not exists: $val" test -e "$val"
 			L_printf_append _L_cmd "%q" "$val"
 			;;
-		fd)
-			L_printf_append _L_cmd "&%d" "$val"
-			;;
+		fd) L_printf_append _L_cmd "&%d" "$val" ;;
+		*) L_assert "Invalid argument for $redir: $mode" false ;;
 		esac
 	fi
 	printf -v "$3" "%s" "$ret"
@@ -6409,14 +6420,18 @@ _L_proc_init_setup_redir() {
 # @description
 # Process open. Coproc replacement.
 #
-# The options are in three groups:
-#   -I and -i for stdin,
-#   -O and -o fr stdout,
-#   -E and -e for stderr.
+# The input/output options are in three groups:
+#
+#   - -I and -i for stdin,
+#   - -O and -o for stdout,
+#   - -E and -e for stderr.
 #
 # Uppercase letter option specifies the mode for the file descriptor.
 #
-# There are following modes available that you can give to -I -O and -E:
+# There are following modes available that you can give to uppercase options -I -O and -E:
+#
+#   - null - redirect to or from /dev/null
+#   - close - close the file descriptor >&-
 #   - input - -i specifies the string to forward to stdin. Only allowed for -I.
 #   - stdout - connect file descriptor to stdout. -o or -e value are ignored.
 #   - stderr - connect file descriptor to stderr. -o or -e value are ignored.
@@ -6424,7 +6439,8 @@ _L_proc_init_setup_redir() {
 #   - file - connect file descriptor to file specified by -i -o or -e option
 #   - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
 #
-# The first argument specifies an output variable that will be assigned as an array with the following indexes:
+# There first argument specifies an output variable that will be assigned as an array with the following indexes:
+#
 #   - [0] - if -Ipipe will store the file descriptor connected to stdin of the program, otherwise empty.
 #   - [1] - if -Opipe will store the file descriptor connected to stdout of the program, otherwise empty.
 #   - [2] - if -Epipe will store the file descriptor connected to stderr of the program, otherwise empty.
@@ -6432,7 +6448,7 @@ _L_proc_init_setup_redir() {
 #   - [4] - stores the generated command.
 #   - [5] - stores exitcode.
 #
-# You can use getters L_proc_get_* to extract the data from array elements.
+# You should use getters `L_proc_get_*` to extract the data from proc array elements.
 #
 # @option -I <str> stdin mode
 # @option -i <str> string for -Iinput, file for -Ifile, fd for -Ifd
@@ -6470,15 +6486,21 @@ L_proc_popen() {
 	shift $((OPTIND-1))
 	_L_v="$1"
 	shift
-	printf -v _L_cmd "%q " "$@"
+	L_printf_append _L_cmd "%q " "$@"
 	L_assert "destination variable is empty: $_L_v" test -n "$_L_v"
 	L_assert "no command to execute" test "$#" -ne 0
 	# Setup redirections.
-	_L_proc_init_setup_redir "<" "$_L_inmode" "_L_in"
-	_L_proc_init_setup_redir ">" "$_L_outmode" "_L_out"
+	_L_proc_init_setup_redir "0<" "$_L_inmode" "_L_in"
+	_L_proc_init_setup_redir "1>" "$_L_outmode" "_L_out"
 	_L_proc_init_setup_redir "2>" "$_L_errmode" "_L_err"
 	# Execute command.
-	eval "$_L_cmd &"
+	_L_cmd+=" &"
+	if (( _L_dryrun )); then
+		bash -n -c "$_L_cmd"
+		echo "$_L_cmd"
+	else
+		eval "$_L_cmd"
+	fi
 	# Cleanup.
 	if [[ -n "$_L_toclose" ]]; then
 		eval "exec ${_L_toclose}"
@@ -6682,6 +6704,66 @@ L_proc_wait() {
 	fi
 }
 
+# @description Read from multiple file descriptors at the same time.
+# @arg -t <timeout> Timeout in seconds.
+# @arg -p <timeout> Poll timeout. The read -t argument value. Default: 0.01
+# @arg $1 <int> file descriptor to read from
+# @arg $2 <var> variable to assign the output of
+# @arg $@ Pairs of variables and file descriptors.
+L_read_fds() {
+	local _L_vars=() _L_fds=() _L_i _L_ret _L_line OPTIND OPTARG OPTERR _L_timeout="" _L_poll=0.05 IFS=""
+	while getopts t:p _L_i; do
+		case "$_L_i" in
+		t) _L_timeout="$OPTARG" ;;
+		p) _L_poll="$OPTARG" ;;
+		*) return 2 ;;
+		esac
+	done
+	shift $((OPTIND-1))
+	# Collect arguments into arrays.
+	while (($#)); do
+		_L_fds+=("$1")
+		_L_vars+=("$2")
+		printf -v "$2" "%s" ""
+		shift 2
+	done
+	# If set, timeout is not the end time stamp.
+	_L_timeout=${_L_timeout:+$((SECONDS + _L_timeout))}
+	while ((${#_L_fds[@]})); do
+		if [[ -n "$_L_timeout" ]]; then
+			# If this is last file descriptor, the read timeout is equal to global timeout.
+			if ((${#_L_fds[@]} == 1)); then
+				_L_poll=$((_L_timeout - SECONDS))
+			fi
+			# This check is done after calculation, so we know _L_poll is positive above.
+			if ((SECONDS >= _L_timeout)); then
+				return 128
+			fi
+		else
+			# If this is last single file descriptor, do not timeout the read.
+			if ((${#_L_fds[@]} == 1)); then
+				_L_poll=""
+			fi
+		fi
+		#
+		for _L_i in "${!_L_fds[@]}"; do
+			L_exit_to _L_ret read -r ${_L_poll:+-t"$_L_poll"} -u"${_L_fds[_L_i]}" _L_line
+			if ((_L_ret > 128)); then
+				# read timeout
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
+			elif ((_L_ret == 0)); then
+				# read success
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"$'\n'
+			else
+				# other error - remove fd
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
+				unset "_L_fds[_L_i]"
+				unset "_L_vars[_L_i]"
+			fi
+		done
+	done
+}
+
 # @description Communicate with L_proc.
 # @option -i <str> Send string to stdin.
 # @option -o <var> Assign stdout to this variable.
@@ -6690,9 +6772,12 @@ L_proc_wait() {
 # @option -k Kill L_proc after communication.
 # @option -v <var> Assign exitcode to this variable.
 # @arg $1 L_proc variable
-# @exitcode 0 if communication was successful
+# @exitcode 0 on success.
+#           2 on invalid options.
+#           128 on timeout when reading output.
+#           130 on timeout when waiting for process to terminate.
 L_proc_communicate() {
-	local OPTIND OPTARG OPTERR _L_tmp _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
+	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
 	while getopts "i:o:e:t:kv:" _L_opt; do
 		case "$_L_opt" in
 		i) _L_input="$OPTARG" ;;
@@ -6709,18 +6794,29 @@ L_proc_communicate() {
 		L_proc_printf "$1" "%s" "$_L_input"
 	fi
 	L_proc_close_stdin "$1"
+	# Collect stdout and stderr to read from.
 	if [[ -n "$_L_output" ]]; then
 		L_proc_get_stdout_v "$1"
-		_L_tmp=$(${_L_timeout:+timeout} ${_L_timeout:+"$_L_timeout"} cat <&"$L_v")
-		printf -v "$_L_output" "%s" "$_L_tmp"
+		if [[ -n "$L_v" ]]; then
+			_L_tmp+=("$L_v" "$_L_output")
+		fi
+	else
+		L_proc_close_stdout "$1"
 	fi
-	L_proc_close_stdout "$1"
 	if [[ -n "$_L_error" ]]; then
 		L_proc_get_stderr_v "$1"
-		_L_tmp=$(${_L_timeout:+timeout} ${_L_timeout:+"$_L_timeout"} cat <&"$L_v")
-		printf -v "$_L_error" "%s" "$_L_tmp"
+		if [[ -n "$L_v" ]]; then
+			_L_tmp+=("$L_v" "$_L_error")
+		fi
+	else
+		L_proc_close_stderr "$1"
 	fi
+	if [[ -n "$_L_output" || -n "$_L_error" ]]; then
+		L_read_fds ${_L_timeout:+-t"$_L_timeout"} "${_L_tmp[@]}" || return 128
+	fi
+	L_proc_close_stdout "$1"
 	L_proc_close_stderr "$1"
+	#
 	if ((_L_kill)); then
 		L_proc_kill "$1"
 	fi
