@@ -117,84 +117,91 @@ Currently there are the following internal options:
 ## `add_argument` options:
 
 - name or flags - Either a name or a list of option strings, e.g. 'foo' or '-f', '--foo'.
-  - See https://docs.python.org/3/library/argparse.html#name-or-flags
+   - See https://docs.python.org/3/library/argparse.html#name-or-flags
 - `action=` - The basic type of action to be taken when this argument is encountered at the command line.
-  - `store` or unset - store the value given on command line. Implies `nargs=1`
-  - `store_const` - when option is used, assign the value of `const` to variable `dest`
-  - `store_0` - set `action=store_const` `const=0` `default=1`
-  - `store_1` - set `action=store_const` `const=1` `default=0`
-  - `store_1null` - set `action=store_const` `const=1` `default=`
-    - Useful for `${var:+var is set}` pattern.
-  - `store_true` - set `action=store_const` `const=true` `default=false`
-  - `store_false` - set `action=store_const` `const=false` `default=true`
-  - `append` - append the option value to array variable `dest`
-  - `append_const` - when option is used, append the value of `const` to array variable `dest`
-  - `count` - every time option is used, `dest` is incremented, starting from if unset
-  - `eval` - evaluate the string given in `eval` argument
-  - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
-  - `help` - Print help and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
+    - `store` or unset - store the value given on command line. Implies `nargs=1`
+    - `store_const` - when option is used, assign the value of `const` to variable `dest`
+    - `store_0` - set `action=store_const` `const=0` `default=1`
+    - `store_1` - set `action=store_const` `const=1` `default=0`
+    - `store_1null` - set `action=store_const` `const=1` `default=`
+        - Useful for `${var:+var is set}` pattern.
+    - `store_true` - set `action=store_const` `const=true` `default=false`
+    - `store_false` - set `action=store_const` `const=false` `default=true`
+    - `append` - append the option value to array variable `dest`
+    - `append_const` - when option is used, append the value of `const` to array variable `dest`
+    - `count` - every time option is used, `dest` is incremented, starting from if unset
+    - `eval` - evaluate the string given in `eval` argument
+    - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
+     - `help` - Print help and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
 - `nargs=` - The number of command-line arguments that should be consumed.
-  - `1`. Argument from the command line will be assigned to variable `dest`.
-  - An integer. Arguments from the command line will be gathered together into am array `dest`.
-  - `?`. One argument will be consumed from the command line if possible and assigned to `dest`.
-  - `*`. All command-line arguments present are gathered into an array `dest`.
-  - `+`. Just like `*`, all command-line arguments present are gathered into an array.
-    Additionally, an error message will be generated if there was not at least one command-line argument present.
-- `const=` - the value to store into `dest` depending on `action`
+    - `1`. Argument from the command line will be assigned to variable `dest`.
+    - An integer. Arguments from the command line will be gathered together into an array `dest`.
+    - `?`. One argument will be consumed from the command line if possible and assigned to `dest`.
+    - `*`. All command-line arguments present are gathered into an array `dest`.
+    - `+`. Just like `*`, all command-line arguments present are gathered into an array.
+      Additionally, an error message will be generated if there was not at least one command-line argument present.
+- `const=` - The constant value to store into `dest` depending on `action`.
 - `eval=` - The Bash script to evaluate when option is used. Implies `action=eval`. Note: the command is evaluated upon parsing options. Multiple repeated options like `-a -a -a` will execute the script multiple times. The script should be stateless. Example: `-- -v --verbose eval='((verbose_level++))'`.
 - `flag=` - Shorthand for `action=store_*`.
-  - `flag=1` - equal to `action=store_1`
-  - `flag=0` - equal to `action=store_0`
-  - `flag=true` - equal to `action=store_true`
-  - `flag=false` - equal to `action=store_false`
+    - `flag=1` - equal to `action=store_1`
+    - `flag=0` - equal to `action=store_0`
+    - `flag=true` - equal to `action=store_true`
+    - `flag=false` - equal to `action=store_false`
 - `default=` - store this default value into `dest`
-  - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`. Example: `-- -a --append action=append default='first_element "second element"'`.
+    - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`. Example: `-- -a --append action=append default='first_element "second element"'`.
+    - `default=""` sets the default to an empty string.
 - `type=` - The type to which the command-line argument should be converted.
-  - `int` - set `validate='L_is_integer "$1"'`
-  - `float` - set `validate='L_is_float "$1"'`
-  - `nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
-  - `positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
-  - `file` - set `validate='[[ -f "$1" ]]' complete=filenames`
-  - `file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
-  - `file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
-  - `dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
-  - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
-  - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
+    - `int` - set `validate='L_is_integer "$1"'`
+    - `float` - set `validate='L_is_float "$1"'`
+    - `nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
+    - `positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
+    - `file` - set `validate='[[ -f "$1" ]]' complete=filenames`
+    - `file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
+    - `file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
+    - `dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
+    - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
+    - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
 - `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_optspec[choices]})"`. Example: `choices="a b c 'with space'"`
 - `required=` - Whether or not the command-line option may be omitted (optionals only). Example `required=1`.
 - `help=` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar=` - A name for the argument in usage messages.
 - `dest=` - The name of the variable variable that is assigned as the result of the option. Default: argument name or first long option without dashes or first short option.
-- `show_default=` - append the text `(default: <default>)` to the help text of the option.
+- `show_default=1` - append the text `(default: <default>)` to the help text of the option.
 - `complete=` - The expression that completes on the command line. List of comma separated items consisting of:
-  - Any of the `compopt -o` argument.
-		- `bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs`
-		- `default|dirnames|filenames` are handled in zsh and fish.
-	- Any of `compgen -A` argument:
-	  - `alias|arrayvar|binding|builtin|command|directory|disabled|enabled|export|file|function|group|helptopic|hostname|job|keyword|running|service|setopt|shopt|signal|stopped|user|variable`
-	- Any other string containing a space:
-	  - The string will be `eval`ed and should generate standard output consisting of:
-	    - Lines with tab separated elements:
-	      - The keyword `plain`
-	      - The generated completion word.
-	      - Optionally, the description of the completion.
-	    - Or lines with tab separated elements:
-	      - First field is any of the `compopt -o` or `compgen -A` argument
-	      - Empty second field.
-	      - Description of the completion. Relevant for ZSH only.
-	  - Example: `complete='compgen -P "plain${L_TAB}" -W "a b c" -- "$1"'`
-	  - Example: `complete='nospace,compgen -P "plain${L_TAB}" -S "${L_TAB}Completion description" -W "a b c" -- "$1"'`
-	  - The function `L_argparse_compgen` automatically adds `-P` `-S` arguments based on `help` of an option.
-	    - Example: `complete='L_argparse_compgen -W "a b c" -- "$1"'`
-	  - The function `L_argparse_optspec_get_complete_description` can be used to generate completion description of an option.
-	  - Note: the expression may not contain a comma. If you need comma, delegate completion to a function.
+    - Any of the `compopt -o` argument.
+		    - `bashdefault|default|dirnames|filenames|noquote|nosort|nospace|plusdirs`
+		    - `default|dirnames|filenames` are handled in Zsh and Fish.
+	  - Any of `compgen -A` argument:
+        - `alias|arrayvar|binding|builtin|command|directory|disabled|enabled|export|file|function|group|helptopic|hostname|job|keyword|running|service|setopt|shopt|signal|stopped|user|variable`
+	  - Any other string containing a space:
+	      - The string will be `eval`ed and should generate standard output consisting of:
+	          - Lines with tab separated elements:
+	              - The keyword `plain`
+	              - The generated completion word.
+	              - Optionally, the description of the completion.
+	          - Or lines with tab separated elements:
+	              - First field is any of the `compopt -o` or `compgen -A` argument
+	              - Empty second field.
+	              - Description of the completion. Relevant for Zsh only.
+	     - Example: `complete='compgen -P "plain${L_TAB}" -W "a b c" -- "$1"'`
+	     - The function `L_argparse_compgen` automatically adds `-P` `-S` arguments to compgen based on the `help=` of an option.
+	          - Example: `complete='L_argparse_compgen -W "a b c" -- "$1"'`
+	     - Example: `complete='nospace,compgen -P "plain${L_TAB}" -S "${L_TAB}Completion description" -W "a b c" -- "$1"'`
+	     - The function `L_argparse_optspec_get_complete_description` can be used to get the completion description of an option.
+	     - Note: the `complete=` argument expression may not contain a comma, as comma is used to separate elements.
+	       If you need comma, delegate completion to a function.
 - `validate=` - The expression that evaluates if the value is valid.
-  - The variable `$1` is exposed with the value of the argument
-	- The associative array variable `_L_optspec` is exposed with the argument specification
-  - Example: `validate='[[ "$1" =~ (a|b) ]]'`
-  - Example: `validate='L_regex_match "$1" "(a|b)"`
-  - Example: `validate='grep -q "(a|b)" <<<"$1"`
-  - Example: `validate_my_arg() { echo "Checking is $1 of type ${_L_optspec[type]} is correct... it is not!"; return 1; }; ... validate='validate_my_arg "$1"'`
+     - The variable `$1` is exposed with the value of the argument
+     - Example: `validate='[[ "$1" =~ (a|b) ]]'`
+     - Example: `validate='L_regex_match "$1" "(a|b)"'`
+     - Example: `validate='grep -q "(a|b)" <<<"$1"'`
+     - Example:
+
+            validate_my_arg() {
+                 echo "Checking is $1 of type ${_L_optspec[type]} is correct... it is not!"
+                 return 1
+            }
+            L_argparse ... validate='validate_my_arg "$1"'
 
 ## `add_subparser` options:
 
@@ -203,13 +210,46 @@ Subparser takes following options from `add_argument`: `action=`, `metavar=` and
 ## `add_func` options:
 
 Function call takes following `k=v` options:
+
 - `prefix=` - Required. Consider all functions to call with specified prefix, with prefix removed.
-- `subcall=` - Specify if the functions are also using `L_argparse`.
-  The value is used to generate description for parent parser help message and to generate shell completions.
-  - `1` - All functions call `L_argparse`. The will be called to generate shell completions.
-  - `0` - The sub-functions do not call `L_argparse`. They will not be called to generate shell comlpetions
-  - `detect` - If the sub-function definition contains a call to `L_argparse`, call it, otherwise don't.
 - `required=` `metavar=` `dest=` - like in `add_argument`.
+- `subcall=` - Specify if parent parser is allowed to call the function when generating descriptions for parent parser help messages and to generate shell completions.
+    - `0` - Sub-functions will not be called. The help messages will be empty and shell completions for subparsers will not work. This is the default.
+    - `1` - Sub-functions will be called.
+    - `detect` - It is checked with a regex is the sub-function definition contains a call to `L_argparse`. If it does, then the sub-function will be called.
+
+When generating help message `--help` for the parent parser or when generating shell completion, the parent parser needs to decide if it is ok to call the function or not. The function is called with a builtin `--L_argparse_*` option to generate the proper messages for parent parser.
+
+There might be defined a variable named `<prefix>_<funcname>_help` that will be used as the description message of the option for the parent parser. It takes precedence over `subcall=1`.
+
+### `add_func` option `subcall=`
+
+Consider the following script:
+
+```
+--8<-- "scripts/argparse_detect_example.sh"
+```
+
+Calling the script results in:
+
+```
+$ ./scripts/argparse_detect_example.sh -h
+Usage: ./scripts/argparse_detect_example.sh [-h] COMMAND [ARGS ...]
+
+Available commands:
+  clone  clone repository
+  fetch  fetch help
+  pull
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+The `clone` command description was generated by a child `L_argparse`, which was detected by `subcall=detect` mode.
+
+The `fetch` description was taken from `CMD_fetch_help` variable.
+
+The `pull` command has no description, as neither the `CMD_pull_help` variable exists neither the function calls `L_argparse`.
 
 # Implementation documentation
 
