@@ -552,6 +552,23 @@ _L_test_array_reverse() {
 	L_unittest_arreq array
 }
 
+_L_test_array_string() {
+	helper() {
+		local src=("$@") dst str
+		L_array_to_string -v str src
+		L_array_from_string dst "$str"
+		L_unittest_arreq dst ${src[@]:+"${src[@]}"}
+	}
+	helper
+	helper ''
+	helper 1
+	helper 1 2 3
+	helper $'\001'
+	helper $'\177'
+	helper "$L_ALLCHARS"
+	helper "$L_ALLCHARS" "$L_ALLCHARS" "$L_ALLCHARS" "$L_ALLCHARS"
+}
+
 _L_test_regex_findall() {
 	{
 		local tmp

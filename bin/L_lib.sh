@@ -366,6 +366,7 @@ L_HAS_MAPFILE_D=$L_HAS_BASH4_4
 # @description The declare builtin no longer displays array variables using the compound
 # assignment syntax with quotes; that will generate warnings when re-used as
 # input, and isn't necessary.
+# Declare -p on Bash<4.4 adds extra $'\001' before $'\001' and $'\177' bytes.
 L_HAS_DECLARE_WITH_NO_QUOTES=$L_HAS_BASH4_4
 # @description Bash 4.3 introduced declare -n nameref
 L_HAS_NAMEREF=$L_HAS_BASH4_3
@@ -564,13 +565,13 @@ L_unsetx() {
 else
 	L_setx() {
 		# shellcheck disable=SC2064
-		trap "$(shopt -po xtrace)" RETURN
+		trap "$(shopt -po xtrace || :)" RETURN
 		set -x
 		"$@"
 	}
 	L_unsetx() {
 		# shellcheck disable=SC2064
-		trap "$(shopt -po xtrace)" RETURN
+		trap "$(shopt -po xtrace || :)" RETURN
 		set +x
 		"$@"
 	}
@@ -1869,6 +1870,41 @@ L_array_andjoin_v() {
 	local _L_arr="$1[@]"
 	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
 }
+
+# @description Serialize an array to string representation.
+# @option -v <var> Output variable
+# @arg $1 <var> array nameref
+# @see L_array_from_string
+L_array_to_string() { L_handle_v "$@"; }
+L_array_to_string_v() {
+	L_v=$(LC_ALL=C declare -p "$1")
+}
+
+if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
+# @description Deserialize an array from string.
+# @arg $1 <var> array nameref
+# @arg $2 str result from L_array_to_string
+# @see L_array_to_string
+# @example
+#   arr=(1 2 3)
+#   L_array_to_string -v tmp
+#   L_array_from_string arr2 "$tmp"
+#   echo "${arr2[@]}"
+L_array_from_string() {
+  L_assert "invalid declare output: $2" L_extglob_match "$2" "$_L_DECLARE_P_ARRAY_EXTGLOB"
+  local -a _L_tmp="${2#*=}"
+  L_array_assign "$1" ${_L_tmp[@]:+"${_L_tmp[@]}"}
+}
+else
+	L_array_from_string() {
+  	L_assert "invalid declare output: $2" L_extglob_match "$2" "$_L_DECLARE_P_ARRAY_EXTGLOB"
+  	local _L_tmp
+  	_L_tmp="${2//$'\001\001'/$'\001'}"
+  	_L_tmp="${_L_tmp//$'\001\177'/$'\177'}"
+  	eval "local -a _L_tmp=${_L_tmp#*=}"
+  	L_array_assign "$1" ${_L_tmp[@]:+"${_L_tmp[@]}"}
+	}
+fi
 
 # ]]]
 # args [[[
