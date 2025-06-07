@@ -2148,13 +2148,28 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		declare stdout proc
+		L_proc_popen -Opipe proc bash -c 'echo stdout; sleep 0.01; echo stdout'
+		L_proc_communicate -o stdout -t 1 -v exitcode proc
+		L_unittest_vareq stdout $'stdout\nstdout\n'
+		L_unittest_vareq exitcode 0
+	}
+	{
 		declare stdout stderr proc
-		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]" >&1; exit 101'
+		L_proc_popen -Opipe -Epipe proc bash -c 'echo stdout; sleep 0.01; echo stderr >&2; echo stderr >&2; sleep 0.01; echo stdout'
+		L_proc_communicate -o stdout -e stderr -t 1 -v exitcode proc
+		L_unittest_vareq stdout $'stdout\nstdout\n'
+		L_unittest_vareq stderr $'stderr\nstderr\n'
+		L_unittest_vareq exitcode 0
+	}
+	{
+		declare stdout stderr proc
+		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]"; exit 101'
 		L_proc_read proc line
 		L_unittest_vareq line stdout
-		L_proc_communicate -i "input" -o stdout -e stderr -t 1 -v exitcode proc
-		L_unittest_vareq stdout "INPUT"
-		L_unittest_vareq stderr "stderr"
+		L_proc_communicate -i "input"$'\n' -o stdout -e stderr -v exitcode proc
+		L_unittest_vareq stdout "INPUT"$'\n'
+		L_unittest_vareq stderr "stderr"$'\n'
 		L_unittest_vareq exitcode 101
 	}
 	{
