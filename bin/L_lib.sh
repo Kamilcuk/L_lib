@@ -960,7 +960,7 @@ L_path_remove() {
 	case "${!1}" in
 	"$2${3:-:}"*) printf -v "$1" "%s" "${!1#"$2${3:-:}"}"; L_path_remove "$@"; ;;
 	*"${3:-:}$2") printf -v "$1" "%s" "${!1%"${3:-:}$2"}"; L_path_remove "$@"; ;;
-	*"${3:-:}$2${3:-:}"*) printf -v "$1" "%s" "${!1//"${3:-:}$2${3:-:}"/"${3:-:}"}"; L_path_remove "$@"; ;;
+	*"${3:-:}$2${3:-:}"*) printf -v "$1" "%s" "${!1//"${3:-:}$2${3:-:}"/${3:-:}}"; L_path_remove "$@"; ;;
 	"$2") printf -v "$1" "%s" "" ;;
 	esac
 }
@@ -1596,14 +1596,28 @@ L_html_escape_v() {
 # @arg $2 String to replace.
 # @arg $3 Replacement.
 # @arg $@ String to replace and replacement can be repeated multiple times.
+# @note I think this should be removed.
+# @example L_str_replace -v string "$string" "&" "&amp;" "<" "&lt;"
+# @see L_html_escape
 L_str_replace() { L_handle_v "$@"; }
 L_str_replace_v() {
 	L_v="$1"
 	shift
 	while (($# > 2)); do
-		L_v="${L_v//"$1"/"$2"}"
+		L_v="${L_v//"$1"/$2}"
 		shift 2
 	done
+}
+
+# @description Count the character in string.
+# @option -v <var> Output variable
+# @arg $1 String.
+# @arg $2 Character to count in string.
+L_str_count() { L_handle_v "$@"; }
+L_str_count_v() {
+	# This method is _MUCH_ faster then using [^"$2"].
+	L_v="${1//"$2"}"
+	L_v="$(( ${#1} - ${#L_v} ))"
 }
 
 # ]]]

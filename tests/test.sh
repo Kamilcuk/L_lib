@@ -185,50 +185,63 @@ _L_test_a_handle_v() {
 	}
 }
 
-_L_test_str() {
+_L_test_string() {
 	local tmp IFS="!@#"
 	if ((!L_HAS_BASH4_0)); then
 		# Bash3.2 is not able to split "${@:2}" correctly when IFS does not contain space.
 		local IFS=" "
 	fi
-	L_rstrip -v tmp " a b  "
-	L_unittest_eq "$tmp" " a b"
-	L_rstrip -v tmp " a b"
-	L_unittest_eq "$tmp" " a b"
-	L_lstrip -v tmp " a b  "
-	L_unittest_eq "$tmp" "a b  "
-	L_lstrip -v tmp "a b  "
-	L_unittest_eq "$tmp" "a b  "
-	L_strip -v tmp " a b  "
-	L_unittest_eq "$tmp" "a b"
-	L_strip -v tmp " a b"
-	L_unittest_eq "$tmp" "a b"
-	L_strip -v tmp "a b    "
-	L_unittest_eq "$tmp" "a b"
-	L_strip -v tmp "a b"
-	L_unittest_eq "$tmp" "a b"
-	L_strupper -v tmp " a b  "
-	L_unittest_eq "$tmp" " A B  "
-	L_strlower -v tmp " A B  "
-	L_unittest_eq "$tmp" " a b  "
-	L_unittest_cmd -c L_strstr " a b  " "a b"
-	L_unittest_cmd -c ! L_strstr " a b  " "a X"
-	L_unittest_cmd -c L_strhash -v tmp "  a b "
-	L_unittest_cmd -c L_is_integer "$tmp"
-	L_unittest_cmd -c L_strhash_bash -v tmp "  a b "
-	L_unittest_cmd -c L_is_integer "$tmp"
-	L_capitalize -v tmp "abc"
-	L_unittest_eq "$tmp" "Abc"
-	L_capitalize -v tmp "ABC"
-	L_unittest_eq "$tmp" "ABC"
-	L_capitalize -v tmp ""
-	L_unittest_eq "$tmp" ""
-	L_uncapitalize -v tmp "abc"
-	L_unittest_eq "$tmp" "abc"
-	L_uncapitalize -v tmp "ABC"
-	L_unittest_eq "$tmp" "aBC"
-	L_uncapitalize -v tmp ""
-	L_unittest_eq "$tmp" ""
+	{
+		L_rstrip -v tmp " a b  "
+		L_unittest_eq "$tmp" " a b"
+		L_rstrip -v tmp " a b"
+		L_unittest_eq "$tmp" " a b"
+		L_lstrip -v tmp " a b  "
+		L_unittest_eq "$tmp" "a b  "
+		L_lstrip -v tmp "a b  "
+		L_unittest_eq "$tmp" "a b  "
+	}
+	{
+		L_strip -v tmp " a b  "
+		L_unittest_eq "$tmp" "a b"
+		L_strip -v tmp " a b"
+		L_unittest_eq "$tmp" "a b"
+		L_strip -v tmp "a b    "
+		L_unittest_eq "$tmp" "a b"
+		L_strip -v tmp "a b"
+		L_unittest_eq "$tmp" "a b"
+	}
+	{
+			L_strupper -v tmp " a b  "
+			L_unittest_eq "$tmp" " A B  "
+			L_strlower -v tmp " A B  "
+			L_unittest_eq "$tmp" " a b  "
+			L_unittest_cmd -c L_strstr " a b  " "a b"
+			L_unittest_cmd -c ! L_strstr " a b  " "a X"
+			L_unittest_cmd -c L_strhash -v tmp "  a b "
+			L_unittest_cmd -c L_is_integer "$tmp"
+			L_unittest_cmd -c L_strhash_bash -v tmp "  a b "
+			L_unittest_cmd -c L_is_integer "$tmp"
+			L_capitalize -v tmp "abc"
+			L_unittest_eq "$tmp" "Abc"
+			L_capitalize -v tmp "ABC"
+			L_unittest_eq "$tmp" "ABC"
+			L_capitalize -v tmp ""
+			L_unittest_eq "$tmp" ""
+			L_uncapitalize -v tmp "abc"
+			L_unittest_eq "$tmp" "abc"
+			L_uncapitalize -v tmp "ABC"
+			L_unittest_eq "$tmp" "aBC"
+			L_uncapitalize -v tmp ""
+			L_unittest_eq "$tmp" ""
+	}
+	{
+		local i
+		L_str_count -v i abca a
+		L_unittest_vareq i 2
+		L_str_count -v i abca x
+		L_unittest_vareq i 0
+	}
 }
 
 _L_test_exit_to_1null() {
