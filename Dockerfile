@@ -1,11 +1,13 @@
 ARG VERSION=latest
 FROM bash:${VERSION} AS app
-COPY bin/L_lib.sh /bin
-RUN L_lib.sh --help
+COPY bin/L_lib.sh /app/bin/L_lib.sh
+RUN /app/bin/L_lib.sh --help
 
 FROM app AS test
-COPY tests/test.sh /bin
-RUN test.sh
+COPY scripts/argparse_uv.sh /app/scripts/argparse_uv.sh
+COPY tests/test.sh /app/tests/test.sh
+ARG ARGS=""
+RUN /app/tests/test.sh $ARGS
 
 FROM koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh /

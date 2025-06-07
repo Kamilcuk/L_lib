@@ -132,7 +132,7 @@ Currently there are the following internal options:
   - `count` - every time option is used, `dest` is incremented, starting from if unset
   - `eval` - evaluate the string given in `eval` argument
   - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
-  - `help` - Print help and exit with 0. Equal to `action=eval:'L_argparse_print_help;exit 0'`.
+  - `help` - Print help and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
 - `nargs=` - The number of command-line arguments that should be consumed.
   - `1`. Argument from the command line will be assigned to variable `dest`.
   - An integer. Arguments from the command line will be gathered together into am array `dest`.
@@ -141,9 +141,14 @@ Currently there are the following internal options:
   - `+`. Just like `*`, all command-line arguments present are gathered into an array.
     Additionally, an error message will be generated if there was not at least one command-line argument present.
 - `const=` - the value to store into `dest` depending on `action`
-- `eval=` - the Bash script to evaluate
+- `eval=` - The Bash script to evaluate when option is used. Implies `action=eval`. Note: the command is evaluated upon parsing options. Multiple repeated options like `-a -a -a` will execute the script multiple times. The script should be stateless. Example: `-- -v --verbose eval='((verbose_level++))'`.
+- `flag=` - Shorthand for `action=store_*`.
+  - `flag=1` - equal to `action=store_1`
+  - `flag=0` - equal to `action=store_0`
+  - `flag=true` - equal to `action=store_true`
+  - `flag=false` - equal to `action=store_false`
 - `default=` - store this default value into `dest`
-  - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`.
+  - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`. Example: `-- -a --append action=append default='first_element "second element"'`.
 - `type=` - The type to which the command-line argument should be converted.
   - `int` - set `validate='L_is_integer "$1"'`
   - `float` - set `validate='L_is_float "$1"'`

@@ -1717,9 +1717,12 @@ PROG: error: the following arguments are required: bar"
 		local foo=()
 		L_argparse -- --foo action=append ---- --foo 1 --foo 2
 		L_unittest_eq "${foo[*]}" "1 2"
+		local foo=()
+		L_argparse -- --foo action=append default='first_element "second element"' ----
+		L_unittest_arreq foo "first_element" "second element"
 		local types=()
 		L_argparse -- --str dest=types action=append_const const=str -- --int dest=types action=append_const const=int ---- --str --int
-		L_unittest_eq "${types[*]}" "str int"
+		L_unittest_arreq types str int
 		local foo=
 		# bop
 		local verbose=
@@ -1975,6 +1978,64 @@ _L_test_z_argparse6() {
 		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
 	}
+}
+
+_L_test_z_argparse7_custom_prefix() {
+	{
+		local o
+		local c=(prefix_chars='-+' -- +o flag=1 -- -o flag=0 ----)
+		L_argparse "${c[@]}"
+		L_unittest_vareq o 1
+		L_argparse "${c[@]}" +o
+		L_unittest_vareq o 1
+		L_argparse "${c[@]}" +o -o
+		L_unittest_vareq o 0
+	}
+	{
+		L_unittest_cmd ! L_argparse -- -"option with space" ---- -h
+		L_unittest_cmd ! L_argparse -- --"option with space" ---- -h
+		L_unittest_cmd ! L_argparse -- --option/slash ---- -h
+		L_unittest_cmd ! L_argparse -- arg twice ---- -h
+		L_unittest_cmd ! L_argparse -- --option$'\n'newline ---- -h
+		L_unittest_cmd ! L_argparse -- --option$'\t'tab ---- -h
+		L_unittest_cmd ! L_argparse -- --option dest='in valid' ---- -h
+	}
+}
+
+_L_test_z_argparse8_one_dash_long_option() {
+	{
+		local o option
+		L_argparse -- -o -- -option ----
+		L_unittest_vareq o ''
+		L_unittest_vareq option ''
+		L_argparse -- -o -- -option ---- -option arg
+		L_unittest_vareq o ''
+		L_unittest_vareq option arg
+		L_argparse -- -o default= -- -option default= ---- -o arg
+		L_unittest_vareq o arg
+		L_unittest_vareq option ''
+		L_argparse -- -o default= -- -option default= ---- -opt arg
+		L_unittest_vareq o ''
+		L_unittest_vareq option arg
+		L_argparse -- -o default= -- -option default= ---- -o pt -option arg
+		L_unittest_vareq o pt
+		L_unittest_vareq option arg
+		local p t o
+		L_argparse -- -p flag=1 -- -t flag=1 -- -o flag=1 -- -option default= ---- -pto -option a
+		L_unittest_vareq p 1
+		L_unittest_vareq t 1
+		L_unittest_vareq o 1
+		L_unittest_vareq option a
+	}
+}
+
+_L_test_z_argparse9_time_profile() {
+	local time uv
+	uv=$L_DIR/../scripts/argparse_uv.sh
+	time=$( TIMEFORMAT="%R"; { time "$uv" -h 1>/dev/null 2>/dev/null; } 2>&1 )
+	echo "AA$time""AA"
+	L_unittest_cmd L_float_cmp "$time" -gt 0.1
+	L_unittest_cmd L_float_cmp "$time" -lt 5
 }
 
 _L_test_path() {
