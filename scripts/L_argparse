@@ -16,6 +16,15 @@ f() {
 }
 trap 'L_trap_err $?' EXIT
 SUPER=$(f)
+if [[ -n "${PROFILE:-}" ]]; then
+	echo "SETUPING UP PROFILING..."
+	for i in $(compgen -A function L_argparse) $(compgen -A function _L_argparse); do
+	  a="$(declare -f $i)"
+	  eval "${a/"$i"/_PROFILE_$i}"
+	  eval "$i() { local TIMEFORMAT=\"\$((\${BASH_LINENO[@]:+\${#BASH_LINENO[@]}}/2)) $i real=%lR user=%lU sys=%lS\"; time _PROFILE_$i \"\$@\"; }"
+	done
+	unset i a
+fi
 _time L_argparse "$@"
 # echo $?
 diff -biw - <<<"$SUPER" <(f) | sed -n 's/^> /+ /p' || :
