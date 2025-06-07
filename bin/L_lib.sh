@@ -4142,6 +4142,7 @@ L_argparse_fatal() {
 # @arg $2 <str> header of the help section
 # @arg $3 <var> array of metavars of options
 # @arg $4 <var> array of help messages of options
+# @see https://github.com/python/cpython/blob/965c48056633d3f4b41520c8cd07f0275f00fb4c/Lib/argparse.py#L533
 _L_argparse_print_help_indenter() {
 	local _L_helps="$3[@]" _L_i _L_len max_header_length=0 _L_line _L_tmp help_position a b c COLUMNS="${COLUMNS:-80}" free_space diff _L_help
 	_L_helps=(${!_L_helps+"${!_L_helps}"})
@@ -4161,7 +4162,7 @@ _L_argparse_print_help_indenter() {
 	if (( help_position > max_header_length + 4 )); then help_position=$(( max_header_length + 4 )); fi
 	if (( max_header_length + 4 < COLUMNS / 2 )); then help_position=$(( max_header_length + 4 )); fi
 	help_width=$(( COLUMNS - help_position - 2 ))
-	if ((help_width > 11)); then help_width=11; fi
+	# if ((help_width > 11)); then help_width=11; fi
 	for _L_help in "${_L_helps[@]}"; do
 		local header="  ${_L_help%%$'\n'*}"
 		local opthelp=${_L_help#*$'\n'}
@@ -4179,7 +4180,7 @@ _L_argparse_print_help_indenter() {
 				L_printf_append "$1" "%s\n" "$header"
 				cur_indent=$help_position
 			fi
-			if [[ "${opthelp//$'\n'}" != "$opthelp" ]]; then
+			if [[ "$opthelp" == *$'\n'* ]]; then
 				# If help message contains multiple lines.
 				if L_hash fmt; then
 					# Replace whitespaces by a single space.
