@@ -40,7 +40,7 @@ test_bash%:
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		bash:$* ./tests/test.sh $(ARGS)
 test_docker%:
-	docker build --build-arg VERSION=$* --target test .
+	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
 
 shellcheck:
 	docker build --target shellcheck .

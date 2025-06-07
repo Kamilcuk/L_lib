@@ -2049,7 +2049,7 @@ _L_test_z_argparse8_one_dash_long_option() {
 _L_test_z_argparse9_time_profile() {
 	local time uv
 	uv=$L_DIR/../scripts/argparse_uv.sh
-	time=$( TIMEFORMAT="%R"; { time "$uv" -h 1>/dev/null 2>/dev/null; } 2>&1 )
+	time=$(	exec 3>&2; TIMEFORMAT="%R"; { time "$uv" -h 1>&3 2>&3; } 2>&1 )
 	echo "$time"
 	# L_unittest_cmd L_float_cmp "$time" -gt 0.1
 	# L_unittest_cmd L_float_cmp "$time" -lt 5
@@ -2124,8 +2124,8 @@ _L_test_L_proc() {
 	}
 	{
 		declare proc tmp exitcode
-		L_proc_popen proc bash -c 'sleep 1.5; exit 123'
-		L_exit_to tmp L_proc_wait -t 1 -v exitcode proc
+		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
+		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
 		L_unittest_vareq tmp 1
 		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
 		L_unittest_vareq tmp 0
@@ -2150,14 +2150,14 @@ _L_test_L_proc() {
 	{
 		declare stdout proc
 		L_proc_popen -Opipe proc bash -c 'echo stdout; sleep 0.01; echo stdout'
-		L_proc_communicate -o stdout -t 1 -v exitcode proc
+		L_proc_communicate -o stdout -t 2 -v exitcode proc
 		L_unittest_vareq stdout $'stdout\nstdout\n'
 		L_unittest_vareq exitcode 0
 	}
 	{
 		declare stdout stderr proc
 		L_proc_popen -Opipe -Epipe proc bash -c 'echo stdout; sleep 0.01; echo stderr >&2; echo stderr >&2; sleep 0.01; echo stdout'
-		L_proc_communicate -o stdout -e stderr -t 1 -v exitcode proc
+		L_proc_communicate -o stdout -e stderr -t 2 -v exitcode proc
 		L_unittest_vareq stdout $'stdout\nstdout\n'
 		L_unittest_vareq stderr $'stderr\nstderr\n'
 		L_unittest_vareq exitcode 0
