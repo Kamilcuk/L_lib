@@ -6462,7 +6462,7 @@ _L_proc_init_setup_redir() {
 #   echo "$line"
 #   echo "$exitcode"
 L_proc_popen() {
-	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTARG OPTERR _L_cmd _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=()
+	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTARG OPTERR _L_cmd="" _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=()
 	# Parse arguments.
 	while getopts "i:I:o:O:e:E:p:n" _L_opt; do
 		case "$_L_opt" in
@@ -6480,7 +6480,7 @@ L_proc_popen() {
 	shift $((OPTIND-1))
 	_L_v="$1"
 	shift
-	L_printf_append _L_cmd "%q " "$@"
+	printf -v _L_cmd "%q " "$@"
 	L_assert "destination variable is empty: $_L_v" test -n "$_L_v"
 	L_assert "no command to execute" test "$#" -ne 0
 	# Setup redirections.
@@ -6714,6 +6714,13 @@ L_read_fds() {
 		esac
 	done
 	shift $((OPTIND-1))
+	# The lowest timeout in read in <Bash4.0 is 1 second, cause it is an integer.
+	if ((!L_HAS_BASH4_0)); then
+		_L_poll=${_L_poll%.*}
+		if ((_L_poll <= 0)); then
+			_L_poll=1
+		fi
+	fi
 	# Collect arguments into arrays.
 	while (($#)); do
 		_L_fds+=("$1")
@@ -6766,10 +6773,11 @@ L_read_fds() {
 # @option -k Kill L_proc after communication.
 # @option -v <var> Assign exitcode to this variable.
 # @arg $1 L_proc variable
-# @exitcode 0 on success.
-#           2 on invalid options.
-#           128 on timeout when reading output.
-#           130 on timeout when waiting for process to terminate.
+# @exitcode
+#   0 on success.
+#   2 on invalid options.
+#   128 on timeout when reading output.
+#   130 on timeout when waiting for process to terminate.
 L_proc_communicate() {
 	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
 	while getopts "i:o:e:t:kv:" _L_opt; do
