@@ -1,4 +1,4 @@
-# logging
+## logging
 
 Logging library that provides functions for logging messages similar to python `logging` module.
 
@@ -10,7 +10,7 @@ Logging library that provides functions for logging messages similar to python `
 
 <!-- vim-markdown-toc -->
 
-# Usage
+## Usage
 
 The logging module is initialized with level INFO on startup, in constrast to python `logging` module.
 
@@ -54,7 +54,7 @@ All these functions forward messages to `L_log` which is main entrypoint for log
 L_log -s 1 -l debug -- "This is a debug message"
 ```
 
-# Configuration
+## Configuration
 
 The logging can be configured with `L_log_configure`.
 
@@ -79,7 +79,7 @@ There are functions available:
 - `L_log_format_long` - long formatting with timestamp, source, function, line, level and message
 - `L_log_select_source_regex` - filter 
 
-## Available variables in -f context:
+### Available variables in -f context:
 
 - `L_logrecord*` variables store information about the currently to-be-outptted log record.
   - `L_logrecord_loglevel` - the current log level of the log record.

@@ -22,7 +22,6 @@
 # Globals [[[
 # @section globals
 # @description some global variables
-# @note stable
 
 # @description Version of the library
 L_LIB_VERSION=0.1.9
@@ -43,7 +42,6 @@ fi
 # Variables without `L_ANSI_` prefix are set or empty depending on `L_color_detect function.
 # The `L_color_detect` function can be used to detect if the terminal and user wishes to have output with colors.
 # @example echo "$L_RED""hello world""$L_RESET"
-# @note stable
 
 # @description Text to be evaled to enable colors.
 _L_COLOR_SWITCH="
@@ -318,7 +316,6 @@ L_ansi_24bit_bg() { printf '\E[48;2;%d;%d;%dm' "$@"; }
 # has [[[
 # @section has
 # @description Set of integer variables for checking if Bash has specific feature.
-# @note stable
 
 # Bash version expressed as a hexadecimal integer variable with digits 0xMMIIPP,
 # where MM is major part, II is minor part and PP is patch part of version.
@@ -418,7 +415,6 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # stdlib [[[
 # @section stdlib
 # @description Some base simple definitions for every occasion.
-# @note stable
 
 L_assert_fail() {
 	set +x
@@ -970,7 +966,6 @@ L_path_remove() {
 # string [[[
 # @section string
 # @description Collection of functions to manipulate strings.
-# @note stable
 
 # @description Return 0 if the string happend to be something like true.
 # Return 0 when argument is case-insensitive:
@@ -4147,7 +4142,6 @@ fi
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
-# @note stable
 
 # @description Print argument parsing error and exit.
 # @env L_NAME
