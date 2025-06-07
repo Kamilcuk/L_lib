@@ -39,7 +39,8 @@ test_bash%:
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		bash:$* ./tests/test.sh $(ARGS)
-# docker build --build-arg VERSION=$* --target test .
+test_docker%:
+	docker build --build-arg VERSION=$* --target test .
 
 shellcheck:
 	docker build --target shellcheck .
