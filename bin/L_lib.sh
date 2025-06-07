@@ -2143,13 +2143,11 @@ L_parse_range_list_v() {
 	done
 }
 
-# @description extglob that matches declare -p output from array or associative array
 if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(\[?*\]=*)"
-_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=(*)"
+	# @description extglob that matches declare -p output from array or associative array
+	_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=\(@(|\[?*\]=?*)\)"
 else
-_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='(\[?*\]=*)'"
-_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='(*)'"
+	_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='\(@(|\[?*\]=?*)\)'"
 fi
 
 # @description Add stuff to output from pretty_print
@@ -3697,7 +3695,7 @@ L_unittest_arreq() {
 	while (($#)); do
 		if ! _L_unittest_internal "$(printf "%s[%d]=%q == %q" "$_L_n" "$_L_i" "${_L_arr[_L_i]}" "$1")" "" \
 				[ "${_L_arr[_L_i]}" == "$1" ]; then
-			_L_unittest_showdiff "$1" "$2"
+			_L_unittest_showdiff "$1" "${_L_arr[_L_i]}"
 			return 1
 		fi
 		((++_L_i))
@@ -4099,8 +4097,8 @@ fi
 L_asa_from_declare() {
 	L_assert "not an associative array: $1" L_var_is_associative "$1"
 	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert "source nameref does not match $_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB: $3" \
-		L_glob_match "$3" "$_L_DECLARE_P_EMPTY_ARRAY_EXTGLOB"
+	L_assert "source nameref does not match $_L_DECLARE_P_ARRAY_EXTGLOB: $3" \
+		L_extglob_match "$3" "$_L_DECLARE_P_ARRAY_EXTGLOB"
 	L_asa_from_declare_unsafe "$@"
 }
 
