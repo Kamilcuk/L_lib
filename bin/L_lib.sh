@@ -3357,8 +3357,8 @@ _L_unittest_internal() {
 # @option -E exit on error
 L_unittest_main() {
 	set -euo pipefail
-	local OPTIND OPTARG OPTERR _L_opt _L_tests=()
-	while getopts "hr:EP:" _L_opt; do
+	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_parallel=0
+	while getopts "hr:EP:p" _L_opt; do
 		case $_L_opt in
 		h)
 			cat <<EOF
@@ -3367,6 +3367,7 @@ Options:
   -P PREFIX  Execute all function with this prefix
   -r REGEX   Filter tests with regex
   -E         Exit on error
+  -p         Run in parallel.
 EOF
 			exit
 			;;
@@ -3378,21 +3379,48 @@ EOF
 			L_log "filtering tests with %q" "${OPTARG}"
 			L_array_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
 			;;
-		E)
-			L_unittest_exit_on_error=1
-			;;
+		E) L_unittest_exit_on_error=1 ;;
+		p) _L_parallel=1 ;;
 		*) L_fatal "invalid argument: $_L_opt" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	L_assert 'too many arguments' test "$#" = 0
 	L_assert 'no tests matched' test "${#_L_tests[@]}" '!=' 0
-	local _L_test
-	for _L_test in "${_L_tests[@]}"; do
-		L_log "executing $_L_test"
-		"$_L_test"
-	done
+	{
+		# Run the tests.
+		local _L_test _L_childs=()
+		for _L_test in "${_L_tests[@]}"; do
+			L_log "executing $_L_test"
+			if ((_L_parallel)); then
+				"$_L_test" &
+				_L_childs+=("$!")
+			else
+				"$_L_test"
+			fi
+		done
+		# When in parallel, collect exit codes.
+		if ((_L_parallel)); then
+			local _L_i _L_result=()
+			for _L_i in "${!_L_childs[@]}"; do
+				# Assign array separately for older bash.
+				L_exit_to _L_i wait "${_L_childs[_L_i]}"
+				_L_result+=("$_L_i")
+			done
+		fi
+	}
 	L_log "done testing: ${_L_tests[*]}"
+	{
+		if ((_L_parallel)); then
+			# Print results separately, to see them last on the output.
+			for _L_i in "${!_L_childs[@]}"; do
+				if ((_L_result[_L_i])); then
+					L_error "Test ${_L_tests[_L_i]} with pid ${_L_childs[_L_i]} failed with exit status ${_L_result[_L_i]}"
+					((++L_unittest_fails))
+				fi
+			done
+		fi
+	}
 	if ((L_unittest_fails)); then
 		L_error "${L_RED}testing failed"
 	else
