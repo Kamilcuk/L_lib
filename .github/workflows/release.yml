@@ -21,6 +21,13 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+      - name: Replace line number in .github/bump.yaml dynamically
+        run: |
+          set -xeuo pipefail &&
+          line=$(grep -n '^L_LIB_VERSION=' bin/L_lib.sh) &&
+          line=${line//:*} &&
+          sed -i "s/line: [0-9]*/line: $line/" .github/bump.yml &&
+          cat .github/bump.yml
       - uses: MeilCli/bump-release-action@v2
         id: create_release
         with:
