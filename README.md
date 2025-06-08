@@ -15,6 +15,21 @@ Labrador Bash library. Collection of functions and libraries that I deem usefull
 
 Kindly feel free to have converstations and ask questions on [Github discussion](https://github.com/Kamilcuk/L_lib/discussions) and report bugs using [Github issue](https://github.com/Kamilcuk/L_lib/issues).
 
+# Installation
+
+The library is one file. Download the latest release from github and put in your PATH:
+
+```
+mkdir -vp ~/.local/bin/
+curl -o ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v0/bin/L_lib.sh
+```
+
+You can use the library with:
+
+```
+. L_lib.sh
+```
+
 # Features
 
 - supports all Bash versions from 3.2
@@ -38,9 +53,9 @@ Kindly visit [https://kamilcuk.github.io/L_lib/](https://kamilcuk.github.io/L_li
 - Lower case used for functions and user mutable variables
 - Snake case for everything.
 - The option `-v <var>` is used to store the result in a variable instead of printing it.
-  - This follows the convention of `printf -v <var>`.
-  - Without the `-v` option, the function outputs the elements on lines to stdout.
-  - Functions ending with `_v` store the result in a hardcoded scratch variable `L_v`.
+    - This follows the convention of `printf -v <var>`.
+    - Without the `-v` option, the function outputs the elements on lines to stdout.
+    - Associated function with `_v` suffix store the result in a hardcoded scratch variable `L_v`.
 
 # License
 

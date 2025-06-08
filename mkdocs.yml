@@ -11,7 +11,7 @@ nav:
   - Overview:
       - Index: index.md
       - Bash expansions: expansions.md
-      - Bugs: bugs.md
+      - Bash bugs: bash_bugs.md
   - Documentation:
       - globals: section/globals.md
       - colors: section/colors.md

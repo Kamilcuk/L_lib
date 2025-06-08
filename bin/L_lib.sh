@@ -378,7 +378,7 @@ L_HAS_EXTGLOB_IN_TESTTEST=$L_HAS_BASH4_1
 L_HAS_TEST_V=$L_HAS_BASH4_1
 # @description `printf -v' can now assign values to array indices.
 L_HAS_PRINTF_V_ARRAY=$L_HAS_BASH4_1
-# @description Bash 4.0 introduced declare -A var=$([a]=b)
+# @description Bash 4.0 introduced declare -A var=([a]=b)
 L_HAS_ASSOCIATIVE_ARRAY=$L_HAS_BASH4_0
 # @description Bash 4.0 introduced mapfile
 L_HAS_MAPFILE=$L_HAS_BASH4_0
