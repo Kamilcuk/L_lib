@@ -855,16 +855,6 @@ L_sudo() {
 	L_run "${sudo[@]}" "$@"
 }
 
-# @option -v <var> var
-# @arg $1 path
-L_basename() { L_handle_v "$@"; }
-L_basename_v() { L_v=${*##*/}; }
-
-# @option -v <var> var
-# @arg $1 path
-L_dirname() { L_handle_v "$@"; }
-L_dirname_v() { case "$*" in [./]) L_v=$* ;; */*) L_v=${*%/*} ;; esac }
-
 # ]]]
 # exit_to [[[
 # @section exit_to
@@ -924,7 +914,128 @@ L_exit_to_10() {
 # path [[[
 # @section path
 
-# @description Append a path to path variable is not already there.
+# @description The filename
+# @option -v <var> var
+# @arg $1 path
+L_basename() { L_handle_v "$@"; }
+L_basename_v() { L_v=${*##*/}; }
+
+# @description parent of the path
+# @option -v <var> var
+# @arg $1 path
+L_dirname() { L_handle_v "$@"; }
+L_dirname_v() {
+	case "$*" in
+	..) L_v=. ;;
+	?*/*) L_v=${*%/*} ;;
+	/*) L_v=/ ;;
+	*) L_v=. ;;
+	esac
+}
+
+# @description The last dot-separated portion of the final component, if any.
+# @option -v <var> var
+# @arg $1 path
+# @see https://en.cppreference.com/w/cpp/filesystem/path/extension.html
+L_extension() { L_handle_v "$@"; }
+L_extension_v() {
+	L_basename_v "$*"
+	case $L_v in
+	.|..) L_v="" ;;
+	?*.*) L_v=.${L_v##*.} ;;
+	*) L_v="" ;;
+	esac
+}
+
+# @description A list of the path’s suffixes, often called file extensions.
+# @option -v <var> var
+# @arg $1 path
+# @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.suffixes
+L_extensions() { L_handle_v "$@"; }
+L_extensions_v() {
+	local _L_ext=""
+	while
+		L_extension -v _L_ext "$*"
+		[[ -n "$_L_ext" ]]
+	do
+		L_v=( "$_L_ext" ${L_v[@]:+"${L_v[@]}"} )
+		set -- "${*%"$_L_ext"}"
+	done
+}
+
+# @description The final path component, without its suffix:
+# @option -v <var> var
+# @arg $1 path
+# @see https://en.cppreference.com/w/cpp/filesystem/path/stem
+L_stem() { L_handle_v "$@"; }
+L_stem_v() {
+	L_basename_v "$*"
+	case $L_v in
+	.|..) ;;
+	?*.*) L_v=${L_v%.*} ;;
+	esac
+}
+
+# @description Return whether the path is absolute or not.
+L_is_absolute() { [[ "${1::1}" == / ]]; }
+
+# @description Replace multiple slashes by one slash.
+# @option -v <var> var
+# @arg $1 path
+L_normalize_path() { L_handle_v "$@"; }
+# shellcheck disable=SC2064
+L_normalize_path_v() {
+	trap "$(shopt -p extglob || :)" RETURN
+	shopt -s extglob
+	L_v=${1//+(\/)/\/}
+}
+# L_normalize_path_v() {
+# 	L_v=$1
+# 	while [[ "$L_v" == *"//"* ]]; do
+# 		L_v=${L_v//\/\//\/}
+# 	done
+# }
+
+# @description Compute a version of the original path relative to the path represented by other path.
+# @option -v <var> var
+# @arg $1 original path
+# @arg $2 other path
+# @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.relative_to
+# @see https://stackoverflow.com/a/12498485/9072753
+L_relative_to() { L_handle_v "$@"; }
+# shellcheck disable=SC2179
+L_relative_to_v() {
+  local _L_current="${1:+"$2"}"
+  local _L_target="${1:-"$2"}"
+  if [[ "$_L_target" == . ]]; then
+  	_L_target=/
+  else
+  	_L_target="/${_L_target##/}"
+  fi
+  if [[ "$_L_current" == . ]]; then
+  	_L_current=/
+  else
+  	_L_current="${_L_current:="/"}"
+  	_L_current="/${_L_current##/}"
+  fi
+  local _L_appendix="${_L_target##/}"
+  L_v=''
+  while
+    _L_appendix="${_L_target#"$_L_current"/}"
+    [[ "$_L_current" != '/' && "$_L_appendix" == "$_L_target" ]]
+  do
+    if [ "$_L_current" = "$_L_appendix" ]; then
+      L_v="${L_v:-.}"
+      L_v="${L_v#/}"
+      return 0
+    fi
+    _L_current="${_L_current%/*}"
+    L_v+="${L_v:+/}.."
+  done
+  L_v+="${L_v:+${_L_appendix:+/}}${_L_appendix#/}"
+}
+
+# @description Append a path to path variable if not already there.
 # @arg $1 Variable name. For example PATH
 # @arg $2 Path to append. For example /usr/bin
 # @arg [$3] Optional path separator. Default: ':'

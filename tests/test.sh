@@ -370,13 +370,6 @@ _L_test_other() {
 		L_unittest_checkexit 1 L_args_contain 0
 	}
 	{
-		local tmp
-		L_basename -v tmp a/b/c
-		L_unittest_eq "$tmp" c
-		L_dirname -v tmp a/b/c
-		L_unittest_eq "$tmp" a/b
-	}
-	{
 		if L_hash jq; then
 			local tmp
 			t() {
@@ -2056,6 +2049,131 @@ _L_test_z_argparse9_time_profile() {
 }
 
 _L_test_path() {
+	local v
+	{
+		tester() { local v; L_basename -v v "$1"; L_unittest_vareq v "$2"; }
+		tester /foo/bar.txt bar.txt
+		tester /foo/.bar .bar
+		tester /foo/bar/ ''
+		tester /foo/. .
+		tester /foo/.. ..
+		tester . .
+		tester .. ..
+		tester //host host
+	}
+	{
+		tester() { local v; L_dirname -v v "$1"; L_unittest_vareq v "$2"; }
+		tester '' .
+		tester . .
+		tester .. .
+		tester / /
+		tester /a /
+		tester ../a ..
+		tester /a/b /a
+		tester a/b a
+		tester /a/b/c /a/b
+		tester a/b/c a/b
+	}
+	{
+		tester() { local v; L_extension -v v "$1"; caller; L_unittest_vareq v "$2"; }
+		tester /foo/bar.txt .txt
+		tester /foo/bar. .
+		tester /foo/bar ''
+		tester /foo/bar.txt/bar.cc .cc
+		tester /foo/bar.txt/bar. .
+		tester /foo/bar.txt/bar ''
+		tester /foo/. ''
+		tester /foo/.. ''
+		tester /foo/.hidden ''
+		tester /foo/..bar '.bar'
+	}
+	{
+		tester() { local v; L_stem -v v "$1"; caller; L_unittest_vareq v "$2"; }
+		tester /foo/bar.txt bar
+		tester /foo/.bar .bar
+		tester foo.bar.baz.tar foo.bar.baz
+		tester . .
+		tester .. ..
+		tester /foo/bar bar
+	}
+	{
+		tester() { local v; L_extensions -v v "$1"; caller; L_unittest_arreq v "${@:2}"; }
+		tester my/library.tar.gar .tar .gar
+		tester my/library.tar.gz .tar .gz
+		tester my/library
+	}
+	{
+		tester() { local v; L_relative_to -v v "$1" "$2"; caller; L_unittest_arreq v "$3"; }
+		tester /etc/passwd / etc/passwd
+		tester /etc/passwd /etc passwd
+		tester /etc/passwd /usr ../etc/passwd
+		tester /a /a/b/c ../..
+		tester /a/b /a/b/c ..
+		tester /a/b/c /a/b/c .
+		tester /a/b/c/d /a/b/c d
+		tester /a/b/c/d/e /a/b/c d/e
+		tester /a/b/d /a/b/c ../d
+		tester /a/b/d/e /a/b/c ../d/e
+		tester /a/d /a/b/c ../../d
+		tester /a/d/e /a/b/c ../../d/e
+		tester /d/e/f /a/b/c ../../../d/e/f
+		tester /d/e/f /a/b/c ../../../d/e/f
+
+		tester /\ \ \ \ a\ \ \ b/å/⮀\*/\! /\ \ \ \ a\ \ \ b/å/⮀/xäå/\? ../../../⮀\*/\!
+		tester / /A ..
+		tester /A / A
+		tester /\ \ \&\ /\ \ \!/\*/\\\\/E / \ \ \&\ /\ \ \!/\*/\\\\/E
+		tester / /\ \ \&\ /\ \ \!/\*/\\\\/E ../../../../..
+		tester /\ \ \&\ /\ \ \!/\*/\\\\/E /\ \ \&\ /\ \ \!/\?/\\\\/E/F ../../../../\*/\\\\/E
+		tester /X/Y /\ \ \&\ /\ \ \!/C/\\\\/E/F ../../../../../../X/Y
+		tester /\ \ \&\ /\ \ \!/C /A ../\ \ \&\ /\ \ \!/C
+		tester /A\ /\ \ \!/C /A\ /B ../\ \ \!/C
+		tester /Â/\ \ \!/C /Â/\ \ \!/C .
+		tester /\ \ \&\ /B\ /\ C /\ \ \&\ /B\ /\ C/D ..
+		tester /\ \ \&\ /\ \ \!/C /\ \ \&\ /\ \ \!/C/\\\\/Ê ../..
+		tester /Å/\ \ \!/C /Å/\ \ \!/D ../C
+		tester /.A\ /\*B/C /.A\ /\*B/\\\\/E ../../C
+		tester /\ \ \&\ /\ \ \!/C /\ \ \&\ /D ../\ \ \!/C
+		tester /\ \ \&\ /\ \ \!/C /\ \ \&\ /\\\\/E ../../\ \ \!/C
+		tester /\ \ \&\ /\ \ \!/C /\\\\/E/F ../../../\ \ \&\ /\ \ \!/C
+		tester /home/part1/part2 /home/part1/part3 ../part2
+		tester /home/part1/part2 /home/part4/part5 ../../part1/part2
+		tester /home/part1/part2 /work/part6/part7 ../../../home/part1/part2
+		tester /home/part1 /work/part1/part2/part3/part4 ../../../../../home/part1
+		tester /home /work/part2/part3 ../../../home
+		tester / /work/part2/part3/part4 ../../../..
+		tester /home/part1/part2 /home/part1/part2/part3/part4 ../..
+		tester /home/part1/part2 /home/part1/part2/part3 ..
+		tester /home/part1/part2 /home/part1/part2 .
+		tester /home/part1/part2 /home/part1 part2
+		tester /home/part1/part2 /home part1/part2
+		tester /home/part1/part2 / home/part1/part2
+		tester /home/part1/part2 /work ../home/part1/part2
+		tester /home/part1/part2 /work/part1 ../../home/part1/part2
+		tester /home/part1/part2 /work/part1/part2 ../../../home/part1/part2
+		tester /home/part1/part2 /work/part1/part2/part3 ../../../../home/part1/part2
+		tester /home/part1/part2 /work/part1/part2/part3/part4 ../../../../../home/part1/part2
+		tester home/part1/part2 home/part1/part3 ../part2
+		tester home/part1/part2 home/part4/part5 ../../part1/part2
+		tester home/part1/part2 work/part6/part7 ../../../home/part1/part2
+		tester home/part1 work/part1/part2/part3/part4 ../../../../../home/part1
+		tester home work/part2/part3 ../../../home
+		tester . work/part2/part3 ../../..
+		tester home/part1/part2 home/part1/part2/part3/part4 ../..
+		tester home/part1/part2 home/part1/part2/part3 ..
+		tester home/part1/part2 home/part1/part2 .
+		tester home/part1/part2 home/part1 part2
+		tester home/part1/part2 home part1/part2
+		tester home/part1/part2 . home/part1/part2
+		tester home/part1/part2 work ../home/part1/part2
+		tester home/part1/part2 work/part1 ../../home/part1/part2
+		tester home/part1/part2 work/part1/part2 ../../../home/part1/part2
+		tester home/part1/part2 work/part1/part2/part3 ../../../../home/part1/part2
+		tester home/part1/part2 work/part1/part2/part3/part4 ../../../../../home/part1/part2
+	}
+}
+
+_L_test_PATH() {
 	local P="A:B:C"
 	{
 		L_path_append P A
