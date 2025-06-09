@@ -2190,4 +2190,35 @@ _L_test_all_getopts_have_local_OPTIND_OPTARG_OPTERR() {
 	done
 }
 
+_L_test_check_v_comment() {
+	awk '
+  	/^#/{prev=prev $0 "\n";next}
+  	/L_.*[(][)] [{] L_handle_v/{
+    	if (!(prev ~ "@option -v")) {
+      	gsub(/[(].*/, "")
+      	print
+      	fail++
+    	}
+  	}
+  	{prev=""}
+  	END{ exit(fail) }
+	' "$L_LIB_SCRIPT" || exit 1
+}
+
+_L_test_no_duplicate_functions() {
+	local dups funcs funcs_cnt vars vars_cnt
+	funcs=$(grep -o $'^[^ \t]*()' "$L_LIB_SCRIPT" | sort)
+	funcs_cnt=$(wc -l <<<"$funcs")
+	L_unittest_cmd test "$funcs_cnt" -gt 200
+	dups="$(uniq -d <<<"$funcs")"
+	L_unittest_eq "$dups" ""
+	#
+	vars=$(grep -o $'^[^ \t]*=' "$L_LIB_SCRIPT" | sort)
+	vars_cnt=$(wc -l <<<"$vars")
+	L_unittest_cmd test "$vars_cnt" -gt 200
+	dups="$(uniq -d <<<"$vars")"
+	L_unittest_eq "$dups" ""
+	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
+}
+
 . "$(dirname "$0")"/../bin/L_lib.sh test "$@"
