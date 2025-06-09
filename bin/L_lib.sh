@@ -25,6 +25,8 @@
 
 # @description Version of the library
 L_LIB_VERSION=0.1.10
+# @description The location of L_lib.sh file
+L_LIB_SCRIPT=${BASH_SOURCE[0]}
 # @description The basename part of $0.
 L_NAME=${0##*/}
 if [[ "$0" == */* ]]; then
@@ -416,10 +418,17 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @section stdlib
 # @description Some base simple definitions for every occasion.
 
-L_assert_fail() {
+
+# @description Print stacktrace, the message and exit.
+# @arg $1 Message to print.
+# @example test -r file || L_die "File does not exist"
+# @see L_assert
+# @see L_exit
+# @see L_check
+L_die() {
 	set +x
-	L_print_traceback >&2
-	printf "%s: assertion (%s) failed%s\n" "$L_NAME" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
+	L_print_traceback 1 >&2
+	printf "%s\n" "$*" >&2
 	exit 249
 }
 
@@ -440,7 +449,36 @@ L_assert_fail() {
 #   L_assert 'var has to matcha glob' L_glob_match "$var" "*glob*"
 L_assert() {
 	if ! "${@:2}"; then
-		L_assert_fail "$@"
+		L_die "$L_NAME: ERROR: assertion ($(L_quote_printf "${@:2}")) failed${1:+: $1}"
+	fi
+}
+
+# @description If argument is not given, then exit with 0.
+# If the argument exists, print the message to standard error and exit with 1
+# @example test -r file || L_exit "file is not readable"
+# @see L_die
+# @see L_assert
+# @see L_check
+L_exit() {
+	if [[ -n "$*" ]]; then
+		set +x
+		printf "%s\n" "$*" >&2
+		exit 1
+	else
+		exit 0
+	fi
+}
+
+# @descrpition If command fails, print a message and exit with 1.
+# Check L_assert for more info.
+# The difference is, L_assert prints the error message and stacktrace on error.
+# Thid function only prints the error message with program name on error.
+# @see L_die
+# @see L_assert
+# @see L_check
+L_check() {
+	if ! "${@:2}"; then
+		L_exit "$L_NAME: ERROR: $1"
 	fi
 }
 
@@ -708,7 +746,7 @@ L_handle_v() {
 	case "${1:-}" in
 	-v?*)
 		if ! L_is_valid_variable_name "${1##-v}"; then
-			L_assert_fail "not a valid identifier: ${1##-v}" || return $?
+			L_die "not a valid identifier: ${1##-v}" || return $?
 		fi
 		if [[ "${2:-}" == -- ]]; then
 			"${FUNCNAME[1]}"_v "${@:3}" || _L_r=$?
@@ -719,7 +757,7 @@ L_handle_v() {
 		;;
 	-v)
 		if ! L_is_valid_variable_name "${2:-}"; then
-			L_assert_fail "not a valid identifier: $2"
+			L_die "not a valid identifier: $2"
 		fi
 		if [[ "${3:-}" == -- ]]; then
 			"${FUNCNAME[1]}"_v "${@:4}" || _L_r=$?
@@ -760,7 +798,7 @@ _L_handle_v_getopts() {
 		printf -v "$_L_v" "%s" "${L_v:-}" ;;
 	*/*)
 		if ! L_is_valid_variable_name "$2"; then
-			L_assert_fail "not a valid identifier: $2"
+			L_die "not a valid identifier: $2"
 		fi
 		eval "$2"'=("${L_v[@]}")'
 	esac &&
