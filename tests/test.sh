@@ -108,31 +108,75 @@ _L_test_basic() {
 
 _L_test_a_handle_v() {
 	{
-		return_123() { L_handle_v "$@"; }
-		return_123_v() { return 123; }
-		L_unittest_cmd -ce 123 return_123
-		L_unittest_cmd -ce 123 return_123 --
-		L_unittest_cmd -ce 123 return_123 a
-		L_unittest_cmd -ce 123 return_123 -- a
-		unset a
-		L_unittest_cmd -ce 123 return_123 -va
-		unset a
-		L_unittest_cmd -ce 123 return_123 -v a
-		unset a
-		L_unittest_cmd -ce 123 return_123 -va --
-		unset a
-		L_unittest_cmd -ce 123 return_123 -v a --
-		unset a
-		L_unittest_cmd -ce 123 return_123 -va a
-		unset a
-		L_unittest_cmd -ce 123 return_123 -va -- a
-		unset a
-		L_unittest_cmd -ce 123 return_123 -v a a
-		unset a
-		L_unittest_cmd -ce 123 return_123 -v a -- a
+		local i
+		for i in L_handle_v_scalar L_handle_v_array; do
+			return_123() { "$i" "$@"; }
+			return_123_v() { return 123; }
+			L_unittest_cmd -ce 123 return_123
+			L_unittest_cmd -ce 123 return_123 --
+			L_unittest_cmd -ce 123 return_123 a
+			L_unittest_cmd -ce 123 return_123 -- a
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -va
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -v a
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -va --
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -v a --
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -va a
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -va -- a
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -v a a
+			unset a
+			local a
+			L_unittest_cmd -ce 123 return_123 -v a -- a
+			unset a
+		done
 	}
 	{
-		set_one() { L_handle_v "$@"; }
+		set_scalar() { L_handle_v_scalar "$@"; }
+		set_scalar_v() { L_v=123; }
+		L_unittest_cmd -co 123 set_scalar
+		L_unittest_cmd -co 123 set_scalar --
+		L_unittest_cmd -co 123 set_scalar a
+		L_unittest_cmd -co 123 set_scalar -- a
+		local a=""
+		L_unittest_cmd -c set_scalar -va
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_scalar -v a
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_scalar -va a
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_scalar -v a a
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_scalar -va -- a
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+		local a=""
+		L_unittest_cmd -c set_scalar -v a -- a
+		L_unittest_eq "$a" 123
+		L_unittest_cmd -c L_var_is_notarray a
+	}
+	{
+		set_one() { L_handle_v_array "$@"; }
 		set_one_v() { L_v=123; }
 		L_unittest_cmd -co 123 set_one
 		L_unittest_cmd -co 123 set_one --
@@ -141,30 +185,30 @@ _L_test_a_handle_v() {
 		local a=""
 		L_unittest_cmd -c set_one -va
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 		local a=""
 		L_unittest_cmd -c set_one -v a
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 		local a=""
 		L_unittest_cmd -c set_one -va a
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 		local a=""
 		L_unittest_cmd -c set_one -v a a
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 		local a=""
 		L_unittest_cmd -c set_one -va -- a
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 		local a=""
 		L_unittest_cmd -c set_one -v a -- a
 		L_unittest_eq "$a" 123
-		# L_unittest_cmd -c L_var_is_notarray a
+		L_unittest_cmd -c L_var_is_array a
 	}
 	{
-		set_arr() { L_handle_v "$@"; }
+		set_arr() { L_handle_v_array "$@"; }
 		set_arr_v() { L_v=(456 789); }
 		L_unittest_cmd -co $'456\n789' set_arr
 		L_unittest_cmd -co $'456\n789' set_arr --
@@ -1087,11 +1131,12 @@ _L_test_log() {
 _L_test_sort() {
 	export LC_ALL=C IFS=' '
 	{
-		var=(1 2 3)
+		local var=(1 2 3)
 		L_sort_bash -n var
 		L_unittest_eq "${var[*]}" "1 2 3"
 	}
 	{
+		local data opt
 		for opt in "-n" "" "-z" "-n -z"; do
 			for data in "1 2 3" "3 2 1" "1 3 2" "2 3 1" "6 5 4 3 2 1" "6 1 5 2 4 3" "-1 -2 4 6 -4"; do
 				local -a sort_bash="($data)" sort="($data)"
@@ -1627,6 +1672,7 @@ _L_test_z_argparse2() {
 }
 
 _L_test_z_argparse3() {
+	local foo bar count verbose filename
 	{
 		local count verbose filename
 		L_argparse \
@@ -1660,6 +1706,7 @@ Options:
   --foo FOO   foo of the myprogram program"
 	}
 	{
+		local foo bar
 		L_unittest_cmd -o "\
 Usage: PROG [options]
 
@@ -1690,7 +1737,7 @@ And that's how you'd foo a bar" \
 				---- -h
 	}
 	{
-		local out
+		local out foobar foonley
 		L_unittest_failure_capture out \
 			-- L_argparse prog=PROG allow_abbrev=False \
 			-- --foobar action=store_true \
@@ -1888,6 +1935,7 @@ _L_test_z_argparse_A() {
 fi
 
 _L_test_z_argparse4() {
+	local foo arg
 	{
 		local a='' dest=()
 		L_argparse prog=prog -- -a -- dest nargs="*" ---- -a 1 2 3 -a 2
@@ -2213,7 +2261,7 @@ _L_test_PATH() {
 }
 
 _L_test_L_proc() {
-	local proc
+	local proc exitcode line
 	{
 		L_proc_popen -Ipipe -Opipe proc cat
 		L_proc_printf proc "%s\n" "Hello, world!"
@@ -2339,4 +2387,19 @@ _L_test_no_duplicate_functions() {
 	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
 }
 
+###############################################################################
+
+_L_get_all_variables() {
+	unset SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
+	unset L_v IFS LC_ALL _L_TRAP_L
+	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES)="
+}
+
+. "$(dirname "$0")"/../bin/L_lib.sh
+
+VARIABLES_BEFORE=$(_L_get_all_variables)
+
 . "$(dirname "$0")"/../bin/L_lib.sh test "$@"
+
+# Check for any new variables.
+diff -biw - <<<"$VARIABLES_BEFORE" <(_L_get_all_variables) | sed -n 's/^> /+ /p' || :
