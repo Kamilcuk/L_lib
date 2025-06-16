@@ -677,11 +677,61 @@ L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 # @see L_command_exists
 L_hash() { hash "$@" >/dev/null 2>&1; }
 
-# @description Return 0 if current script sourced.
-L_is_sourced() { [[ "${BASH_SOURCE[0]}" != "$0" ]]; }
-
 # @description Return 0 if current script is not sourced.
-L_is_main() { [[ "${BASH_SOURCE[0]}" == "$0" ]]; }
+L_is_main() { ! L_is_sourced; }
+
+# @description Return 0 if current script sourced.
+# Comparing BASH_SOURCE to $0 only works, when BASH_SOURCE is different from $0.
+# When calling `.` or `source` builtin it will be added as an "source" into `FUNCNAME` array.
+# This function returns false, if there exists a source elemtn in FUNCNAME array.
+L_is_sourced() {
+	local IFS=" "
+	[[ " ${FUNCNAME[*]} " == *" source "* ]]
+	# [[ "${BASH_SOURCE[0]}" != "$0" ]];
+}
+
+# @description Return true if sourced script was passed any arguments.
+# When you source a script and do not pass any arguments, the arguments are equal to the parent scope.
+#
+#     $ set -- a b c ; source <(echo 'echo "$@"')          # script sourced with no arguments
+#     a b c
+#     $ set -- a b c ; source <(echo 'echo "$@"') d e f    # script sourced with arguments
+#     d e f
+#
+# It is hard to detect if the script arguments are real arguments passed to `source` command or not.
+# This function detect the case.
+#
+# @example
+#    if L_is_main; then
+#       main
+#       exit $?
+#    elif L_has_sourced_arguments; then
+#       sourced_main "$@"
+#       return $?
+#    else
+#       sourced_main
+#       return $?
+#    fi
+#
+# @noargs
+# @see https://stackoverflow.com/a/79201438/9072753
+# @see https://stackoverflow.com/questions/61103034/avoid-command-line-arguments-propagation-when-sourcing-bash-script/73791073#73791073
+# @see https://unix.stackexchange.com/questions/568747/bash-builtin-variables-bash-argv-and-bash-argc
+L_has_sourced_arguments() {
+	# Check if we are sourced.
+	local IFS=' '
+	if [[ " ${FUNCNAME[*]} " != *" source "* ]]; then
+		return 2
+	fi
+	# Find the source function position.
+	local i
+	for i in "${!FUNCNAME[@]}"; do
+		if [[ "${FUNCNAME[i]}" == "source" ]]; then
+			break
+		fi
+	done
+	[[ "${BASH_ARGV[0]:-}" != "${BASH_SOURCE[i]}" ]]
+}
 
 # @description Return 0 if running in bash shell.
 # Portable with POSIX shell.
