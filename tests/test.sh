@@ -2401,6 +2401,10 @@ _L_test_no_duplicate_functions() {
 	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
 }
 
+_L_test_traceback_test() {
+	L_unittest_cmd bash "$L_DIR"/traceback_test.sh
+}
+
 ###############################################################################
 
 _L_get_all_variables() {

@@ -3342,7 +3342,7 @@ L_sort() {
 
 # @description Prints traceback
 # @arg [$1] int stack offset to start from (default: 0)
-# @arg [$2] int number of lines to show around the line (default: 0)
+# @arg [$2] int number of lines to show around the line (default: 2)
 # @example:
 #   Example traceback:
 #   Traceback from pid 3973390 (most recent call last):
@@ -3359,8 +3359,8 @@ L_sort() {
 #     File ./bin/L_lib.sh, line 1391, in _L_unittest_showdiff()
 #   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
 L_print_traceback() {
-	local i s l tmp offset=${1:-0} around=${2:-0}
 	L_color_detect
+	local i s l tmp offset=${1:-0} around=${2:-2}
 	echo "${L_CYAN}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET}"
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
@@ -3375,7 +3375,7 @@ L_print_traceback() {
 				((min=l-around-1, min=min<0?0:min, cnt=around*2+1, cnt=cnt<0?0:cnt ,1))
 				if ((cnt)); then
 					mapfile -s "$min" -n "$cnt" -t lines <"$s"
-					for ((j= 0 ; j < cnt; ++j)); do
+					for ((j= 0 ; j < cnt && j < ${#lines[@]}; ++j)); do
 						cur=
 						if ((min+j+1==l)); then
 							cur=yes
@@ -3385,7 +3385,7 @@ L_print_traceback() {
 							"$((min+j+1))" \
 							"$L_COLORRESET" \
 							"${cur:+">> $L_RED"}" \
-							"${lines[j]:-}" \
+							"${lines[j]}" \
 							"${cur:+"$L_COLORRESET"}"
 					done
 				fi
@@ -3394,16 +3394,16 @@ L_print_traceback() {
 				awk \
 					-v line="$l" \
 					-v around="$((around + 1))" \
-					-v RESET="$L_RESET" \
 					-v RED="$L_RED" \
 					-v COLORLINE="${L_BLUE}${L_BOLD}" \
+					-v RESET="$L_RESET" \
 					'NR > line - around && NR < line + around {
-						printf "%s%-5d%s%3s%s%s%s\n", \
+						printf "%s%-5d%s%3s%s%s\n", \
 							COLORLINE, NR, RESET, \
 							(NR == line ? ">> " RED : ""), \
 							$0, \
 							(NR == line ? RESET : "")
-					}' "$s" 2>/dev/null
+					}' "$s"
 			fi
 		fi
 	done
