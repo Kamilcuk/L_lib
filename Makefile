@@ -12,7 +12,7 @@ define NL
 
 
 endef
-
+BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3-alpha
 
 all: test doc
 	@echo SUCCESS all
@@ -22,15 +22,7 @@ test_parallel:
 test: \
 		test_local \
 		shellcheck \
-		test_bash5.2 \
-		test_bash3.2 \
-		test_bash4.4 \
-		test_bash4.0 \
-		test_bash4.3 \
-		test_bash4.2 \
-		test_bash4.1 \
-		test_bash5.1 \
-		test_bash5.0 \
+		$(addprefix test_bash, $(BASHES)) \
 		#
 	@echo 'make test finished with SUCCESS'
 test_local:
@@ -41,6 +33,9 @@ test_bash%:
 		bash:$* ./tests/test.sh $(ARGS)
 test_docker%:
 	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
+
+watchtest:
+	watchexec './tests/test.sh $(ARGS) && make test ARGS='$(ARGS)' -j$$(nproc) -O'
 
 shellcheck:
 	docker build --target shellcheck .
@@ -57,7 +52,7 @@ shellcheckvimall: shellcheckvim
 
 term-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -i -u $(shell id -u):$(shell id -g) \
+	docker run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
@@ -65,14 +60,14 @@ term-%:
 		bash:$* -l $(ARGS)
 termnoload-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -i -u $(shell id -u):$(shell id -g) \
+	docker run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		bash:$* -l $(ARGS)
 run-%:
-	docker run --rm $(DOCKERTERM) -u $(shell id -u):$(shell id -g) \
-		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
-		bash:$* -lc 'L_lib.sh $(ARGS)' bash
+	docker run --rm $(DOCKERTERM) -u$(shell id -u):$(shell id -g) --volume $(CURDIR):$(CURDIR) -w $(CURDIR) bash:$* -lc 'bin/L_lib.sh $(ARGS)' bash
+
+runall: $(addprefix run-, $(BASHES))
 
 5.3test: test_bash5.3-alpha
 5.2test: test_bash5.2

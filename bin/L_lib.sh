@@ -2491,6 +2491,7 @@ _L_pretty_print_flush() {
 # @env _L_pp_v
 # @env _L_pp_width
 _L_pretty_print_nested() {
+	set -- "${1##* }" "$2"
 	local -A _L_pp_array="$2"
 	if ((${#_L_pp_array[@]} == 0)); then
 		_L_pretty_print_output "%s=()" "$1"
@@ -3863,7 +3864,7 @@ L_unittest_cmd() {
 			_L_uopt_stdjoin=1
 		fi
 	fi
-	_L_unittest_internal "command found: [$(L_quote_printf "$@")]" "" L_hash "$1"
+	_L_unittest_internal "command found: [$(L_quote_printf "$1")]" "" L_hash "$1"
 	if ((_L_uopt_setx)); then
 		set -- L_setx "$@"
 	fi
@@ -4270,6 +4271,7 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 # asa - Associative Array [[[
 # @section asa
 # @description collection of function to work on associative array
+# @note unstable
 
 # @description Copy associative dictionary.
 # Notice: the destination array is _not_ cleared.
@@ -4342,22 +4344,6 @@ L_asa_keys_sorted_v() {
 	eval "L_v=(\"\${!$1[@]}\")"
 	L_sort L_v
 }
-
-# @description Move the 3rd argument to the first and call
-# The `L_asa $1 $2 $3 $4 $5` becomes `L_asa_$3 $1 $2 $4 $5`
-# @option -v <var> var
-# @arg $1 function name
-# @arg $2 associative array nameref
-# @arg $@ arguments
-# @example L_asa -v v get map a
-L_asa() {
-	case $1 in
-	-v?*) "L_asa_$2" "$1" "${@:3}" ;;
-	-v) "L_asa_$3" "${@:1:2}" "${@:4}" ;;
-	*) "L_asa_$1" "${@:2}" ;;
-	esac
-}
-
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # @description assign value to associative array
@@ -7405,11 +7391,7 @@ _L_lib_main() {
 # ]]]
 # main [[[
 
-# https://stackoverflow.com/a/79201438/9072753
-# https://stackoverflow.com/questions/61103034/avoid-command-line-arguments-propagation-when-sourcing-bash-script/73791073#73791073
-if [[ "${BASH_ARGV[0]}" == "${BASH_SOURCE[0]}" ]]; then
-	_L_lib_main -s
-else
+if L_is_main || L_has_sourced_arguments; then
 	_L_lib_main "$@"
 fi
 
