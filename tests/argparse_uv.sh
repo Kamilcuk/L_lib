@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-
 if [[ "$1" == gen ]]; then
   get_args() {
     head -n 3 | tail -n1 |
@@ -867,4 +865,6 @@ args=(
 
 )
 
-. "$DIR"/L_argparse "${args[@]}" ---- "$@"
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+. "$DIR"/../bin/L_lib.sh
+time L_argparse "${args[@]}" ---- "$@"

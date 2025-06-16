@@ -1477,13 +1477,13 @@ _L_test_asa() {
 	}
 	{
 		L_info "_L_test_asa: check getting"
-		L_asa -v v get map a
+		L_asa_get -v v map a
 		L_unittest_eq "$v" 1
 		v=
-		L_asa -v v get map a 2
+		L_asa_get -v v map a 2
 		L_unittest_eq "$v" 1
 		v=
-		L_asa -v v get map b 2
+		L_asa_get -v v map b 2
 		L_unittest_eq "$v" 2
 	}
 	{
@@ -1492,7 +1492,7 @@ _L_test_asa() {
 		L_asa_len -v v map
 		L_unittest_eq "$v" 1
 		map[c]=2
-		L_asa -v v len map
+		L_asa_len -v v map
 		L_unittest_eq "$v" 2
 	}
 	{
@@ -2103,7 +2103,7 @@ _L_test_z_argparse8_one_dash_long_option() {
 
 _L_test_z_argparse9_time_profile() {
 	local time uv
-	uv=$L_DIR/../scripts/argparse_uv.sh
+	uv=$L_DIR/argparse_uv.sh
 	time=$(	exec 3>&2; TIMEFORMAT="%R"; { time "$uv" -h 1>&3 2>&3; } 2>&1 )
 	echo "$time"
 	# L_unittest_cmd L_float_cmp "$time" -gt 0.1

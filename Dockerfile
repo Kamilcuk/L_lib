@@ -4,9 +4,7 @@ COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 
 FROM app AS test
-COPY scripts/argparse_uv.sh /scripts/argparse_uv.sh
-COPY scripts/L_argparse /scripts/L_argparse
-COPY tests/test.sh /tests/test.sh
+COPY tests/ /tests/
 ARG ARGS=""
 RUN /tests/test.sh ${ARGS}
 
