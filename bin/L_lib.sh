@@ -4224,6 +4224,7 @@ L_map_items() { L_handle_v_array "$@"; }
 L_map_items_v() {
 	local -a _L_tmp="(${!1})"
 	L_v=("${_L_tmp[@]}")
+	((${#_L_tmp[@]} % 2 == 0))
 }
 
 # @description Load all keys to variables with the name of $prefix$key.

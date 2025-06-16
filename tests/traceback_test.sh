@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-. "$(dirname "$0")"/../L_lib.sh
+. "$(dirname "$0")"/../bin/L_lib.sh
 
 if [[ "$1" == "show"*"nomapfile" ]]; then
   L_HAS_MAPFILE=0
