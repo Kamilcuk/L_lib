@@ -418,14 +418,13 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @section stdlib
 # @description Some base simple definitions for every occasion.
 
-
 # @description Print stacktrace, the message and exit.
 # @arg $1 Message to print.
-# @example test -r file || L_die "File does not exist"
+# @example test -r file || L_panic "File does not exist"
 # @see L_assert
 # @see L_exit
 # @see L_check
-L_die() {
+L_panic() {
 	set +x
 	L_print_traceback 1 >&2
 	printf "%s\n" "$*" >&2
@@ -449,21 +448,36 @@ L_die() {
 #   L_assert 'var has to matcha glob' L_glob_match "$var" "*glob*"
 L_assert() {
 	if ! "${@:2}"; then
-		L_die "$L_NAME: ERROR: assertion ($(L_quote_printf "${@:2}")) failed${1:+: $1}"
+		L_panic "$L_NAME: ERROR: assertion ($(L_quote_printf "${@:2}")) failed${1:+: $1}"
 	fi
 }
 
-# @description If argument is not given, then exit with 0.
-# If the argument exists, print the message to standard error and exit with 1
-# @example test -r file || L_exit "file is not readable"
-# @see L_die
+# @description Print the arguments to standard error and exit wtih 248.
+# @example test -r file || L_die "File is not readable"
+# @see L_panic
+# @see L_exit
+# @see L_check
+# @see L_assert
+L_die() {
+	printf "%s\n" "$*" >&2
+	exit 248
+}
+
+# @description If argument is not given or an empty string, then exit with 0.
+# If arguments are not an empty string, print the message to standard error and exit with 247.
+# @example
+# 	err=()
+# 	test -r file || err+=("file is not readable")
+# 	test -f file || err+=("file is not a file")
+# 	L_exit "${err[@]}"
+# @see L_panic
 # @see L_assert
 # @see L_check
 L_exit() {
 	if [[ -n "$*" ]]; then
 		set +x
 		printf "%s\n" "$*" >&2
-		exit 1
+		exit 247
 	else
 		exit 0
 	fi
@@ -473,7 +487,7 @@ L_exit() {
 # Check L_assert for more info.
 # The difference is, L_assert prints the error message and stacktrace on error.
 # Thid function only prints the error message with program name on error.
-# @see L_die
+# @see L_panic
 # @see L_assert
 # @see L_check
 L_check() {
@@ -631,7 +645,7 @@ L_extglob_match() { [[ "$1" == $2 ]]; }
 else
 	# shellcheck disable=SC2053,SC2064
 	L_extglob_match() {
-		trap "$(shopt -p extglob)" RETURN
+		trap "$(shopt -p extglob || :)" RETURN
 		shopt -s extglob
 		[[ "$1" == $2 ]]
 	}
@@ -641,7 +655,7 @@ fi
 # @option -v <var> variable to set
 # @arg $@ string to escape
 L_glob_escape() { L_handle_v_scalar "$@"; }
-L_glob_escape_v() { L_v="${*//[[?*\]/[&]}"; }  # $[
+L_glob_escape_v() { L_v="${*//[[?*\]/[&]}"; }  # ]
 
 # @description Return 0 if the argument is a function
 # @arg $1 function name
@@ -833,7 +847,7 @@ L_handle_v_array() {
 	case "${1:-}" in
 	-v?*)
 		if ! L_is_valid_variable_name "${1##-v}"; then
-			L_die "not a valid identifier: ${1##-v}" || return $?
+			L_panic "not a valid identifier: ${1##-v}" || return $?
 		fi
 		if [[ "${2:-}" == -- ]]; then
 			if "${FUNCNAME[1]}"_v "${@:3}"; then
@@ -855,7 +869,7 @@ L_handle_v_array() {
 		;;
 	-v)
 		if ! L_is_valid_variable_name "${2:-}"; then
-			L_die "not a valid identifier: $2"
+			L_panic "not a valid identifier: $2"
 		fi
 		if [[ "${3:-}" == -- ]]; then
 			if "${FUNCNAME[1]}"_v "${@:4}"; then
