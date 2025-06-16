@@ -38,20 +38,34 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_is_float abc
 	}
 	{
-		local a=
+		unset a
+		local a="declare -r a"
 		L_unittest_checkexit 1 L_var_is_readonly a
-		local -r b=
+		local -r b="declare b"
 		L_unittest_checkexit 0 L_var_is_readonly b
 	}
 	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-		L_unittest_checkexit 1 L_var_is_associative a
-		local -A c=()
+		unset c
+		L_unittest_checkexit 1 L_var_is_associative c
+		local -A c=(["declare -r c"]="declare -r c")
 		L_unittest_checkexit 0 L_var_is_associative c
 	fi
 	{
-		L_unittest_checkexit 1 L_var_is_array a
-		local -a d=()
+		unset d
+		L_unittest_checkexit 1 L_var_is_array d
+		L_unittest_checkexit 1 L_var_is_notarray d
+		local -a d=("declare -r d")
 		L_unittest_checkexit 0 L_var_is_array d
+		L_unittest_checkexit 1 L_var_is_notarray d
+	}
+	{
+		unset e
+		L_unittest_checkexit 1 L_var_is_exported e
+		local e="declare -r e"
+		L_unittest_checkexit 1 L_var_is_exported e
+		export e
+		L_unittest_checkexit 0 L_var_is_exported e
+		unset e
 	}
 	{
 		L_unittest_checkexit 1 L_var_is_set _L_variable

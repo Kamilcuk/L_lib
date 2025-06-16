@@ -702,28 +702,28 @@ if ((0 && L_HAS_QEPAa_EXPANSIONS)); then
 else
 # @description Return 0 if variable is not set or is not an array neither an associative array
 # @arg $1 variable nameref
-L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -"[^aA]* ]]; }
+L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA]* ]]; }
 
-# @description
+# @description Success if variable is an indexed integer array, not an associative array.
 # @arg $1 variable nameref
 # @exitcode 0 if variable is an array, nonzero otherwise
-L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -a"* ]]; }
+L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -a* ]]; }
 
 # @description Return 0 if variable is an associative array
 # @arg $1 variable nameref
-L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == "declare -A"* ]]; }
+L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]; }
 
 # @description Return 0 if variable is readonly
 # @arg $1 variable nameref
-L_var_is_readonly() { ! (eval "$1=") 2>/dev/null; }
+L_var_is_readonly() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-za-z]*r ]]; }
 
 # @description Return 0 if variable has integer attribute set
 # @arg $1 variable nameref
-L_var_is_integer() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*i"; }
+L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*i ]]; }
 
 # @description Return 0 if variable is exported.
 # @arg $1 variable nameref
-L_var_is_exported() { L_regex_match "$(declare -p "$1" 2>/dev/null || :)" "^declare -[A-Za-z]*x"; }
+L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 fi
 
 # @description Send signal to itself
