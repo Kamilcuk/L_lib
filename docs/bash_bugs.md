@@ -93,3 +93,9 @@ array=1; (( array[0]<0 ? tmp=array[0] : (tmp=2) )); echo "tmp=$tmp"
 | <=3.1 | `tmp=2` |
 | >=3.2,<=4.1 | `tmp=1` |
 | >=4.2 | `tmp=2` |
+
+## Calling a function with a lot of arguments is slow
+
+When optimizing `L_argparse` I noticed a particular slowdown - the function was really short, but still profiling showed it is very slow. Turns out the act of _calling_ the function with a lot of arguments is very slow.
+
+Refactoring to using an array brought significant speedup.

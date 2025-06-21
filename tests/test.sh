@@ -1536,7 +1536,7 @@ fi  # L_HAS_ASSOCIATIVE_ARRAY
 _L_test_z_argparse1() {
 	local ret tmp option storetrue storefalse store0 store1 storeconst append
 	{
-		L_log "define parser"
+		L_log "check init"
 		declare -a parser=()
 		parser=(
 			prog=prog
@@ -1548,11 +1548,15 @@ _L_test_z_argparse1() {
 			-- -a --append action=append
 			----
 		)
-	}
-	{
 		L_unittest_cmd ! L_argparse "${parser[@]}" ----
 		L_unittest_cmd ! L_argparse "${parser[@]}" --- -h
 		L_unittest_cmd L_argparse "${parser[@]}" --
+		L_unittest_cmd L_argparse "${parser[@]}"
+		L_unittest_cmd L_argparse -- -o ----
+		L_unittest_cmd L_argparse -- --option ---- --op 1
+		L_unittest_cmd L_argparse -- --option ----
+		L_unittest_cmd L_argparse -- --option ---- --option=1
+		L_unittest_cmd L_argparse -- --option ---- -h
 	}
 	{
 		local append=()
