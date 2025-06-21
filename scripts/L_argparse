@@ -12,7 +12,7 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 fi
 f() {
 	unset SUPER _ FUNCNAME SUPER2
-	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS)="
 }
 
 L_profile_setup() {

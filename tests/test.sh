@@ -1537,8 +1537,7 @@ _L_test_z_argparse1() {
 	local ret tmp option storetrue storefalse store0 store1 storeconst append
 	{
 		L_log "check init"
-		declare -a parser=()
-		parser=(
+		local -a parser=(
 			prog=prog
 			-- -t --storetrue action=store_true
 			-- -f --storefalse action=store_false
@@ -1548,8 +1547,8 @@ _L_test_z_argparse1() {
 			-- -a --append action=append
 			----
 		)
-		L_unittest_cmd ! L_argparse "${parser[@]}" ----
-		L_unittest_cmd ! L_argparse "${parser[@]}" --- -h
+		L_unittest_cmd -r 'argument' ! L_argparse "${parser[@]}" ----
+		L_unittest_cmd -r 'error' ! L_argparse "${parser[@]}" --- -h
 		L_unittest_cmd L_argparse "${parser[@]}" --
 		L_unittest_cmd L_argparse "${parser[@]}"
 		L_unittest_cmd L_argparse -- -o ----
@@ -1557,6 +1556,9 @@ _L_test_z_argparse1() {
 		L_unittest_cmd L_argparse -- --option ----
 		L_unittest_cmd L_argparse -- --option ---- --option=1
 		L_unittest_cmd L_argparse -- --option ---- -h
+		L_unittest_cmd -r '----' ! L_argparse
+		L_unittest_cmd -r '----' ! L_argparse --
+		L_unittest_cmd -r '----' ! L_argparse help=123
 	}
 	{
 		local append=()
@@ -2058,6 +2060,7 @@ _L_test_z_argparse6() {
 
 _L_test_z_argparse7_custom_prefix() {
 	{
+		L_log "check argparse prefix_chars"
 		local o
 		local c=(prefix_chars='-+' -- +o flag=1 -- -o flag=0 ----)
 		L_argparse "${c[@]}"
@@ -2066,15 +2069,31 @@ _L_test_z_argparse7_custom_prefix() {
 		L_unittest_vareq o 1
 		L_argparse "${c[@]}" +o -o
 		L_unittest_vareq o 0
+		#
+		local o question option
+		local c=(prefix_chars='/' -- /o flag=1 -- /? dest=question flag=1 -- /option ----)
+		L_argparse "${c[@]}"
+		L_unittest_vareq o 0
+		L_unittest_vareq question 0
+		L_argparse "${c[@]}" /o
+		L_unittest_vareq o 1
+		L_unittest_vareq question 0
+		L_argparse "${c[@]}" /o /?
+		L_unittest_vareq o 1
+		L_unittest_vareq question 1
+		L_argparse "${c[@]}" /o /? /option c
+		L_unittest_vareq o 1
+		L_unittest_vareq question 1
+		L_unittest_vareq option c
 	}
 	{
-		L_unittest_cmd ! L_argparse -- -"option with space" ---- -h
-		L_unittest_cmd ! L_argparse -- --"option with space" ---- -h
-		L_unittest_cmd ! L_argparse -- --option/slash ---- -h
-		L_unittest_cmd ! L_argparse -- arg twice ---- -h
-		L_unittest_cmd ! L_argparse -- --option$'\n'newline ---- -h
-		L_unittest_cmd ! L_argparse -- --option$'\t'tab ---- -h
-		L_unittest_cmd ! L_argparse -- --option dest='in valid' ---- -h
+		L_log "check argparse has errors on invalid"
+		L_unittest_cmd -r 'error' ! L_argparse -- -"option with space" ---- -h
+		L_unittest_cmd -r 'error' ! L_argparse -- --"option with space" ---- -h
+		L_unittest_cmd -r 'error' ! L_argparse -- arg twice ---- -h
+		L_unittest_cmd -r 'error' ! L_argparse -- --option$'\n'newline ---- -h
+		L_unittest_cmd -r 'error' ! L_argparse -- --option$'\t'tab ---- -h
+		L_unittest_cmd -r 'error' ! L_argparse -- --option dest='in valid' ---- -h
 	}
 }
 
@@ -2108,10 +2127,20 @@ _L_test_z_argparse8_one_dash_long_option() {
 _L_test_z_argparse9_time_profile() {
 	local time uv
 	uv=$L_DIR/argparse_uv.sh
-	time=$(	exec 3>&2; TIMEFORMAT="%R"; { time "$uv" -h 1>&3 2>&3; } 2>&1 )
-	echo "$time"
-	# L_unittest_cmd L_float_cmp "$time" -gt 0.1
-	# L_unittest_cmd L_float_cmp "$time" -lt 5
+	check() {
+		local time output
+		output=$(
+			TIMEFORMAT="%R"
+			{ time "$uv" "$@" ;} 2>&1
+		)
+		L_unittest_cmd L_regex_match "$output" "Options:"
+		time=${output//*$'\n'}
+		echo "$time"
+		L_unittest_cmd L_float_cmp "$time" -gt 0.1
+		L_unittest_cmd L_float_cmp "$time" -lt 1
+	}
+	check -h
+	check run -h
 }
 
 _L_test_path() {
@@ -2419,7 +2448,7 @@ _L_test_traceback_test() {
 _L_get_all_variables() {
 	unset SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
 	unset L_v IFS LC_ALL _L_TRAP_L
-	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS)="
 }
 
 . "$(dirname "$0")"/../bin/L_lib.sh
