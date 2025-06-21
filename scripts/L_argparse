@@ -14,17 +14,35 @@ f() {
 	unset SUPER _ FUNCNAME SUPER2
 	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES)="
 }
+
+L_profile_setup() {
+	local func def prefix
+	echo "SETUPING UP PROFILING..."
+	for prefix in "$@"; do
+		for func in $(compgen -A function $prefix); do
+	  	def="$(declare -f $func)"
+	  	eval "${def/"$func"/_PROFILE_$func}"
+	  	eval "$func() {
+	  		time {
+	  			_PROFILE_$func \"\$@\"
+	  			TIMEFORMAT=\"@PROFILE \$((\${BASH_LINENO[@]:+\${#BASH_LINENO[@]}}/2)) $func real=%R user=%U sys=%S\"
+	  		}
+	  		unset TIMEFORMAT
+	  	}"
+		done
+	done
+}
+
 trap 'L_trap_err $?' EXIT
 SUPER=$(f)
+
 if [[ -n "${PROFILE:-}" ]]; then
-	echo "SETUPING UP PROFILING..."
-	for i in $(compgen -A function L_argparse) $(compgen -A function _L_argparse); do
-	  a="$(declare -f $i)"
-	  eval "${a/"$i"/_PROFILE_$i}"
-	  eval "$i() { local TIMEFORMAT=\"\$((\${BASH_LINENO[@]:+\${#BASH_LINENO[@]}}/2)) $i real=%lR user=%lU sys=%lS\"; time _PROFILE_$i \"\$@\"; }"
-	done
-	unset i a
+	L_profile_setup L_argparse _L_argparse
+	_time L_argparse "$@" 2>/tmp/1
+	cat /tmp/1 | grep '@PROFILE' | sed 's/real=//' | grep @ | awk '{ p[$3]+=$4 } END {for (i in p) print i, p[i]}' | sort -g -k2
+else
+	_time L_argparse "$@"
 fi
-_time L_argparse "$@"
 # echo $?
+
 diff -biw - <<<"$SUPER" <(f) | sed -n 's/^> /+ /p' || :

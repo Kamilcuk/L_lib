@@ -863,8 +863,13 @@ args=(
     -- COMMAND nargs="*"
   }
 
+  ---- "$@"
 )
 
 DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-. "$DIR"/../bin/L_lib.sh
-time L_argparse "${args[@]}" ---- "$@"
+if [[ -n "${PROFILE:-}" ]]; then
+  time "$DIR"/../scripts/L_argparse "${args[@]}"
+else
+  . "$DIR"/../bin/L_lib.sh
+  time L_argparse "${args[@]}"
+fi
