@@ -673,6 +673,11 @@ L_command_exists() { command -v "$@" >/dev/null 2>&1; }
 # @description Execute Bash hash builtin with silenced output.
 # A typical mnemonic to check if a command exists is `if hash awk 2>/dev/null`.
 # This saves to type the redirection.
+#
+# Why hash and not command or type?
+# Bash stores all executed commands from PATH in hash.
+# Indexing it here, makes the next call faster.
+#
 # @arg $@ commands to check
 # @see L_command_exists
 L_hash() { hash "$@" >/dev/null 2>&1; }
@@ -1656,7 +1661,7 @@ L_list_functions_with_prefix_v() {
 L_list_functions_with_prefix_removed() { L_handle_v_array "$@"; }
 L_list_functions_with_prefix_removed_v() {
 	L_list_functions_with_prefix_v "$@"
-	L_v=("${L_v[@]/#"$1"}")
+	L_v=("${L_v[@]##"$1"}")
 }
 
 # @description Produces a string properly quoted for JSON inclusion
@@ -1784,7 +1789,7 @@ L_percent_format() { L_handle_v_scalar "$@"; }
 L_percent_format_v() {
 	local _L_fmt=$1 _L_args=("")
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
-		#                                    12     3            4   5         6                    7
+		#                                    12     3            4   5         6                     7
 		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[7]}" ]
 		_L_fmt="${BASH_REMATCH[7]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -1811,7 +1816,7 @@ L_fstring() { L_handle_v_scalar "$@"; }
 L_fstring_v() {
 	local _L_fmt="$*" _L_args=("") _L_tmp
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
-		#                                    12     3                         4   5       6 7             8
+		#                                    12      3                        4   5       6 7             8
 		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[8]}" ]
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
