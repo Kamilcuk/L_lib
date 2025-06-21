@@ -122,8 +122,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -133,7 +133,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND nargs="?"
   }
 
@@ -160,8 +159,8 @@ args=(
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
     -- -n --no-cache help="Avoid reading from or writing to the cache, instead using a temporary directory for the duration of the operation [env: UV_NO_CACHE=]"
     --  --cache-dir CACHE_DIR flag=1 help="Path to the cache directory [env: UV_CACHE_DIR=]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -171,7 +170,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -229,8 +227,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -240,7 +238,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -288,8 +285,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -299,7 +296,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -347,8 +343,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -358,7 +354,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -420,8 +415,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -431,7 +426,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -471,8 +465,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -482,7 +476,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -543,8 +536,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -554,7 +547,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -607,8 +599,8 @@ args=(
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
     -- -n --no-cache help="Avoid reading from or writing to the cache, instead using a temporary directory for the duration of the operation [env: UV_NO_CACHE=]"
     --  --cache-dir CACHE_DIR flag=1 help="Path to the cache directory [env: UV_CACHE_DIR=]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -618,7 +610,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -628,8 +619,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -639,7 +630,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND
   }
 
@@ -650,8 +640,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -661,7 +651,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND
   }
 
@@ -672,8 +661,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -683,7 +672,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND
   }
 
@@ -713,8 +701,8 @@ args=(
     -- -n --no-cache help="Avoid reading from or writing to the cache, instead using a temporary directory for the duration of the operation [env: UV_NO_CACHE=]"
     --  --refresh-package REFRESH_PACKAGE flag=1 help="Refresh cached data for a specific package"
     --  --cache-dir CACHE_DIR flag=1 help="Path to the cache directory [env: UV_CACHE_DIR=]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -724,7 +712,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -770,8 +757,8 @@ args=(
     --  --cache-dir CACHE_DIR flag=1 help="Path to the cache directory [env: UV_CACHE_DIR=]"
     --  --refresh help="Refresh all cached data"
     --  --refresh-package REFRESH_PACKAGE flag=1 help="Refresh cached data for a specific package"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -781,7 +768,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -799,8 +785,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -810,7 +796,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
   }
 
   {
@@ -820,8 +805,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -831,7 +816,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND
   }
 
@@ -842,8 +826,8 @@ args=(
     --  --managed-python help="Require use of uv-managed Python versions [env: UV_MANAGED_PYTHON=]"
     --  --no-managed-python help="Disable use of uv-managed Python versions [env: UV_NO_MANAGED_PYTHON=]"
     --  --no-python-downloads help="Disable automatic downloads of Python. [env: "UV_PYTHON_DOWNLOADS=never"]"
-    -- -q --quiet... help="Use quiet output"
-    -- -v --verbose... help="Use verbose output"
+    -- -q --quiet help="Use quiet output"
+    -- -v --verbose help="Use verbose output"
     --  --color COLOR_CHOICE flag=1 help="Control the use of color in output [possible values: auto, always, never]"
     --  --native-tls help="Whether to load TLS certificates from the platform's native certificate store [env: UV_NATIVE_TLS=]"
     --  --offline help="Disable network access [env: UV_OFFLINE=]"
@@ -853,7 +837,6 @@ args=(
     --  --project PROJECT flag=1 help="Run the command within the given project directory [env: UV_PROJECT=]"
     --  --config-file CONFIG_FILE flag=1 help="The path to a \`uv.toml\` file to use for configuration [env: UV_CONFIG_FILE=]"
     --  --no-config help="Avoid discovering configuration files (\`pyproject.toml\`, \`uv.toml\`) [env: UV_NO_CONFIG=]"
-    -- -h --help help="Display the concise help for this command"
     -- COMMAND
   }
 
