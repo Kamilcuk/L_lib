@@ -158,12 +158,13 @@ _L_test_a_handle_v() {
 		done
 	}
 	{
+		wrapper() { set_scalar "$@"; echo "END"; }
 		set_scalar() { L_handle_v_scalar "$@"; }
 		set_scalar_v() { L_v=123; }
-		L_unittest_cmd -co 123 set_scalar
-		L_unittest_cmd -co 123 set_scalar --
-		L_unittest_cmd -co 123 set_scalar a
-		L_unittest_cmd -co 123 set_scalar -- a
+		L_unittest_cmd -co $'123\nEND' wrapper
+		L_unittest_cmd -co $'123\nEND' wrapper --
+		L_unittest_cmd -co $'123\nEND' wrapper a
+		L_unittest_cmd -co $'123\nEND' wrapper -- a
 		local a=""
 		L_unittest_cmd -c set_scalar -va
 		L_unittest_eq "$a" 123
@@ -190,12 +191,13 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -c L_var_is_notarray a
 	}
 	{
+		wrapper() { set_one "$@"; echo "END"; }
 		set_one() { L_handle_v_array "$@"; }
 		set_one_v() { L_v=123; }
-		L_unittest_cmd -co 123 set_one
-		L_unittest_cmd -co 123 set_one --
-		L_unittest_cmd -co 123 set_one a
-		L_unittest_cmd -co 123 set_one -- a
+		L_unittest_cmd -co $'123\nEND' wrapper
+		L_unittest_cmd -co $'123\nEND' wrapper --
+		L_unittest_cmd -co $'123\nEND' wrapper a
+		L_unittest_cmd -co $'123\nEND' wrapper -- a
 		local a=""
 		L_unittest_cmd -c set_one -va
 		L_unittest_eq "$a" 123
@@ -222,12 +224,13 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -c L_var_is_array a
 	}
 	{
+		wrapper() { set_arr "$@"; echo "END"; }
 		set_arr() { L_handle_v_array "$@"; }
 		set_arr_v() { L_v=(456 789); }
-		L_unittest_cmd -co $'456\n789' set_arr
-		L_unittest_cmd -co $'456\n789' set_arr --
-		L_unittest_cmd -co $'456\n789' set_arr a
-		L_unittest_cmd -co $'456\n789' set_arr -- a
+		L_unittest_cmd -co $'456\n789\nEND' wrapper
+		L_unittest_cmd -co $'456\n789\nEND' wrapper --
+		L_unittest_cmd -co $'456\n789\nEND' wrapper a
+		L_unittest_cmd -co $'456\n789\nEND' wrapper -- a
 		local a=""
 		L_unittest_cmd -c set_arr -va a
 		L_unittest_arreq a 456 789
@@ -241,6 +244,7 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -c set_arr -v a -- a
 		L_unittest_arreq a 456 789
 	}
+	unset -f set_arr set_one set_arr_v set_one_v return_123 return_123_v set_scalar set_scalar_v wrapper
 }
 
 _L_test_string() {

@@ -861,19 +861,19 @@ L_handle_v_scalar() {
 		;;
 	--)
 		if "${FUNCNAME[1]}"_v "${@:2}"; then
-			${L_v+printf} ${L_v+"%s\n"} ${L_v+"$L_v"} || return $?
+			printf "%s" "${L_v+${L_v/%/$'\n'}}" || return $?
 		else
 			local _L_r=$?
-			${L_v+printf} ${L_v+"%s\n"} ${L_v+"$L_v"} || return $?
+			printf "%s" "${L_v+${L_v/%/$'\n'}}" || return $?
 			return "$_L_r"
 		fi
 		;;
 	*)
 		if "${FUNCNAME[1]}"_v "$@"; then
-			${L_v+printf} ${L_v+"%s\n"} ${L_v+"$L_v"} || return $?
+			printf "%s" "${L_v+${L_v/%/$'\n'}}" || return $?
 		else
 			local _L_r=$?
-			${L_v+printf} ${L_v+"%s\n"} ${L_v+"$L_v"} || return $?
+			printf "%s" "${L_v+${L_v/%/$'\n'}}" || return $?
 			return "$_L_r"
 		fi
 	esac
@@ -889,6 +889,8 @@ L_handle_v_scalar() {
 #
 # In constract, `L_handle_v_array` has to first assert if the string is a valid variable name.
 # Only then it uses `eval` with an array assignment syntax to assign the result to the user requsted variable.
+#
+# Currently array indexes are not preserved. This could be worked on in the future when needed.
 #
 # @example:
 #    L_hello() { L_handle_v_arr "$@"; }
@@ -946,19 +948,19 @@ L_handle_v_array() {
 		;;
 	--)
 		if "${FUNCNAME[1]}"_v "${@:2}"; then
-			${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} || return $?
+			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return $?
 		else
 			local _L_r=$?
-			${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} || return $?
+			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return $?
 			return "$_L_r"
 		fi
 		;;
 	*)
 		if "${FUNCNAME[1]}"_v "$@"; then
-			${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} || return $?
+			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return $?
 		else
 			local _L_r=$?
-			${L_v[@]+printf} ${L_v[@]+"%s\n"} ${L_v[@]+"${L_v[@]}"} || return $?
+			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return $?
 			return "$_L_r"
 		fi
 	esac
