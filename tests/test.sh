@@ -2029,12 +2029,17 @@ _L_test_z_argparse5() {
 		L_unittest_cmd -r 'quoting' ! L_argparse -- dest=sub class=subparser { aliases="a'" } ----
 		L_unittest_cmd -r 'name' ! L_argparse -- dest=sub class=subparser { a name=b } ----
 	}
+	{
+		L_log "check argparse internal args"
+		L_unittest_cmd -r '' L_argparse prog=progname ---- --L_argparse_bash_completion
+	}
 }
 
-_L_test_z_argparse6() {
+_L_test_z_argparse6_call_function() {
 	local cmd
 	# "'
 	{
+		L_log "check argparse call=function 1"
 		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
 		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
 		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=yes ----)
@@ -2046,8 +2051,10 @@ _L_test_z_argparse6() {
 		L_unittest_cmd -r "invalid" ! "${cmd[@]}" 2 --two DD
 		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
+		unset -f CMD_1 CMD_2
 	}
 	{
+		L_log "check argparse call=function 2"
 		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
 		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
 		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=detect ----)
@@ -2059,6 +2066,70 @@ _L_test_z_argparse6() {
 		L_unittest_cmd -r "invalid" ! "${cmd[@]}" 2 --two DD
 		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
+		unset -f CMD_1 CMD_2
+	}
+	local IFS=f
+	{
+		L_log "check argparse call=function 3 with IFS=$IFS"
+		dump() {
+			local OLDIFS=$IFS IFS=' '
+			echo "[${FUNCNAME[*]}] one=${one:-} two=${two:-} three=$three four=${four[*]:-} IFS=$(printf %q "$OLDIFS")"
+			IFS=$OLDIFS
+		}
+		AAAaaa_bbb() { local four; L_argparse -- four ---- "$@"; dump; }
+		AAAaaa_ccc() { local four;L_argparse -- four choices='eqq eww ddd' ---- "$@"; dump; }
+		AAAaaa_bbb2() { echo hi; }
+		AAAaaa_ccc2() { echo hi; }
+		AAAbbb_ddd() { local four;L_argparse -- four type=file nargs="?" ---- "$@"; dump; }
+		AAAbbb_eee() { local four;L_argparse -- four nargs="+" ---- "$@"; dump; }
+		AAAbbb_ggg() { echo 'ggg do not call me'; }
+		AAA_aaa() { local one; L_argparse -- -1 --one type=dir -- call=function prefix=AAAaaa_ ---- "$@"; }
+		AAA_bbb() { local two; L_argparse -- -2 --two choices='AA AB CC' -- call=function prefix=AAAbbb_ ---- "$@"; }
+		AAA_fff() { echo 'fff do not call me'; }
+		AAA_hhh() { : <<EOF
+			docs
+EOF
+			L_argparse ---- "$@"
+			wrapper;
+		}
+		local three argparse=(L_argparse -- -3 --three default= -- call=function prefix=AAA_ ----)
+		L_unittest_cmd -r "three= four=123" "${argparse[@]}" aaa bbb 123
+		L_unittest_cmd -r "one=/tmp two= three=three four=ddd" "${argparse[@]}" -3 three aaa -1 /tmp ccc ddd
+		L_unittest_cmd -r "does not exists" ! "${argparse[@]}" -3 three aaa -1 fdsa ccc ddd
+		L_unittest_cmd -r "unrecognized option" ! "${argparse[@]}" aaa -2 ccc
+		L_unittest_cmd -r "unrecognized option" ! "${argparse[@]}" bbb -1 ddd
+		L_unittest_cmd -r "required" ! "${argparse[@]}" aaa bbb
+		L_unittest_cmd -r "invalid choice" ! "${argparse[@]}" aaa ccc 123
+		L_unittest_cmd -r "unrecognized command" ! "${argparse[@]}" aaa ddd
+		L_unittest_cmd -r "one= two= three= four=" "${argparse[@]}" bbb ddd
+		L_unittest_cmd -r "file" ! "${argparse[@]}" bbb ddd /tmp
+		L_unittest_cmd -r "four=/dev/stdout" "${argparse[@]}" bbb ddd /dev/stdout
+		L_unittest_cmd -r "four=a b c d" "${argparse[@]}" bbb eee a b c d
+		#
+		L_unittest_cmd -r "plain.*aaa.*plain.*bbb" "${argparse[@]}" --L_argparse_get_completion ''
+		L_unittest_cmd -r "directory" "${argparse[@]}" --L_argparse_get_completion aaa -1 ''
+		L_unittest_cmd -r "plain.*bbb.*plain.*bbb2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' b
+		L_unittest_cmd -r "plain.*ccc.*plain.*ccc2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' c
+		L_unittest_cmd -r "plain.*eqq.*plain.*eww.*plain.*ddd" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc ''
+		L_unittest_cmd -r "plain.*eqq.*plain.*eww" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'e'
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'ek'
+		L_unittest_cmd -r "plain.*eqq" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'eq'
+		L_unittest_cmd -r "filenames" "${argparse[@]}" --L_argparse_get_completion bbb -1 -invalid ddd ''
+		L_unittest_cmd -r "plain.*ddd" "${argparse[@]}" --L_argparse_get_completion bbb ddd
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion bbb ddde
+		L_unittest_cmd -r "filenames" "${argparse[@]}" --L_argparse_get_completion bbb -1 -invalid --option=bla ddd '/dev/fd/'
+		#
+		L_unittest_cmd -r "fff do not call me" "${argparse[@]}" fff
+		L_unittest_cmd -r "ggg do not call me" "${argparse[@]}" bbb ggg
+		L_unittest_cmd -r "plain.*fff" "${argparse[@]}" --L_argparse_get_completion fff
+		L_unittest_cmd -r "plain.*ggg" "${argparse[@]}" --L_argparse_get_completion bbb ggg
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion fff ''
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion bbb ggg ''
+		#
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion hhh ''
+		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion hh ''
+		#
+		unset -f dump AAAaaa_bbb AAAaaa_ccc AAAbbb_ddd AAAbbb_eee AAA_aaa AAA_bbb AAAaaa_bbb2 AAAaaa_ccc2
 	}
 }
 
