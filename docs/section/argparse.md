@@ -105,6 +105,7 @@ Currently there are the following internal options:
 - `epilog=` - Text to display after the argument help (by default, no text).
 - `add_help=` - Add a -h/--help option to the parser (default: 1).
 - `allow_abbrev=` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: 1)
+- `allow_subparser_abbrev=` - Allows subparser command to be abbreviated if the abbreviation is unambiguous. (default: 0)
 - `Adest=` - Store all values as keys into a variable that is an associated dictionary.
   If the result is an array, it is properly quoted and appended. Array can be extracted with `declare -a var="(${Adest[key]})"`.
 - `show_default=` - Default value of `show_default` property of all options. Example `show_default=1`. (default: 0).
