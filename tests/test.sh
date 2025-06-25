@@ -374,17 +374,17 @@ _L_test_format() {
 			L_fstring "%%%"
 	}
 	{
-		L_unittest_cmd ! L_percent_format "%(age)"
-		L_unittest_cmd ! L_percent_format "%()"
-		L_unittest_cmd ! L_percent_format "%("
-		L_unittest_cmd ! L_percent_format "%)d"
-		L_unittest_cmd ! L_percent_format "%"
-		L_unittest_cmd ! L_fstring "{age"
-		L_unittest_cmd ! L_fstring "age}"
-		L_unittest_cmd ! L_fstring "{}"
-		L_unittest_cmd ! L_fstring "{:}"
-		L_unittest_cmd ! L_fstring "}"
-		L_unittest_cmd ! L_fstring "{"
+		L_unittest_cmd -r 'invalid' ! L_percent_format "%(age)"
+		L_unittest_cmd -r 'invalid' ! L_percent_format "%()"
+		L_unittest_cmd -r 'invalid' ! L_percent_format "%("
+		L_unittest_cmd -r 'invalid' ! L_percent_format "%)d"
+		L_unittest_cmd -r 'invalid' ! L_percent_format "%"
+		L_unittest_cmd -r 'invalid' ! L_fstring "{age"
+		L_unittest_cmd -r 'invalid' ! L_fstring "age}"
+		L_unittest_cmd -r 'invalid' ! L_fstring "{}"
+		L_unittest_cmd -r 'invalid' ! L_fstring "{:}"
+		L_unittest_cmd -r 'invalid' ! L_fstring "}"
+		L_unittest_cmd -r 'invalid' ! L_fstring "{"
 	}
 }
 
