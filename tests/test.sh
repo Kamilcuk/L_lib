@@ -1146,6 +1146,14 @@ _L_test_log() {
 	}
 }
 
+_L_test_setx() {
+	aaa_1() { echo hi; return "$1"; }
+	aaa_2() { aaa_1 "$@"; }
+	L_unittest_cmd -jr '.*+ echo hi.*' L_setx aaa_2 0
+	L_unittest_cmd -jr '.*+ echo hi.*' -e 123 L_setx aaa_2 123
+	unset aaa_1 aaa_2
+}
+
 _L_test_sort() {
 	export LC_ALL=C IFS=' '
 	{

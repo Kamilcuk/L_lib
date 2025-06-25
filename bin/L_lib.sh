@@ -612,16 +612,27 @@ L_unsetx() {
 }
 else
 	L_setx() {
-		# shellcheck disable=SC2064
-		trap "$(shopt -po xtrace || :)" RETURN
+		# shellcheck disable=SC2155
+		local _L_setx="$(shopt -po xtrace || :)"
 		set -x
-		"$@"
+		if "$@"; then
+			eval "$_L_setx"
+		else
+			local _L_setx_r="$?"
+			eval "$_L_setx"
+			return "$_L_setx_r"
+		fi
 	}
 	L_unsetx() {
-		# shellcheck disable=SC2064
-		trap "$(shopt -po xtrace || :)" RETURN
-		set +x
-		"$@"
+		# shellcheck disable=SC2155
+		local _L_setx="$(shopt -po xtrace || :)"
+		if "$@"; then
+			eval "$_L_setx"
+		else
+			local _L_setx_r="$?"
+			eval "$_L_setx"
+			return "$_L_setx_r"
+		fi
 	}
 fi
 
