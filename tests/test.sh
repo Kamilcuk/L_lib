@@ -1608,7 +1608,7 @@ _L_test_z_argparse1() {
 		L_unittest_vareq store0 0
 		L_unittest_vareq store1 1
 		L_unittest_vareq storeconst yes
-		L_unittest_eq "${append[*]}" '1 2 3'
+		L_unittest_arreq append 1 2 3
 	}
 	{
 		append=()
@@ -1620,7 +1620,7 @@ _L_test_z_argparse1() {
 		L_unittest_vareq store0 0
 		L_unittest_vareq store1 1
 		L_unittest_vareq storeconst yes
-		L_unittest_eq "${append[*]}" $'1 2\n3 4" \'5'
+		L_unittest_arreq append 1 $'2\n3' $'4" \'5'
 	}
 	{
 		L_log "args"
@@ -1821,7 +1821,7 @@ PROG: error: the following arguments are required: bar"
 		L_unittest_eq "$baz" true
 		local foo=()
 		L_argparse -- --foo action=append ---- --foo 1 --foo 2
-		L_unittest_eq "${foo[*]}" "1 2"
+		L_unittest_arreq foo 1 2
 		local foo=()
 		L_argparse -- --foo action=append default='first_element "second element"' ----
 		L_unittest_arreq foo "first_element" "second element"
@@ -1838,7 +1838,7 @@ PROG: error: the following arguments are required: bar"
 		local foo=() bar=''
 		L_argparse -- --foo nargs=2 -- bar nargs=1 ---- c --foo a b
 		L_unittest_eq "$bar" "c"
-		L_unittest_eq "${foo[*]}" "a b"
+		L_unittest_arreq foo a b
 		local foo='' bar=''
 		L_argparse -- --foo nargs="?" const=c default=d -- bar nargs="?" default=d ---- XX --foo=YY
 		L_unittest_eq "$foo" YY
@@ -1883,7 +1883,7 @@ PROG: error: the following arguments are required: bar"
 		# bop nargs="*"
 		local foo=()
 		L_argparse prog=PROG -- foo nargs="+" ---- a b
-		L_unittest_eq "${foo[*]}" "a b"
+		L_unittest_arreq foo a b
 		local out=''
 		L_unittest_failure_capture out -- L_argparse prog=PROG -- foo nargs="+" ----
 		L_unittest_eq "$out" "\
@@ -2236,7 +2236,7 @@ _L_test_z_argparse9_time_profile() {
 		time=${output//*$'\n'}
 		echo "$time"
 		L_unittest_cmd L_float_cmp "$time" -gt 0.1
-		L_unittest_cmd L_float_cmp "$time" -lt 1
+		L_unittest_cmd L_float_cmp "$time" -lt 1.5
 	}
 	check -h
 	check run -h

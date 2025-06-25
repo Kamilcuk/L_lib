@@ -4807,14 +4807,16 @@ L_argparse_print_help() {
 	}
 }
 
-# shellcheck disable=2120
+# shellcheck disable=SC2120
 # @description Print usage.
 L_argparse_print_usage() {
 	L_argparse_print_help --short "$@"
 }
 
+# shellcheck disable=SC2030
 _L_argparse_spec_fatal() {
 	(
+		local _L_tmp
 		set +x
 		echo 'L_argparse: The parsing state, usefull for debugging:'
 		_L_argparse_print
