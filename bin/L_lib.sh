@@ -670,7 +670,7 @@ L_glob_escape_v() { L_v="${*//[[?*\]/[&]}"; }  # ]
 
 # @description Return 0 if the argument is a function
 # @arg $1 function name
-L_function_exists() { [[ "$(LC_ALL=C type -t -- "$1" 2>/dev/null)" = function ]]; }
+L_function_exists() { declare -f "$@" >/dev/null; }
 
 # @description Return 0 if the argument is a command.
 # Consider using L_hash instead.
@@ -4987,7 +4987,7 @@ _L_argparse_sub_function_is_ok_to_call() {
 $_L_func[[:space:]]*\\(\\)[[:space:]]*\\{\
 .*[[:space:]]+\
 L_argparse([[:space:]]|[[:space:]].*[[:space:]])----[[:space:]]+\"\\\$@\"\
-(;[[:space:]].*|[[:space:]]+)\
+(;|[[:space:]]).*\
 }\
 "
 	else
@@ -5024,13 +5024,15 @@ _L_argparse_sub_function_get_help() {
 	if _L_argparse_sub_function_has_helpvar _L_tmp "$2"; then
 		printf -v "$1" "%s" "$_L_tmp"
 	elif _L_argparse_sub_function_is_ok_to_call "$2"; then
-		if _L_subparser_help=$(
+		local _L_random=$((RANDOM % 100 + 100)) _L_ret=0
+		_L_subparser_help=$(
 				_L_argparse_sub_function_prepare_call "$2"
-				"$_L_func" --L_argparse_parser_help
-		); then
+				"$_L_func" --L_argparse_parser_help "$_L_random"
+		) || _L_ret=$?
+		if ((_L_ret == _L_random)); then
 			printf -v "$1" "%s" "$_L_subparser_help"
 		else
-			_L_argparse_spec_fatal "Calling [$_L_func --L_argparse_parser_help] exited with $? nonzero. Does the function call L_argparse as the first command?" || return $?
+			_L_argparse_spec_fatal "Calling [$_L_func --L_argparse_parser_help] did not exit with expected exit code $_L_random but exited with $_L_ret. This suggests that the function incorrectly executes L_argparse inside it. Does the function properly call L_argparse as the first command? Consider adjusting subcall value to 0, as in call=function subcall=0. This operation potentially might have executed unknown code from the function." || return "$?"
 			printf -v "$1" "%s" ""
 		fi
 	else
@@ -5045,9 +5047,10 @@ _L_argparse_sub_function_get_help() {
 _L_argparse_sub_function_get_helps() {
 	local L_v i _L_help
 	L_list_functions_with_prefix_removed_v "${_L_opt_prefix[_L_opti]}${2:-}"
-	for i in "${L_v[@]}"; do
-		_L_argparse_sub_function_get_help _L_help "$i" || return $?
-		L_array_append "$1" "${2:-}${i//$'\n'}"$'\n'"${_L_help//$'\n'/ }"
+	for i in ${L_v[@]+"${L_v[@]}"}; do
+		i=${2:-}$i
+		_L_argparse_sub_function_get_help _L_help "$i" || return "$?"
+		L_array_append "$1" "${i//$'\n'}"$'\n'"${_L_help//$'\n'/ }"
 	done
 }
 
@@ -5337,7 +5340,7 @@ _L_argparse_parser_find_option() {
 # @set $1
 _L_argparse_parser_get_all_options() {
 	local IFS=' '
-	local -a _L_tmp="(${_L_parser__optionlookup[_L_parseri]})"
+	local -a _L_tmp="(${_L_parser__optionlookup[_L_parseri]:-})"
 	printf -v "$1" "%s" "${_L_tmp[*]//=*}"
 }
 
@@ -5478,7 +5481,7 @@ _L_argparse_optspec_execute_action() {
 # @arg $1 <str> incomplete
 # @exitcode 0 if compgen returned 0 or 1, otherwise 2
 L_argparse_compgen() {
-	local OPTIND OPTARG OPTERR args=() c="" prefix="" suffix="" desc="${_L_opt_help[_L_opti]:-}"
+	local OPTIND OPTARG OPTERR args=() c="" prefix="" suffix="" desc
 	while getopts 'abcdefgjksuvo:A:G:W:F:C:X:P:S:D:' c; do
 		# shellcheck disable=SC2102
 		case "$c" in
@@ -5489,7 +5492,10 @@ L_argparse_compgen() {
 		?) compgen "-$_L_c" || L_fatal "invalid option: -$_L_c"; return 2 ;;
 		esac
 	done
-	if [[ -n "$desc" ]]; then
+	if ! L_var_is_set desc && ((_L_opti > 0)) && L_var_is_set "_L_opt_help[_L_opti]"; then
+		desc="${_L_opt_help[_L_opti]}"
+	fi
+	if [[ -n "${desc:-}" ]]; then
 		# shellcheck disable=SC2064
 		trap "$(shopt -p extglob || :)" RETURN
 		shopt -s extglob
@@ -5900,7 +5906,7 @@ complete --no-files --command %(prog_name)s --arguments "(%(complete_func)s)";
 _L_argparse_parse_args_internal() {
 	case "${_L_args[_L_argsi]:-}" in
 	--L_argparse_print) _L_argparse_print; exit ;;
-	--L_argparse_parser_help) printf "%s\n" "${_L_parser_help[_L_parseri]:-${_L_parser_description[_L_parseri]:-}}"; exit ;;
+	--L_argparse_parser_help) printf "%s\n" "${_L_parser_help[_L_parseri]:-${_L_parser_description[_L_parseri]:-}}"; exit "${_L_args[_L_argsi+1]}"; ;;
 	--L_argparse_print_usage) L_argparse_print_usage; exit; ;;
 	--L_argparse_print_help) L_argparse_print_help; exit; ;;
 	--L_argparse_get_completion) _L_comp_enabled=1; ((++_L_argsi)) ;;
@@ -6116,6 +6122,7 @@ _L_argparse_parse_args() {
 		local _L_onlyargs=0  # When set, only positional arguments are parsed
 		local _L_args_accumulator=()  # arguments assigned currently to _L_optspec
 		local _L_assigned_parameters=""  # List of assigned _L_opti, used for checking required ones.
+		# shellcheck disable=SC2206
 		local _L_arguments=(${_L_parser__argumentsi[_L_parseri]:-})  # Indexes of arguments specifications into _L_opt variables.
 		local _L_argumentsi=-1  # Index into _L_arguments
 		local _L_opti=-1  # Last evaluated positional argument.
