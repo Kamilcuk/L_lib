@@ -2092,7 +2092,9 @@ _L_test_z_argparse6_call_function() {
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
 		unset -f CMD_1 CMD_2
 	}
-	local IFS=f
+	if ((L_HAS_BASH4_0)); then
+		local IFS=f
+	fi
 	{
 		L_log "check argparse call=function 3 with IFS=$IFS"
 		dump() {
@@ -2117,6 +2119,21 @@ EOF
 			wrapper;
 		}
 		local three argparse=(L_argparse -- -3 --three default= -- call=function prefix=AAA_ ----)
+		#
+		local _L_opt_prefix=("") _L_opti=0 _L_opt_subcall=("detect")
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAaaa_bbb
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAaaa_ccc
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call AAAaaa_bbb2
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call AAAaaa_ccc2
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAbbb_ddd
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAbbb_eee
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call AAAbbb_ggg
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_aaa
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_bbb
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call AAA_fff
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_hhh
+		unset _L_opt_prefix _L_opti _L_opt_subcall
+		#
 		L_unittest_cmd -r "three= four=123" "${argparse[@]}" aaa bbb 123
 		L_unittest_cmd -r "one=/tmp two= three=three four=ddd" "${argparse[@]}" -3 three aaa -1 /tmp ccc ddd
 		L_unittest_cmd -r "does not exists" ! "${argparse[@]}" -3 three aaa -1 fdsa ccc ddd
@@ -2150,7 +2167,7 @@ EOF
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion fff ''
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion bbb ggg ''
 		#
-		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion hhh ''
+		L_unittest_cmd -r "^plain.*-h.*plain.*--help$" "${argparse[@]}" --L_argparse_get_completion hhh ''
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion hh ''
 		#
 		unset -f dump AAAaaa_bbb AAAaaa_ccc AAAbbb_ddd AAAbbb_eee AAA_aaa AAA_bbb AAAaaa_bbb2 AAAaaa_ccc2
