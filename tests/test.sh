@@ -2539,6 +2539,15 @@ _L_test_traceback_test() {
 	L_unittest_cmd bash "$L_DIR"/traceback_test.sh
 }
 
+_L_test_quoted_maths() {
+	L_unittest_cmd ! grep -n 'shift $((' $L_LIB_SCRIPT
+	L_unittest_cmd ! grep -n 'return $((' $L_LIB_SCRIPT
+	L_unittest_cmd ! grep -n 'return $?' $L_LIB_SCRIPT
+	L_unittest_cmd ! grep -n 'test $? ' $L_LIB_SCRIPT
+	L_unittest_cmd ! grep -n 'test $# ' $L_LIB_SCRIPT
+	# L_unittest_cmd ! grep -n 'L_unittest_eq \"${.*[\*]}\"' $L_LIB_SCRIPT
+}
+
 ###############################################################################
 
 _L_get_all_variables() {
