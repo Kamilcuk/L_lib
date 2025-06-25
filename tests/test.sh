@@ -2064,9 +2064,9 @@ _L_test_z_argparse6_call_function() {
 	# "'
 	{
 		L_log "check argparse call=function 1"
-		CMD_1() { L_argparse -- --one ---- "$@"; echo "1 one=$one three=$three"; return 100; }
+		CMD_1() { L_argparse -- --one default=default ---- "$@"; echo "1 one=$one three=$three"; return 100; }
 		CMD_2() { L_argparse -- --two choices='AA AB CC' ---- "$@"; echo "2 two=$two three=$three"; }
-		cmd=(L_argparse -- --three default= -- call=function prefix=CMD_ subcall=yes ----)
+		cmd=(L_argparse show_default=1 -- --three default= -- call=function prefix=CMD_ subcall=yes ----)
 		local one two three
 		L_unittest_cmd -e 100 -r "1 one=one three=" "${cmd[@]}" 1 --one one
 		L_unittest_cmd -r "2 two=AA three=" "${cmd[@]}" 2 --two AA
@@ -2075,6 +2075,10 @@ _L_test_z_argparse6_call_function() {
 		L_unittest_cmd -r "invalid" ! "${cmd[@]}" 2 --two DD
 		L_unittest_cmd -r "plain${L_GS}AA.*plain${L_GS}AB" \
 			-- "${cmd[@]}" --L_argparse_get_completion 2 --two A
+		L_log "check that show_default is inherited by subparsers"
+		L_unittest_cmd -r '--one.*(default: default)' "${cmd[@]}" 1 -h
+		L_log "check that default works"
+		L_unittest_cmd -r '1 one=default three=' -e 100 "${cmd[@]}" 1
 		unset -f CMD_1 CMD_2
 	}
 	{

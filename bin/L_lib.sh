@@ -6308,10 +6308,10 @@ _L_argparse_spec_parse_args() {
 			_L_argparse_spec_fatal "internal error: circular loop detected in subparsers" || return 2
 		fi
 		# Inherit values from parent parser
-		${_L_parser_show_default[_L_parser__parent[_L_parseri]]+_L_parser_show_default[_L_parseri]="${_L_parser_show_default[_L_parser__parent[_L_parseri]]}"}
-		${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]+_L_parser_allow_abbrev[_L_parseri]="${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]}"}
-		${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]+_L_parser_allow_subparser_abbrev[_L_parseri]="${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]}"}
-		${_L_parser_Adest[_L_parser__parent[_L_parseri]]+_L_parser_Adest[_L_parseri]="${_L_parser_Adest[_L_parser__parent[_L_parseri]]}"}
+		: "${_L_parser_show_default[_L_parser__parent[_L_parseri]]+${_L_parser_show_default[_L_parseri]:="${_L_parser_show_default[_L_parser__parent[_L_parseri]]}"}}"
+		: "${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]+${_L_parser_allow_abbrev[_L_parseri]:="${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]}"}}"
+		: "${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]+${_L_parser_allow_subparser_abbrev[_L_parseri]:="${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]}"}}"
+		: "${_L_parser_Adest[_L_parser__parent[_L_parseri]]+${_L_parser_Adest[_L_parseri]:="${_L_parser_Adest[_L_parser__parent[_L_parseri]]}"}}"
 	fi
 	{
 		# validate Adest
