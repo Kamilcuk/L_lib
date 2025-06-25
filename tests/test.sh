@@ -191,13 +191,13 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -c L_var_is_notarray a
 	}
 	{
-		wrapper() { set_one "$@"; echo "END"; }
+		wrapper_set_one() { set_one "$@"; echo "END"; }
 		set_one() { L_handle_v_array "$@"; }
-		set_one_v() { L_v=123; }
-		L_unittest_cmd -co $'123\nEND' wrapper
-		L_unittest_cmd -co $'123\nEND' wrapper --
-		L_unittest_cmd -co $'123\nEND' wrapper a
-		L_unittest_cmd -co $'123\nEND' wrapper -- a
+		set_one_v() { L_v=(123); }
+		L_unittest_cmd -co $'123\nEND' wrapper_set_one
+		L_unittest_cmd -co $'123\nEND' wrapper_set_one --
+		L_unittest_cmd -co $'123\nEND' wrapper_set_one a
+		L_unittest_cmd -co $'123\nEND' wrapper_set_one -- a
 		local a=""
 		L_unittest_cmd -c set_one -va
 		L_unittest_eq "$a" 123
@@ -244,7 +244,7 @@ _L_test_a_handle_v() {
 		L_unittest_cmd -c set_arr -v a -- a
 		L_unittest_arreq a 456 789
 	}
-	unset -f set_arr set_one set_arr_v set_one_v return_123 return_123_v set_scalar set_scalar_v wrapper
+	unset -f set_arr set_one set_arr_v set_one_v return_123 return_123_v set_scalar set_scalar_v wrapper wrapper_set_one
 }
 
 _L_test_string() {
