@@ -483,7 +483,7 @@ L_exit() {
 	fi
 }
 
-# @descrpition If command fails, print a message and exit with 1.
+# @description If command fails, print a message and exit with 1.
 # Check L_assert for more info.
 # The difference is, L_assert prints the error message and stacktrace on error.
 # Thid function only prints the error message with program name on error.

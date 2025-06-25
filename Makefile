@@ -12,13 +12,17 @@ define NL
 
 
 endef
-BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3-alpha
+BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3-rc2
 
 all: test doc
 	@echo SUCCESS all
 
 test_parallel:
-	$(MAKE) -O -j$(shell nproc) test
+	@mkdir -vp build
+	if ! $(MAKE) -O -j$(shell nproc) test > >(tee build/output >&2) 2>&1; then \
+		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
+		exit 2; \
+	fi
 test: \
 		test_local \
 		shellcheck \
@@ -38,7 +42,7 @@ watchtest:
 	watchexec './tests/test.sh $(ARGS) && make test ARGS='$(ARGS)' -j$$(nproc) -O'
 
 shellcheck:
-	docker build --target shellcheck .
+	if hash shellcheck; then shellcheck bin/L_lib.sh; else docker build --target shellcheck .; fi
 shellcheckall:
 	docker build --target shellcheckall .
 shellchecklocal:
