@@ -1168,27 +1168,30 @@ _L_test_setx() {
 }
 
 _L_test_sort() {
-	export LC_ALL=C IFS=' '
+	export LC_ALL=C
+	if ((L_HAS_BASH4_0)); then
+		local IFS='1'
+	fi
 	{
 		local var=(1 2 3)
 		L_sort_bash -n var
-		L_unittest_eq "${var[*]}" "1 2 3"
+		L_unittest_arreq var 1 2 3
 	}
 	{
 		local data opt
 		for opt in "-n" "" "-z" "-n -z"; do
 			for data in "1 2 3" "3 2 1" "1 3 2" "2 3 1" "6 5 4 3 2 1" "6 1 5 2 4 3" "-1 -2 4 6 -4"; do
-				local -a sort_bash="($data)" sort="($data)"
-				L_sort_cmd $opt sort
-				L_sort_bash $opt sort_bash
+				local -a sort_bash="($data)" sort="($data)" optarr="($opt)"
+				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
+				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
 				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 			done
 		done
 		for opt in "" "-z"; do
 			for data in "a b" "b a" "a b c" "c b a" "a c b" "b c a" "f d s a we r t gf d fg vc s"; do
-				local -a sort_bash="($data)" sort="($data)"
-				L_sort_cmd $opt sort
-				L_sort_bash $opt sort_bash
+				local -a sort_bash="($data)" sort="($data)" optarr="($opt)"
+				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
+				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
 				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 			done
 		done
@@ -1197,28 +1200,28 @@ _L_test_sort() {
 		L_log "test bash sorting of an array"
 		local arr=(9 4 1 3 4 5)
 		L_sort_bash -n arr
-		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		L_unittest_arreq arr 1 3 4 4 5 9
 		local arr=(g s b a c o)
 		L_sort_bash arr
-		L_unittest_eq "${arr[*]}" "a b c g o s"
+		L_unittest_arreq arr a b c g o s
 	}
 	{
 		L_log "test sorting of an array"
 		local arr=(9 4 1 3 4 5)
 		L_sort_cmd -n arr
-		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		L_unittest_arreq arr 1 3 4 4 5 9
 		local arr=(g s b a c o)
 		L_sort_cmd arr
-		L_unittest_eq "${arr[*]}" "a b c g o s"
+		L_unittest_arreq arr a b c g o s
 	}
 	{
 		L_log "test sorting of an array with zero separated stream"
 		local arr=(9 4 1 3 4 5)
 		L_sort_cmd -z -n arr
-		L_unittest_eq "${arr[*]}" "1 3 4 4 5 9"
+		L_unittest_arreq arr 1 3 4 4 5 9
 		local arr=(g s b a c o)
 		L_sort_cmd -z arr
-		L_unittest_eq "${arr[*]}" "a b c g o s"
+		L_unittest_arreq arr a b c g o s
 	}
 	{
 		local -a nums=(
@@ -1232,23 +1235,23 @@ _L_test_sort() {
 			-23371 42055 -24291 -54302 3207 4580 -10132 -33922 -14613 41633 36787
 		)
 		for opt in "" "-n" "-z" "-n -z"; do
-			local sort_bash=("${nums[@]}") sort=("${nums[@]}")
-			L_sort_bash $opt sort_bash
-			L_sort_cmd $opt sort
+			local -a sort_bash=("${nums[@]}") sort=("${nums[@]}") optarr="($opt)"
+			L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
+			L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
 			L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 			(
 				L_HAS_MAPFILE_D=0
-				local sort_bash=("${nums[@]}") sort=("${nums[@]}")
-				L_sort_bash $opt sort_bash
-				L_sort_cmd $opt sort
+				local -a sort_bash=("${nums[@]}") sort=("${nums[@]}")
+				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
+				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
 				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 			)
 			(
 				L_HAS_MAPFILE_D=0
 				L_HAS_MAPFILE=0
-				local sort_bash=("${nums[@]}") sort=("${nums[@]}")
-				L_sort_bash $opt sort_bash
-				L_sort_cmd $opt sort
+				local -a sort_bash=("${nums[@]}") sort=("${nums[@]}")
+				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
+				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
 				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
 			)
 		done
