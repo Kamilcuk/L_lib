@@ -306,6 +306,19 @@ _L_test_string() {
 	}
 }
 
+_L_test_list_functions() {
+	local arr
+	aaa_func1() { :; }
+	aaa_func2() { :; }
+	L_list_functions_with_prefix_removed -v arr aaa_
+	L_sort arr
+	L_unittest_arreq arr func1 func2
+	aaa_() { :; }
+	L_list_functions_with_prefix_removed -v arr aaa_
+	L_unittest_arreq arr '' func1 func2
+	unset aaa_func1 aaa_func2 aaa_
+}
+
 _L_test_exit_to_1null() {
 	{
 		local var='blabla'

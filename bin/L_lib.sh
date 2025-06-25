@@ -1673,8 +1673,13 @@ L_list_functions_with_prefix_v() {
 # @see L_list_functions_with_prefix
 L_list_functions_with_prefix_removed() { L_handle_v_array "$@"; }
 L_list_functions_with_prefix_removed_v() {
-	L_list_functions_with_prefix_v "$@"
-	L_v=("${L_v[@]##"$1"}")
+	L_list_functions_with_prefix_v "$1"
+	local len=${#L_v[@]}
+	# Fix a bug on Bash4.0
+	L_v=(${L_v[@]+"${L_v[@]/#"$1"}"})
+	if ((len != ${#L_v[@]})); then
+		L_v+=("")
+	fi
 }
 
 # @description Produces a string properly quoted for JSON inclusion
