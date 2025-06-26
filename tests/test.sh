@@ -2103,10 +2103,10 @@ _L_test_z_argparse6_call_function() {
 		L_log "check argparse call=function 3 with IFS=$IFS"
 		dump() {
 			local OLDIFS=$IFS IFS=' '
-			echo "[${FUNCNAME[*]}] one=${one:-} two=${two:-} three=$three four=${four[*]:-} IFS=$(printf %q "$OLDIFS")"
+			echo "[${FUNCNAME[*]}] option=${option:-} one=${one:-} two=${two:-} three=$three four=${four[*]:-} IFS=$(printf %q "$OLDIFS")"
 			IFS=$OLDIFS
 		}
-		AAAaaa_bbb() { local four; L_argparse -- four ---- "$@"; dump; }
+		AAAaaa_bbb() { local option four; L_argparse -- --option default=default -- four ---- "$@"; dump; }
 		AAAaaa_ccc() { local four;L_argparse -- four choices='eqq eww ddd' ---- "$@"; dump; }
 		AAAaaa_bbb2() { echo hi; }
 		AAAaaa_ccc2() { echo hi; }
@@ -2122,8 +2122,9 @@ EOF
 			L_argparse ---- "$@"
 			wrapper;
 		}
-		local three argparse=(L_argparse -- -3 --three default= -- call=function prefix=AAA_ ----)
+		local three argparse=(L_argparse show_default=1 -- -3 --three default= -- call=function prefix=AAA_ ----)
 		#
+		L_log "argparse6 check is_ok_to_call detection"
 		local _L_opt_prefix=("") _L_opti=0 _L_opt_subcall=("detect")
 		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAaaa_bbb
 		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAAaaa_ccc
@@ -2138,6 +2139,7 @@ EOF
 		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_hhh
 		unset _L_opt_prefix _L_opti _L_opt_subcall
 		#
+		L_log "argparse6 check calls"
 		L_unittest_cmd -r "three= four=123" "${argparse[@]}" aaa bbb 123
 		L_unittest_cmd -r "one=/tmp two= three=three four=ddd" "${argparse[@]}" -3 three aaa -1 /tmp ccc ddd
 		L_unittest_cmd -r "does not exists" ! "${argparse[@]}" -3 three aaa -1 fdsa ccc ddd
@@ -2151,28 +2153,33 @@ EOF
 		L_unittest_cmd -r "four=/dev/stdout" "${argparse[@]}" bbb ddd /dev/stdout
 		L_unittest_cmd -r "four=a b c d" "${argparse[@]}" bbb eee a b c d
 		#
-		L_unittest_cmd -r "plain.*aaa.*plain.*bbb" "${argparse[@]}" --L_argparse_get_completion ''
+		L_log "argparse6 check subparser completion is ok"
+		L_unittest_cmd -r "plain${L_GS}aaa.*plain${L_GS}bbb" "${argparse[@]}" --L_argparse_get_completion ''
 		L_unittest_cmd -r "directory" "${argparse[@]}" --L_argparse_get_completion aaa -1 ''
-		L_unittest_cmd -r "plain.*bbb.*plain.*bbb2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' b
-		L_unittest_cmd -r "plain.*ccc.*plain.*ccc2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' c
-		L_unittest_cmd -r "plain.*eqq.*plain.*eww.*plain.*ddd" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc ''
-		L_unittest_cmd -r "plain.*eqq.*plain.*eww" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'e'
+		L_unittest_cmd -r "plain${L_GS}bbb.*plain${L_GS}bbb2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' b
+		L_unittest_cmd -r "plain${L_GS}ccc.*plain${L_GS}ccc2" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' c
+		L_unittest_cmd -r "plain${L_GS}eqq.*plain${L_GS}eww.*plain${L_GS}ddd" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc ''
+		L_unittest_cmd -r "plain${L_GS}eqq.*plain${L_GS}eww" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'e'
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'ek'
-		L_unittest_cmd -r "plain.*eqq" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'eq'
+		L_unittest_cmd -r "plain${L_GS}eqq" "${argparse[@]}" --L_argparse_get_completion aaa -1 'ff' ccc 'eq'
 		L_unittest_cmd -r "filenames" "${argparse[@]}" --L_argparse_get_completion bbb -1 -invalid ddd ''
-		L_unittest_cmd -r "plain.*ddd" "${argparse[@]}" --L_argparse_get_completion bbb ddd
+		L_unittest_cmd -r "plain${L_GS}ddd" "${argparse[@]}" --L_argparse_get_completion bbb ddd
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion bbb ddde
 		L_unittest_cmd -r "filenames" "${argparse[@]}" --L_argparse_get_completion bbb -1 -invalid --option=bla ddd '/dev/fd/'
 		#
+		L_log "argparse6 check completion of subparsers is ok"
 		L_unittest_cmd -r "fff do not call me" "${argparse[@]}" fff
 		L_unittest_cmd -r "ggg do not call me" "${argparse[@]}" bbb ggg
-		L_unittest_cmd -r "plain.*fff" "${argparse[@]}" --L_argparse_get_completion fff
-		L_unittest_cmd -r "plain.*ggg" "${argparse[@]}" --L_argparse_get_completion bbb ggg
+		L_unittest_cmd -r "plain${L_GS}fff" "${argparse[@]}" --L_argparse_get_completion fff
+		L_unittest_cmd -r "plain${L_GS}ggg" "${argparse[@]}" --L_argparse_get_completion bbb ggg
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion fff ''
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion bbb ggg ''
-		#
-		L_unittest_cmd -r "^plain.*-h.*plain.*--help$" "${argparse[@]}" --L_argparse_get_completion hhh ''
+		L_unittest_cmd -r "^plain${L_GS}-h.*plain${L_GS}--help$" "${argparse[@]}" --L_argparse_get_completion hhh ''
 		L_unittest_cmd -r "^$" "${argparse[@]}" --L_argparse_get_completion hh ''
+		#
+		L_log "argparse6 check default is inherited"
+		L_unittest_cmd -jr "-3, --three THREE.*\(default: ''\)" "${argparse[@]}" -h
+		L_unittest_cmd -jr "--option OPTION.*\(default: default\)" "${argparse[@]}" aaa bbb -h
 		#
 		unset -f dump AAAaaa_bbb AAAaaa_ccc AAAbbb_ddd AAAbbb_eee AAA_aaa AAA_bbb AAAaaa_bbb2 AAAaaa_ccc2
 	}

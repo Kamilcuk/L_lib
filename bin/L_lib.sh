@@ -5014,6 +5014,8 @@ _L_argparse_sub_function_prepare_call() {
 	if _L_argparse_sub_function_has_helpvar _L_help "$1"; then
 		_L_parser_help[_L_parsercnt+1]="$_L_help"
 	fi
+	_L_parser__parent[_L_parsercnt+1]="$_L_parseri"
+	_L_argparse_spec_subparser_inherit_from_parent "_L_parsercnt+1"
 }
 
 # @arg $1 <var> variable to assign the subparser description
@@ -6258,6 +6260,22 @@ _L_argparse_spec_call() {
 	"$1"
 }
 
+ # @description Setup parser values to inherit specific values of parent parser.
+ # This is called when subparser is instantiated.
+ # So in the case call=subparser { here }
+ # But also in the call=function case.
+ # The function does not inherit Adest, that would be confusing.
+ # Each function is separate scope.
+ # @arg $1 The parser id, usually _L_parseri. _L_parser_parent[$1] must be set.
+_L_argparse_spec_subparser_inherit_from_parent() {
+	: "${_L_parser_show_default[_L_parser__parent[$1]]+
+		${_L_parser_show_default[$1]:="${_L_parser_show_default[_L_parser__parent[$1]]}"}}"
+	: "${_L_parser_allow_abbrev[_L_parser__parent[$1]]+
+		${_L_parser_allow_abbrev[$1]:="${_L_parser_allow_abbrev[_L_parser__parent[$1]]}"}}"
+	: "${_L_parser_allow_subparser_abbrev[_L_parser__parent[$1]]+
+		${_L_parser_allow_subparser_abbrev[$1]:="${_L_parser_allow_subparser_abbrev[_L_parser__parent[$1]]}"}}"
+}
+
 # @description The main entrypoint for parsing argument specification arguments.
 # L_argparse argument specification arguments start with parser options,
 # chains of options or arguments separted by --,
@@ -6307,11 +6325,9 @@ _L_argparse_spec_parse_args() {
 		if ((_L_parseri == _L_parser__parent[_L_parseri])); then
 			_L_argparse_spec_fatal "internal error: circular loop detected in subparsers" || return 2
 		fi
-		# Inherit values from parent parser
-		: "${_L_parser_show_default[_L_parser__parent[_L_parseri]]+${_L_parser_show_default[_L_parseri]:="${_L_parser_show_default[_L_parser__parent[_L_parseri]]}"}}"
-		: "${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]+${_L_parser_allow_abbrev[_L_parseri]:="${_L_parser_allow_abbrev[_L_parser__parent[_L_parseri]]}"}}"
-		: "${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]+${_L_parser_allow_subparser_abbrev[_L_parseri]:="${_L_parser_allow_subparser_abbrev[_L_parser__parent[_L_parseri]]}"}}"
-		: "${_L_parser_Adest[_L_parser__parent[_L_parseri]]+${_L_parser_Adest[_L_parseri]:="${_L_parser_Adest[_L_parser__parent[_L_parseri]]}"}}"
+		_L_argparse_spec_subparser_inherit_from_parent "$_L_parseri"
+		: "${_L_parser_Adest[_L_parser__parent[_L_parseri]]+
+			${_L_parser_Adest[_L_parseri]:="${_L_parser_Adest[_L_parser__parent[_L_parseri]]}"}}"
 	fi
 	{
 		# validate Adest
@@ -6444,7 +6460,6 @@ _L_argparse_print_curopt() {
 L_argparse() {
 	if L_var_is_set _L_parseri; then
 		local _L_parsercur=$((_L_parsercnt + 1))
-		_L_parser__parent[_L_parsercur]=$_L_parseri
 	else
 		# _L_parsercur - Index of current parser we should parse with.
 		# _L_parseri - Current index in _L_parser_. Starts with 1.
@@ -6533,13 +6548,23 @@ L_argparse() {
 			# If this is the last argument, complete it with subparsers names.
 			if ((_L_comp_enabled && _L_argsi+1 == ${#_L_args[@]})); then
 				case "${_L_opt__class[_L_opti]}" in
-				subparser) _L_argparse_sub_subparser_get_helps _L_helps "${_L_args[_L_argsi]}" || return "$?" ;;
-				function) _L_argparse_sub_function_get_helps _L_helps "${_L_args[_L_argsi]}" || return "$?" ;;
+				subparser)
+					_L_argparse_sub_subparser_get_helps _L_helps "${_L_args[_L_argsi]}" || return "$?"
+					;;
+				function)
+					# Only get help of subparsers if it is going to be fast. subcall=detect is slow.
+					if L_is_true "${_L_opt_subcall[_L_opti]:-}"; then
+						_L_argparse_sub_function_get_helps _L_helps "${_L_args[_L_argsi]}" || return "$?"
+					else
+						_L_argparse_sub_function_choices _L_helps "${_L_args[_L_argsi]}"
+						_L_helps=(${_L_helps[@]+"${_L_helps[@]/#/${_L_args[_L_argsi]}}"})
+					fi
+					;;
 				esac
 				_L_helps=(${_L_helps[@]+"${_L_helps[@]//$L_GS}"})
 				_L_helps=(${_L_helps[@]+"${_L_helps[@]/$'\n'/$L_GS}"})
-				_L_helps=(${_L_helps[@]+"${_L_helps[@]/#/plain$L_GS}"})
-				printf "%s" ${_L_helps[@]+"${_L_helps[@]/%/$'\n'}"}
+				# shellcheck disable=SC2145
+				printf "${_L_helps[@]+plain$L_GS}%s" ${_L_helps[@]+"${_L_helps[@]/%/$'\n'}"}
 				exit
 			fi
 			# Get subparsers names and indexes if using subparser.
