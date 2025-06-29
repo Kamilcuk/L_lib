@@ -5465,10 +5465,7 @@ _L_argparse_optspec_execute_action() {
 	store_const) _L_argparse_optspec_dest_store "${_L_opt_const[_L_opti]}" ;;
 	append) _L_argparse_optspec_dest_arr_append "$@" ;;
 	append_const) _L_argparse_optspec_dest_arr_append "${_L_opt_const[_L_opti]}" ;;
-	count)
-		# shellcheck disable=2004
-		((++${_L_opt_dest[_L_opti]}, 1))
-		;;
+	count) printf -v "${_L_opt_dest[_L_opti]}" "%s" "$(( ${!_L_opt_dest[_L_opti]:-0} + 1 ))" ;;
 	help) if ((!_L_comp_enabled)); then L_argparse_print_help; exit 0; fi ;;
 	eval) if ((!_L_comp_enabled)); then eval "${_L_opt_eval[_L_opti]}"; fi ;;
 	*) _L_argparse_spec_fatal "internal error: invalid action=${_L_opt_action[_L_opti]}" ;;
@@ -7434,6 +7431,7 @@ _L_lib_main() {
 		;;
 	eval) eval "$*" ;;
 	exec) "$@" ;;
+	L_*|_L_*) "$_L_mode" "$@" ;;
 	--help | help)
 		if L_is_main; then
 			set -euo pipefail

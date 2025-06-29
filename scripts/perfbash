@@ -1,0 +1,43 @@
+#!/bin/bash
+set -euo pipefail
+. "$(dirname "$(readlink -f "$0")")"/../bin/L_lib.sh L_argparse \
+  description="This is a command that executes a Bash script and under perf stat with minimal interference from the system.
+Bash script is executed in a chroot under bwrap to not load anything." \
+  -- -r --repeat help="Repeat the command that many times" \
+  -- -v --verbose action=count default=0 \
+  -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
+  ---- "$@"
+#
+binaries=(bash perf)
+paths=(
+  /proc
+  /dev
+  /sys
+  /lib64/ld-linux-x86-64.so.2
+  # $(pacman -Ql perf | awk '{print $2}' | grep -v '/$')
+)
+#
+perfargs=()
+for i in "${binaries[@]}"; do
+  i=$(which $i)
+  L_assert '' test -e "$i"
+  perfargs+=(--bind $i $i)
+  for i in $(ldd $i | grep '=>' | awk '{print $3}'); do
+    L_assert '' test -e "$i"
+    perfargs+=(--bind $i $i)
+  done
+done
+for i in "${paths[@]}"; do
+  perfargs+=(--bind $i $i)
+done
+#
+if ((verbose)); then
+  set -x
+fi
+taskset 1 \
+  bwrap \
+  --clearenv \
+  --setenv PATH /bin:/usr/bin:/sbin:/usr/sbin \
+  "${perfargs[@]}" \
+  $(which perf) stat ${repeat+-r"$repeat"} $(which bash) -c "${command[@]}" <&-
+
