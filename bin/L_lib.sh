@@ -1023,7 +1023,7 @@ if L_hash ,nice; then
 	L_NICE=(",nice")
 else
 	if L_hash nice; then
-		L_NICE+=(nice -n 40)
+		L_NICE+=(nice -n 39)
 	fi
 	if L_hash ionice; then
 		L_NICE+=(ionice -c 3)
@@ -1037,6 +1037,49 @@ fi
 # @arg $@ command to execute
 L_nice() {
 	"${L_NICE[@]}" "$@"
+}
+
+# @description Make the command be nicest possible.
+# @arg [$1] Pid of the process. Default: $BASHPID.
+L_renice() {
+	set -- "${1:-${BASHPID:-$$}}"
+	if L_hash ,nice; then
+		,nice -p "$1"
+	else
+		if L_hash nice;  then
+			renice -p "$1"
+		fi
+		if L_hash ionice; then
+			ionice -p "$1"
+		fi
+		if L_hash chrt; then
+			chrt -i -p 0 "$1"
+		fi
+	fi
+}
+
+# @description Show niceness levels of a process.
+# @arg [$1] Pid of the process. Default: $BASHPID
+L_show_nice() {
+	set -- "${1:-${BASHPID:-$$}}"
+	L_setx ps -l "$1"
+	L_setx ionice -p "$1"
+	L_setx chrt -v -p "$1"
+	local cgroup args=() f
+	if cgroup=$(<"/proc/$1/cgroup") 2>/dev/null; then
+		IFS=: read -r _ _ cgroup <<<"$cgroup"
+		for f in \
+				memory.high \
+				memory.max \
+				cpu.weight \
+				cpu.weight.nice \
+		; do
+			f="/sys/fs/cgroup/$cgroup/$f"
+			if [[ -r "$f" ]]; then
+				L_setx cat "$f"
+			fi
+		done
+	fi
 }
 
 _L_sudo_args_get_v() {
