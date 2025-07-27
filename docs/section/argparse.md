@@ -47,7 +47,7 @@ L_argparse <parser_settings> \
     <parser_settings> \
     -- <add_argument> \
   } \
-  -- call=func <add_func> \
+  -- call=function <add_func> \
   ---- "$@"
 ```
 
@@ -65,7 +65,7 @@ L_argparse <parser_settings> ...
 The first chain of arguments specifies the global `parser_settings` of the command line parsing.
 
 Next there are many chains of arguments specifying option parsing.
-If the first argument of a chain is not `call=func` or `call=subparser` the it is an `add_argument` option.
+If the first argument of a chain is not `call=function` or `call=subparser` the it is an `add_argument` option.
 
 The `add_argument` chains of arguments attaches individual argument specifications to the parser.
 It defines how a single command-line argument should be parsed.
@@ -76,7 +76,7 @@ Multiple sub-parsers are specified with multiple `{` `}` blocks.
 The first chain specifies the `parser_settings` similar to a parser.
 Then the next chains can be arguments or nested subparser or a function call.
 
-If the first argument of a chain is `call=func` then it specifies a function call.
+If the first argument of a chain is `call=function` then it specifies a function call.
 This causes the parsing to call a function after parsing options for this chain.
 Additionally, the sub-parsers of a call might be aware that they are called from parent subparser, similar to `call=subparser`.
 In other words, they will display proper help message with the name of the program concatenated to the parent name.
