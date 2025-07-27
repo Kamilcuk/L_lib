@@ -6575,7 +6575,7 @@ L_argparse() {
 	_L_optcnt=$_L_opti
 	#
 	if [[ "${_L_args[_L_argsi++]:-}" != "----" ]]; then
-		((--_L_argsi))
+		_L_argsi=$((_L_argsi-1))
 		_L_argparse_spec_fatal "missing separator ---- at ${_L_args[_L_argsi]:-}"
 	fi
 	# _L_argparse_print >/dev/tty
