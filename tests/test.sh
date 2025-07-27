@@ -2393,6 +2393,15 @@ _L_test_path() {
 		tester home/part1/part2 work/part1/part2/part3 ../../../../home/part1/part2
 		tester home/part1/part2 work/part1/part2/part3/part4 ../../../../../home/part1/part2
 	}
+	{
+		L_unittest_cmd ! L_dir_is_empty /
+		L_unittest_cmd ! L_dir_is_empty /usr
+		(
+			f=$(mktemp -d)
+			trap 'rm -rf "$f"' EXIT
+			L_unittest_cmd L_dir_is_empty "$f"
+		)
+	}
 }
 
 _L_test_PATH() {

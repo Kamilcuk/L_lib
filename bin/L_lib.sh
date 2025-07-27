@@ -1326,6 +1326,12 @@ L_path_remove() {
 	esac
 }
 
+# @description Return 0 if a directory is empty.
+# @arg $1 Directory.
+L_dir_is_empty() {
+	test -z "$(find "$@" -maxdepth 0 "!" "(" -empty -type d ")" 2>&1)"
+}
+
 # ]]]
 # string [[[
 # @section string
