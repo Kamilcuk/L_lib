@@ -1,14 +1,53 @@
 #!/bin/bash
 set -euo pipefail
-. "$(dirname "$(readlink -f "$0")")"/../bin/L_lib.sh L_argparse \
+DIR="$(dirname "$(readlink -f "$0")")"/..
+perfargs=()
+. "$DIR"/bin/L_lib.sh L_argparse \
   description="This is a command that executes a Bash script and under perf stat with minimal interference from the system.
 Bash script is executed in a chroot under bwrap to not load anything." \
   -- -r --repeat help="Repeat the command that many times" \
   -- -v --verbose action=count default=0 \
+  -- -b --binary help="Add binary" action=append dest=binaries help="Additoinal binaries to add to image" \
+  -- --table eval='perfargs+=(--table)' help="pass --table to perf" \
+  -- -C --compare action=append default= help="
+For every argument that is a bash script collect measurements and present them in a table.
+Pass script arguments as an option to --compare option. Example: --compare arg1 --compare arg2 -- 'test -e \$1' 'ls -A \$1'
+" \
+  -- -p --perfargs action=append help="additoinal perf arguments" \
   -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
   ---- "$@"
 #
-binaries=(bash perf)
+if ((${#compare[@]})); then
+  args=(${repeat+-r"$repeat"} "${binaries[@]/#/-b}")
+  for i in $(seq $verbose); do
+    args+=(-v)
+  done
+  for arg in "${compare[@]}"; do
+    partresult=""
+    for script in "${command[@]}"; do
+      ret=0
+      out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$script" bash "$arg") || ret=$?
+      instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$out")
+      seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$out")
+      seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$out")
+      seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$out")
+      partresult+="\`$script\`$L_RS$arg$L_RS$ret$L_RS$instructions$L_RS$seconds_time_elapsed ± $seconds_time_elapsed_dev ($seconds_time_elapsed_percent)$L_RS"$'\n'
+    done
+    result+=$(sort -t "$L_RS" -k 4 -n <<<"$partresult")
+  done
+  result="---$L_RS---$L_RS---$L_RS"$'\n'"$result"
+  output=$(column -s "$L_RS" -o ' | ' -t -N 'command,arg,exit,instructions,seconds time elapsed' <<<"$result" | sed 's/^/| /; s/ $//')
+cat <<EOF
+\`\`\`
+$(L_quote_setx "$@")
+\`\`\`
+
+$output
+EOF
+  exit
+fi
+#
+binaries=(bash perf "${binaries[@]}")
 paths=(
   /proc
   /dev
@@ -17,18 +56,18 @@ paths=(
   # $(pacman -Ql perf | awk '{print $2}' | grep -v '/$')
 )
 #
-perfargs=()
+bwrapargs=()
 for i in "${binaries[@]}"; do
-  i=$(which $i)
+  i=$(which -- "$i")
   L_assert '' test -e "$i"
-  perfargs+=(--bind $i $i)
-  for i in $(ldd $i | grep '=>' | awk '{print $3}'); do
+  bwrapargs+=(--bind "$i" "$i")
+  for i in $(ldd -- "$i" | grep '=>' | awk '{print $3}'); do
     L_assert '' test -e "$i"
-    perfargs+=(--bind $i $i)
+    bwrapargs+=(--bind "$i" "$i")
   done
 done
 for i in "${paths[@]}"; do
-  perfargs+=(--bind $i $i)
+  bwrapargs+=(--bind "$i" "$i")
 done
 #
 if ((verbose)); then
@@ -38,6 +77,13 @@ taskset 1 \
   bwrap \
   --clearenv \
   --setenv PATH /bin:/usr/bin:/sbin:/usr/sbin \
+  --bind "$DIR" "$DIR" \
+  "${bwrapargs[@]}" \
+  -- \
+  "$(which perf)" stat \
+  -e cycles,instructions,user_time,system_time \
+  ${repeat+-r"$repeat"} \
   "${perfargs[@]}" \
-  $(which perf) stat ${repeat+-r"$repeat"} $(which bash) -c "${command[@]}" <&-
+  -- \
+  "$(which bash)" -c "${command[@]}" <&-
 
