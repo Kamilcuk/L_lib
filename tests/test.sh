@@ -2588,6 +2588,96 @@ _L_test_quoted_maths() {
 	# L_unittest_cmd ! grep -n 'L_unittest_eq \"${.*[\*]}\"' $L_LIB_SCRIPT
 }
 
+_L_test_finally() {
+	{
+		func() {
+			L_finally -r echo "$L_UUID"
+		}
+		L_unittest_cmd -o "$L_UUID" func
+	}
+	{
+		func() {
+			L_finally -r echo world
+			L_finally -r echo -n 'Hello '
+		}
+		L_unittest_cmd -o "Hello world" func
+	}
+	{
+		L_info "Test that L_finally_pop only affects current scope"
+		func2() {
+			L_finally_pop
+			( L_finally_pop )
+			L_finally -r printf 2
+		}
+		func() {
+			L_finally -r printf 4
+			printf 1
+			func2
+			( L_finally_pop )
+			printf 3
+		}
+		L_unittest_cmd -o 1234 func
+	}
+	{
+		L_info "Test L_finally_pop works"
+		func() {
+			L_finally echo -n 2
+			echo -n 1
+			L_finally_pop
+			echo -n 3
+			L_finally_pop
+			echo -n 4
+			L_finally_pop
+		}
+		L_unittest_cmd -o "1234" func
+	}
+	{
+		L_info "Test exit is ok"
+		func() (
+			L_finally printf 2
+			printf 1
+			exit
+		)
+		L_unittest_cmd -o "12" func
+		#
+		func() (
+			L_finally printf 2
+			printf 1
+		 	exit 234
+		)
+		L_unittest_cmd -e 234 -o "12" func
+		#
+		func() (
+			L_finally -r exit 234
+			exit 123
+		)
+		L_unittest_cmd -e 234 func
+		#
+		func() {
+			L_finally -r printf 2
+			printf 1
+			return 234
+		}
+		L_unittest_cmd -e 234 -o 12 func
+		#
+		func() {
+			L_finally -r eval 'printf 2'
+			printf 1
+			return 234
+		}
+		L_unittest_cmd -e 234 -o 12 func
+	}
+	{
+		L_info "Test signal is ok"
+		func() (
+			L_finally printf 2
+			printf 1
+			L_raise
+		)
+		L_unittest_cmd -o "12" func
+	}
+}
+
 ###############################################################################
 
 _L_get_all_variables() {
