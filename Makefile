@@ -12,7 +12,7 @@ define NL
 
 
 endef
-BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3-rc2
+BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3
 
 all: test doc
 	@echo SUCCESS all
@@ -73,7 +73,7 @@ run-%:
 
 runall: $(addprefix run-, $(BASHES))
 
-5.3test: test_bash5.3-alpha
+5.3test: test_bash5.3
 5.2test: test_bash5.2
 5.1test: test_bash5.1
 5.0test: test_bash5.0
@@ -85,6 +85,8 @@ runall: $(addprefix run-, $(BASHES))
 3.2test: test_bash3.2
 3.1test: test_bash3.1
 5.2term: term-5.2
+5.1term: term-5.1
+5.0term: term-5.0
 4.4term: term-4.4
 4.3term: term-4.3
 4.2term: term-4.2
