@@ -1110,6 +1110,12 @@ L_sudo() {
 	L_run "${sudo[@]}" "$@"
 }
 
+# @description Get bashpid in a way compatible with Bash before 4.0.
+# @arg $1 Variable to store the result to.
+L_bashpid_to() {
+	printf -v "$1" "%s" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"
+}
+
 # ]]]
 # exit_to [[[
 # @section exit_to
@@ -3684,6 +3690,7 @@ L_trap_get_v() {
 # @description Suffix a newline and the command to the trap value
 # @arg $1 str command to execute
 # @arg $2 str signal to handle
+# shellcheck disable=SC2064
 L_trap_push() {
 	local L_v i
 	for i in "${@:2}"; do
@@ -3719,7 +3726,7 @@ _L_FINALLY=()
 
 # @description List of traps that have been initilaized with the callback to _L_finally
 # List of elements starting with PID followed by a list of trap names.
-_L_FINALLY_INIT="${BASHPID:-$$}"
+_L_FINALLY_INIT=""
 
 # @description
 # Features:
@@ -3728,20 +3735,21 @@ _L_FINALLY_INIT="${BASHPID:-$$}"
 # @arg $1 The trap signal name to handle. POP has a special value to pop last registered action.
 # @arg [$2] position in stack relative to current of the caller
 _L_finally() {
-  local _L_i L_FINALLY_SIGNAL="$1" _L_up="${2:-0}"
+  local _L_i _L_signal="${1:-$BASH_TRAPSIG}" _L_up="${2:-0}" _L_pid
+  L_bashpid_to _L_pid
   for ((_L_i = ${#_L_FINALLY[@]} - 1; _L_i >= 0; --_L_i)); do
     # If the signal is POP, or if the signal matches signales in _L_FINALLY list.
-    if [[ "$L_FINALLY_SIGNAL" == "POP" || " ${_L_FINALLY[_L_i]%%,*} " == *" $L_FINALLY_SIGNAL "* ]]; then
+    if [[ "$_L_signal" == "POP" || " ${_L_FINALLY[_L_i]%%,*} " == *" $_L_signal "* ]]; then
       # Extract elements from _L_FINALLY
       local -a _L_e="(${_L_FINALLY[_L_i]#*,})"
       # We are only interested in executed in the current process.
-      if [[ "${_L_e[0]}" != "${BASHPID:-$$}" ]]; then
+      if [[ "${_L_e[0]}" != "$_L_pid" ]]; then
         # We can forget about them, they will never execute and we can't affect parents.
         unset "_L_FINALLY[$_L_i]"
         continue
       fi
       # If executing on RETURN trap, the register and caller have to be the same.
-      if [[ "$L_FINALLY_SIGNAL" == "RETURN" || "$L_FINALLY_SIGNAL" == "POP" ]]; then
+      if [[ "$_L_signal" == "RETURN" || "$_L_signal" == "POP" ]]; then
         if [[ "${_L_e[1]}:${_L_e[2]}" != "${BASH_SOURCE[0+_L_up]}:${FUNCNAME[1+_L_up]}" ]]; then
           continue
         fi
@@ -3752,7 +3760,7 @@ _L_finally() {
       # Finally, execute the user action.
     	"${_L_e[@]:3}"
       # On POP action, return after handling only one action.
-      if [[ "$L_FINALLY_SIGNAL" == "POP" ]]; then
+      if [[ "$_L_signal" == "POP" ]]; then
         return
       fi
     fi
@@ -3779,26 +3787,29 @@ L_finally() {
     *) L_assert "${FUNCNAME[0]}: Unknown option: $OPTARG $OPTERR $i" false;;
     esac
   done
-  shift $((OPTIND - 1))
+  shift "$((OPTIND - 1))"
   L_assert "${FUNCNAME[0]}: at least one positional argument required, but given $#" test "$#" -ge 1
+  #
+  # Initialize signals if not initialized.
+  # Subshells inherit traps but they are not set.
+  # We do this here, to store BASHPID in _L_FINALLY_INIT and use it below.
+  if [[ "$_L_FINALLY_INIT " != "${BASHPID:-$$} "* ]]; then
+    L_bashpid_to _L_FINALLY_INIT
+    # Reset trap values in subshell to proper values.
+    # We assume full ownership of traps in subshells!
+    # https://stackoverflow.com/a/79717616/9072753
+    trap - SIGQUIT
+  fi
   # Add element to our array variable.
   printf -v i " %q" "$@"
-  printf -v i "%s , %d %q %q%s" "${signals[*]}" "${BASHPID:-$$}" "${BASH_SOURCE[0+up]}" "${FUNCNAME[1+up]}" "$i"
+  printf -v i "%s , %d %q %q%s" "${signals[*]}" "${_L_FINALLY_INIT%% *}" "${BASH_SOURCE[0+up]}" "${FUNCNAME[1+up]}" "$i"
 	if ((last)); then
   	_L_FINALLY=("$i" ${_L_FINALLY[@]+"${_L_FINALLY[@]}"})
   else
   	_L_FINALLY+=("$i")
   fi
-  # Initialize signals if not initialized.
-  # Subshells inherit traps but they are not set.
-  if [[ " $_L_FINALLY_INIT " != *" ${BASHPID:-$$} "* ]]; then
-    _L_FINALLY_INIT="${BASHPID:-$$}"
-    # We assume full ownership of traps in subshells!
-    # https://stackoverflow.com/a/79717616/9072753
-    trap - SIGQUIT
-  fi
   for i in "${signals[@]}"; do
-     if [[ " $_L_FINALLY_INIT " != *" $i "* ]]; then
+     if [[ "$_L_FINALLY_INIT " != *" $i "* ]]; then
       if trap="$(trap -p "$i")"; then
         if [[ "$trap" != *" _L_finally $i 0 "* ]]; then
           # This appends to the current value of trap.

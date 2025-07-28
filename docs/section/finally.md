@@ -18,7 +18,6 @@ The `L_finally <action>` call:
       - If the action has been executed on RETURN, then it will not execute on EXIT.
       - If you happen to EXIT before getting to RETURN, the action still will be executed on EXIT.
   - Multiple calls append the actions to execute in reverse order.
-  - In the action the variable `L_FINALLY_SIGNAL` is set to the signal being handled.
 
 Additionally, the `L_finally_pop` will execute and remove the last registered action.
 
