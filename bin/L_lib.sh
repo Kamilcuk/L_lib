@@ -343,6 +343,8 @@ L_HAS_BASH2_1=$((   L_BASH_VERSION >= 0x020100))
 L_HAS_BASH2_0=$((   L_BASH_VERSION >= 0x020000))
 L_HAS_BASH1_14_7=$((L_BASH_VERSION >= 0x010E07))
 
+# @description trap has -P option
+L_HAS_TRAP_P=$L_HAS_BASH5_3
 # @description `compgen' has a new option: -V varname. If supplied, it stores the generated
 L_HAS_COMPGEN_V=$L_HAS_BASH5_3
 # @description New form of command substitution: ${ command; } or ${|command;} to capture
@@ -806,9 +808,9 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 fi
 
-# @description Send signal to itself
-# @arg $1 signal to send, see kill -l
-L_raise() { kill -s "$1" "${BASHPID:-$$}"; }
+# @description Send signal to itself.
+# @arg $@ Kill arguments. See kill --help.
+L_raise() { kill "$@" "${BASHPID:-$$}"; }
 
 # @description Wrapper function for handling -v arguments to other functions.
 # It calls a function called `<caller>_v` with arguments, but without `-v <var>`.
@@ -2348,7 +2350,7 @@ L_args_index_v() {
 	local _L_needle="$1" _L_start="$#" IFS=$'\x1D'
 	if [[ "${*//"$IFS"}" == "$*" ]]; then
 		L_v="$IFS${*:2}$IFS"
-		L_v="${L_v%"$IFS$1$IFS"*}"
+		L_v="${L_v%%"$IFS$1$IFS"*}"
 		L_v="${L_v//[^$IFS]}"
 		L_v=${#L_v}
 		[[ "$L_v" -lt "$#" ]]
@@ -3683,9 +3685,12 @@ L_trap_get_v() {
 # @arg $1 str command to execute
 # @arg $2 str signal to handle
 L_trap_push() {
-	local L_v &&
-	L_trap_get_v "$2" &&
-		trap "$L_v"$'\n'"$1" "$2"
+	local L_v i
+	for i in "${@:2}"; do
+		L_trap_get_v "$i" &&
+			trap "${L_v+"$L_v"$'\n'}$1" "$i" ||
+			return 1
+	done
 }
 
 # shellcheck disable=SC2064
@@ -3699,6 +3704,117 @@ L_trap_pop() {
 		else
 			trap - "$1"
 		fi
+}
+
+# ]]]
+# finally [[[
+
+# @description An array of space separated quoted elements of:
+# `trapnames... ',' pid source funcname action...`
+# - `trapnames...` - Multiple trap names
+# - `','` - The character comma, to separate trap names from the rest.
+# - `pid source funcname` - The BASHPID, BASH_SOURCE and FUNCNAME of the place that registered the trap.
+# - `action...` - the command to execute
+_L_FINALLY=()
+
+# @description List of traps that have been initilaized with the callback to _L_finally
+# List of elements starting with PID followed by a list of trap names.
+_L_FINALLY_INIT="${BASHPID:-$$}"
+
+# @description
+# Features:
+# - remove yourself on RETURN
+# - execute on RETURN from current function
+# @arg $1 The trap signal name to handle. POP has a special value to pop last registered action.
+# @arg [$2] position in stack relative to current of the caller
+_L_finally() {
+  local _L_i L_FINALLY_SIGNAL="$1" _L_up="${2:-0}"
+  for ((_L_i = ${#_L_FINALLY[@]} - 1; _L_i >= 0; --_L_i)); do
+    # If the signal is POP, or if the signal matches signales in _L_FINALLY list.
+    if [[ "$L_FINALLY_SIGNAL" == "POP" || " ${_L_FINALLY[_L_i]%%,*} " == *" $L_FINALLY_SIGNAL "* ]]; then
+      # Extract elements from _L_FINALLY
+      local -a _L_e="(${_L_FINALLY[_L_i]#*,})"
+      # We are only interested in executed in the current process.
+      if [[ "${_L_e[0]}" != "${BASHPID:-$$}" ]]; then
+        # We can forget about them, they will never execute and we can't affect parents.
+        unset "_L_FINALLY[$_L_i]"
+        continue
+      fi
+      # If executing on RETURN trap, the register and caller have to be the same.
+      if [[ "$L_FINALLY_SIGNAL" == "RETURN" || "$L_FINALLY_SIGNAL" == "POP" ]]; then
+        if [[ "${_L_e[1]}:${_L_e[2]}" != "${BASH_SOURCE[0+_L_up]}:${FUNCNAME[1+_L_up]}" ]]; then
+          continue
+        fi
+      fi
+      # Remove the script from the array after execution. Execute only once.
+      # This is done before executing, just in case user wants to execute return.
+      unset "_L_FINALLY[$_L_i]"
+      # Finally, execute the user action.
+    	"${_L_e[@]:3}"
+      # On POP action, return after handling only one action.
+      if [[ "$L_FINALLY_SIGNAL" == "POP" ]]; then
+        return
+      fi
+    fi
+  done
+}
+
+# @description Register an action to be executed upon termination.
+# @option -r Set -o functrace and register the action to be executed on RETURN trap.
+#            Effectively this will execute the action on return from current function.
+# @option -s <int> The RETURN trap handler will execute the action only if called from
+#            the nth position in the stack relative to the current position. (default: 0)
+# @option -l Add action to be executed last, not first of the stack.
+#            Do not use L_finally_pop after it.
+# @arg $@ Command to execute.
+# The command may not be return. It will just return from the handler function.
+# @see L_finally_pop
+L_finally() {
+  local trap i L_v signals=(EXIT SIGINT SIGTERM) IFS=' ' OPTIND OPTARG OPTERR up=0 last=0
+  while getopts rs:l i; do
+    case "$i" in
+    r) signals+=(RETURN); set -o functrace;;
+    s) up=$OPTARG ;;
+    l) last=1 ;;
+    *) L_assert "${FUNCNAME[0]}: Unknown option: $OPTARG $OPTERR $i" false;;
+    esac
+  done
+  shift $((OPTIND - 1))
+  L_assert "${FUNCNAME[0]}: at least one positional argument required, but given $#" test "$#" -ge 1
+  # Add element to our array variable.
+  printf -v i " %q" "$@"
+  printf -v i "%s , %d %q %q%s" "${signals[*]}" "${BASHPID:-$$}" "${BASH_SOURCE[0+up]}" "${FUNCNAME[1+up]}" "$i"
+	if ((last)); then
+  	_L_FINALLY=("$i" ${_L_FINALLY[@]+"${_L_FINALLY[@]}"})
+  else
+  	_L_FINALLY+=("$i")
+  fi
+  # Initialize signals if not initialized.
+  # Subshells inherit traps but they are not set.
+  if [[ " $_L_FINALLY_INIT " != *" ${BASHPID:-$$} "* ]]; then
+    _L_FINALLY_INIT="${BASHPID:-$$}"
+    # We assume full ownership of traps in subshells!
+    # https://stackoverflow.com/a/79717616/9072753
+    trap - SIGQUIT
+  fi
+  for i in "${signals[@]}"; do
+     if [[ " $_L_FINALLY_INIT " != *" $i "* ]]; then
+      if trap="$(trap -p "$i")"; then
+        if [[ "$trap" != *" _L_finally $i 0 "* ]]; then
+          # This appends to the current value of trap.
+          # Potentially something can be preserved in the trap values.
+          L_trap_push " _L_finally $i 0 " "$i"
+        fi
+        _L_FINALLY_INIT+=" $i"
+      fi
+    fi
+  done
+}
+
+# @description Execute and unregister the last action registered with L_finally
+# @see L_finally
+L_finally_pop() {
+  _L_finally POP 1
 }
 
 # ]]]
