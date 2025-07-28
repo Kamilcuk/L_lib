@@ -1278,6 +1278,7 @@ _L_test_sort() {
 }
 
 _L_test_trapchain() {
+	local IFS=' '
 	{
 		L_log "test converting int to signal name"
 		local tmp
@@ -1312,8 +1313,8 @@ _L_test_trapchain() {
 			L_trap_push 'echo -n " 3"' SIGUSR1
 			L_trap_push 'echo -n " 2"' SIGUSR2
 			L_trap_push 'echo -n " 1"' EXIT
-			L_raise SIGUSR1
-			L_raise SIGUSR2
+			L_raise -s SIGUSR1
+			L_raise -s SIGUSR2
 		)
 		L_unittest_eq "$tmp" "4 3 2 1"
 	fi
