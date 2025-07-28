@@ -19,7 +19,7 @@ all: test doc
 
 test_parallel:
 	@mkdir -vp build
-	if ! $(MAKE) -O -j$(shell nproc) test > >(tee build/output >&2) 2>&1; then \
+	if ! $(MAKE) -O -j $(shell nproc) test > >(tee build/output >&2) 2>&1; then \
 		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
 		exit 2; \
 	fi
@@ -27,6 +27,7 @@ test: \
 		test_local \
 		shellcheck \
 		$(addprefix test_bash, $(BASHES)) \
+		docs_build \
 		#
 	@echo 'make test finished with SUCCESS'
 test_local:

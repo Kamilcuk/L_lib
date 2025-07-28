@@ -3742,6 +3742,7 @@ L_trap_pop() {
 
 # ]]]
 # finally [[[
+# @section finally
 
 # @description An array of space separated quoted elements of:
 # `trapnames... ',' pid source funcname action...`
