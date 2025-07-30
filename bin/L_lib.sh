@@ -416,13 +416,12 @@ L_HAS_INDIRECT_EXPANSION=$L_HAS_BASH2_0
 L_HAS_ARRAY=$L_HAS_BASH1_14_7
 
 # ]]]
-# stdlib [[[
-# @section stdlib
-# @description Some base simple definitions for every occasion.
+# assert [[[
+# @section assert
 
-# @description Print stacktrace, the message and exit.
-# @arg $1 Message to print.
-# @example test -r file || L_panic "File does not exist"
+# @description Print stacktrace and the message to stderr and exit with 249.
+# @arg $@ Message to print.
+# @example [[ -r "$file" ]] || L_panic "File is not readable: $file"
 # @see L_assert
 # @see L_exit
 # @see L_check
@@ -433,13 +432,15 @@ L_panic() {
 	exit 249
 }
 
-# @description Assert the command starting from second arguments returns success.
+# @description Assert the command succeeds.
+# Execute a command given from the second positional argument.
+# When the command fails, execute `L_panic`.
 # Note: `[[` is a bash syntax sugar and is not a command.
+# `!` is also not a standalone command or builtin, so it can't be used with this function.
 # You could use `eval "[[ ${var@Q} = ${var@Q} ]]"`.
 # However to prevent quoting issues it is simpler to use wrapper functions.
 # The function `L_regex_match` `L_glob_match` `L_not` are useful for writing assertions.
 # To invert the test use `L_not` which just executes `! "$@"`.
-# `!` is not a standalone command or builtin, so it can't be used with this function.
 # @arg $1 str assertiong string description
 # @arg $@ command to test
 # @example
@@ -465,8 +466,8 @@ L_die() {
 	exit 248
 }
 
-# @description If argument is not given or an empty string, then exit with 0.
-# If arguments are not an empty string, print the message to standard error and exit with 247.
+# @description With no arguments or an empty string, exit with 0.
+# Otherwise, the arguments are printed to stderr and exit with 247.
 # @example
 # 	err=()
 # 	test -r file || err+=("file is not readable")
@@ -485,10 +486,11 @@ L_exit() {
 	fi
 }
 
-# @description If command fails, print a message and exit with 1.
-# Check L_assert for more info.
-# The difference is, L_assert prints the error message and stacktrace on error.
-# Thid function only prints the error message with program name on error.
+# @description
+# Execute a command given from the second argument.
+# If the command fails, call `L_exit`.
+# The difference to `L_assert` is that it prints calltrace on error.
+# `L_check` function only prints the error message with the program name on error.
 # @see L_panic
 # @see L_assert
 # @see L_check
@@ -498,8 +500,7 @@ L_check() {
 	fi
 }
 
-# @description Assert the command starting from second arguments returns success.
-# If assertion fails, return 249.
+# @description Like `L_assert`, but return with 249 instead.
 # @see L_assert
 L_assert_return() {
 	if ! "${@:2}"; then
@@ -507,6 +508,11 @@ L_assert_return() {
 		return 249
 	fi
 }
+
+# ]]]
+# stdlib [[[
+# @section stdlib
+# @description Some base simple definitions for every occasion.
 
 # @description Wrapper around =~ for contexts that require a function.
 # @arg $1 string to match
@@ -989,17 +995,17 @@ L_handle_v_array() {
 # @arg $2 printf format specification
 # @arg $@ printf arguments
 # @example
-#
-#    func() {
-#       if [[ "$1" == -v ]]; then
-#          var=$2
-#          shift 2
-#		fi
-#		L_printf_append "$var" "%s" "Hello "
-#		L_printf_append "$var" "%s" "world\n"
-#	 }
-#	 func
-#	 func -v var
+#   func() {
+#     local var=
+#     if [[ "$1" == -v ]]; then
+#        var=$2
+#        shift 2
+#     fi
+#     L_printf_append "$var" "%s" "Hello "
+#     L_printf_append "$var" "%s" "world\n"
+#   }
+#   func          # prints hello world
+#   func -v var   # stores hello world in $v
 L_printf_append() {
 	printf ${1:+"-v$1"} ${1:+"%s"}"$2" ${1:+"${!1:-}"} "${@:3}"
 }
