@@ -17,6 +17,7 @@ nav:
       - colors: section/colors.md
       - ansi: section/ansi.md
       - has: section/has.md
+      - assert: section/assert.md
       - stdlib: section/stdlib.md
       - exit_to: section/exit_to.md
       - path: section/path.md
