@@ -793,45 +793,40 @@ L_in_posix_mode() { case ":$SHELLOPTS:" in *:posix:*) ;; *) false ;; esac; }
 # @description Return 0 if variable is set
 # @arg $1 variable nameref
 # @exitcode 0 if variable is set, nonzero otherwise
-L_var_is_set() { [[ -n "${!1+yes}" ]]; }
+L_var_is_set() { [[ -n "${!1+y}" ]]; }
 
 # @description Return 0 if variable is set and is not null (not empty)
 # @arg $1 variable nameref
 # @exitcode 0 if variable is set, nonzero otherwise
-L_var_is_notnull() { [[ -n "${!1:+yes}" ]]; }
+L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 
-if ((0 && L_HAS_QEPAa_EXPANSIONS)); then
-	# These do not work with unset variables under set -u, instead the shell exits.
-	# These do not work on __unset__ but declared variables.
-	# For example: declere -A var
-	# Is already a variable, but it is not set.
-	# But if a varible is not declared, then @a will _exit_ the shell.
-	# If calling a subshell, you might as well just call declare.
-	L_var_is_notarray() { [[ "${!1@a}" != *[aA]* ]]; }
-	L_var_is_array() { [[ "${!1@a}" == *a* ]]; }
-	L_var_is_associative() { [[ "${!1@a}" == *A* ]]; }
-	L_var_is_readonly() { [[ "${!1@a}" == *r* ]]; }
-	L_var_is_integer() { [[ "${!1@a}" == *i* ]]; }
-	L_var_is_exported() { [[ "${!1@a}" == *x* ]]; }
+if ((L_HAS_QEPAa_EXPANSIONS)); then
+	# The set +u is needed when the variable is unset, but has attributes.
+	# For example `declere -r var` makes `var` readonly without assigning any value to it.
+	L_var_is_notarray() { local -; set +u; [[ -n "${!1+y}" && "${!1@a}" != *[aA]* ]]; }
+	L_var_is_array() { local -; set +u; [[ "${!1@a}" == *a* ]]; }
+	L_var_is_associative() { local -; set +u; [[ "${!1@a}" == *A* ]]; }
+	L_var_is_readonly() { local -; set +u; [[ "${!1@a}" == *r* ]]; }
+	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
+	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
 else
-# @description Return 0 if variable is not set or is not an array neither an associative array
+# @description Return 0 if variable is not an array neither an associative array.
 # @arg $1 variable nameref
 L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA]* ]]; }
 
-# @description Success if variable is an indexed integer array, not an associative array.
+# @description Return 0 if variable is an indexed integer array, not an associative array.
 # @arg $1 variable nameref
-# @exitcode 0 if variable is an array, nonzero otherwise
 L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -a* ]]; }
 
-# @description Return 0 if variable is an associative array
+# @description Return 0 if variable is an associative array.
 # @arg $1 variable nameref
 L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]; }
 
-# @description Return 0 if variable is readonly
+# @description Return 0 if variable is readonly.
 # @arg $1 variable nameref
 L_var_is_readonly() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-za-z]*r ]]; }
 
-# @description Return 0 if variable has integer attribute set
+# @description Return 0 if variable has integer attribute set.
 # @arg $1 variable nameref
 L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*i ]]; }
 
