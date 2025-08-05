@@ -420,6 +420,7 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # @section assert
 
 # @description Print stacktrace and the message to stderr and exit with 249.
+# @option -[0-9]+ Exit with this number.
 # @arg $@ Message to print.
 # @example [[ -r "$file" ]] || L_panic "File is not readable: $file"
 # @see L_assert
@@ -428,8 +429,17 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 L_panic() {
 	set +x
 	L_print_traceback 1 >&2
+	if [[ "$1" =~ ^-([0-9]+)$ ]]; then
+		local e="${1#-}"
+		shift
+	else
+		local e=249
+	fi
+	if [[ "$1" == -- ]]; then
+		shift
+	fi
 	printf "%s\n" "$*" >&2
-	exit 249
+	exit "$e"
 }
 
 # @description Assert the command succeeds.
@@ -441,7 +451,8 @@ L_panic() {
 # However to prevent quoting issues it is simpler to use wrapper functions.
 # The function `L_regex_match` `L_glob_match` `L_not` are useful for writing assertions.
 # To invert the test use `L_not` which just executes `! "$@"`.
-# @arg $1 str assertiong string description
+# @arg $1 str Assertion description.
+# If the description starts with '-[0-9]+', the number is used as the exit code for L_panic.
 # @arg $@ command to test
 # @example
 #   L_assert 'wrong number of arguments' [ "$#" -eq 0 ]
@@ -451,23 +462,39 @@ L_panic() {
 #   L_assert 'var has to matcha glob' L_glob_match "$var" "*glob*"
 L_assert() {
 	if ! "${@:2}"; then
-		L_panic "$L_NAME: ERROR: assertion ($(L_quote_printf "${@:2}")) failed${1:+: $1}"
+		set +x
+		if [[ "${1:-}" =~ ^(-[0-9]+)$' \t\r\n'*(.*)$ ]]; then
+			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${BASH_REMATCH[2]}"
+		else
+			L_panic -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${1:+: $1}"
+		fi
 	fi
 }
 
 # @description Print the arguments to standard error and exit wtih 248.
+# @option -[0-9]+ Exit with this number.
 # @example test -r file || L_die "File is not readable"
 # @see L_panic
 # @see L_exit
 # @see L_check
 # @see L_assert
 L_die() {
+	if [[ "$1" =~ ^-([0-9]+)$ ]]; then
+		local e="${1#-}"
+		shift
+	else
+		local e=249
+	fi
+	if [[ "$1" == -- ]]; then
+		shift
+	fi
 	printf "%s\n" "$*" >&2
-	exit 248
+	exit "$e"
 }
 
 # @description With no arguments or an empty string, exit with 0.
 # Otherwise, the arguments are printed to stderr and exit with 247.
+# @note If you want to exit with number, just call builtin exit,
 # @example
 # 	err=()
 # 	test -r file || err+=("file is not readable")
@@ -478,7 +505,6 @@ L_die() {
 # @see L_check
 L_exit() {
 	if [[ -n "$*" ]]; then
-		set +x
 		printf "%s\n" "$*" >&2
 		exit 247
 	else
