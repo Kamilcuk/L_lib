@@ -4750,10 +4750,20 @@ L_asa_get_v() {
 # @description get the length of associative array
 # @option -v <var> var
 # @arg $1 associative array nameref
-L_asa_len() { L_handle_v_array "$@"; }
+L_asa_len() { L_handle_v_scalar "$@"; }
 L_asa_len_v() {
-	L_assert "" L_var_is_associative "$1"
-	eval "L_v=(\"\${#$1[@]}\")"
+	L_assert "" L_is_valid_variable_name "$1"
+	eval "L_v=\"\${#$1[@]}\""
+}
+
+# @description get keys of an associative array
+# @option -v <var> var
+# @arg $1 associative array nameref
+L_asa_keys() { L_handle_v_array "$@"; }
+L_asa_keys_v() {
+	L_assert "" test "$#" = 1
+	L_assert "" L_is_valid_variable_name "$1"
+	eval "L_v=(\"\${!$1[@]}\")"
 }
 
 # @description get keys of an associative array in a sorted
@@ -4761,9 +4771,7 @@ L_asa_len_v() {
 # @arg $1 associative array nameref
 L_asa_keys_sorted() { L_handle_v_array "$@"; }
 L_asa_keys_sorted_v() {
-	L_assert "" test "$#" = 1
-	L_assert "" L_var_is_associative "$1"
-	eval "L_v=(\"\${!$1[@]}\")"
+	L_asa_keys_v "$1"
 	L_sort L_v
 }
 
@@ -4779,7 +4787,7 @@ if ((L_HAS_PRINTF_V_ARRAY)); then
 #    printf -v "map[a]" "%s" val  # will fail in bash 4.0
 #    L_asa_set map a val  # will work in bash4.0
 L_asa_set() {
-	printf -v "${1}[$2]" "%s" "$3"
+	printf -v "$1[$2]" "%s" "$3"
 }
 else
 	L_asa_set() {
