@@ -2679,6 +2679,47 @@ _L_test_finally() {
 	}
 }
 
+# shellcheck disable=SC1012
+_L_test_str_split() {
+	local IFS=' '
+	L_unittest_cmd -o "No closing quotation '" ! L_str_split "'"
+	L_unittest_cmd -o "No closing quotation \$'" ! L_str_split "$'"
+	L_unittest_cmd -o "No escaped character" ! L_str_split "\\"
+	L_unittest_cmd -o "No closing quotation \"" ! L_str_split '"'
+	L_unittest_cmd -o "No closing quotation \"" ! L_str_split '" \"'
+	L_unittest_cmd -o "No closing quotation $'" ! L_str_split \$\'\ \\\'
+	L_unittest_cmd -o 'a' L_str_split '\a'
+	L_unittest_cmd -o 'abc' L_str_split $'a\\\nb\\\nc'
+	L_unittest_cmd -o $'a\nb' L_str_split $'a\nb'
+	L_unittest_cmd -o $'a\nb' L_str_split -c $'#e\na #c\nb #d'
+	L_unittest_cmd -o $'\na' L_str_split "'' a"
+	L_unittest_cmd -o $'\na' L_str_split "\"\" a"
+	L_unittest_cmd -o $'\na' L_str_split "\$'' a"
+	L_unittest_cmd -o $'\n\n\n\na' L_str_split "'' \"\" '' \$'' a"
+	L_unittest_cmd -o $'a\nb\nc\nd' L_str_split "'''a''' \"\"'b'\"\" \$''\$'c'\$''''\"\" d"
+	L_unittest_cmd -o $'\'\\\\\na' L_str_split "$(cat <<'EOF'
+	$'\'\\\\' a
+EOF
+	)"
+	L_unittest_cmd -o $'\'a \nb\'' L_str_split "$(cat <<'EOF'
+	$'\'''a ' b$'\''
+EOF
+	)"
+	local tmp
+	L_str_split -v tmp -c "$(cat <<'EOF'
+	$'\n\'' '' $'\\\\' $'\\\'' "\\\\" "\\\'"
+EOF
+	)"
+	L_unittest_arreq tmp $'\n\'' "" "\\\\" "\\'" "\\\\" "\\\\'"
+	L_str_split -v tmp -c "$(cat <<'EOF'
+	"" "\"" "\$\`\\\\\\\\\a"
+EOF
+	)"
+	L_unittest_arreq tmp "" "\"" "\$\`\\\\\\\\\\a"
+	L_unittest_cmd -o \$a\$\'c\ \'b%\ \\\ \\n^ L_str_split \$\'\$\'a\$\"\'c\ \'b%\ \\\ \"\\\\n\'^\'
+	L_unittest_cmd -o 'c""^'$'\n''\a\naa$   ' L_str_split '$'\''c""'\''^ '\''\a'\'''\'''\''\\n'\''aa$   '\'''
+}
+
 ###############################################################################
 
 _L_get_all_variables() {
