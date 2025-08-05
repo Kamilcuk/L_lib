@@ -49,9 +49,6 @@ fi
 #
 binaries=(bash perf "${binaries[@]}")
 paths=(
-  /proc
-  /dev
-  /sys
   /lib64/ld-linux-x86-64.so.2
   # $(pacman -Ql perf | awk '{print $2}' | grep -v '/$')
 )
@@ -68,6 +65,9 @@ for i in "${binaries[@]}"; do
 done
 for i in "${paths[@]}"; do
   bwrapargs+=(--bind "$i" "$i")
+done
+for i in /proc /dev /sys; do
+  bwrapargs+=(--dev-bind "$i" "$i")
 done
 #
 if ((verbose)); then

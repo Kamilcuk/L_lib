@@ -2064,6 +2064,167 @@ L_str_count_v() {
 	L_v="$(( ${#1} - ${#L_v} ))"
 }
 
+# @description Split a string with quotes without the risk of execution anything.
+#
+# Rules:
+# - https://www.gnu.org/software/bash/manual/html_node/Escape-Character.html
+# - https://www.gnu.org/software/bash/manual/html_node/Single-Quotes.html
+# - https://www.gnu.org/software/bash/manual/html_node/Double-Quotes.html
+# - https://www.gnu.org/software/bash/manual/html_node/ANSI_002dC-Quoting.html
+#
+# Why not xargs? To support ANSI-C quoting style $'' and support newlines in quotes.
+#
+# Why not declare? Declare allows execution, `declare -a array='($(echo error >&2))'` prints error.
+#
+# @option -v <var> variable to assign to
+# @option -c Enable comments.
+# @option -A Disable ANSI-C quoting.
+# shellcheck disable=SC1003
+# @example
+#   $ L_str_split -v cmd "ls -l 'somefile; rm -rf ~'"
+#   $ delcare -p cmd
+#   declare -a cmd=([0]="ls" [1]="-l" [2]="somefile; rm -rf ~")
+L_str_split() {
+	# local -;set -x
+	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_comments=0 _L_ansic1='$' _L_ansic2="[$]'|" _L_q=0
+	while getopts "v:cAq" _L_i; do
+		case "$_L_i" in
+			v) _L_v=$OPTARG ;;
+			c) _L_comments=1 ;;
+			A) _L_ansic1="" _L_ansic2="" ;;
+			q) _L_q=1 ;;
+			*) echo "invalid option: -$OPTARG" 1>&2; return 1 ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	local _L_input="$*" _L_output=() _L_mode="" _L_new="" _L_W=$' \t\r\n' _L_started=0
+	while [[ -n "$_L_input" ]]; do
+		case "$_L_mode" in
+		"")
+			if ((_L_comments)) && [[ "$_L_input" =~ ^[$_L_W]*#[^$'\n']*(.*)$ ]]; then
+				_L_input=${BASH_REMATCH[1]}
+				continue
+			fi
+			if [[ "$_L_input" =~ ^([$_L_W]*)(([^${_L_ansic1}\'\"\\$_L_W]+)|\'([^\']*)\'|\\(.)|${_L_ansic2}[${_L_ansic1}\'\"\\])?(.*)$ ]]; then
+			  #                   1         23                               4            5                                     6
+			  # declare -p BASH_REMATCH
+			  if [[ -n "${BASH_REMATCH[1]}" ]] && ((_L_started)); then
+			  	_L_output+=("$_L_new")
+			  	_L_started=0
+			  	_L_new=""
+			  fi
+			  _L_input=${BASH_REMATCH[6]}
+			  if [[ -n "${BASH_REMATCH[3]}" ]]; then
+			  	_L_started=1
+			  	_L_new+=${BASH_REMATCH[3]}
+			  elif [[ -n "${BASH_REMATCH[4]}" ]]; then
+			  	_L_started=1
+			  	_L_new+=${BASH_REMATCH[4]}
+			  elif [[ -n "${BASH_REMATCH[5]}" ]]; then
+			  	# Escaped character. Newline is removed when escaped.
+			  	if [[ "${BASH_REMATCH[5]}" != $'\n' ]]; then
+			  		_L_started=1
+			  		_L_new+=${BASH_REMATCH[5]}
+			  	fi
+			  else
+			  	case "${BASH_REMATCH[2]}" in
+			  		"''") _L_started=1 _L_new+="" ;;  # empty BASH_REMATCH[4]
+			  		"\$'") _L_mode="\$'" ;;  # ANSI-C quoting start
+				  	'$') _L_started=1 _L_new+='$' ;;  # Dollar, but not $'
+			  		"'")
+			  			if [[ "$_L_input" != *"'"* ]]; then
+			  				echo "No closing quotation '" >&2
+				  			return 2
+				  		fi
+				  		_L_input="'"$_L_input
+				  		;;
+				  	'"') _L_mode='"' ;;  # quoting started
+				  	'\')
+				  		if [[ -z "$_L_input" ]]; then
+			  				echo "No escaped character" >&2
+			  				return 2
+			  			fi
+				  		_L_input='\'$_L_input
+				  		;;
+				  	'') ;;
+				  	*) L_assert "INTERNAL ERROR 1: ${BASH_REMATCH[2]}" false
+				  esac
+			  fi
+			else
+				L_assert "INTERNAL ERROR 2: $_L_input" false
+			fi
+			;;
+		"\$'")
+			# Match ' prefixed by nothing or non-slash.
+			# After nothing or non-slash there may be an even number of slashes.
+			# Match greedy from the back.
+			# When non-slash matches single quote, it is in front an odd number of slashes.
+			# Otherwise it would have matched first.
+			if [[ "$_L_input" =~ ((^|[^\\])(\\\\)*)\'(.*)$ ]]; then
+				#                  12          3         4
+				_L_i="${_L_input::${#_L_input}-${#BASH_REMATCH[0]}+${#BASH_REMATCH[1]}}"
+				_L_input=${BASH_REMATCH[4]}
+				# I feel confident.
+				eval "printf -v _L_i %s \$'$_L_i'"
+				# printf -v _L_i "%b" "$_L_i"
+				# _L_i=${_L_i//\\\?/?}
+				# _L_i=${_L_i//\\\'/\'}
+				# _L_i=${_L_i//\\\"/\"}
+				_L_started=1
+				_L_new+=$_L_i
+				_L_mode=""
+			else
+				echo "No closing quotation $_L_mode" >&2
+				return 2
+			fi
+			;;
+		'"')
+			if [[ "$_L_input" =~ ^([^\"\\]*)(\\([\$\`\"\\$'\n'])|\\.|\")(.*)$ ]]; then
+				#                   1         2  3                        4
+				_L_new+=${BASH_REMATCH[1]}
+				_L_input=${BASH_REMATCH[4]}
+				_L_started=1
+				if [[ -n "${BASH_REMATCH[3]}" ]]; then
+					if [[ "${BASH_REMATCH[3]}" != $'\n' ]]; then
+						# Add escaped character inside double quotes
+						_L_new+=${BASH_REMATCH[3]}
+					fi
+				elif [[ "${BASH_REMATCH[2]}" == "\"" ]]; then
+					# Quoting ends.
+					_L_mode=""
+				else
+					_L_new+=${BASH_REMATCH[2]}
+				fi
+			else
+				echo "No closing quotation $_L_mode" >&2
+				return 4
+			fi
+			;;
+		*) L_assert "INTERNAL ERROR #4 _L_mode=$_L_mode" false
+		esac
+	done
+	if [[ -n "$_L_mode" ]]; then
+		echo "No closing quotation $_L_mode" >&2
+		return 5
+	fi
+	if ((_L_started)); then
+		_L_output+=("$_L_new")
+	fi
+	#
+	if [[ -n "$_L_v" ]]; then
+		L_array_assign "$_L_v" ${_L_output+"${_L_output[@]}"}
+	elif ((${#_L_output[@]})); then
+		if ((_L_q)); then
+			if ((${#_L_output[@]}>1)); then
+				printf "%q " "${_L_output[@]::${#_L_output[@]}-1}"
+			fi
+			printf "%q\n" "${_L_output[@]:${#_L_output[@]}-1}"
+		else
+			printf "%s\n" ${_L_output+"${_L_output[@]}"}
+		fi
+	fi
+}
+
 # ]]]
 # array [[[
 # @section array
