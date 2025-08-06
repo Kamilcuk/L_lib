@@ -2155,8 +2155,9 @@ L_str_split() {
 			# Match greedy from the back.
 			# When non-slash matches single quote, it is in front an odd number of slashes.
 			# Otherwise it would have matched first.
-			if [[ "$_L_input" =~ ((^|[^\\])(\\\\)*)\'(.*)$ ]]; then
-				#                  12          3         4
+			if [[ "$_L_input" =~ ((^|[^\'\\]|\\\')(\\\\)*)\'(.*)$ ]]; then
+				#                  12               3         4
+				# declare -p BASH_REMATCH
 				_L_i="${_L_input::${#_L_input}-${#BASH_REMATCH[0]}+${#BASH_REMATCH[1]}}"
 				_L_input=${BASH_REMATCH[4]}
 				# I feel confident.
