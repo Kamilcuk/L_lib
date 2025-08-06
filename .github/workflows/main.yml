@@ -35,6 +35,14 @@ jobs:
           cache-to: type=gha,mode=max
           pull: ${{matrix.version == 'latest'}}
 
+  test_ubuntu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@v4
+      - run: ./tests/test.sh
+
+
   shellcheck:
     runs-on: ubuntu-latest
     timeout-minutes: 1
@@ -54,7 +62,7 @@ jobs:
           path: site
 
   deploy_docker:
-    needs: [test, shellcheck, build_pages]
+    needs: [test, test_ubuntu, shellcheck, build_pages]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -102,7 +110,7 @@ jobs:
           push-to-registry: true
 
   deploy_pages:
-    needs: [test, shellcheck, build_pages]
+    needs: [test, test_ubuntu, shellcheck, build_pages]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 1
