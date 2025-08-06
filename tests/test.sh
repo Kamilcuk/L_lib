@@ -2680,7 +2680,7 @@ _L_test_finally() {
 
 # shellcheck disable=SC1012
 _L_test_str_split() {
-	local IFS=' '
+	local IFS='!'
 	L_unittest_cmd -o "No closing quotation '" ! L_str_split "'"
 	L_unittest_cmd -o "No closing quotation \$'" ! L_str_split "$'"
 	L_unittest_cmd -o "No escaped character" ! L_str_split "\\"
@@ -2717,6 +2717,12 @@ EOF
 	L_unittest_arreq tmp "" "\"" "\$\`\\\\\\\\\\a"
 	L_unittest_cmd -o \$a\$\'c\ \'b%\ \\\ \\n^ L_str_split \$\'\$\'a\$\"\'c\ \'b%\ \\\ \"\\\\n\'^\'
 	L_unittest_cmd -o 'c""^'$'\n''\a\naa$   ' L_str_split '$'\''c""'\''^ '\''\a'\'''\'''\''\\n'\''aa$   '\'''
+	L_unittest_cmd -o \\\'\\\'\\\'\\\'\'\\\'\'\\$'\n'a L_str_split " $'\\\\\\'\\\\\\'\\\\\\''$'\\\\\\'\\'\\\\\\'\\'\\\\''' a"
+	L_unittest_cmd -o $'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'$'\n'a \
+		L_str_split "$(cat <<'EOF'
+	$'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'  a
+EOF
+	)"
 }
 
 ###############################################################################
