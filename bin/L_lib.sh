@@ -3897,11 +3897,17 @@ L_trap_to_name_v() {
 #   L_trap_get -v var EXIT
 #   L_assert '' test "$var" = 'echo hi'
 L_trap_get() { L_handle_v_scalar "$@"; }
+if ((L_HAS_TRAP_P)); then
+L_trap_get_v() {
+	L_v=$(trap -P "$1")
+}
+else
 L_trap_get_v() {
 	L_v=$(trap -p "$1") &&
 		local -a _L_tmp="($L_v)" &&
 		L_v=${_L_tmp[2]:-}
 }
+fi
 
 # @description Suffix a newline and the command to the trap value
 # @arg $1 str command to execute
@@ -3911,7 +3917,7 @@ L_trap_push() {
 	local L_v i
 	for i in "${@:2}"; do
 		L_trap_get_v "$i" &&
-			trap "${L_v+"$L_v"$'\n'}$1" "$i" ||
+			trap "${L_v:+"$L_v"$'\n'}$1" "$i" ||
 			return 1
 	done
 }
