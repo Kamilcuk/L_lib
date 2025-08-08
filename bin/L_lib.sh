@@ -1807,7 +1807,7 @@ L_list_functions_with_prefix_removed_v() {
 # @example
 #    L_json_escape -v tmp "some string"
 #    echo "{\"key\":$tmp}" | jq .
-L_json_escape() { L_array_handle_v "$@"; }
+L_json_escape() { L_handle_v_array "$@"; }
 L_json_escape_v() {
 	L_v=$*
 	L_v=${L_v//\\/\\\\}
@@ -2088,7 +2088,7 @@ L_str_split() {
 			c) _L_comments=1 ;;
 			A) _L_ansic1="" _L_ansic2="" ;;
 			q) _L_q=1 ;;
-			*) echo "invalid option: -$OPTARG" 1>&2; return 1 ;;
+			*) echo "invalid option: -${OPTARG:-}" 1>&2; return 1 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
