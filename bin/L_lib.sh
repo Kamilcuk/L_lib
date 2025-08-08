@@ -3952,55 +3952,98 @@ _L_FINALLY_INIT=""
 # @arg $1 The trap signal name to handle. POP has a special value to pop last registered action.
 # @arg [$2] position in stack relative to current of the caller
 _L_finally() {
-  local _L_i _L_signal="${1:-$BASH_TRAPSIG}" _L_up="${2:-0}" _L_pid
-  L_bashpid_to _L_pid
-  for ((_L_i = ${#_L_FINALLY[@]} - 1; _L_i >= 0; --_L_i)); do
-    # If the signal is POP, or if the signal matches signales in _L_FINALLY list.
-    if [[ "$_L_signal" == "POP" || " ${_L_FINALLY[_L_i]%%,*} " == *" $_L_signal "* ]]; then
-      # Extract elements from _L_FINALLY
-      local -a _L_e="(${_L_FINALLY[_L_i]#*,})"
-      # We are only interested in executed in the current process.
-      if [[ "${_L_e[0]}" != "$_L_pid" ]]; then
-        # We can forget about them, they will never execute and we can't affect parents.
-        unset "_L_FINALLY[$_L_i]"
-        continue
-      fi
-      # If executing on RETURN trap, the register and caller have to be the same.
-      if [[ "$_L_signal" == "RETURN" || "$_L_signal" == "POP" ]]; then
-        if [[ "${_L_e[1]}:${_L_e[2]}" != "${BASH_SOURCE[0+_L_up]}:${FUNCNAME[1+_L_up]}" ]]; then
-          continue
-        fi
-      fi
-      # Remove the script from the array after execution. Execute only once.
-      # This is done before executing, just in case user wants to execute return.
-      unset "_L_FINALLY[$_L_i]"
-      # Finally, execute the user action.
-    	"${_L_e[@]:3}"
-      # On POP action, return after handling only one action.
-      if [[ "$_L_signal" == "POP" ]]; then
-        return
-      fi
-    fi
-  done
+	# Fast exit in case of return from functions used by _L_finally. Do not to pollute set -x and for speed.
+  if [[ ! "${1:-$BASH_TRAPSIG}:${FUNCNAME[1+${2:-0}]}" =~ ^RETURN:(_L_finally|L_finally|L_bashpid_to) ]]; then
+  	local _L_signal="${1:-$BASH_TRAPSIG}" _L_up="${2:-0}" _L_i _L_pid _L_returns=0
+  	L_bashpid_to _L_pid
+  	for ((_L_i = ${#_L_FINALLY[@]} - 1; _L_i >= 0; --_L_i)); do
+    	# If the signal is POP, or if the signal matches signals in _L_FINALLY list.
+    	if [[ "$_L_signal" == "POP" || " ${_L_FINALLY[_L_i]%%,*} " == *" $_L_signal "* ]]; then
+      	# Extract elements from _L_FINALLY
+      	local -a _L_e="(${_L_FINALLY[_L_i]#*,})"
+      	# We are only interested in executed in the current process.
+      	if [[ "${_L_e[0]}" != "$_L_pid" ]]; then
+        	# We can forget about them, they will never execute and we can't affect parents.
+        	unset "_L_FINALLY[$_L_i]"
+        	continue
+      	fi
+      	# If executing on RETURN trap, the register and caller have to be the same.
+      	if [[ "$_L_signal" == "RETURN" || "$_L_signal" == "POP" ]]; then
+        	if [[ "${_L_e[1]}:${_L_e[2]}" != "${BASH_SOURCE[0+_L_up]}:${FUNCNAME[1+_L_up]}" ]]; then
+          	continue
+        	elif [[ "$_L_signal" == "RETURN" ]]; then
+        		_L_returns+=$((_L_returns+1))
+        	fi
+      	fi
+      	# Remove the script from the array after execution. Execute only once.
+      	# This is done before executing, just in case user wants to execute return.
+      	unset "_L_FINALLY[$_L_i]"
+      	# Finally, execute the user action.
+    		"${_L_e[@]:3}"
+      	# On POP action, return after handling only one action.
+      	if [[ "$_L_signal" == "POP" ]]; then
+        	return
+      	fi
+    	fi
+  	done
+  	#
+  	if [[ "$_L_signal" == "RETURN" ]] && ((_L_returns == 0)); then
+  		# We no longer need to trap return after we handled it and there are no more RETURN traps.
+  		# Do not pollute set -x ouptut.
+  		_L_FINALLY_INIT=${_L_FINALLY_INIT//" RETURN"}
+  		trap RETURN
+  	fi
+  	if [[ " 1 2 3 13 15 " == *" $_L_signal "* ]]; then
+  		# https://www.cons.org/cracauer/sigint.html
+  		_L_FINALLY_INIT=${_L_FINALLY_INIT//" $_L_signal"}
+  		trap "$_L_signal"
+  		kill -"$_L_signal" "$_L_pid"
+  	fi
+  fi
 }
 
 # @description Register an action to be executed upon termination.
-# @option -r Set -o functrace and register the action to be executed on RETURN trap.
-#            Effectively this will execute the action on return from current function.
+# The action will be executed only exactly once. Before execution it is removed from the list.
+# Use `$BASH_TRAPSIG` to get the signal used to execute the action.
+# @option -r Set -o functrace and additionally register the action to be executed on RETURN trap.
+#            This will execute the action on return from current function.
 # @option -s <int> The RETURN trap handler will execute the action only if called from
 #            the nth position in the stack relative to the current position. (default: 0)
 # @option -l Add action to be executed last, not first of the stack.
 #            Do not use L_finally_pop after it.
+# @option -n <sigs...> Execute the trap on this space separated list of signals.
+#            Signals can be numbers or names, they are converted to numbers internally.
+#            By default executes on EXIT SIGHUP SIGINT SIGQUIT SIGPIPE SIGTERM
 # @arg $@ Command to execute.
-# The command may not be return. It will just return from the handler function.
+# The command may not call `eval 'return'`. It would just return from the handler function.
 # @see L_finally_pop
+# @example
+#    tmpf=$(mktemp)
+#    L_finally rm "$tmpf"
+#
+#    calculate_something() {
+#       local tmpf
+#       tmpf=$(mktemp)
+#       L_finally -r rm "$tmpf"
+#       echo use tmpf >"$tmpf"
+#       # tmpf automatically cleaned up once on RETURN or EXIT or signal, whichever comes first.
+#    }
 L_finally() {
-  local trap i L_v signals=(EXIT SIGINT SIGTERM) IFS=' ' OPTIND OPTARG OPTERR up=0 last=0
-  while getopts rs:l i; do
+	# signals=(EXIT SIGHUP SIGINT SIGQUIT SIGPIPE SIGTERM)
+  local trapv i L_v signals=(0 1 2 3 13 15) IFS=' ' OPTIND OPTARG OPTERR up=0 last=0
+  while getopts rs:ln: i; do
     case "$i" in
-    r) signals+=(RETURN); set -o functrace;;
+    r) signals+=(RETURN); set -o functrace ;;
     s) up=$OPTARG ;;
     l) last=1 ;;
+    n)
+    	IFS=$' \t\n' read -r -a i <<<$OPTARG
+    	signals=()
+    	for i in "${i[@]}"; do
+    		L_trap_to_number -v i "$i"
+    		signals+=("$i")
+    	done
+    	;;
     *) L_assert "${FUNCNAME[0]}: Unknown option: $OPTARG $OPTERR $i" false;;
     esac
   done
@@ -4027,8 +4070,8 @@ L_finally() {
   fi
   for i in "${signals[@]}"; do
      if [[ "$_L_FINALLY_INIT " != *" $i "* ]]; then
-      if trap="$(trap -p "$i")"; then
-        if [[ "$trap" != *" _L_finally $i 0 "* ]]; then
+      if trapv="$(trap -p "$i")"; then
+        if [[ "$trapv" != *" _L_finally $i 0 "* ]]; then
           # This appends to the current value of trap.
           # Potentially something can be preserved in the trap values.
           L_trap_push " _L_finally $i 0 " "$i"
