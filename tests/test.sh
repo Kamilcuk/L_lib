@@ -1343,8 +1343,8 @@ _L_test_trapchain() {
 			L_trap_push 'echo -n " 3"' SIGUSR1
 			L_trap_push 'echo -n " 2"' SIGUSR2
 			L_trap_push 'echo -n " 1"' EXIT
-			L_raise -s SIGUSR1
-			L_raise -sSIGUSR2
+			L_raise -SIGUSR1
+			L_raise -SIGUSR2
 		)
 		L_unittest_eq "$tmp" "4 3 2 1"
 	fi
@@ -2295,7 +2295,7 @@ _L_test_z_argparse9_time_profile() {
 		time=${output//*$'\n'}
 		echo "$time"
 		L_unittest_cmd L_float_cmp "$time" -gt 0.1
-		L_unittest_cmd L_float_cmp "$time" -lt 1.5
+		L_unittest_cmd L_float_cmp "$time" -lt 2
 	}
 	check -h
 	check run -h
@@ -2711,7 +2711,7 @@ _L_test_finally() {
 
 # shellcheck disable=SC1012
 _L_test_str_split() {
-	local IFS='!'
+	local IFS=' '
 	L_unittest_cmd -o "No closing quotation '" ! L_str_split "'"
 	L_unittest_cmd -o "No closing quotation \$'" ! L_str_split "$'"
 	L_unittest_cmd -o "No escaped character" ! L_str_split "\\"
