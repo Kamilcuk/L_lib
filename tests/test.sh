@@ -2756,6 +2756,10 @@ EOF
 	)"
 }
 
+_L_test_self_contained() {
+	"$(dirname "$0")"/./self_contained.sh
+}
+
 ###############################################################################
 
 _L_get_all_variables() {
