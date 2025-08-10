@@ -549,7 +549,23 @@ L_regex_match() { [[ "$1" =~ $2 ]]; }
 # @option -v <var> variable to set
 # @arg $@ string to escape
 L_regex_escape() { L_handle_v_scalar "$@"; }
-L_regex_escape_v() { L_v=${*//?/[&]}; }
+L_regex_escape_v() {
+	# ., +, *, ?, ^, $, (, ), [, ], {, }, |, \
+	L_v=${*//\\/\\\\}
+	L_v=${L_v//\./\\\.}
+	L_v=${L_v//\+/\\\+}
+	L_v=${L_v//\*/\\\*}
+	L_v=${L_v//\?/\\\?}
+	L_v=${L_v//\^/\\\^}
+	L_v=${L_v//\$/\\\$}
+	L_v=${L_v//\(/\\\(}
+	L_v=${L_v//\)/\\\)}
+	L_v=${L_v//\[/\\\]}
+	L_v=${L_v//\]/\\\[}
+	L_v=${L_v//\{/\\\{}
+	L_v=${L_v//\}/\\\}}
+	L_v=${L_v//\|/\\\|}
+}
 
 # @description Get all matches of a regex to an array.
 # @option -v <var> variable to set
