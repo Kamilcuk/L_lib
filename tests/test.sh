@@ -392,7 +392,7 @@ _L_test_json_escape() {
 	{
 		if L_hash jq; then
 			t() {
-				local tmp
+				local tmp out
 				L_json_escape -v tmp "$1"
 				# L_log "JSON ${tmp@Q}"
 				out=$(echo "{\"v\":$tmp}" | jq -r .v)
@@ -1324,6 +1324,44 @@ _L_test_trapchain() {
 		L_unittest_eq "$tmp" SIGRTMIN+5
 		L_trap_to_number -v tmp SIGRTMAX-5
 		L_unittest_eq "$tmp" 59
+		L_trap_to_number -v tmp SIGRTMAX
+		L_unittest_eq "$tmp" 64
+		L_trap_names -v tmp
+		local tmp2
+		for tmp in "${tmp[@]}"; do
+			L_unittest_cmd -c L_trap_to_number -v tmp2 "$tmp"
+			L_unittest_cmd -c L_trap_to_name -v tmp2 "$tmp2"
+			L_unittest_eq "$tmp" "$tmp2"
+			if [[ "$tmp" == SIG* ]]; then
+				tmp=${tmp#SIG}
+				L_unittest_cmd -c L_trap_to_number -v tmp2 "$tmp"
+				L_unittest_cmd -c L_trap_to_name -v tmp2 "$tmp2"
+				L_unittest_eq "SIG$tmp" "$tmp2"
+			fi
+		done
+	}
+	{
+		L_unittest_cmd -o ERR L_trap_to_name ERR
+		L_unittest_cmd -o DEBUG L_trap_to_name DEBUG
+		L_unittest_cmd -o RETURN L_trap_to_name RETURN
+		L_unittest_cmd -o EXIT L_trap_to_name EXIT
+		L_unittest_cmd -o SIGHUP L_trap_to_name HUP
+		L_unittest_cmd -o SIGINT L_trap_to_name INT
+		L_unittest_cmd -o SIGINT L_trap_to_name SIGINT
+		L_unittest_cmd -o SIGINT L_trap_to_name 2
+		L_unittest_cmd ! L_trap_to_name 123
+		L_unittest_cmd ! L_trap_to_name ""
+		L_unittest_cmd ! L_trap_to_name WRONG
+		#
+		L_unittest_cmd -o 2 L_trap_to_number INT
+		L_unittest_cmd -o 2 L_trap_to_number 2
+		L_unittest_cmd -o 2 L_trap_to_number SIGINT
+		L_unittest_cmd L_trap_to_number RETURN
+		L_unittest_cmd L_trap_to_number DEBUG
+		L_unittest_cmd L_trap_to_number ERR
+		L_unittest_cmd ! L_trap_to_number ""
+		L_unittest_cmd ! L_trap_to_number 123
+		L_unittest_cmd ! L_trap_to_number WRONG
 	}
 	{
 		L_log "test L_trapchain"
@@ -2611,12 +2649,46 @@ _L_test_traceback_test() {
 }
 
 _L_test_quoted_maths() {
-	L_unittest_cmd ! grep -n 'shift $((' $L_LIB_SCRIPT
-	L_unittest_cmd ! grep -n 'return $((' $L_LIB_SCRIPT
-	L_unittest_cmd ! grep -n 'return $?' $L_LIB_SCRIPT
-	L_unittest_cmd ! grep -n 'test $? ' $L_LIB_SCRIPT
-	L_unittest_cmd ! grep -n 'test $# ' $L_LIB_SCRIPT
-	# L_unittest_cmd ! grep -n 'L_unittest_eq \"${.*[\*]}\"' $L_LIB_SCRIPT
+	L_unittest_cmd ! grep -n 'shift $((' "$L_LIB_SCRIPT"
+	L_unittest_cmd ! grep -n 'return $((' "$L_LIB_SCRIPT"
+	L_unittest_cmd ! grep -n 'return $?' "$L_LIB_SCRIPT"
+	L_unittest_cmd ! grep -n 'test $? ' "$L_LIB_SCRIPT"
+	L_unittest_cmd ! grep -n 'test $# ' "$L_LIB_SCRIPT"
+	# L_unittest_cmd ! grep -n 'L_unittest_eq \"${.*[\*]}\"' "$L_LIB_SCRIPT"
+}
+
+_L_test_bashpid() {
+	check() {
+		shouldbe=$(pstree -p $$)
+		shouldbe=${shouldbe%---*}
+		is="bash($1)---bash($2)---bash($3)"
+		L_unittest_cmd L_glob_match "$shouldbe" "*$is*"
+	}
+	#
+	(
+		L_bashpid_to a
+		(
+			L_bashpid_to b
+			(
+				L_bashpid_to c
+				L_bashpid_to d
+				L_unittest_eq "$c" "$d"
+				check "$a" "$b" "$c"
+			)
+			(
+				L_bashpid_to c
+				check "$a" "$b" "$c"
+			)
+		)
+		(
+			L_bashpid_to b
+			(
+				L_bashpid_to c
+				check "$a" "$b" "$c"
+			)
+		)
+	)
+	unset -f check
 }
 
 _L_test_finally() {
