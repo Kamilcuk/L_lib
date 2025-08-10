@@ -14,23 +14,44 @@ For every argument that is a bash script collect measurements and present them i
 Pass script arguments as an option to --compare option. Example: --compare arg1 --compare arg2 -- 'test -e \$1' 'ls -A \$1'
 " \
   -- -p --perfargs action=append help="additoinal perf arguments" \
+  -- -d --diff flag=1 help="Show difference scripts execution instructions and times" \
   -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
   ---- "$@"
 #
-if ((${#compare[@]})); then
+extract_from_run() {
+  local args i
   args=(${repeat+-r"$repeat"} "${binaries[@]/#/-b}")
   for i in $(seq $verbose); do
     args+=(-v)
   done
+  #
+  ret=0
+  out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$@") || ret=$?
+  instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$out")
+  seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$out")
+  seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$out")
+  seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$out")
+}
+#
+if ((diff)); then
+  extract_from_run ''
+  # echo "$out"
+  for c in "${command[@]}"; do
+    instructions_empty=$instructions
+    seconds_time_elapsed_empty=$seconds_time_elapsed
+    extract_from_run "$c"
+    echo "$out" | sed '/^$/d'
+    printf "%+18d""    instructions diff to previous\n" "$((instructions - instructions_empty))"
+    printf "%+18.7f    elapsed seconds diff to previous\n" "$( bc -l <<<"$seconds_time_elapsed - $seconds_time_elapsed_empty" )"
+  done
+  exit "$ret"
+fi
+#
+if ((${#compare[@]})); then
   for arg in "${compare[@]}"; do
     partresult=""
     for script in "${command[@]}"; do
-      ret=0
-      out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$script" bash "$arg") || ret=$?
-      instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$out")
-      seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$out")
-      seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$out")
-      seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$out")
+      extract_from_run "$script" bash "$arg"
       partresult+="\`$script\`$L_RS$arg$L_RS$ret$L_RS$instructions$L_RS$seconds_time_elapsed ± $seconds_time_elapsed_dev ($seconds_time_elapsed_percent)$L_RS"$'\n'
     done
     result+=$(sort -t "$L_RS" -k 4 -n <<<"$partresult")
