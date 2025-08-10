@@ -866,7 +866,11 @@ fi
 
 # @description Send signal to itself.
 # @arg $@ Kill arguments. See kill --help.
-L_raise() { kill "$@" "${BASHPID:-$$}"; }
+L_raise() {
+	local pid
+	L_bashpid_to pid
+	kill "$@" "$pid"
+}
 
 # @description Wrapper function for handling -v arguments to other functions.
 # It calls a function called `<caller>_v` with arguments, but without `-v <var>`.
