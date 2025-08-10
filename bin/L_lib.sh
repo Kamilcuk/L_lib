@@ -1242,7 +1242,7 @@ L_exit_to_1unset() {
 	if "${@:2}"; then
 		printf -v "$1" "1"
 	else
-		unset "$1"
+		unset -v "$1"
 	fi
 }
 
@@ -2293,7 +2293,7 @@ L_array_pop_front() { local -n _L_arr="$1"; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"
 # @description Remove last array element.
 # @arg $1 <var> array nameref
 # @example L_array_pop_back arr
-L_array_pop_back() { local -n _L_arr="$1"; unset "_L_arr[${#_L_arr[@]}-1]"; }
+L_array_pop_back() { local -n _L_arr="$1"; unset -v "_L_arr[${#_L_arr[@]}-1]"; }
 
 # @description Return success, if all array elements are in sequence from 0.
 # @arg $1 <var> array nameref
@@ -2316,7 +2316,7 @@ else  # L_HAS_NAMEREF
 		L_assert '' L_is_valid_variable_name "$1";
 		eval "$1=(\${$1[@]+\"\${$1[@]:1}\"})";
 	}
-	L_array_pop_back() { L_assert '' L_is_valid_variable_name "$1"; eval "unset \"$1[\${#$1[@]}-1]\""; }
+	L_array_pop_back() { L_assert '' L_is_valid_variable_name "$1"; eval "unset -v \"$1[\${#$1[@]}-1]\""; }
 	L_array_is_dense() {
 		L_assert '' L_is_valid_variable_name "$1"
 		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
@@ -2392,7 +2392,7 @@ L_array_read() {
 		done
 		if [[ -z "$_L_d" ]]; then
 			while IFS= "${_L_read[@]}" -d '' "$1[$((_L_i++))]"; do :; done
-			unset "$1[$((_L_i-1))]"
+			unset -v "$1[$((_L_i-1))]"
 		elif ((!L_HAS_BASH4_0)); then
 			IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1" || :
 		else
@@ -2417,7 +2417,7 @@ L_array_pipe() {
 			mapfile -d '' -t "$_L_arr"
 		else
 			while IFS= read -d '' -r "$_L_arr[$((_L_i++))]"; do :; done
-			unset "$_L_arr[$((_L_i-1))]"
+			unset -v "$_L_arr[$((_L_i-1))]"
 		fi < <(
 			printf ""${!_L_arrpnt:+"%s\0"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:3}"
 		)
@@ -2463,7 +2463,7 @@ L_array_filter_eval() {
 	for ((L_i = ${#_L_array[@]} - 1; L_i >= 0; --L_i )); do
 		set -- "${_L_array[L_i]}"
 		if ! eval "$_L_expr"; then
-			unset "_L_array[$L_i]"
+			unset -v "_L_array[$L_i]"
 		fi
 	done
 	eval "${_L_v%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
@@ -6811,10 +6811,10 @@ _L_argparse_spec_parse_args() {
 			# Handle case if there already exists -h or --help options.
 			local _L_tmp=("${L_argparse_template_help[@]}")
 			if [[ " ${_L_parser__optionlookup[_L_parseri]:-} " == *" --help="* ]]; then
-				unset '_L_tmp[1]'
+				unset -v '_L_tmp[1]'
 			fi
 			if [[ " ${_L_parser__optionslookup[_L_parseri]:-} " == *" -h="* ]]; then
-				unset '_L_tmp[0]'
+				unset -v '_L_tmp[0]'
 			fi
 			if [[ -n "${_L_tmp[0]:-}${_L_tmp[1]:-}" ]]; then
 				((++_L_opti))
@@ -6999,7 +6999,7 @@ L_argparse() {
 	_L_argparse_spec_parse_args || return 2
 	# After parsing, restore the indexes.
 	_L_parseri=$_L_parsercur
-	unset _L_parsercur
+	unset -v _L_parsercur
 	_L_optcnt=$_L_opti
 	#
 	if [[ "${_L_args[_L_argsi++]:-}" != "----" ]]; then
@@ -7120,7 +7120,7 @@ L_argparse() {
 		# If L_argparse finished, dissallow nesting. Explicitly unset parent(!) scope _L_parseri.
 		# The variables are still set, as we can be "inside" a function chain.
 		# main -> L_argparse -> somefunction() { L_argparse; <here should be no nesting> }
-		unset _L_parseri
+		unset -v _L_parseri
 	}
 }
 
@@ -7584,8 +7584,8 @@ L_read_fds() {
 			else
 				# other error - remove fd
 				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
-				unset "_L_fds[_L_i]"
-				unset "_L_vars[_L_i]"
+				unset -v "_L_fds[_L_i]"
+				unset -v "_L_vars[_L_i]"
 			fi
 		done
 	done
@@ -7826,7 +7826,7 @@ _L_lib_main_cmd() {
 	esac
 	shift
 	if L_function_exists "L_cb_parse_args"; then
-		unset L_cb_args
+		unset -v L_cb_args
 		L_cb_parse_args "$@"
 		if ! L_var_is_set L_cb_args; then L_error "L_cb_parse_args did not return L_cb_args array"; fi
 		# shellcheck disable=2154
