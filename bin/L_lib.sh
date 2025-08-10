@@ -644,15 +644,30 @@ L_not() { ! "$@"; }
 # @arg $1 <int> integer to return
 L_return() { return "$1"; }
 
+# @description Runs the command with extglob restoring the option after return.
+# @arg $@ Command to execute
+L_shopt_extglob() {
+	if shopt -p extglob >/dev/null; then
+		"$@"
+	else
+		shopt -s exglob
+		if "$@"; then
+			shopt -u extglob
+		else
+			eval "shopt -u extglob; return \"$?\""
+		fi
+	fi
+}
+
 if ((L_HAS_LOCAL_DASH)); then
-# @description Runs the command under set -x.
+# @description Runs the command under set -x restoring the setting after return.
 # @arg $@ Command to execute
 L_setx() {
 	local -
 	set -x
 	"$@"
 }
-# @description Runs the command under set +x.
+# @description Runs the command under set +x restoring the setting after return.
 # @arg $@ Command to execute
 # @see L_setx
 L_unsetx() {
@@ -662,26 +677,27 @@ L_unsetx() {
 }
 else
 	L_setx() {
-		# shellcheck disable=SC2155
-		local _L_setx="$(shopt -po xtrace || :)"
-		set -x
-		if "$@"; then
-			eval "$_L_setx"
+		if shopt -po xtrace >/dev/null; then
+			"$@"
 		else
-			local _L_setx_r="$?"
-			eval "$_L_setx"
-			return "$_L_setx_r"
+			set -x
+			if "$@"; then
+				set +x
+			else
+				eval "set +x; return \"$?\""
+			fi
 		fi
 	}
 	L_unsetx() {
-		# shellcheck disable=SC2155
-		local _L_setx="$(shopt -po xtrace || :)"
-		if "$@"; then
-			eval "$_L_setx"
+		if shopt -po xtrace >/dev/null; then
+			set +x
+			if "$@"; then
+				set -x
+			else
+				eval "set -x; return \"$?\""
+			fi
 		else
-			local _L_setx_r="$?"
-			eval "$_L_setx"
-			return "$_L_setx_r"
+			"$@"
 		fi
 	}
 fi
@@ -704,12 +720,9 @@ if ((L_HAS_EXTGLOB_IN_TESTTEST)); then
 # @see L_glob_match
 L_extglob_match() { [[ "$1" == $2 ]]; }
 else
-	# shellcheck disable=SC2053,SC2064
-	L_extglob_match() {
-		trap "$(shopt -p extglob || :)" RETURN
-		shopt -s extglob
-		[[ "$1" == $2 ]]
-	}
+	L_extglob_match() { L_shopt_extglob _L_extglob_match_in "$@"; }
+	# shellcheck disable=SC2053
+	_L_extglob_match_in() { [[ "$1" == $2 ]]; }
 fi
 
 # @description Produce a string that is a glob escaped version of the input.
@@ -1312,19 +1325,9 @@ L_is_absolute() { [[ "${1::1}" == / ]]; }
 # @description Replace multiple slashes by one slash.
 # @option -v <var> var
 # @arg $1 path
-L_normalize_path() { L_handle_v_scalar "$@"; }
+L_normalize_path() { L_shopt_extglob L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2064
-L_normalize_path_v() {
-	trap "$(shopt -p extglob || :)" RETURN
-	shopt -s extglob
-	L_v=${1//+(\/)/\/}
-}
-# L_normalize_path_v() {
-# 	L_v=$1
-# 	while [[ "$L_v" == *"//"* ]]; do
-# 		L_v=${L_v//\/\//\/}
-# 	done
-# }
+L_normalize_path_v() { L_v=${1//\/+(\/)/\/}; }
 
 # @description Compute a version of the original path relative to the path represented by other path.
 # @option -v <var> var
@@ -5962,10 +5965,8 @@ L_argparse_compgen() {
 	fi
 	if [[ -n "${desc:-}" ]]; then
 		# shellcheck disable=SC2064
-		trap "$(shopt -p extglob || :)" RETURN
-		shopt -s extglob
 		# replace multiple spaces with one space and remove leading/trailing spaces
-		desc="${desc//+([$L_GS[:space:]])/ }"
+		L_shopt_extglob eval 'desc="${desc//+([$L_GS[:space:]])/ }"'
 		L_strip -v desc "$desc"
 	fi
 	shift "$((OPTIND - 1))"
