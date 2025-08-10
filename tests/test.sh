@@ -2762,17 +2762,17 @@ _L_test_self_contained() {
 
 ###############################################################################
 
-_L_get_all_variables() {
+get_all_variables() {
 	unset SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
 	unset L_v IFS LC_ALL _L_TRAP_L
-	declare -p | grep -Ev "^declare (-a|-r|-ar|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID)="
 }
 
 . "$(dirname "$0")"/../bin/L_lib.sh
 
-VARIABLES_BEFORE=$(_L_get_all_variables)
+VARIABLES_BEFORE=$(get_all_variables)
 
 . "$(dirname "$0")"/../bin/L_lib.sh test "$@"
 
 # Check for any new variables.
-diff -biw - <<<"$VARIABLES_BEFORE" <(_L_get_all_variables) | sed -n 's/^> /+ /p' || :
+diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
