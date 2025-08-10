@@ -2692,6 +2692,7 @@ _L_test_bashpid() {
 }
 
 _L_test_finally() {
+	L_finally -r L_log 'Testing L_finally DONE'
 	{
 		func() {
 			L_finally -r echo "$L_UUID"
@@ -2702,24 +2703,62 @@ _L_test_finally() {
 		func() {
 			L_finally -r echo world
 			L_finally -r echo -n 'Hello '
+			# L_finally_list >&2
 		}
 		L_unittest_cmd -o "Hello world" func
 	}
 	{
+		L_info "Test inner RETURN finaly works"
+		func_very_inner() {
+			L_finally -r printf 1
+		}
+		func_inner() {
+			L_finally -r printf 2
+			func_very_inner
+		}
+		func_outer() {
+			L_finally -r printf 3
+			func_inner
+		}
+		L_unittest_cmd -o 123 func_outer
+	}
+	{
 		L_info "Test that L_finally_pop only affects current scope"
-		func2() {
+		func() {
+			L_finally -r printf 3
+			printf 1
+			( L_finally_pop )
+			printf 2
+			L_finally_pop
+		}
+		L_unittest_cmd -o 123 func
+		#
+		func_inner() {
+			L_finally_pop
+			( L_finally_pop )
+		}
+		func_outer() {
+			L_finally -r printf 3
+			printf 1
+			func_inner
+			printf 2
+			L_finally_pop
+		}
+		L_unittest_cmd -o 123 func_outer
+		#
+		func_inner() {
 			L_finally_pop
 			( L_finally_pop )
 			L_finally -r printf 2
 		}
-		func() {
+		func_outer() {
 			L_finally -r printf 4
 			printf 1
-			func2
+			func_inner
 			( L_finally_pop )
 			printf 3
 		}
-		L_unittest_cmd -o 1234 func
+		L_unittest_cmd -o 1234 func_outer
 	}
 	{
 		L_info "Test L_finally_pop works"
@@ -2771,14 +2810,88 @@ _L_test_finally() {
 		L_unittest_cmd -e 234 -o 12 func
 	}
 	{
-		L_info "Test signal is ok"
-		func() (
-			L_finally printf 2
-			printf 1
-			L_raise
-		)
-		L_unittest_cmd -o "12" func
+		L_info "Test exit is ok"
+		func() {
+			(
+				L_finally printf 2
+				printf 1
+				exit 234
+			)
+		}
+		L_unittest_cmd -o "12" -e 234 func
 	}
+	{
+		L_info "Test signal is ok"
+		func() {
+			(
+				L_finally printf 2
+				printf 1
+				# L_unsetx L_finally_list >&2
+				L_raise -"$1"
+			)
+		}
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) func INT
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
+	}
+	{
+		L_info "test different signals"
+		func() {
+			L_finally -r printf 'RETURN '
+			(
+				L_finally -r -n RETURN printf 'WILL_NEVER_EXECUTE '
+				L_finally -1 -t -n EXIT echo -n 'EXIT '
+				L_finally -1 -t -n INT echo -n 'INT '
+				L_finally -1 -t -n TERM echo -n 'TERM '
+				L_finally -1 -t -n 'EXIT USR1' echo -n 'EXIT_USR1 '
+				L_finally -l -1 -t -n 'EXIT USR2' echo -n 'EXIT_USR2 '
+				# L_unsetx L_finally_list >&2
+				L_raise -"$1"
+			)
+		}
+		L_unittest_cmd -o 'INT EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number INT) )) func INT
+		L_unittest_cmd -o 'TERM EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
+		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
+		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number USR1) )) func USR1
+	}
+	{
+		L_info "test custom handler"
+		func() {
+			(
+				L_finally echo 'EXIT'
+				L_finally -n USR1 echo -n 'USR1 '
+				L_finally -n USR2 echo -n 'USR2 '
+				L_finally -n HUP echo -n 'HUP '
+				L_finally -n INT echo -n 'INT '
+				set -x
+				L_raise -USR2
+				L_raise -INT
+				L_raise -HUP
+				L_raise -USR1
+				L_raise -HUP
+				L_raise -USR1
+				L_raise -USR2
+				L_raise -INT
+				L_raise
+			)
+		}
+		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e $((128 + $(L_trap_to_number TERM) )) func
+	}
+	{
+		L_info "test command substition"
+		func() {
+			L_finally -r printf 4
+			L_finally printf 5
+			a=$(
+				L_finally printf 3
+				L_finally printf 2
+			)
+			L_finally -r printf "%s" "$a"
+			L_finally -r printf 1
+		}
+		L_unittest_cmd -o 12345 func
+	}
+}
 
 _L_test_unset() {
 	# every unset must be followed by -f or -v
