@@ -2707,6 +2707,10 @@ _L_test_finally() {
 		)
 		L_unittest_cmd -o "12" func
 	}
+
+_L_test_unset() {
+	# every unset must be followed by -f or -v
+	! grep 'unset -[^fv]' "$L_LIB_SCRIPT"
 }
 
 # shellcheck disable=SC1012
