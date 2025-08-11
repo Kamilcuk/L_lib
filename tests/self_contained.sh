@@ -7,6 +7,7 @@ $(compgen -A function -- L_)
 all_functions="$functions
 L_cb_parse_args
 L_cb_usage
+L_asa_set
 "
 work() {
   func="$1"
