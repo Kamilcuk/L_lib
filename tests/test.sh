@@ -2692,7 +2692,7 @@ _L_test_bashpid() {
 }
 
 _L_test_finally() {
-	L_finally -r L_log 'Testing L_finally DONE'
+	L_finally -r L_log 'Test finally done'
 	{
 		func() {
 			L_finally -r echo "$L_UUID"
@@ -2703,7 +2703,15 @@ _L_test_finally() {
 		func() {
 			L_finally -r echo world
 			L_finally -r echo -n 'Hello '
-			# L_finally_list >&2
+			L_finally_list >&2
+		}
+		L_unittest_cmd -o "Hello world" func
+	}
+	{
+		func() {
+			L_finally echo world
+			L_finally -r echo -n 'Hello '
+			L_finally_list >&2
 		}
 		L_unittest_cmd -o "Hello world" func
 	}
@@ -2723,7 +2731,20 @@ _L_test_finally() {
 		L_unittest_cmd -o 123 func_outer
 	}
 	{
-		L_info "Test that L_finally_pop only affects current scope"
+		L_info "Test L_finally_pop works"
+		func() {
+			L_finally echo -n 2
+			echo -n 1
+			L_finally_pop
+			echo -n 3
+			L_finally_pop
+			echo -n 4
+			L_finally_pop
+		}
+		L_unittest_cmd -o "1234" func
+	}
+	{
+		L_info "Test that L_finally_pop not afects subshells"
 		func() {
 			L_finally -r printf 3
 			printf 1
@@ -2738,10 +2759,10 @@ _L_test_finally() {
 			( L_finally_pop )
 		}
 		func_outer() {
-			L_finally -r printf 3
+			L_finally -r printf 2
 			printf 1
 			func_inner
-			printf 2
+			printf 3
 			L_finally_pop
 		}
 		L_unittest_cmd -o 123 func_outer
@@ -2749,29 +2770,17 @@ _L_test_finally() {
 		func_inner() {
 			L_finally_pop
 			( L_finally_pop )
-			L_finally -r printf 2
+			L_finally -r printf 3
 		}
 		func_outer() {
-			L_finally -r printf 4
+			L_finally printf 5
+			L_finally -r printf 2
 			printf 1
 			func_inner
 			( L_finally_pop )
-			printf 3
+			printf 4
 		}
-		L_unittest_cmd -o 1234 func_outer
-	}
-	{
-		L_info "Test L_finally_pop works"
-		func() {
-			L_finally echo -n 2
-			echo -n 1
-			L_finally_pop
-			echo -n 3
-			L_finally_pop
-			echo -n 4
-			L_finally_pop
-		}
-		L_unittest_cmd -o "1234" func
+		L_unittest_cmd -o 12345 func_outer
 	}
 	{
 		L_info "Test exit is ok"
@@ -2863,7 +2872,7 @@ _L_test_finally() {
 				L_finally -n USR2 echo -n 'USR2 '
 				L_finally -n HUP echo -n 'HUP '
 				L_finally -n INT echo -n 'INT '
-				set -x
+				# set -x
 				L_raise -USR2
 				L_raise -INT
 				L_raise -HUP
@@ -2891,6 +2900,64 @@ _L_test_finally() {
 		}
 		L_unittest_cmd -o 12345 func
 	}
+	{
+		L_info "nested return ok"
+		a?*() {
+			L_finally -r printf "$1"
+		}
+		a*() {
+			L_finally -r printf "$1"
+			'a?*' "$2"
+		}
+		a.*() {
+			L_finally -r printf "$1"
+			'a*' "$2" "$3"
+		}
+		a() {
+			L_finally -r printf 4
+			'a.*' 3 2 1
+		}
+		L_unittest_cmd -o 1234 a
+		#
+		a?*() {
+			L_finally -r printf "$1"
+		}
+		a*() {
+			L_finally -r printf "$1"
+			'a?*' "$2"
+		}
+		a.*() {
+			L_finally -r printf "$1"
+			'a*' "$2" "$3"
+		}
+		a() {
+			L_finally -r printf 8
+			'a.*' 3 2 1
+			L_finally -r printf 7
+			'a.*' 6 5 4
+		}
+		L_unittest_cmd -o 12345678 a
+	}
+	{
+		L_info "test all signals"
+		func() {
+			(
+				L_finally echo EXIT
+				L_raise -"$1"
+			)
+		}
+		ulimit -c 0
+		local i
+		for i in $(L_trap_names); do
+			case "$i" in
+			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU) ;;
+			SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
+			SIGSTKFLT) ;;
+			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
+			esac
+		done
+	}
+	L_finally_list | grep L_log
 }
 
 _L_test_unset() {
@@ -2954,6 +3021,7 @@ _L_test_self_contained() {
 get_all_variables() {
 	unset SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
 	unset L_v IFS LC_ALL _L_TRAP_L
+	unset _L_finally_pid
 	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID)="
 }
 

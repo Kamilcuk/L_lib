@@ -3991,48 +3991,19 @@ L_trap_pop() {
 # @section finally
 
 # @description List of all signals that terminate.
-_L_FINALLY_TERM_SIGNALS="SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
+_L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
 if ((L_HAS_BASH5_0)); then
 	# Bash below 5.0 does not understand SIGRTMIN+15. No idea why. Other SIGRT work.
 	_L_FINALLY_TERM_SIGNALS+=" SIGRTMIN+15"
 fi
 
-# @description An array of group of elements.
-#
-# One group consists of 4 elements:
-# - space - separated list of signal numbers
-# - pid - of the process registering action
-# - BASH_SOURCE:FUNCNAME - of the function registering action
-# - 0/1 - is this action going to be executed multiple times?
-# - action... - quoted action to execute
-#
-# Example:
-# _L_finally_arr=(
-#   '0 1 2 3 13 15' 392491 ./tests/../bin/L_lib.sh:func 'printf 4'
-#   '0 1 2 3 13 15 RETURN' 392491 ./tests/../bin/L_lib.sh:func 'printf 1 2'
-# )
-#
-# Why from the back? Becuase I am removing elements from it during _L_finally.
-# Otherwise I would have to adjust the iterator each removal.
-_L_finally_arr=()
-
 # @description Array of one trap per line with indexes.
-_L_finally_traps=(
-	"
-'printf' '1' # ONCE
-'printf' '1' # MULTIPLE
-"
-[RETURN]="
-if _L_return_check ./tests/../bin/L_lib.sh:func; then 'printf' '1'; fi # ONCE
-"
-)
-_L_finally_traps[$L_SIGNAL]=${_L_finally_traps[$L_SIGNAL]//+([^\n]) # ONCE$'\n'/$'\n'}
+_L_finally_data=""
 
+# @description Space separated list of functions that have action regsitered on RETURN.
+_L_finally_return_functions=""
 
-# @description Regex of `|` separated function names to execute RETURN trap on.
-_L_finally_return_regex=""
-
-# @description Space separted list of BASHPID followed by signal numbers of initialized trap names.
+# @description BASHPID that registered traps.
 _L_finally_pid=""
 
 # @description Space separated list of signal names that do not terminate the program.
@@ -4043,99 +4014,78 @@ _L_finally_noterm_signals=""
 _L_finally_return() {
 	# Fast exit in case of return from functions used by _L_finally. Do not to pollute set -x and for speed.
 	# L_xargs is the only L_* function that uses it.
-  if [[ "RETURN:${FUNCNAME[${2:-0}+1]}" =~ ^RETURN:(${_L_finally_return_regex#|})$ ]]; then
-  	_L_finally RETURN "$((${1:-0}+1))"
+  if [[ " $_L_finally_return_functions " == *" ${FUNCNAME[${1:-0}+1]:- } "* ]]; then
+  	local _L_location _L_p='[^'$'\t\2'']*'
+  	printf -v _L_location "%q" "${BASH_SOURCE[${2:-0}]} ${FUNCNAME[${2:-0}+1]}"
+  	# L_regex_escape -v _L_location "$_L_location"
+  	_L_finally RETURN "$_L_location"
+  	if [[ ! "$_L_finally_data" =~ ^(.*$'\2')?$_L_p" RETURN "[^$'\2']*$'\2'.*$ ]]; then
+  		# We no longer need to trap return when there are no more RETURN traps.
+  		# Do not pollute set -x output.
+  		_L_finally_return_functions=""
+  		trap - RETURN
+  	fi
   fi
 }
 
 # @description L_finally signal handler.
 # @arg $1 The trap signal name to handle. POP has a special value to pop last registered action.
-# @arg [$2] Position in stack relative to current of the caller. Default: 0.
+# @arg [$2] Execution location.
 _L_finally() {
-  # L_unsetx L_finally_list
-  local L_SIGNAL="$1" _L_up="${2:-0}" _L_i=0 _L_pid _L_pending_return=0 _L_tmp
+  local L_SIGNAL="$1" _L_location="${2:-}" _L_i="$_L_finally_data" _L_pid _L_p='[^'$'\t\2'']*'
   L_bashpid_to _L_pid
-  while ((_L_i < ${#_L_finally_arr[@]})); do
-    # If the signal is POP, or if the signal matches signals in _L_finally_arr list.
-    if [[ " POP ${_L_finally_arr[_L_i]} " == *" $L_SIGNAL "* ]]; then
-      # Check if pid is ok.
-      if [[ "${_L_finally_arr[_L_i+1]}" == "$_L_pid" ]]; then
-      	if
-      		# If executing on POP or RETURN trap, the register and caller have to be the same place.
-      		if [[ " RETURN POP " == *" $L_SIGNAL "* ]]; then
-        		[[ "${_L_finally_arr[_L_i+2]}" == "${BASH_SOURCE[_L_up]}:${FUNCNAME[_L_up+1]}" ]]
-      		fi
-      		# When the if statment is false, the exit status of if is 0.
-      	then
-      		# Check for multiple flag.
-      		if ((_L_finally_arr[_L_i+3])); then
-      			eval "${_L_finally_arr[_L_i+4]}"
-      			# Increment the iterator.
-      			_L_i=$((_L_i+5))
-      		else
-      			# Extract the command, cause we remove the group below.
-    				_L_tmp="${_L_finally_arr[_L_i+4]}"
-      			# Remove the script from the array after execution. Execute only once.
-      			# This is done before executing, just in case user wants to execute return.
-        		_L_finally_arr=("${_L_finally_arr[@]::_L_i}" "${_L_finally_arr[@]:_L_i+5}")
-      			# Finally, execute the user action.
-      			eval "$_L_tmp"
-      		fi
-      		# On POP action, return after handling only one action.
-      		if [[ "$L_SIGNAL" == "POP" ]]; then
-        		return
-      		fi
-      	else
-      		# There is a pending RETURN trap registered in the array. POP case returns above.
-      		_L_pending_return=1
-      		# Increment the iterator.
-      		_L_i=$((_L_i+5))
-      	fi
-  		else
-  			# Pid is not ok.
-        # We can remote the group. It will never execute. It can't affect parents.
-        _L_finally_arr=("${_L_finally_arr[@]::_L_i}" "${_L_finally_arr[@]:_L_i+5}")
-    	fi
-    else
-    	# The signal is not handled by this group.
-      # Increment the iterator.
-      _L_i=$((_L_i+5))
-    fi
-  done
-  #
-  if [[ "$L_SIGNAL" == "RETURN" ]]; then
-  	if ((_L_pending_return == 0)); then
-  		# We no longer need to trap return when there are no more RETURN traps.
-  		# Do not pollute set -x output.
-  		_L_finally_return_regex=""
-  		trap - RETURN
+  if ((_L_finally_pid == _L_pid)); then
+		# L_unsetx L_finally_list >&2
+		_L_finally_data=""
+		while [[ "$_L_i" =~ ^(.*$'\2')?($_L_p" $L_SIGNAL "$_L_p$'\t'($_L_p)$'\t'"$_L_location"$_L_p$'\t'($_L_p)$'\2')(.*)$ ]]; do
+			#                  1         2                            3                                     4            5
+			# declare -p BASH_REMATCH
+			_L_finally_data=${BASH_REMATCH[3]:+${BASH_REMATCH[2]}}${BASH_REMATCH[5]}$_L_finally_data
+			_L_i=${BASH_REMATCH[1]}
+			eval "${BASH_REMATCH[4]}"
+			if [[ "$L_SIGNAL" == "POP" ]]; then
+				break
+			fi
+		done
+		_L_finally_data=$_L_i$_L_finally_data
+		# L_unsetx L_finally_list >&2
+		#
+  	if [[ " $_L_FINALLY_TERM_SIGNALS " == *" $L_SIGNAL "* && " $_L_finally_noterm_signals " != *" $L_SIGNAL "* ]]; then
+  		if
+  			((_L_pid != $$ && !L_HAS_BASH5_2)) ||
+  				[[ " SIGPROF SIGIO SIGPWR SIGPROF " == *" $L_SIGNAL "* ]] ||
+  				[[ "$L_SIGNAL" == SIGRT* ]]
+  		then
+  			# Call EXIT trap yourself when Bash doesn't.
+				_L_finally EXIT
+			fi
+  		if [[ "$L_SIGNAL" == "SIGQUIT" ]]; then
+  			# kill -SIGQUIT exits with 0 (??)
+  			exit 131
+  		fi
+  		# Properly preserve exit status for parent processes.
+  		# https://www.cons.org/cracauer/sigint.html
+  		trap - "$L_SIGNAL"
+  		# echo "${FUNCNAME[0]}: Killing myself: kill -$L_SIGNAL $_L_pid" >&2
+  		kill -"$L_SIGNAL" "$_L_pid"
   	fi
-  elif [[ " $_L_FINALLY_TERM_SIGNALS " == *" $L_SIGNAL "* && " $_L_finally_noterm_signals " != *" $L_SIGNAL "* ]]; then
-  	if ((_L_pid != $$ && !L_HAS_BASH5_2)); then
-  		# Call EXIT trap yourself when Bash doesn't.
-			_L_finally EXIT "$_L_up"
-		fi
-  	# Properly preserve exit status for parent processes.
-  	# https://www.cons.org/cracauer/sigint.html
-  	trap - "$L_SIGNAL"
-  	kill -"$L_SIGNAL" "$_L_pid"
-  fi
+	fi
 }
 
 # @description List elements registered by L_finally and trap values.
 L_finally_list() {
-	local _L_i v="" signals="" i
-	L_printf_append v "signals | pid | source | multiple? | action\n"
-	for ((_L_i = 0; _L_i < ${#_L_finally_arr[@]}; _L_i += 5)); do
-		for i in ${_L_finally_arr[_L_i]}; do
-			if [[ " $signals" != *" $i "* ]]; then
-				signals+=" $i"
-			fi
-		done
-  	L_printf_append v "%s | %s | %s | %s | %s\n" "${_L_finally_arr[@]:_L_i:5}"
-  done
+	local v="" signals="" _L_p='[^'$'\t\2'']*' _L_i="$_L_finally_data"
+	L_printf_append v "%s\n" "signals|multi|source|action"
+	while [[ "$_L_i" =~ ^(.*$'\2')?($_L_p)$'\t'($_L_p)$'\t'($_L_p)$'\t'($_L_p)$'\2'$ ]]; do
+		#                  1         2           3           4           5
+		L_printf_append v "%s\n" "${BASH_REMATCH[2]}|${BASH_REMATCH[3]}|${BASH_REMATCH[4]}|${BASH_REMATCH[5]}"
+		_L_i=${BASH_REMATCH[1]}
+	done
+	# echo "$v"
+	# echo "$_L_finally_data"
   L_table -s'|' "${v%$'\n'}"
-  trap -p $signals
+  # trap -p $signals
+  trap
 }
 
 # @description Register an action to be executed upon termination.
@@ -4182,10 +4132,10 @@ L_finally_list() {
 #       # tmpf automatically cleaned up once on RETURN or EXIT or signal, whichever comes first.
 #    }
 L_finally() {
-  local trapv i L_v signals="" IFS=' ' OPTIND OPTARG OPTERR up=0 last=1 first="" pid="" IFS=' ' multiple="" what register=1 return=0 term=0
+  local trapv i L_v signals="EXIT" IFS=' ' OPTIND OPTARG OPTERR up=0 last=1 first="" pid="" IFS=' ' multiple="" what register=1 return=0 term="" a b register_signals
   while getopts rs:ln:tm1N i; do
     case "$i" in
-    r) return=1; set -o functrace ;;
+    r) signals+=" RETURN"; set -o functrace ;;
     s) up=$OPTARG ;;
     l) last="" first=1 ;;
     n)
@@ -4196,6 +4146,10 @@ L_finally() {
     		signals+="${signals:+ }$i"
     	done
     	L_assert "${FUNCNAME[0]}: No signals given to register" test -n "$signals"
+  		# If signals were specified by the user,
+  		# by default this signal becomes no-terminating and can be run multiple times.
+  		term=${term:-0}
+  		multiple=${multiple:-1}
     	;;
     t) term=1 ;;
     m) multiple=1 ;;
@@ -4207,66 +4161,69 @@ L_finally() {
   shift "$((OPTIND-1))"
   L_assert "${FUNCNAME[0]}: at least one positional argument required, but given $#" test "$#" -ge 1
   #
-  # Initialize signals if not initialized.
-  # Subshells inherit traps but they are not set.
-  # We do this here, to store BASHPID in _L_finally_pid and use it below.
+  # Reset traps if pid changed.
   L_bashpid_to pid
   if [[ "$_L_finally_pid" != "$pid" ]]; then
   	# Reset values.
     _L_finally_pid=$pid
-    _L_finally_arr=()
-    _L_finally_return_regex=""
+    _L_finally_data=""
+    _L_finally_return_functions=""
     _L_finally_noterm_signals=""
-    trap - RETURN
   fi
   # If signals were not specified by the user.
-  if [[ -z "$signals" ]]; then
-  	# Features added in Bash4.3
-  	# hh. Shells started to run process substitutions now run any trap set on EXIT.
-  	if ((pid != $$ && !L_HAS_BASH5_2)); then
-  		# If in process substition and below Bash4.3 trap on all signals.
-  		signals="EXIT $_L_FINALLY_TERM_SIGNALS"
-  	else
-  		signals="EXIT"
-  	fi
-  else
-  	if ((!term)); then
-	    _L_finally_noterm_signals+=" $signals "
-  	fi
-  	multiple=${multiple:-1}
+  if ((!${term:-1})); then
+	  _L_finally_noterm_signals+=" $signals "
   fi
-  if ((return)); then
-  	signals+=" RETURN"
-  fi
-  # Prepare return regex for skipping.
+  # Prepare return glob for skipping.
   if [[ " $signals " == *" RETURN "* ]]; then
-		L_regex_escape_v "${FUNCNAME[1+up]}"
-		if [[ "|$_L_finally_return_regex|" != *"|$L_v|"* ]]; then
-			_L_finally_return_regex+="|$L_v"
+		i="${FUNCNAME[1+up]}"
+		if [[ " $_L_finally_return_functions " != *" $i "* ]]; then
+			_L_finally_return_functions+=${_L_finally_return_functions:+ }$i
 		fi
 	fi
+	#
+  # Add element to our array variable.
+  if ((multiple)); then
+  	multiple="MULTI"
+  else
+  	multiple=""
+  fi
+  printf -v i "%q " "$@"
+  printf -v i "%s\t%s\t%q\t%s\2" " $signals POP " "$multiple" "${BASH_SOURCE[0+up]} ${FUNCNAME[1+up]}" "${i% }"
+  _L_finally_data=${last:+$_L_finally_data}$i${first:+$_L_finally_data}
+  #
   # Initialize traps with our callback.
   if ((register)); then
-  	for i in ${signals//RETURN}; do
-      trap "_L_finally $i" "$i"
+  	# Features added in Bash4.3
+  	# hh. Shells started to run process substitutions now run any trap set on EXIT.
+  	register_signals=" $signals "
+  	if ((pid != $$ && !L_HAS_BASH5_2)); then
+  		# If in process substition and below Bash4.3 trap on all signals.
+  		register_signals+=" EXIT $_L_FINALLY_TERM_SIGNALS "
+  	else
+  		register_signals+=" EXIT SIGQUIT SIGSTKFLT SIGPROF SIGIO SIGPWR "
+  		# Register on Real-Time signals, they also exit.
+  		for i in $_L_FINALLY_TERM_SIGNALS; do
+  			if [[ "$i" == SIGRT* ]]; then
+  				register_signals+=" $i"
+  			fi
+  		done
+  	fi
+  	# It is going to be split anyway and I know it is safe.
+  	for i in ${register_signals//RETURN}; do
+  		# shellcheck disable=SC2064
+      trap "_L_finally $i" "$i" || return 2
     done
-  	if [[ " $signals " == *" RETURN "* ]]; then
+  	if [[ " $register_signals " == *"RETURN"* ]]; then
 			trap "_L_finally_return" RETURN
   	fi
   fi
-  # Add element to our array variable.
-  printf -v i "%q " "$@"
-  _L_finally_arr=(
-  	${first:+${_L_finally_arr[@]:+"${_L_finally_arr[@]}"}}
-  	"$signals" "$pid" "${BASH_SOURCE[0+up]}:${FUNCNAME[1+up]}" "${multiple:-0}" "${i% }"
-  	${last:+${_L_finally_arr[@]:+"${_L_finally_arr[@]}"}}
-  )
 }
 
 # @description Execute and unregister the last action registered with L_finally
 # @see L_finally
 L_finally_pop() {
-  _L_finally POP 1
+  _L_finally POP
 }
 
 # ]]]
@@ -4510,7 +4467,7 @@ L_unittest_cmd() {
 			_L_uopt_stdjoin=1
 		fi
 	fi
-	_L_unittest_internal "command found: [$(L_quote_printf "$1")]" "" L_hash "$1"
+	_L_unittest_internal "command found: [$(L_quote_printf "$@")]" "" L_hash "$1"
 	if ((_L_uopt_setx)); then
 		set -- L_setx "$@"
 	fi
