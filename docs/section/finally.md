@@ -1,33 +1,41 @@
-When discovering Bash one of the missing features is _not_ try catch block, but try finally.
+When discovering Bash one of the missing features is _not_ try catch block, but try finally block.
 
-The issue with trap is that:
-  - I add trap signals every time different `trap 'rm -rf "$tmpf"' 1 2 3 or EXIT or SIGINT?`
-  - I cannot append to the trap, which makes conditional logic really hard.
-    Usually I end up creating all temporary files on top of the script just to have one trap for them all.
-  - I cannot stop traps. I would want to trap execute when I stop using the resource, but
-      - trap EXIT executes on the end of the script
-      - trap RETURN no one knows when will execute and might execute on every RETURN from every function everywhere forever.
+The issues with raw `trap`:
+  - not easy to append actions to trap
+    - (this is something I initialialy lightly wanted to solve with `L_trap_push` and `L_trap_pop`)
+  - On which signals you want to execute? EXIT? INT? TERM?
+  - EXIT trap signal is not executed always and is not executed in command substitutions. Or is it? It depends.
+  - If you register action on EXIT and INT trap, it will execute twice.
+    - Trapped SIGINT does not exit. Calling `exit` inside SIGINT trap changes exit status.
+    - The proper way is to `trap - SIGINT; kill -SIGINT $BASHPID` to have the Bash process properly exit with the signal cause.
+    - The trap and kill is different between signals.
+  - There is one RETURN trap shared across all functions. Inner functions overwrite outer functions RETURN trap.
 
-I do not really need "try catch". I need "try finally". I need cleanup. Thus the `L_finally` library came alive.
+Requirements:
+  - Execute something when Bash exits. Always.
+    - `L_finally something`
+  - Execute something when a function returns or Bash exits, whichever comes first.
+    - `L_finally -r something`
+  - Execute something on signal and continue execution after it.
+    - `L_finally -n USR1 something`
+  - If signal is received in trap handler, terminate execution.
+  - Registered actions execute in reverse order.
+  - Remove the last registered action.
+    - `L_finally_pop -n`
+  - Remove and execute the last registered action.
+    - `L_finally_pop`
 
-The `L_finally <action>` call:
-  - Registers the action to execute on `EXIT`, `SIGINT` and `SIGTERM`.
-  - The action will execute only once and only in the current process id, not anywhere or anytime else.
-  - The option `-r` will add the action to execute on RETURN and will also `set -o functrace`.
-      - It will only execute on RETURN from the current function in the current file which called the `L_finally` function.
-      - If the action has been executed on RETURN, then it will not execute on EXIT.
-      - If you happen to EXIT before getting to RETURN, the action still will be executed on EXIT.
-  - Multiple calls append the actions to execute in reverse order.
-
-Additionally, the `L_finally_pop` will execute and remove the last registered action.
+How `L_finally` works?
+  - Registers trap on all signals that result in process termination.
+  - Keeps a list of actions to execute on what signal. Each action executes once (by default).
+  - Unless the signal has been added to the list of signals that continue the execution.
+    - Explicitly executes EXIT actions on all signals that result in process termination.
+    - The trap handler properly preserves exit code of terminating signals.
+  - The RETURN trap handler checks the registration location of the trap and executes appriopriate action only.
 
 Example:
 
 ```
-#!/bin/bash
-. L_lib.sh L_argparse \
-  -- --option \
-  ---- "$@"
 
 tmpf=$(mktemp)
 L_finally rm -rf "$tmpf"
@@ -44,7 +52,7 @@ if
 # tmp will be removed on the end of the script.
 ```
 
-Function auto cleanup:
+Function return example:
 
 ```
 some_function() {
@@ -52,13 +60,23 @@ some_function() {
   L_finally -r rm -rf "$tmpf"
   echo Do something with temporary file >"$tmpf"
 
-  # exit 1    # this would remove the tempfile
-  # return 1  # this would also remove the tempfile
+  # exit 1         # this will remove the tempfile
+  # return 1       # this will also remove the tempfile
+  # kill $BASHPID  # this will also remove the tempfile
   # the tempfile is automatically removed on the end of function
 }
 ```
 
-The action will register itself to `EXIT` and signals. The idea is, that you should be able to still hook your own custom action.
+Custom action on signal:
 
+```
+increase_volume() { : your function to increase volume; }
+
+# kill -USR1 $BASHPID   # will terminate the process, default action
+L_finally -n USR1 increase_volume
+# kill -USR1 $BASHPID   # will increase volume and continue execution
+```
+
+# Generated documentation from source:
 
 ::: bin/L_lib.sh finally
