@@ -29,7 +29,7 @@ for version in "${versions[@]}"; do
         else
           exec 2>&1
         fi
-        docker run -q -i --rm -v $PWD:$PWD:ro bash:"$version" bash "${args[@]}" <<<"$input"
+        docker run -q -i --rm -v $PWD:$PWD:ro -w "$PWD" bash:"$version" bash "${args[@]}" <<<"$input"
       ) || rc=$?
       echo "\ rc=$rc"
     ) | tr '\n' $'\035'
