@@ -625,12 +625,12 @@ _L_test_array() {
 	}
 }
 
-_L_test_array_read() {
+_L_test_readarray() {
 	local arr=(4 5 6)
-	L_array_read arr <<<$'1\n2\n3'
+	L_readarray arr <<<$'1\n2\n3'
 	L_unittest_arreq arr 1 2 3
 	local arr=(4 5 6)
-	L_array_read -d '' arr < <(printf "1\x002\x003\x00")
+	L_readarray -d '' arr < <(printf "1\x002\x003\x00")
 	L_unittest_arreq arr 1 2 3
 }
 

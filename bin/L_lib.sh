@@ -729,7 +729,44 @@ fi
 # @option -v <var> variable to set
 # @arg $@ string to escape
 L_glob_escape() { L_handle_v_scalar "$@"; }
-L_glob_escape_v() { L_v="${*//[[?*\]/[&]}"; }  # ]
+L_glob_escape_v() {
+	L_v=${*//\\/\\\\}
+	L_v=${L_v//\?/\\\?}
+	L_v=${L_v//\*/\\\*}
+	L_v=${L_v//\(/\\\(}
+}
+
+if ((L_HAS_COMPGEN_V)); then
+# @description Wrapper around compgen that does not support -V argument.
+#
+# @note `copmgen -W` allows execution. For example `compagen -W '$(echo something >&2)'`` executes echo.
+#
+# @option -V <var> Has to be first option. Assign the result to array variable <var>, just like compgen -V.
+# @arg $@ Any other compgen options and arguments.
+L_compgen() { compgen "$@"; }
+else
+	L_compgen() {
+		case "$1" in
+		-V)
+			local _L_tmp
+			if _L_tmp=$(compgen "${@:3}"); then
+				L_readarray "$2" <<<"$_L_tmp"
+			else
+				return "$?"
+			fi
+			;;
+		-V*)
+			local _L_tmp
+			if _L_tmp=$(compgen "${@:2}"); then
+				L_readarray "${1#-V}" <<<"$_L_tmp"
+			else
+				return "$?"
+			fi
+			;;
+		*) compgen "$@" ;;
+		esac
+	}
+fi
 
 # @description Return 0 if the argument is a function
 # @arg $1 function name
@@ -1795,17 +1832,9 @@ L_rstrip_v() {
 # @arg $1 prefix
 L_list_functions_with_prefix() { L_handle_v_array "$@"; }
 
-if ((L_HAS_COMPGEN_V)); then
-	L_list_functions_with_prefix_v() {
-		compgen -V L_v -A function -- "$1"
-	}
-else
-	# shellcheck disable=SC2207
-	L_list_functions_with_prefix_v() {
-		local IFS=$'\n'
-		L_v=($(compgen -A function -- "$1" || :))
-	}
-fi
+L_list_functions_with_prefix_v() {
+	L_compgen -V L_v -A function -- "$1"
+}
 
 # @description list functions with prefix and remove the prefix
 # @option -v <var> var
@@ -1880,13 +1909,9 @@ L_abbreviation_v() {
 	local cur=$1 IFS=$'\n'
 	shift
 	if [[ "${*//"$IFS"}" == "$*" ]]; then
-		if ! cur=$(trap - ERR; compgen -W "$*" -- "$cur"); then
+		if ! L_compgen -V L_v -W "$*" -- "$cur"; then
 			L_v=()
-			return
 		fi
-		# shellcheck disable=SC2329,SC2064,SC2251
-		! read -d '' -r -a L_v <<<"$cur"
-		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
 	else
 		L_v=()
 		while (($#)); do
@@ -2092,7 +2117,7 @@ L_str_count_v() {
 #
 # Why not xargs? To support ANSI-C quoting style $'' and support newlines in quotes.
 #
-# Why not declare? Declare allows execution, `declare -a array='($(echo error >&2))'` prints error.
+# Why not declare? Declare allows execution, `declare -a array='($(echo something >&2))'`executes echo.
 #
 # @option -v <var> variable to assign to
 # @option -c Enable comments.
@@ -2370,8 +2395,8 @@ L_array_reverse() {
 # @option -u <fd> file descriptor to read from
 # @option -s <int> skip first n lines
 # @arg $1 <var> array nameref
-# @example L_array_read arr <file
-L_array_read() {
+# @example L_readarray arr <file
+L_readarray() {
 	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
 	while getopts d:u:s _L_c; do
 		case $_L_c in
