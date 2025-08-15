@@ -2858,7 +2858,7 @@ _L_test_finally() {
 				L_raise -"$1"
 			)
 		}
-		L_unittest_cmd -o 'INT EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number INT) )) func INT
+		L_unittest_cmd -o 'INT EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number INT) )) L_setx func INT
 		L_unittest_cmd -o 'TERM EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
 		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
 		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number USR1) )) func USR1
