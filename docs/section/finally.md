@@ -17,10 +17,10 @@ Requirements:
   - Execute something when a function returns or Bash exits, whichever comes first.
     - `L_finally -r something`
   - Execute something on signal and continue execution after it.
-    - `L_finally -n USR1 something`
+    - `L_finally; trap 'something' USR1`
   - If signal is received in trap handler, terminate execution.
   - Registered actions execute in reverse order.
-  - Remove the last registered action.
+  - Remove the last registered action without execution.
     - `L_finally_pop -n`
   - Remove and execute the last registered action.
     - `L_finally_pop`
