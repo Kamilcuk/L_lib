@@ -15,6 +15,7 @@ Pass script arguments as an option to --compare option. Example: --compare arg1 
 " \
   -- -p --perfargs action=append help="additoinal perf arguments" \
   -- -d --diff flag=1 help="Show difference scripts execution instructions and times" \
+  -- -P --previous flag=1 help="Show difference to previous execution of the script" \
   -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
   ---- "$@"
 #
@@ -27,22 +28,59 @@ extract_from_run() {
   #
   ret=0
   out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$@") || ret=$?
-  instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$out")
-  seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$out")
-  seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$out")
-  seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$out")
+  extract_stats "$out"
 }
+extract_stats() {
+  instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$1")
+  seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$1")
+  seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$1")
+  seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$1")
+  user_time=$(awk '/user_time/{print $1}' <<<"$1")
+  system_time=$(awk '/system_time/{print $1}' <<<"$1")
+}
+diff_prepare() {
+  instructions_empty=$instructions
+  seconds_time_elapsed_empty=$seconds_time_elapsed
+  user_time_empty=$user_time
+  system_time_empty=$system_time
+}
+diff_show() {
+  # echo "$out" | sed '/^$/d' | grep -E 'Performance counter stats|user_time|system_time|cpu_core/instructions|seconds time'
+  echo "$out" | sed '/^$/d'
+  printf "%+18d""    instructions diff to previous ( %+5.2f%% )\n" \
+    "$((instructions - instructions_empty))" \
+    "$(bc -l <<<"100 * ($instructions - $instructions_empty) / $instructions_empty" )"
+  printf "%+18.7f    elapsed seconds diff to previous ( %+5.2f%% )\n" \
+    "$(bc -l <<<"$seconds_time_elapsed - $seconds_time_elapsed_empty" )" \
+    "$(bc -l <<<"100 * ($seconds_time_elapsed - $seconds_time_elapsed_empty) / $seconds_time_elapsed_empty" )"
+  # printf "%+18d""    user_time diff to previous\n" "$((user_time - user_time_empty))"
+  # printf "%+18d""    system_time diff to previous\n" "$((system_time - system_time_empty))"
+}
+#
+if ((previous)); then
+  prevf=/tmp/perfbash.txt
+  if [[ ! -e "$prevf" ]]; then
+    extract_from_run ''
+    echo "$out" > "$prevf"
+  fi
+  out=$(< "$prevf")
+  extract_stats "$out"
+  for c in "${command[@]}"; do
+    diff_prepare
+    extract_from_run "$c"
+    diff_show
+    echo "$out" >"$prevf"
+  done
+  exit "$ret"
+fi
 #
 if ((diff)); then
   extract_from_run ''
   # echo "$out"
   for c in "${command[@]}"; do
-    instructions_empty=$instructions
-    seconds_time_elapsed_empty=$seconds_time_elapsed
+    diff_prepare
     extract_from_run "$c"
-    echo "$out" | sed '/^$/d'
-    printf "%+18d""    instructions diff to previous\n" "$((instructions - instructions_empty))"
-    printf "%+18.7f    elapsed seconds diff to previous\n" "$( bc -l <<<"$seconds_time_elapsed - $seconds_time_elapsed_empty" )"
+    diff_show
   done
   exit "$ret"
 fi
