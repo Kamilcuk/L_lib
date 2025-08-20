@@ -3016,6 +3016,15 @@ _L_test_self_contained() {
 	"$(dirname "$0")"/./self_contained.sh
 }
 
+_L_test_func_usage() {
+	L_log "Check that every L_func_assert is followed by return"
+	! grep 'L_func_assert ' bin/L_lib.sh | grep -v '|| return'
+	L_log "Check every L_func_error is followed by return"
+	! grep '^[[:space:]]*L_func_error ' bin/L_lib.sh | grep -v '|| return'
+	L_log "Check every L_func_help is followed by return"
+	! grep 'L_func_help[; ]' bin/L_lib.sh | grep -v "^#" | grep -v '; return 0'
+}
+
 ###############################################################################
 
 get_all_variables() {

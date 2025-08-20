@@ -752,29 +752,35 @@ L_func_log() {
 L_regex_match() { [[ "$1" =~ $2 ]]; }
 
 # @description Produce a string that is a regex escaped version of the input.
-# @option -v <var> variable to set
+# Works for both basic and extended regular expression.
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ string to escape
+# @see https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04
+# @see https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_03
 L_regex_escape() { L_handle_v_scalar "$@"; }
 L_regex_escape_v() {
-	# ., +, *, ?, ^, $, (, ), [, ], {, }, |, \
-	L_v=${*//\\/\\\\}
-	L_v=${L_v//\./\\\.}
-	L_v=${L_v//\+/\\\+}
-	L_v=${L_v//\*/\\\*}
-	L_v=${L_v//\?/\\\?}
-	L_v=${L_v//\^/\\\^}
-	L_v=${L_v//\$/\\\$}
-	L_v=${L_v//\(/\\\(}
-	L_v=${L_v//\)/\\\)}
-	L_v=${L_v//\[/\\\]}
-	L_v=${L_v//\]/\\\[}
-	L_v=${L_v//\{/\\\{}
-	L_v=${L_v//\}/\\\}}
-	L_v=${L_v//\|/\\\|}
+	# ERE . [ \ ( * + ? { | ^ $
+	# BRE . [ \   *         ^ $
+	# Most of the time there are none of these characters, so it makes sense to speed up.
+	if [[ "$*" == *[\.\[\\\(\*\+\?\{\|\^\$]* ]]; then
+		L_v=${*//\\/\\\\}
+		L_v=${L_v//\[/[\[]}
+		L_v=${L_v//\./\\\.}
+		L_v=${L_v//\+/[\+]}
+		L_v=${L_v//\*/\\\*}
+		L_v=${L_v//\?/[\?]}
+		L_v=${L_v//\^/\\\^}
+		L_v=${L_v//\$/\\\$}
+		L_v=${L_v//\(/[\(]}
+		L_v=${L_v//\{/[\{]}
+		L_v=${L_v//\|/[\|]}
+	else
+		L_v=$*
+	fi
 }
 
 # @description Get all matches of a regex to an array.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 string to match
 # @arg $2 regex to match
 L_regex_findall() { L_handle_v_array "$@"; }
@@ -790,11 +796,12 @@ L_regex_findall_v() {
 # In a string replace all occurences of a regex with replacement string.
 # Backreferences like \& \1 \2 etc. are replaced in replacement string unless -B option is used.
 # Written pure in Bash. Uses [[ =~ operator in a loop.
-# @option -v <var> Variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -g Global replace
 # @option -c <int> Limit count of replacements, default: 1
 # @option -n <var> Variable to set with count of replacements made.
 # @option -B Do not handle backreferences in replacement string \& \1 \2 \\
+# @option -h Print this help and return 0.
 # @arg $1 string to match
 # @arg $2 regex to match
 # @arg $3 replacement string
@@ -804,16 +811,15 @@ L_regex_findall_v() {
 #   echo "$out"
 L_regex_replace() {
 	local OPTIND OPTARG OPTERR _L_countmax=1 _L_count=0 _L_v="" _L_backref=1 _L_count_v="" _L_i _L_repl
-	while getopts "hgBv:c:n:" _L_i; do
+	while getopts gBv:c:n:h _L_i; do
 		case $_L_i in
 		g) _L_countmax=-1 ;;
 		B) _L_backref=0 ;;
 		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" ""; ;;
 		c) _L_countmax=$OPTARG ;;
 		n) _L_count_v=$OPTARG ;;
-		*)
-			printf "Usage: %s [-hgB] [-v <var>] [-c <int>] [-n <var>] <string> <regex> <replacement>\n" "${FUNCNAME[0]}" >&2
-			return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -932,7 +938,7 @@ else
 fi
 
 # @description Produce a string that is a glob escaped version of the input.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ string to escape
 L_glob_escape() { L_handle_v_scalar "$@"; }
 L_glob_escape_v() {
@@ -947,7 +953,7 @@ if ((L_HAS_COMPGEN_V)); then
 #
 # @note `copmgen -W` allows execution. For example `compagen -W '$(echo something >&2)'`` executes echo.
 #
-# @option -V <var> Has to be first option. Assign the result to array variable <var>, just like compgen -V.
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ Any other compgen options and arguments.
 L_compgen() { compgen "$@"; }
 else
@@ -1124,7 +1130,7 @@ L_raise() {
 # The fucntion L_handle_v_scalar handles only scalar value of `L_v` or 0-th index of `L_v` array.
 # To assign an array, prefer L_handle_v_array.
 #
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arbitrary function arguments
 # @exitcode Whatever exitcode does the `<caller>_v` funtion exits with.
 # @example:
@@ -1184,6 +1190,7 @@ L_handle_v_scalar() {
 			return "$_L_r"
 		fi
 		;;
+	-h) L_func_help 1; return 0 ;;
 	*)
 		if "${FUNCNAME[1]}"_v "$@"; then
 			printf "%s" "${L_v+$L_v$'\n'}" || return "$?"
@@ -1271,6 +1278,7 @@ L_handle_v_array() {
 			return "$_L_r"
 		fi
 		;;
+	-h) L_func_help 1; return 0 ;;
 	*)
 		if "${FUNCNAME[1]}"_v "$@"; then
 			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
@@ -1420,7 +1428,7 @@ L_bashpid_to() {
 }
 
 # @description Generate uuid in bash.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @see https://digitalbunker.dev/understanding-how-uuids-are-generated/
 L_uuid4() { L_handle_v_scalar "$@"; }
 L_uuid4_v() {
@@ -1505,13 +1513,13 @@ L_exit_to_10() {
 # @section path
 
 # @description The filename
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 L_basename() { L_handle_v_scalar "$@"; }
 L_basename_v() { L_v=${*##*/}; }
 
 # @description parent of the path
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 L_dirname() { L_handle_v_scalar "$@"; }
 L_dirname_v() {
@@ -1524,7 +1532,7 @@ L_dirname_v() {
 }
 
 # @description The last dot-separated portion of the final component, if any.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 # @see https://en.cppreference.com/w/cpp/filesystem/path/extension.html
 L_extension() { L_handle_v_scalar "$@"; }
@@ -1538,7 +1546,7 @@ L_extension_v() {
 }
 
 # @description A list of the path’s suffixes, often called file extensions.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 # @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.suffixes
 L_extensions() { L_handle_v_array "$@"; }
@@ -1554,7 +1562,7 @@ L_extensions_v() {
 }
 
 # @description The final path component, without its suffix:
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 # @see https://en.cppreference.com/w/cpp/filesystem/path/stem
 L_stem() { L_handle_v_scalar "$@"; }
@@ -1570,14 +1578,14 @@ L_stem_v() {
 L_is_absolute() { [[ "${1::1}" == / ]]; }
 
 # @description Replace multiple slashes by one slash.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 L_normalize_path() { L_shopt_extglob L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2064
 L_normalize_path_v() { L_v=${1//\/+(\/)/\/}; }
 
 # @description Compute a version of the original path relative to the path represented by other path.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 original path
 # @arg $2 other path
 # @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.relative_to
@@ -1851,7 +1859,7 @@ This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 
 # @description Output a string with the same quotating style as does bash in set -x
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_setx() { L_handle_v_scalar "$@"; }
 L_quote_setx_v() {
@@ -1866,19 +1874,19 @@ L_quote_setx_v() {
 # @description Output a string with the same quotating style as does bash with printf
 # For single argument, just use `printf -v var "%q" "$var"`.
 # Use this for more arguments, like `printf -v var "%q " "$@"` results in a trailing space.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_printf() { L_handle_v_scalar "$@"; }
 L_quote_printf_v() { printf -v L_v " %q" "$@"; L_v=${L_v:1}; }
 
 # @description Output a string with the same quotating style as does /bin/printf
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_bin_printf() { L_handle_v_scalar "$@"; }
 L_quote_bin_printf_v() { L_v=$(exec printf " %q" "$@"); L_v=${L_v:1}; }
 
 # @description Convert a string to a number.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 L_strhash() { L_handle_v_scalar "$@"; }
 L_strhash_v() {
 	if L_hash cksum; then
@@ -1897,7 +1905,7 @@ L_strhash_v() {
 }
 
 # @description Convert a string to a number in pure bash.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 L_strhash_bash() { L_handle_v_scalar "$@"; }
 L_strhash_bash_v() {
 	local _L_c
@@ -1916,22 +1924,22 @@ L_strstr() {
 }
 
 # @description
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 String to operate on.
 L_strupper() { L_handle_v_scalar "$@"; }
 
 # @description
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 String to operate on.
 L_strlower() { L_handle_v_scalar "$@"; }
 
 # @description Capitalize first character of a string.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 String to operate on
 L_capitalize() { L_handle_v_scalar "$@"; }
 
 # @description Lowercase first character of a string.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 String to operate on
 L_uncapitalize() { L_handle_v_scalar "$@"; }
 
@@ -2002,7 +2010,7 @@ else
 fi
 
 # @description Remove characters from IFS from begining and end of string
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <str> String to operate on.
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_strip() { L_handle_v_scalar "$@"; }
@@ -2013,7 +2021,7 @@ L_strip_v() {
 }
 
 # @description Remove characters from IFS from begining of string
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <str> String to operate on.
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_lstrip() { L_handle_v_scalar "$@"; }
@@ -2023,7 +2031,7 @@ L_lstrip_v() {
 }
 
 # @description Remove characters from IFS from begining of string
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 String to operate on.
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_rstrip() { L_handle_v_scalar "$@"; }
@@ -2034,7 +2042,7 @@ L_rstrip_v() {
 }
 
 # @description list functions with prefix
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 prefix
 L_list_functions_with_prefix() { L_handle_v_array "$@"; }
 
@@ -2043,7 +2051,7 @@ L_list_functions_with_prefix_v() {
 }
 
 # @description list functions with prefix and remove the prefix
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 prefix
 # @see L_list_functions_with_prefix
 L_list_functions_with_prefix_removed() { L_handle_v_array "$@"; }
@@ -2061,7 +2069,7 @@ L_list_functions_with_prefix_removed_v() {
 # Poor man's jq
 # @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
 # @see https://stackoverflow.com/a/27516892/9072753
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @example
 #    L_json_escape -v tmp "some string"
 #    echo "{\"key\":$tmp}" | jq .
@@ -2107,7 +2115,7 @@ L_json_escape_v() {
 }
 
 # @description Choose elements matching prefix.
-# @option -v <var> Store the result in the array var.
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 prefix
 # @arg $@ elements
 L_abbreviation() { L_handle_v_array "$@"; }
@@ -2164,9 +2172,10 @@ L_float_cmp() {
 	esac
 }
 
-# @description print a string with percent format
-# A simple implementation of percent formatting in bash using regex and printf.
-# @option -v <var> Output variable
+# @description Print a string with percent format.
+# Simple implementation of percent formatting in bash using regex and printf.
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 format string
 # @arg $@ arguments
 # @example
@@ -2179,7 +2188,9 @@ L_percent_format_v() {
 	local _L_fmt=$1 _L_args=("")
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
 		#                                    12     3            4   5         6                     7
-		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[7]}" ]
+		if [[ "$_L_fmt" == "${BASH_REMATCH[7]}" ]]; then
+			L_func_error "invalid format specification: $1" 2 || return 2
+		fi
 		_L_fmt="${BASH_REMATCH[7]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
 			_L_args[0]+="${BASH_REMATCH[1]}"
@@ -2194,7 +2205,8 @@ L_percent_format_v() {
 
 # @description print a string with f-string format
 # A simple implementation of f-strings in bash using regex and printf.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 format string
 # @example
 #  name=John
@@ -2206,7 +2218,9 @@ L_fstring_v() {
 	local _L_fmt="$*" _L_args=("") _L_tmp
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
 		#                                    12      3                        4   5       6 7             8
-		L_assert "invalid format specification: $1" [ "$_L_fmt" != "${BASH_REMATCH[8]}" ]
+		if [[ "$_L_fmt" == "${BASH_REMATCH[8]}" ]]; then
+			L_func_error "invalid format specification: $1" 2 || return 2
+		fi
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
 			_L_tmp="${BASH_REMATCH[1]//$L_LBRACE$L_LBRACE/$L_LBRACE}"
@@ -2227,7 +2241,8 @@ L_fstring_v() {
 }
 
 # @description Convert a string to hex dump.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 L_hexdump() { L_handle_v_scalar "$@"; }
 L_hexdump_v() {
 	if L_hash xxd; then
@@ -2242,7 +2257,8 @@ L_hexdump_v() {
 }
 
 # @description Encode a string in percent encoding.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 L_urlencode() { L_handle_v_scalar "$@"; }
 L_urlencode_v() {
 	local _L_i _L_a="$*" LC_ALL=C _L_c
@@ -2257,7 +2273,8 @@ L_urlencode_v() {
 }
 
 # @description Decode percent encoding.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 L_urldecode() { L_handle_v_scalar "$@"; }
 L_urldecode_v() {
 	local _L_a="$*" LC_ALL=C
@@ -2272,7 +2289,8 @@ L_urldecode_v() {
 }
 
 # @description Escape characters for html.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 L_html_escape() { L_handle_v_scalar "$@"; }
 L_html_escape_v() {
 	L_v="$*"
@@ -2284,7 +2302,8 @@ L_html_escape_v() {
 }
 
 # @description Replace multiple characters in a string in order.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 String to operate on.
 # @arg $2 String to replace.
 # @arg $3 Replacement.
@@ -2303,7 +2322,8 @@ L_str_replace_v() {
 }
 
 # @description Count the character in string.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 String.
 # @arg $2 Character to count in string.
 L_str_count() { L_handle_v_scalar "$@"; }
@@ -2325,24 +2345,26 @@ L_str_count_v() {
 #
 # Why not declare? Declare allows execution, `declare -a array='($(echo something >&2))'`executes echo.
 #
-# @option -v <var> variable to assign to
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -c Enable comments.
 # @option -A Disable ANSI-C quoting.
+# @option -h Print this help and return 0.
 # shellcheck disable=SC1003
 # @example
 #   $ L_str_split -v cmd "ls -l 'somefile; rm -rf ~'"
-#   $ delcare -p cmd
+#   $ declare -p cmd
 #   declare -a cmd=([0]="ls" [1]="-l" [2]="somefile; rm -rf ~")
 L_str_split() {
 	# local -;set -x
 	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_comments=0 _L_ansic1='$' _L_ansic2="[$]'|" _L_q=0
-	while getopts "v:cAq" _L_i; do
+	while getopts v:cAqh _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
 			c) _L_comments=1 ;;
 			A) _L_ansic1="" _L_ansic2="" ;;
 			q) _L_q=1 ;;
-			*) echo "invalid option: -${OPTARG:-}" 1>&2; return 1 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2481,7 +2503,8 @@ L_str_split() {
 # @description Operations on various lists, arrays and arguments. L_array_*
 
 # @description Get array length.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 <var array nameref
 # @example L_array_len arr
 L_array_len() { L_handle_v_scalar "$@"; }
@@ -2597,19 +2620,21 @@ L_array_reverse() {
 }
 
 # @description Wrapper for readarray for bash versions that do not have it.
-# @option -d <str> separator to use, default: newline
+# @option -d <delim> separator to use, default: newline
 # @option -u <fd> file descriptor to read from
-# @option -s <int> skip first n lines
+# @option -s <count> skip first n lines
+# @option -h Print this help and return 0.
 # @arg $1 <var> array nameref
 # @example L_readarray arr <file
 L_readarray() {
 	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
-	while getopts d:u:s _L_c; do
+	while getopts d:u:sh _L_c; do
 		case $_L_c in
 		d) _L_d=$OPTARG ;;
 		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
 		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
-		?) return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2701,7 +2726,8 @@ L_array_filter_eval() {
 }
 
 # @description Join array elements separated with the second argument.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 <var> array nameref
 # @arg $2 <str> string to join elements with
 # @see L_args_join
@@ -2716,7 +2742,8 @@ L_array_join_v() {
 }
 
 # @description
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 <var> array nameref
 # @see L_args_andjoin
 L_array_andjoin() { L_handle_v_scalar "$@"; }
@@ -2726,7 +2753,7 @@ L_array_andjoin_v() {
 }
 
 # @description Serialize an array to string representation.
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <var> array nameref
 # @see L_array_from_string
 L_array_to_string() { L_handle_v_scalar "$@"; }
@@ -2766,7 +2793,7 @@ fi
 # @description Operations on list of arguments.
 
 # @description Join arguments with separator
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <str> separator
 # @arg $@ arguments to join
 # @see L_array_join
@@ -2780,7 +2807,7 @@ L_args_join_v() {
 }
 
 # @description Join arguments with ", " and last with " and "
-# @option -v <var> Output variable
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to join
 L_args_andjoin() { L_handle_v_scalar "$@"; }
 L_args_andjoin_v() {
@@ -2844,7 +2871,7 @@ L_args_index_v() {
 }
 
 # @description return max of arguments
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ int arguments
 # @example L_max -v max 1 2 3 4
 L_max() { L_handle_v_scalar "$@"; }
@@ -2862,7 +2889,7 @@ L_max_v() {
 }
 
 # @description return max of arguments
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ int arguments
 # @example L_min -v min 1 2 3 4
 L_min() { L_handle_v_scalar "$@"; }
@@ -2886,10 +2913,11 @@ L_min_v() {
 
 # shellcheck disable=SC1105,SC2201,SC2102,SC2035,SC2211,SC2283,SC2094
 # @description Make a table
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -s <separator> IFS column separator to use
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
+# @option -h Print this help and return 0.
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
 #     $ L_table -R1-2 "name1 name2 name3" "a b c" "d e f"
@@ -2898,13 +2926,14 @@ L_min_v() {
 #         d     e f
 L_table() {
 	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
-	while getopts v:s:o:R: _L_i; do
+	while getopts v:s:o:R:h _L_i; do
 		case $_L_i in
 		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
 		s) _L_s=$OPTARG ;;
 		o) _L_o=$OPTARG ;;
 		R) _L_R=$OPTARG ;;
-		*) echo "${FUNCNAME[0]}: invalid flag: $OPTARG" >&2; return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2953,7 +2982,7 @@ L_table() {
 #     N-     from N'th byte, character or field, to end of line
 #     N-M    from N'th to M'th (included) byte, character or field
 #     -M     from first to M'th (included) byte, character or field
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 max number of fields
 # @arg $2 list of fields
 # @example
@@ -3091,21 +3120,23 @@ _L_pretty_print_nested() {
 
 # @description Prints values with declare, but array values are on separate lines.
 # @option -p <str> Prefix each line with this prefix
-# @option -v <var> Assign output to the variable.
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -w <int> Set terminal width. This modifies compact output line wrapping.
 # @option -n Enable pretty printing nested arrays
 # @option -C Disable compact output for arrays, i.e. each key is on separate line.
+# @option -h Print this help and return 0.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
 	local OPTIND OPTARG OPTERR _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0 _L_pp_line="" _L_pp_compact=0 _L_pp_prefix_sav=""
-	while getopts :p:v:w:nc _L_pp_opt; do
+	while getopts :p:v:w:nch _L_pp_opt; do
 		case $_L_pp_opt in
 		p) _L_pp_prefix="$OPTARG " ;;
 		v) _L_pp_v=$OPTARG; printf -v "$_L_pp_v" "%s" "" ;;
 		w) _L_pp_width=$OPTARG ;;
 		n) _L_pp_nested=1 ;;
 		c) _L_pp_compact=1 ;;
-		*) echo "${FUNCNAME[0]}: invalid option: $OPTARG" >&2; return 2; ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3158,6 +3189,7 @@ _L_argskeywords_assign() {
 # @option -M Use L_map instead of associative array, for @@kwargs and -A option. Usefull for older Bash.
 # @option -E Exit on error
 # @option -e <str> Prefix error messages with this prefix. Default: "${FUNCNAME[1]}:L_argskeywords:"
+# @option -h Print this help and return 0.
 # @arg $@ Python arguments format specification
 # @arg $2 <str> --
 # @arg $@ Arguments to parse
@@ -3188,13 +3220,14 @@ L_argskeywords() {
 	{
 		# parse arguments
 		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]}:${FUNCNAME[0]}:" _L_asa="" _L_use_map=0
-		while getopts A:MEe: _L_i; do
+		while getopts A:MEe:h _L_i; do
 			case $_L_i in
 			A) _L_asa=$OPTARG ;;
 			M) _L_use_map=1 ;;
 			E) _L_errorexit=1 ;;
 			e) _L_errorprefix=$OPTARG ;;
-			*) _L_argskeywords_assert "Invalid option: -$_L_opt" false || return 2 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error || return 2 ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -3422,34 +3455,6 @@ _L_logconf_formateval='L_log_format_default "$@"'
 # @description default outputting function
 _L_logconf_outputeval='L_log_output_to_stderr "$@"'
 
-_L_log_configure_help() {
-	cat <<EOF
-L_log_configure [OPTIONS]
-
-Options:
-  -h               Print help and return 0.
-  -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
-  -l <LOGLEVEL>    Set loglevel. Can be 'info' or "\$L_LOGLEVEL_INFO INFO" or 30. Default: $_L_logconf_level
-  -c <BOOL>        Enable/disable the use of color. Default: $L_logconf_color
-  -f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_logconf_formateval
-  -s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_logconf_selecteval
-  -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: $_L_logconf_outputeval
-
-EOF
-cat <<'EOF'
-Examples:
-  L_log_configure \
-    -l debug \
-    -c 0 \
-    -f 'printf -v L_logrecord_msg "%s" "${@:2}"' \
-    -o 'printf "%s\n" "$@" >&2' \
-    -s 'L_log_select_source_regex ".*/script.sh"' \
-    -s 'L_log_select_source_regex ".*/script.sh" && L_log_select_function_regex "L_*"' \
-    -f 'L_log_format_default "$@"' \
-    -f 'L_log_format_long "$@"'
-EOF
-}
-
 # @description configure L_log system
 # @option -h               Print help and return 0.
 # @option -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
@@ -3469,14 +3474,14 @@ EOF
 L_log_configure() {
 	local OPTIND OPTARG OPTERR _L_opt
 	while getopts hrl:c:f:s:o: _L_opt; do
-		case $_L_opt in
-			h) _L_log_configure_help; return 0; ;;
+		case "$_L_opt" in
 			r) _L_logconf_configured=0 ;;
 			[lcfso]) ;;
-			*) L_assert_return "invalid argument: opt=$_L_opt OPTARG=$OPTARG" || return "$?"; ;;
+			h) L_func_help; return 0; ;;
+			*) L_func_error || return 2; ;;
 		esac
 		if ((!_L_logconf_configured)); then
-			case $_L_opt in
+			case "$_L_opt" in
 				l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
 				c) L_exit_to_1null L_logconf_color L_is_true "$OPTARG" ;;
 				f) _L_logconf_formateval=$OPTARG ;;
@@ -3486,7 +3491,7 @@ L_log_configure() {
 		fi
 	done
 	shift "$((OPTIND-1))"
-	L_assert_return "invalid arguments: $*" test "$#" -eq 0 || return "$?"
+	L_func_assert "invalid arguments: $*" test "$#" -eq 0 || return 2
 	_L_logconf_configured=1
 }
 
@@ -3765,15 +3770,17 @@ L_logrun() {
 # if L_dryrun is nonzero, executes the arguments.
 # @option -l <loglevel> Set loglevel
 # @option -s <stacklevel> Increment stacklevel by this number
+# @option -h Print this help and return 0.
 # @arg $@ command to execute
 # @env L_dryrun
 L_run() {
 	local OPTIND OPTARG OPTERR _L_opt _L_logargs=()
-	while getopts l:s: _L_opt; do
+	while getopts l:s:h _L_opt; do
 		case $_L_opt in
 			l) _L_logargs+=(-l "$OPTARG") ;;
 			s) _L_logargs+=(-s "$OPTARG") ;;
-			*) break ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3879,20 +3886,22 @@ _L_sort_compare_numeric() { (( $1 > $2 )); }
 # @option -n numeric sort, otherwise lexical
 # @option -r reverse sort
 # @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
+# @option -h Print this help and return 0.
 # @arg $1 array nameref
 L_sort_bash() {
 	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare="_L_sort_compare" _L_sort_reverse=()
-	while getopts "znrc:" _L_c; do
+	while getopts znrc:h _L_c; do
 		case $_L_c in
 			z) ;;
 			n) _L_sort_compare="_L_sort_compare_numeric" ;;
 			r) _L_sort_reverse=("L_not") ;;
 			c) _L_sort_compare="$OPTARG" ;;
-			*) L_fatal "invalid argument" ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_assert "wrong number of arguments" test "$#" = 1
+	L_func_assert "wrong number of arguments" test "$#" = 1 || return 2
 	if ((!L_HAS_NAMEREF)); then
 		_L_c="$1[@]"
 		_L_array=(${!_L_c+"${!_L_c}"})
@@ -4106,7 +4115,7 @@ L_trap_names_v() {
 # @description Convert trap name to number.
 # The DEBUG ERROR and RETURN traps have a number as reported by $BASH_TRAPSIG inside the handler,
 # but the number can't be used to register the trap with trap command.
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 trap name or trap number
 L_trap_to_number() { L_handle_v_scalar "$@"; }
 L_trap_to_number_v() {
@@ -4116,25 +4125,23 @@ L_trap_to_number_v() {
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L%%" $1 "*}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-			# echo "L_trap_to_number: trap $1 not found" >&2
-			return 1
-		fi
+      L_func_error "trap $1 not found" || return 1
+    fi
 		L_v=${L_v##* }
 		;;
 	[0-9]*)
 		_L_TRAP_L_init
 		if [[ "$_L_TRAP_L" != *" $1 "* ]]; then
-			return 1
-		fi
+      L_func_error "trap $1 not found" || return 1
+    fi
 		L_v=$1
 		;;
 	[A-Z][A-Z]*)
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L%%" SIG${1#SIG} "*}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-			# echo "L_trap_to_number: trap $1 not found" >&2
-			return 1
-		fi
+      L_func_error "trap $1 not found" || return 1
+    fi
 		L_v=${L_v##* }
 		;;
 	*) return 1
@@ -4142,7 +4149,7 @@ L_trap_to_number_v() {
 }
 
 # @description convert trap number to trap name
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 signal name or signal number
 # @example L_trap_to_name -v var 0 && L_assert '' test "$var" = EXIT
 L_trap_to_name() { L_handle_v_scalar "$@"; }
@@ -4154,8 +4161,7 @@ L_trap_to_name_v() {
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L##*" $1 "}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-			# echo "L_trap_to_name: trap $1 not found" >&2
-			return 1
+			L_func_error "trap $1 not found" || return 1
 		fi
 		L_v=${L_v%% *}
 		;;
@@ -4163,8 +4169,7 @@ L_trap_to_name_v() {
 		_L_TRAP_L_init
 		L_v="SIG${1/#SIG}"
 		if [[ "$_L_TRAP_L" != *" $L_v "* ]]; then
-			# echo "L_trap_to_name: trap $1 not found" >&2
-			return 1
+			L_func_error "trap $1 not found"  || return 1
 		fi
 		;;
 	*) return 1
@@ -4172,7 +4177,7 @@ L_trap_to_name_v() {
 }
 
 # @description Get the current value of trap
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <str|int> signal name or number
 # @example
 #   trap 'echo hi' EXIT
@@ -4660,7 +4665,7 @@ _L_unittest_cmd_exit_trap() {
 # @description Test execution of a command and capture and test it's stdout and/or stderr output.
 # Local variables used by this function start with _L_u*. Options with _L_uopt_*.
 # This function optionally runs the command in the current shell or not depending on options.
-# @option -h Print this help and exit.
+# @option -h Print this help and return 0.
 # @option -c Run in current execution environment, instead of using a subshell.
 # @option -i Invert exit status. You can also use `!` or `L_not` in front of the command.
 # @option -I Do not close stdin <&1 . By default it is closed.
@@ -4669,7 +4674,7 @@ _L_unittest_cmd_exit_trap() {
 # @option -j Redirect stderr to stdout of the command. 2>&1
 # @option -x Run the command inside set -x
 # @option -X Do not modify set -x
-# @option -v <var> Capture stdout of the command into this variable. Use -j to capture also stderr.
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -r <regex> Compare output of the command with this regex.
 # @option -o <str> Compare output of the command with this string.
 # @option -e <int> Command should exit with this exit status (default: 0)
@@ -4688,9 +4693,8 @@ L_unittest_cmd() {
 		local _L_uopt_setx=0
 	fi
 	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0 _L_uopt_closestdin=1
-	while getopts hcifINjxXv:r:o:e: _L_uc; do
+	while getopts cifINjxXv:r:o:e:h _L_uc; do
 		case $_L_uc in
-		h) sed '/^$/,/^L_unittest_cmd()$/!d' "${BASH_SOURCE[0]}"; exit 0 ;;
 		c) _L_uopt_curenv=1 ;;
 		i) _L_uopt_invert=1 ;;
 		f) _L_uopt_invert=1 _L_uopt_devnull=1 _L_uopt_stdjoin=1 ;;
@@ -4703,7 +4707,8 @@ L_unittest_cmd() {
 		r) _L_uopt_capture=1 _L_uopt_regex=$OPTARG ;;
 		o) _L_uopt_capture=1 _L_uopt_output=$OPTARG ;;
 		e) _L_uopt_exitcode=$OPTARG ;;
-		*) L_fatal "invalid argument: $_L_uc ${OPTARG:-} ${OPTIND:-}" ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4956,7 +4961,7 @@ L_map_set() {
 # @description Assigns the value of key in map.
 # If the key is not set, then assigns default if given and returns with 1.
 # You want to prefer this version of L_map_get
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 var map
 # @arg $2 str key
 # @arg [$3] str default
@@ -5025,7 +5030,7 @@ L_map_append() {
 }
 
 # @description List all keys in the map.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 var map
 # @example
 #   L_map_init var
@@ -5043,7 +5048,7 @@ L_map_keys_v() {
 }
 
 # @description List all values in the map.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 var map
 # @example
 #    L_map_init var
@@ -5062,7 +5067,7 @@ L_map_values_v() {
 }
 
 # @description List items on newline separated key value pairs.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 var map
 # @example
 #   L_map_init var
@@ -5159,7 +5164,7 @@ L_asa_is_empty() {
 }
 
 # @description Get value from associative array
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 # @arg $2 key
 # @arg [$3] optional default value
@@ -5177,7 +5182,7 @@ L_asa_get_v() {
 }
 
 # @description get the length of associative array
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_len() { L_handle_v_scalar "$@"; }
 L_asa_len_v() {
@@ -5186,7 +5191,7 @@ L_asa_len_v() {
 }
 
 # @description get keys of an associative array
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_keys() { L_handle_v_array "$@"; }
 L_asa_keys_v() {
@@ -5196,7 +5201,7 @@ L_asa_keys_v() {
 }
 
 # @description get keys of an associative array in a sorted
-# @option -v <var> var
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_keys_sorted() { L_handle_v_array "$@"; }
 L_asa_keys_sorted_v() {
@@ -7634,6 +7639,7 @@ _L_proc_init_setup_redir() {
 # @option -e <str> file for -Efile, fd for -Efd
 # @option -p <int> Open a pipe for additional file descriptors. (TODO)
 # @option -n Dryrun mode. Do not execute the generated command. Instead print it to stdout.
+# @option -h Print this help and return 0.
 # @arg $1 variable name to store the result to.
 # @arg $@ command to execute.
 # @example
@@ -7646,7 +7652,7 @@ _L_proc_init_setup_redir() {
 L_proc_popen() {
 	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v OPTIND OPTARG OPTERR _L_cmd="" _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=()
 	# Parse arguments.
-	while getopts "i:I:o:O:e:E:p:n" _L_opt; do
+	while getopts i:I:o:O:e:E:p:nh _L_opt; do
 		case "$_L_opt" in
 		i) _L_in="$OPTARG" ;;
 		I) _L_inmode="$OPTARG" ;;
@@ -7656,7 +7662,8 @@ L_proc_popen() {
 		E) _L_errmode="$OPTARG" ;;
 		p) L_assert '-p option must be greater than 3' test "$OPTARG" -gt 3; _L_addpipe+=("$OPTARG") ;;
 		n) _L_dryrun=1 ;;
-		*) return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7686,37 +7693,37 @@ L_proc_popen() {
 }
 
 # @description Get file descriptor for stdin of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_stdin() { L_handle_v_scalar "$@"; }
 L_proc_get_stdin_v() { L_v="$1[0]"; L_v="${!L_v}"; }
 
 # @description Get file descriptor for stdout of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_stdout() { L_handle_v_scalar "$@"; }
 L_proc_get_stdout_v() { L_v="$1[1]"; L_v="${!L_v}"; }
 
 # @description Get file descriptor for stderr of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_stderr() { L_handle_v_scalar "$@"; }
 L_proc_get_stderr_v() { L_v="$1[2]"; L_v="${!L_v}"; }
 
 # @description Get PID of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_pid() { L_handle_v_scalar "$@"; }
 L_proc_get_pid_v() { L_v="$1[3]"; L_v="${!L_v}"; }
 
 # @description Get command of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_cmd() { L_handle_v_scalar "$@"; }
 L_proc_get_cmd_v() { L_v="$1[4]"; L_v="${!L_v}"; }
 
 # @description Get exitcode of L_proc.
-# @option -v <var> variable to set
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 L_proc variable
 L_proc_get_exitcode() { L_handle_v_scalar "$@"; }
 L_proc_get_exitcode_v() { L_v="$1[5]"; L_v="${!L_v}"; }
@@ -7825,18 +7832,20 @@ L_proc_poll() {
 # @description Wait for L_proc to finish.
 # If L_proc has already finished execution, will only evaluate -v option.
 # @option -t <int> Timeout in seconds. Will try to use waitpid, tail --pid or busy loop with sleep.
-# @option -v <var> Assign exitcode to this variable.
+# @option -v <var> Store the output in variable instead of printing it.
 # @option -c Close L_proc file descriptors before waiting.
+# @option -h Print this help and return 0.
 # @arg $1 L_proc variable
 # @exitcode 0 if L_proc has finished, 1 if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
-	while getopts "t:v:c" _L_opt; do
+	while getopts t:v:ch _L_opt; do
 		case "$_L_opt" in
 		t) _L_timeout="$OPTARG" ;;
 		v) _L_v="$OPTARG" ;;
 		c) _L_close=1 ;;
-		*) return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7881,18 +7890,20 @@ L_proc_wait() {
 }
 
 # @description Read from multiple file descriptors at the same time.
-# @arg -t <timeout> Timeout in seconds.
-# @arg -p <timeout> Poll timeout. The read -t argument value. Default: 0.01
+# @option -t <timeout> Timeout in seconds.
+# @option -p <timeout> Poll timeout. The read -t argument value. Default: 0.01
+# @option -h Print this help and return 0.
 # @arg $1 <int> file descriptor to read from
 # @arg $2 <var> variable to assign the output of
 # @arg $@ Pairs of variables and file descriptors.
 L_read_fds() {
 	local _L_vars=() _L_fds=() _L_i _L_ret _L_line OPTIND OPTARG OPTERR _L_timeout="" _L_poll=0.05 IFS=""
-	while getopts t:p _L_i; do
+	while getopts t:ph _L_i; do
 		case "$_L_i" in
 		t) _L_timeout="$OPTARG" ;;
 		p) _L_poll="$OPTARG" ;;
-		*) return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7953,7 +7964,8 @@ L_read_fds() {
 # @option -e <var> Assign stderr to this variable.
 # @option -t <int> Timeout in seconds.
 # @option -k Kill L_proc after communication.
-# @option -v <var> Assign exitcode to this variable.
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 # @arg $1 L_proc variable
 # @exitcode
 #   0 on success.
@@ -7962,7 +7974,7 @@ L_read_fds() {
 #   130 on timeout when waiting for process to terminate.
 L_proc_communicate() {
 	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
-	while getopts "i:o:e:t:kv:" _L_opt; do
+	while getopts i:o:e:t:kv:h _L_opt; do
 		case "$_L_opt" in
 		i) _L_input="$OPTARG" ;;
 		o) _L_output="$OPTARG" ;;
@@ -7970,7 +7982,8 @@ L_proc_communicate() {
 		t) _L_timeout="$OPTARG" ;;
 		k) _L_kill=1 ;;
 		v) _L_v="$OPTARG" ;;
-		*) return 2 ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error || return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
