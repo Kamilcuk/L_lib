@@ -526,13 +526,219 @@ L_check() {
 	fi
 }
 
-# @description Like `L_assert`, but return with 249 instead.
-# @see L_assert
-L_assert_return() {
-	if ! "${@:2}"; then
-		printf "%sassertion (%s) failed%s\n" "${FUNCNAME[1]:+${FUNCNAME[1]}: }" "$(L_quote_printf "${@:2}")" "${1:+: $1}" >&2
-		return 249
+# ]]]
+# func [[[
+# @section func
+# @description Function for writing function programs.
+
+_L_func_line_is_function_declaration_with_comment() {
+	[[
+		"$_L_i" -gt 0 &&
+		"${_L_lines[_L_i]}" =~ \
+		^[[:space:]]*(function[[:space:]]+"$_L_funcname"([[:space:]\(]|$)|"$_L_funcname"[[:space:]]*\() \
+		&& \
+		"${_L_lines[_L_i-1]}" == "#"*
+	]] # ))
+}
+
+# @description Extract the comment above the calling function.
+# @option -v <var>
+# @option -f <funcname> Print the comment of this function instead of calling function.
+# @option -b Use bash, do not use sed. For testing.
+# @option -h Print this help and return 0.
+# @arg $1 Consider function this many stackframes above.
+# @return 0 if extracted an non-empty comment above the function definition.
+# @example
+#
+#   and # some comment
+#    somefunc() {
+#       L_func_command
+#    }
+#
+#    somefunc  # outputs '# some comment'
+L_func_comment() {
+	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname _L_f="" _L_usebash=0 L_v=""
+	while getopts v:f:bh _L_i; do
+		case "$_L_i" in
+			v) _L_v=$OPTARG ;;
+			f)
+				if
+					! _L_f=$(shopt -s extdebug && declare -F "$OPTARG") ||
+						! IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f"
+				then
+					L_func_error "Could not get function $OPTARG location" || return 2
+				fi
+				;;
+			b) _L_usebash=1 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error || return 2 ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	local _L_up="$((${1:-0}))" _L_funcname_escaped
+	_L_lineno=${_L_lineno:-${BASH_LINENO[_L_up]}}
+	_L_source=${_L_source:-${BASH_SOURCE[_L_up]}}
+	_L_funcname=${_L_funcname:-${FUNCNAME[1+_L_up]}}
+	#
+	if ! [[ -f "$_L_source" && -r "$_L_source" && -s "$_L_source" ]]; then
+		return 1
 	fi
+	#
+	if ! {
+		# Try using sed.
+		((!_L_usebash)) &&
+		L_hash sed &&
+		L_regex_escape -v _L_funcname_escaped "$_L_funcname" &&
+		L_v=$(
+		  sed -n '/^#/{H;d;}; /^[[:space:]]*\(function[[:space:]]\+'"$_L_funcname_escaped"'\([[:space:](]\|$\)\|'"$_L_funcname_escaped"'[[:space:]]*(\)/{x;s/^\n//;p;x;}; {x;s/.*//;x;}' "$_L_source"
+		)
+	}; then
+		# If there is no sed or sed failed, try to use Bash.
+		L_readarray _L_lines <"$_L_source" || return 1
+		#
+		_L_i=$((_L_lineno-1))
+		if ! _L_func_line_is_function_declaration_with_comment; then
+			# In interactive shells, BASH_LINENO is all wrong. extdebug is fast and works.
+			if
+				if [[ -z "$_L_f" ]]; then
+          ! {
+          	_L_f=$(shopt -s extdebug && declare -F "$_L_funcname") &&
+          	IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f" &&
+          	_L_i=$((_L_lineno-1)) &&
+          	_L_func_line_is_function_declaration_with_comment
+          }
+				fi
+			then
+				# Still couldn't find it. Traverse the whole file to find the function.
+				for ((_L_i = ${#_L_lines[@]} - 1; _L_i >= 0; --_L_i)); do
+					# Does line _L_i look like a definition of the function?
+					if _L_func_line_is_function_declaration_with_comment; then
+						break
+					fi
+				done
+			fi
+		fi
+		# Assign the result, read comment lines.
+		for ((--_L_i; _L_i >= 0; --_L_i)); do
+			if [[ "${_L_lines[_L_i]}" == "#"* ]]; then
+				L_v="${_L_lines[_L_i]}"$'\n'$L_v
+			else
+				break
+			fi
+		done
+	fi
+	#
+	[[ -n "$L_v" ]] && L_printf_append "$_L_v" "%s\n" "${L_v%$'\n'}"
+}
+
+# @descrption Print function comment as usage message.
+# @arg [$1] How many stack frames up.
+# @see L_func_comment
+# @see L_func_error
+# @return 0
+# @example:
+#
+#    # @option -t this is an option
+#    # @option -g <arg> this is an option with an argument
+#    # @option -h Print this help and return 0.
+#    # @arg arg This is an argument
+#    utility() {
+#      local OPTING OPTARG OPTERR opt t g
+#      while getopt tg:h opt; do
+#        case "$opt" in
+#          t) t=1 ;;
+#          g) g=$OPTARG ;;
+#          h) L_func_help; return 0 ;;
+#          *) L_func_error || return 2 ;;
+#        esac
+#      done
+#      shift "$((OPTARG-1))"
+#      L_func_assert "one positional argument required" test "$#" -eq 1 || return 2
+#      #
+#      : utility logic
+#    }
+#
+L_func_help() {
+	local v up="$((${1:-0}+1))"
+	echo "$0: ${FUNCNAME[up]}:" >&2
+	if L_func_comment -v v "$up"; then
+		v="${v###}"
+		v="${v## }"
+		v="${v//$'\n' /$'\n'}"
+		v="${v//$'\n'#/$'\n'}"
+		v="${v//$'\n' /$'\n'}"
+		v="${v%%$'\n'}"
+		v="${v%%$'\n'}"
+		echo "$v" >&2
+	else
+		echo "unknown usage" >&2
+	fi
+}
+
+# @descrption Print function error.
+# @arg [$1] Message.
+# @arg [$2] How many stack frames up.
+# @see L_func_help for example
+# @return 2
+L_func_error() {
+	local _L_up="${2:-0}" v i short="" long="" args="" usage="" line
+	if [[ -n "${1:-}" ]]; then
+		echo "$0: ${FUNCNAME[1+_L_up]}: error: $1" >&2
+	fi
+	if L_func_comment -v v "$((_L_up+1))"; then
+		while IFS= read -r line; do
+			if [[ "$line" =~ ^\#[[:space:]]+@(usage|option|arg)[[:space:]]+(.*)$ ]]; then
+				line=${BASH_REMATCH[2]}
+				if [[ "${BASH_REMATCH[1]}" == "usage" ]]; then
+					usage=$line
+					break
+				elif [[ "$line" =~ --([^\ ]+)[^\<]*\<([^\>]+)\> ]]; then
+					long+=" [--${BASH_REMATCH[1]} ${BASH_REMATCH[2]}]"
+				elif [[ "$line" =~ --([^[:space:]]+) ]]; then
+					long+=" [--${BASH_REMATCH[1]}"
+				elif [[ "$line" =~ -(.)[^\<]*\<([^\>]+)\> ]]; then
+					long+=" [-${BASH_REMATCH[1]} ${BASH_REMATCH[2]}]"
+				elif [[ "$line" =~ -(.) ]]; then
+					short+="${BASH_REMATCH[1]}"
+				elif [[ "$line" =~ ([^[:space:]]+) ]]; then
+					args+=" ${BASH_REMATCH[1]}"
+				fi
+			fi
+		done <<<"$v"
+		if [[ -n "${usage:=${short:+ [-$short]}$long$args}" ]]; then
+			echo "${FUNCNAME[1+_L_up]}: usage: ${FUNCNAME[1+_L_up]}$usage"
+		fi
+	fi
+	return 2
+}
+
+# @description Assert that the command exits with 0.
+# If it does not, call L_func_error and return 2.
+# If the message starts with -[0-9]+, the number is used as the number of stackframes up the message is about.
+# @arg $1 Message to print, may be empty.
+# @arg $@ Arguments to test.
+# @return 2 if the expression failed.
+# @example
+#    utility() {
+#      local num="$1"
+#      L_func_assert "not a number: $num" L_is_integer "$num" || return 2
+#    }
+L_func_assert() {
+	if ! "${@:2}"; then
+		L_quote_printf_v "${@:2}"
+		if [[ ! "$1" =~ ^-([0-9]+)[$' \t\r\n']*(.*)$ ]]; then
+			set -- "${BASH_REMATCH[2]}" "${BASH_REMATCH[1]}"
+		else
+			set -- "$1" 1
+		fi
+		L_func_error "assertion [$L_v] failed${1:+ $1}" "$2" || return 2
+	fi
+}
+
+# @description Print a line prefixed by the calling function name.
+# @arg $@ line to print
+L_func_log() {
+	echo "${FUNCNAME[1]}: $*" >&2
 }
 
 # ]]]
