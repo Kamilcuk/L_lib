@@ -1,20 +1,13 @@
-## logging
+## L_log
 
-Logging library that provides functions for logging messages similar to python `logging` module.
-
-
-<!-- vim-markdown-toc GFM -->
-
-* [Usage](#usage)
-* [Configuration](#configuration)
-
-<!-- vim-markdown-toc -->
+Log library that provides functions for logging messages.
 
 ## Usage
 
-The logging module is initialized with level INFO on startup, in constrast to python `logging` module.
+The `L_log` module is initialized with level INFO on startup.
 
-To log a message you can use `L_trace` `L_debug` `L_info` `L_notice` `L_warning` `L_error` `L_critical` functions. Each function takes a message as an argument.
+To log a message you can use several functions functions.
+Each of these function takes a message to print.
 
 ```
 L_trace "Tracing message"
@@ -26,7 +19,15 @@ L_error "Error message"
 L_critical "Critical message"
 ```
 
-The configuration of logging is done with `L_log_configure`.
+By default, if one argument is given to the function, it is outputted as-is.
+If more arguments are given, they are parsed as a `printf` formatting string.
+
+```
+L_info "hello %s"            # logs 'hello %s'
+L_info "hello %s" "world"    # logs 'hello world'
+```
+
+The configuration of log module is done with [`L_log_configure`](#L_lib.sh--L_log_configure).
 
 ```
 declare info verbose
@@ -35,10 +36,9 @@ if ((verbose)); then level=debug; else level=info; fi
 L_log_configure -l "$level"
 ```
 
-The logging functions accepts the `-s` option to to increase logging stack information level.
+The logging functions accept the `-s` option to to increase logging stack information level.
 
 ```
-L_log_configure -l 'L_log_format_log "$@"'
 your_logger() {
   L_info -s 1 -- "$@"
 }
@@ -48,7 +48,9 @@ somefunc() {
 }
 ```
 
-All these functions forward messages to `L_log` which is main entrypoint for logging. `L_log` takes two arguments, `-s` for stacklevel and `-l` for loglevel. The loglevel can be specified as a sting `info` or `INFO` or `L_LOGLEVEL_INFO` or as a number `30` or `$L_LOGLEVEL_INFO`.
+All these functions forward messages to `L_log` which is main entrypoint for logging.
+`L_log` takes two options, `-s` for stacklevel and `-l` for loglevel.
+The loglevel can be specified as a sting `info` or `INFO` or `L_LOGLEVEL_INFO` or as a number `30` or `$L_LOGLEVEL_INFO`.
 
 ```
 L_log -s 1 -l debug -- "This is a debug message"
@@ -57,39 +59,44 @@ L_log -s 1 -l debug -- "This is a debug message"
 ## Configuration
 
 The logging can be configured with `L_log_configure`.
+It supports custom log line filtering, custom formatting and outputting, independent.
 
 ```
 my_log_formatter() {
-  printf -v L_logrecord_msg "%(%c)T: %s %s" -1 "${L_LOGLEVEL_NAMES[L_logrecord_loglevel]}" "$*"
+  printf -v L_logline "%(%c)T: %s %s" -1 "${L_LOGLEVEL_NAMES[L_logline_loglevel]}" "$*"
 }
 my_log_ouputter() {
-  echo "$L_logrecord_msg" | logger -t mylogmessage
-  echo "$L_logrecord_msg" >&2
+  echo "$L_logline" | logger -t mylogmessage
+  echo "$L_logline" >&2
 }
 my_log_filter() {
   # output only logs from functions starting with L_
-  [[ "${FUNCNAME[L_logrecord_stacklevel]:-}" =~ ^L_.* ]]
+  [[ $L_logline_funcname == L_* ]]
 }
-L_log_configure -l debug -f 'my_log_formatter "$@"' -o 'my_log_ouputter' -s my_log_selector
+L_log_configure -l debug -F my_log_formatter -o my_log_ouputter -s my_log_selector
 ```
 
-There are functions available:
+There are these formatting functions available:
 
-- `L_log_format_default` - defualt log formatting function
-- `L_log_format_long` - long formatting with timestamp, source, function, line, level and message
-- `L_log_select_source_regex` - filter 
+- `L_log_format_default` - defualt log formatting function.
+- `L_log_format_long` - long formatting with timestamp, source, function, line, level and message.
+- `L_log_format_json` - format log as JSON lines.
 
-### Available variables in -f context:
+### Available variables in filter, outputter and formatter functions:
 
-- `L_logrecord*` variables store information about the currently to-be-outptted log record.
-  - `L_logrecord_loglevel` - the current log level of the log record.
-  - `L_logrecord_stacklevel` - how many stack levels is the producer of the log line.
-  - `L_logrecord_msg` - the log message.
-- `${FUNCNAME[L_logrecord_stacklevel]}` - the function that produced the log
-- `${BASH_SOURCE[L_logrecord_stacklevel]}` - the filename that produced the log
-- `${BASH_LINENO[L_logrecord_stacklevel]}` - the line number that produced the log
-- `${L_LOGLEVEL_NAMES[L_logrecord_stacklevel]}` - the string `INFO` of the log level
-- `${L_LOGLEVEL_COLORS[L_logrecord_stacklevel]}` - the color of the log line
-- `L_log_conf_color` - set to 1 if `L_log_configure` set color to enabled, or empty otherwise.
+There are several variables `L_logline_*` available for callback functions:
 
-See `L_log_format_long` function implementation for formatting reference.
+- `$L_logline` - The variable should be set by the formatting function and printed by the outputting function.
+- `$L_logline_level` - Numeric logging level for the message.
+- `$L_logline_levelname` - Text logging level for the message. Empty if unknown.
+- `$L_logline_funcname` - Name of function containing the logging call.
+- `$L_logline_source` - The BASH_SOURCE where the logging call was made.
+- `$L_logline_lineno` - The line number in the source file where the logging call was made.
+- `$L_logline_stacklevel` - The offset in stack to where the logging call was made.
+- `${L_LOGLEVEL_COLORS[L_logline_levelno]:-}` - The color for the log line.
+- `$L_logline_color` - Set to 1 if line should print color. Set to empty otherwise.
+    - This is used in templating. `${L_logline_color:+${L_LOGLEVEL_COLORS[L_logline_levelno]:-}colored${L_logline_color:+$L_COLORRESET}`
+
+# Generated documentation from source:
+
+::: bin/L_lib.sh log
