@@ -2129,55 +2129,6 @@ L_list_functions_with_prefix_removed_v() {
 	fi
 }
 
-# @description Produces a string properly quoted for JSON inclusion
-# Poor man's jq
-# @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
-# @see https://stackoverflow.com/a/27516892/9072753
-# @option -v <var> Store the output in variable instead of printing it.
-# @example
-#    L_json_escape -v tmp "some string"
-#    echo "{\"key\":$tmp}" | jq .
-L_json_escape() { L_handle_v_array "$@"; }
-L_json_escape_v() {
-	L_v=$*
-	L_v=${L_v//\\/\\\\}
-	L_v=${L_v//\"/\\\"}
-	# L_v=${L_v//\//\\\/}
-	L_v=${L_v//$'\x01'/\\u0001}
-	L_v=${L_v//$'\x02'/\\u0002}
-	L_v=${L_v//$'\x03'/\\u0003}
-	L_v=${L_v//$'\x04'/\\u0004}
-	L_v=${L_v//$'\x05'/\\u0005}
-	L_v=${L_v//$'\x06'/\\u0006}
-	L_v=${L_v//$'\x07'/\\u0007}
-	L_v=${L_v//$'\b'/\\b}
-	L_v=${L_v//$'\t'/\\t}
-	L_v=${L_v//$'\n'/\\n}
-	L_v=${L_v//$'\x0B'/\\u000B}
-	L_v=${L_v//$'\f'/\\f}
-	L_v=${L_v//$'\r'/\\r}
-	L_v=${L_v//$'\x0E'/\\u000E}
-	L_v=${L_v//$'\x0F'/\\u000F}
-	L_v=${L_v//$'\x10'/\\u0010}
-	L_v=${L_v//$'\x11'/\\u0011}
-	L_v=${L_v//$'\x12'/\\u0012}
-	L_v=${L_v//$'\x13'/\\u0013}
-	L_v=${L_v//$'\x14'/\\u0014}
-	L_v=${L_v//$'\x15'/\\u0015}
-	L_v=${L_v//$'\x16'/\\u0016}
-	L_v=${L_v//$'\x17'/\\u0017}
-	L_v=${L_v//$'\x18'/\\u0018}
-	L_v=${L_v//$'\x19'/\\u0019}
-	L_v=${L_v//$'\x1A'/\\u001A}
-	L_v=${L_v//$'\x1B'/\\u001B}
-	L_v=${L_v//$'\x1C'/\\u001C}
-	L_v=${L_v//$'\x1D'/\\u001D}
-	L_v=${L_v//$'\x1E'/\\u001E}
-	L_v=${L_v//$'\x1F'/\\u001F}
-	L_v=${L_v//$'\x7F'/\\u007F}
-	L_v=\"$L_v\"
-}
-
 # @description Choose elements matching prefix.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 prefix
@@ -2559,6 +2510,403 @@ L_str_split() {
 			printf "%s\n" ${_L_output+"${_L_output[@]}"}
 		fi
 	fi
+}
+
+# ]]]
+# json [[[
+# @section json
+
+# @description Produces a string properly quoted for JSON inclusion
+# Poor man's jq
+# @see https://ecma-international.org/wp-content/uploads/ECMA-404.pdf figure 5
+# @see https://stackoverflow.com/a/27516892/9072753
+# @option -v <var> Store the output in variable instead of printing it.
+# @example
+#    L_json_escape -v tmp "some string"
+#    echo "{\"key\":$tmp}" | jq .
+L_json_escape() { L_handle_v_array "$@"; }
+L_json_escape_v() {
+	L_v=$*
+	if [[ "$L_v" == *[$'\\\"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f']* ]]; then
+		L_v=${L_v//\\/\\\\}
+		L_v=${L_v//\"/\\\"}
+		# L_v=${L_v//\//\\\/}
+		L_v=${L_v//$'\x01'/\\u0001}
+		L_v=${L_v//$'\x02'/\\u0002}
+		L_v=${L_v//$'\x03'/\\u0003}
+		L_v=${L_v//$'\x04'/\\u0004}
+		L_v=${L_v//$'\x05'/\\u0005}
+		L_v=${L_v//$'\x06'/\\u0006}
+		L_v=${L_v//$'\x07'/\\u0007}
+		L_v=${L_v//$'\b'/\\b}
+		L_v=${L_v//$'\t'/\\t}
+		L_v=${L_v//$'\n'/\\n}
+		L_v=${L_v//$'\x0b'/\\u000b}
+		L_v=${L_v//$'\f'/\\f}
+		L_v=${L_v//$'\r'/\\r}
+		L_v=${L_v//$'\x0e'/\\u000e}
+		L_v=${L_v//$'\x0f'/\\u000f}
+		L_v=${L_v//$'\x10'/\\u0010}
+		L_v=${L_v//$'\x11'/\\u0011}
+		L_v=${L_v//$'\x12'/\\u0012}
+		L_v=${L_v//$'\x13'/\\u0013}
+		L_v=${L_v//$'\x14'/\\u0014}
+		L_v=${L_v//$'\x15'/\\u0015}
+		L_v=${L_v//$'\x16'/\\u0016}
+		L_v=${L_v//$'\x17'/\\u0017}
+		L_v=${L_v//$'\x18'/\\u0018}
+		L_v=${L_v//$'\x19'/\\u0019}
+		L_v=${L_v//$'\x1a'/\\u001a}
+		L_v=${L_v//$'\x1b'/\\u001b}
+		L_v=${L_v//$'\x1c'/\\u001c}
+		L_v=${L_v//$'\x1d'/\\u001d}
+		L_v=${L_v//$'\x1e'/\\u001e}
+		L_v=${L_v//$'\x1f'/\\u001f}
+		L_v=${L_v//$'\x7f'/\\u007f}
+	fi
+	L_v=\"$L_v\"
+}
+
+# [
+
+# @description Very simple function to create JSON.
+# Every second argument is quoted for JSON, unless
+# this argument is preceeded by a previous argument ending with ] or },
+# when the counter starts over.
+# @example
+#   L_json_make { \
+#     a : b , \
+#     b :[ 1 , 2 , 3 , 4 ] \
+#     c :[true, 1 ,null,false] \
+#   }
+#   #   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
+#   # outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
+L_json_make() {
+  local L_v escape=0 o=""
+  while (($#)); do
+    if ((escape++ % 2)); then
+      L_json_escape_v "$1"
+      o+="$L_v"
+    else
+      if [[ "${1:${#1}-1}" == ["]}"] ]]; then
+        escape=$((escape+1))
+      fi
+      o+="$1"
+    fi
+    shift
+  done
+  echo "$o"
+}
+
+# @description Print JSON parsing error.
+_L_json_err() {
+  L_func_error "$1" "$(( ${#FUNCNAME[@]} - j_stackpos ))"
+  return 2
+}
+
+# @description Parse a string in a JSON.
+_L_json_get_string() {
+  _L_json_lstrip "$j_json"
+  if [[ "${j_json::1}" != '"' ]]; then
+    _L_json_err "internal error: missing \" at $j_json" || return 2
+  fi
+  j_json=${j_json:1}
+  if ! [[ "$j_json" =~ ((^|[^\"\\]|\\\")(\\\\)*)\"(.*)$ ]]; then
+    #                  12               3         4
+    _L_json_err "not closed \": $j_json" || return 2
+  fi
+	printf -v "$1" "%s" "${j_json::${#j_json}-${#BASH_REMATCH[0]}+${#BASH_REMATCH[1]}}"
+	j_json=${BASH_REMATCH[4]}
+}
+
+# @description Remove whitespaces from the left.
+_L_json_lstrip() {
+  local L_v
+  L_lstrip_v "$1" $' \t\r\n'
+  j_json=$L_v
+}
+
+# @description JSON parser
+# @option -v <var> Assign to this variable.
+# @env j_fullljson
+# @env j_json
+# @env _L_cb
+_L_json_do() { L_handle_v_array "$@"; }
+_L_json_do_v() {
+  _L_json_lstrip "$j_json"
+  local startposition="$((${#j_fulljson}-${#j_json}))" type="" value tmp key subvalue _
+  L_v=()
+  case "${j_json::1}" in
+  "{")
+    "$_L_cb" "{"
+    _L_json_lstrip "${j_json:1}"
+    j_json=,$j_json
+    while [[ "${j_json::1}" == , ]]; do
+      if [[ -n "$type" ]]; then
+        "$_L_cb" ","
+      fi
+      type="object"
+      j_json=${j_json:1}
+      local valuebegin="$((${#j_fulljson}-${#j_json}))"
+      _L_json_get_string key
+      "$_L_cb" ":" "\"$key\""
+      printf -v key "%b" "$key"
+      L_v+=("$key")
+      _L_json_lstrip "$j_json"
+      if [[ "${j_json::1}" != : ]]; then
+        _L_json_err "not found ':' in $j_json" || return 2
+      fi
+      _L_json_lstrip "${j_json:1}"
+      if (($#)) && [[ "$key" == "$1" ]]; then
+        _L_json_do_v "${@:2}" || return "$?"
+        if (($# == 1)); then
+          L_v[5]=$valuebegin
+        fi
+        return
+      else
+        _L_json_do -v value "${@:2}" || return "$?"
+        L_v+=("${value[0]}" "${value[1]}")
+      fi
+      _L_json_lstrip "$j_json"
+    done
+    if [[ "${j_json::1}" != "}" ]]; then
+      _L_json_err "Closing } not found: $j_json" || return 2
+    fi
+    "$_L_cb" "}"
+    j_json=${j_json:1}
+    if (($#)); then
+      _L_json_err "key $1 not found in $j_json" || return 1
+    fi
+    ;;
+  "[")
+    "$_L_cb" "["
+    if (($#)) && ! [[ "$1" =~ ^[0-9]+$ ]]; then
+      _L_json_err "array index must be a number: $1" || return 2
+    fi
+    local idx=0
+    _L_json_lstrip "${j_json:1}"
+    j_json=,$j_json
+    while [[ "${j_json::1}" == , ]]; do
+      if [[ -n "$type" ]]; then
+        "$_L_cb" ,
+      fi
+      type="array"
+      _L_json_lstrip "${j_json:1}"
+      if (($#)) && ((idx++ == $1)); then
+        _L_json_do_v "${@:2}" || return 2
+        return
+      else
+        _L_json_do -v value || return 2
+        L_v+=("${value[0]}" "${value[1]}")
+      fi
+      _L_json_lstrip "$j_json"
+    done
+    if [[ "${j_json::1}" != "]" ]]; then
+      _L_json_err "Closing ] not found: $j_json" || return 2
+    fi
+    "$_L_cb" "]"
+    j_json=${j_json:1}
+    if (($#)); then
+      _L_json_err "index $1 not found" || return 1
+    fi
+    ;;
+  '"')
+    type="string"
+    _L_json_get_string value || return 2
+    L_v=("$value")
+    "$_L_cb" "string" "\"$value\""
+    printf -v subvalue "%b" "$value"
+    ;;
+  [-0-9])
+    type="number"
+    if ! [[ "$j_json" =~ ^(-?(0|[1-9][0-9]*)([.][0-9]*)?([eE][-+]?[0-9]*)?)(.*)$ ]]; then
+      #                   1  2              3           4                  5
+      _L_json_err "invalid number: $j_json" || return 2
+    fi
+    L_v=("${BASH_REMATCH[1]}")
+    subvalue=$L_v
+    "$_L_cb" "$type" "$subvalue"
+    j_json=${BASH_REMATCH[5]}
+    ;;
+  [a-z])
+    type="literal"
+    # true false null
+    L_v=("${j_json%%[$']{, \r\t\n:}[']*}")
+    subvalue=$L_v
+    "$_L_cb" "$type" "$subvalue"
+    j_json=${j_json:${#L_v[0]}}
+    ;;
+  '') ;;
+  *) _L_json_err "invalid j_json: $(printf %q "$j_json")" || return 2
+  esac
+  local length="$((${#j_fulljson}-${#j_json}-startposition))"
+  L_v=(
+    "$type" # 0
+    "${subvalue-${j_fulljson:startposition:length}}" # 1
+    "${j_fulljson:startposition:length}" # 2
+    "$startposition" # 3
+    "$length" # 4
+    "$startposition" # 5
+    "" # 6
+    "" # 7
+    "" # 8
+    "" # 9
+    "${L_v[@]}" # 10...
+  )
+}
+
+# @description Gets value from a JSON.
+# This function assigns a varaible that:
+#    - [0] - the type object, array, string, number or literal.
+#    - [1] - the parsed value of the object. For string it is the unescaped string.
+#    - [2] - The part of the JSON representing this value.
+#    - [3] - The character index in the JSON where this value starts.
+#    - [4] - The length in characters of the JSON value.
+#    - [5] - The character index in the JSON where this value starts including the key in thecase of object.
+#    - [6..9] - Reserved for later use.
+# For an array:
+#    - [10 + 2 * i + 0] - The type of the value in the array at position i
+#    - [10 + 2 * i + 1] - The value in the array at position i
+# For an object:
+#    - [10 + 2 * i + 0] - The key.
+#    - [10 + 2 * i + 1] - The type of the value of key.
+#    - [10 + 2 * i + 2] - The value of key in the object.
+# @option -v <var> Assign to this variable.
+# @option -h Print this help and exit.
+# @arg $1 JSON
+# @arg $@ Keys or indexes to index the element by.
+# @env _L_cb
+L_json_extract() { L_handle_v_array "$@"; }
+L_json_extract_v() {
+  local j_json="$1" j_fulljson="$1" ws=$'[ \r\t\n]*' j_stackpos="${#FUNCNAME[@]}" _L_cb=${_L_cb:-:}
+  _L_json_do_v "${@:2}"
+}
+
+# @description Get a value from JSON.
+# If the value is true, false, none, a string or a number, it is assigned to the variable.
+# If the value is an array, each value of the array is assigned to separate array elements.
+# If the value is an object, the array is assigned key and values in order.
+# If you need the type of the object, use L_json_extract.
+# @example
+#    L_json_get -v a '{"a":"b","c":"d"}'   # -> a=(a b c d)
+#    L_json_get -v a '[1, 2, 3, 4]'        # -> a=(1 2 3 4)
+#    L_json_get -v a '{"key":true}' key    # -> a="true"
+# @see L_json_extract
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 JSON
+# @arg $@ Keys or indexes to index the element by.
+L_json_get() { L_handle_v_array "$@"; }
+L_json_get_v() {
+  local tmp=()
+  L_json_extract_v "$@" || return "$?"
+  case "${L_v[0]}" in
+    object)
+      for ((i=10;i<${#L_v[@]};i+=3)); do
+        tmp+=("${L_v[i]}" "${L_v[i+2]}")
+      done
+      ;;
+    array)
+      for ((i=10;i<${#L_v[@]};i+=2)); do
+        tmp+=("${L_v[i+1]}")
+      done
+      ;;
+    *) tmp=("${L_v[1]}") ;;
+  esac
+  L_v=("${tmp[@]}")
+}
+
+# @description Edit one JSON element.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 JSON
+# @arg $@ Keys or indexes to index the element by.
+# @arg $@-1 The new value to assign. The new value is taken _unescaped_. Escape it yourself.
+L_json_edit() { L_handle_v_scalar "$@"; }
+L_json_edit_v() {
+  L_json_extract_v "${@:1:$#-1}" || return "$?"
+  # shellcheck disable=SC2124
+  L_v="${1::${#1}-${L_v[3]}-1}${@:$#}${1:${L_v[3]}+${L_v[4]}}"
+}
+
+# @description Remove an JSON value.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 JSON
+# @arg $@ Keys and indexes of the value to remove.
+# @example
+#    L_json_rm -v var '{"a":"b","c":[1,2,3]}' c
+#    echo "$var"   # outputs {"a":"c"}
+L_json_rm() { L_handle_v_scalar "$@"; }
+L_json_rm_v() {
+  L_json_extract_v "$@" || return "$?"
+  local pre=${1::${L_v[5]}} post=${1:${L_v[3]}+${L_v[4]}} ws=$'[ \r\t\n]*'
+  if [[ "$pre" =~ ^(.*),$ws$ ]]; then
+    pre=${BASH_REMATCH[1]}
+  elif [[ "$post" =~ ^$ws,(.*)$ ]]; then
+    post=${BASH_REMATCH[1]}
+  fi
+  L_v=$pre$post
+}
+
+_L_json_pretty() {
+  local indent last="${_L_out:${#_L_out}-1}"
+  printf -v indent "%*s" "$((_L_indent*_L_lvl))" ""
+  case "$1" in
+    ["[{"])
+      case "$last" in
+      ["{,"]) _L_out+=$'\n'$indent ;;
+      ":") _L_out+=' ' ;;
+      esac
+      _L_lvl=$((_L_lvl+1))
+      _L_out+=$1$'\n'
+      ;;
+    ["]}"])
+      _L_lvl=$((_L_lvl-1))
+      printf -v indent "%*s" "$((_L_indent*_L_lvl))" ""
+      _L_out+=$'\n'$indent$1
+      ;;
+    ":")
+      if [[ "$last" == ["{,"] ]]; then _L_out+=$'\n'; fi
+      _L_out+=$indent$2":"
+      ;;
+    ",") _L_out+="," ;;
+    string|number|literal)
+      case "$last" in
+      ["{[,"]) _L_out+=$'\n'$indent ;;
+      ":") _L_out+=" " ;;
+      *) _L_out+=$indent ;;
+      esac
+      _L_out+=$2
+      ;;
+    *) _L_json_err "could not print. args: $*"; return 2 ;;
+  esac
+}
+
+# @description Print nicely looking version of the json.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 JSON
+# @arg $2 Number if spaces.
+L_json_pretty() { L_handle_v_scalar "$@"; }
+L_json_pretty_v() {
+  local _L_cb=_L_json_pretty _L_out="" _L_lvl=0 _L_indent=${2:-2}
+  L_json_extract_v "$@"
+  L_v=$_L_out
+}
+
+_L_json_compact() {
+  case "$1" in
+    ["[{:,}]"]) _L_out+=${2:-}$1 ;;
+    string|number|literal) _L_out+=$2 ;;
+    *) _L_json_err "could not print. args: $*"; return 2 ;;
+  esac
+}
+
+# @description Print compact version of the json.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 JSON
+L_json_compact() { L_handle_v_scalar "$@"; }
+L_json_compact_v() {
+  local _L_cb=_L_json_compact _L_out="" _L_lvl=0
+  L_json_extract_v "$@"
+  L_v=$_L_out
 }
 
 # ]]]
