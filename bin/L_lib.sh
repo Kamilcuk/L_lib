@@ -947,6 +947,52 @@ L_glob_escape_v() {
 	L_v=${L_v//\(/\\\(}
 }
 
+# @description Execute source with arguments.
+# This is usefull when wanting to source a script without passing a arguments.
+# @arg $1 Script to source.
+# @arg $@ Positional arguments to script.
+# @see https://stackoverflow.com/a/73791073/9072753
+# shellcheck disable=SC1090
+L_source() {
+	local _L_f="$1"
+	shift
+	source "$_L_f" "$@"
+}
+
+# @description Like L_source, but source script only once by keeping the list of sourced scripts in a global array.
+# @arg $1 Script to source.
+# @arg $@ Positional arguments to script.
+# @see L_source
+# @env L_SOURCE
+# shellcheck disable=SC1090
+L_source_once() {
+	local _L_f="$1"
+	if L_hash readlink; then
+		if ! _L_f=$(readlink -f "$_L_f" 2>/dev/null); then
+			_L_f="$1"
+		fi
+	fi
+	if ! L_args_contain "$_L_f" ${L_SOURCE[@]:+"${L_SOURCE[@]}"}; then
+		L_SOURCE="$_L_f"
+		shift
+		source "$_L_f" "$@"
+	fi
+}
+
+# @description Evaluate the expression by first setting the arguments.
+# This is usefull to properly quote the expression and still use eval and variables.
+# @arg $1 Script to execute.
+# @arg $@ Positional arguments to set for the duration of the script.
+# @example
+#    L_assert 'variable has quotes' L_eval '[[ "$1" != *\"* ]]' "$variable"
+#    # much simpler and easier to quote than:
+#    L_assert 'variable has quotes' "[[ ${variable@Q} == *\\\"* ]]"
+L_eval() {
+	local _L_f="$1"
+	shift
+	eval "$_L_f"
+}
+
 if ((L_HAS_COMPGEN_V)); then
 # @description Wrapper around compgen that does not support -V argument.
 #
@@ -1452,6 +1498,25 @@ L_uuid4_v() {
 	L_v=${L_v::8}-${L_v:8:4}-4${L_v:13:3}-${L_v:16:4}-${L_v:20}
 }
 
+# @description Print date in the format.
+# If the format string contains %N or the timepoint is not a number, use date command.
+# Otherwise, try to use printf %(fmt)T.
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and exit.
+# @arg $1 Format string.
+# @arg [$2] Optional timepoint.
+L_date() { L_handle_v_scalar "$@"; }
+L_date_v() {
+	# Support python %f.
+	L_v=${1//%f/%6N}
+	# If the format string contains %N or the timestamp is not seconds since epoch.
+	if ((!L_HAS_PRINTF_T)) || [[ "$L_v" =~ %[0-9]*N || "${2:-}" == *[^0-9]* ]]; then
+		L_v=$(date ${2:+-d"$2"} +"$L_v")
+	else
+		printf -v L_v "%($L_v)T" "${2:--1}"
+	fi
+}
+
 # ]]]
 # exit_to [[[
 # @section exit_to
@@ -1740,7 +1805,7 @@ L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
 #	L_is_valid_variable_or_array_element aa           # true
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
 #	L_is_valid_variable_or_array_element 'arr[elem'   # false
-L_is_valid_variable_or_array_element() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$ ]]; }
+L_is_valid_variable_or_array_element() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$ ]]; } # ]
 
 # @description Return 0 if the string characters is an integer
 # @arg $1 string to check
