@@ -566,12 +566,12 @@ L_func_comment() {
 					! _L_f=$(shopt -s extdebug && declare -F "$OPTARG") ||
 						! IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f"
 				then
-					L_func_error "Could not get function $OPTARG location" || return 2
+					L_func_error "Could not get function $OPTARG location"; return 2
 				fi
 				;;
 			b) _L_usebash=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -649,7 +649,7 @@ L_func_comment() {
 #          t) t=1 ;;
 #          g) g=$OPTARG ;;
 #          h) L_func_help; return 0 ;;
-#          *) L_func_error || return 2 ;;
+#          *) L_func_error; return 2 ;;
 #        esac
 #      done
 #      shift "$((OPTARG-1))"
@@ -679,7 +679,6 @@ L_func_help() {
 # @arg [$1] Message.
 # @arg [$2] How many stack frames up.
 # @see L_func_help for example
-# @return 2
 L_func_error() {
 	local _L_up="${2:-0}" v i short="" long="" args="" usage="" line
 	if [[ -n "${1:-}" ]]; then
@@ -706,10 +705,9 @@ L_func_error() {
 			fi
 		done <<<"$v"
 		if [[ -n "${usage:=${short:+ [-$short]}$long$args}" ]]; then
-			echo "${FUNCNAME[1+_L_up]}: usage: ${FUNCNAME[1+_L_up]}$usage"
+			echo "${FUNCNAME[1+_L_up]}: usage: ${FUNCNAME[1+_L_up]}$usage" >&2
 		fi
 	fi
-	return 2
 }
 
 # @description Assert that the command exits with 0.
@@ -731,7 +729,8 @@ L_func_assert() {
 		else
 			set -- "$1" 1
 		fi
-		L_func_error "assertion [$L_v] failed${1:+ $1}" "$2" || return 2
+		L_func_error "assertion [$L_v] failed${1:+ $1}" "$2"
+		return 2
 	fi
 }
 
@@ -2189,7 +2188,7 @@ L_percent_format_v() {
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
 		#                                    12     3            4   5         6                     7
 		if [[ "$_L_fmt" == "${BASH_REMATCH[7]}" ]]; then
-			L_func_error "invalid format specification: $1" 2 || return 2
+			L_func_error "invalid format specification: $1" 2; return 2
 		fi
 		_L_fmt="${BASH_REMATCH[7]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -2219,7 +2218,7 @@ L_fstring_v() {
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
 		#                                    12      3                        4   5       6 7             8
 		if [[ "$_L_fmt" == "${BASH_REMATCH[8]}" ]]; then
-			L_func_error "invalid format specification: $1" 2 || return 2
+			L_func_error "invalid format specification: $1" 2; return 2
 		fi
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -2364,7 +2363,7 @@ L_str_split() {
 			A) _L_ansic1="" _L_ansic2="" ;;
 			q) _L_q=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2634,7 +2633,7 @@ L_readarray() {
 		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
 		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2943,7 +2942,7 @@ L_table() {
 		o) _L_o=$OPTARG ;;
 		R) _L_R=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3146,7 +3145,7 @@ L_pretty_print() {
 		n) _L_pp_nested=1 ;;
 		c) _L_pp_compact=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3237,7 +3236,7 @@ L_argskeywords() {
 			E) _L_errorexit=1 ;;
 			e) _L_errorprefix=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -3907,7 +3906,7 @@ L_sort_bash() {
 			r) _L_sort_reverse=("L_not") ;;
 			c) _L_sort_compare="$OPTARG" ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4135,14 +4134,14 @@ L_trap_to_number_v() {
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L%%" $1 "*}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-      L_func_error "trap $1 not found" || return 1
+      L_func_error "trap $1 not found"; return 1
     fi
 		L_v=${L_v##* }
 		;;
 	[0-9]*)
 		_L_TRAP_L_init
 		if [[ "$_L_TRAP_L" != *" $1 "* ]]; then
-      L_func_error "trap $1 not found" || return 1
+      L_func_error "trap $1 not found"; return 1
     fi
 		L_v=$1
 		;;
@@ -4150,7 +4149,7 @@ L_trap_to_number_v() {
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L%%" SIG${1#SIG} "*}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-      L_func_error "trap $1 not found" || return 1
+      L_func_error "trap $1 not found"; return 1
     fi
 		L_v=${L_v##* }
 		;;
@@ -4171,7 +4170,7 @@ L_trap_to_name_v() {
 		_L_TRAP_L_init
 		L_v=${_L_TRAP_L##*" $1 "}
 		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
-			L_func_error "trap $1 not found" || return 1
+			L_func_error "trap $1 not found"; return 1
 		fi
 		L_v=${L_v%% *}
 		;;
@@ -4179,7 +4178,7 @@ L_trap_to_name_v() {
 		_L_TRAP_L_init
 		L_v="SIG${1/#SIG}"
 		if [[ "$_L_TRAP_L" != *" $L_v "* ]]; then
-			L_func_error "trap $1 not found"  || return 1
+			L_func_error "trap $1 not found" ; return 1
 		fi
 		;;
 	*) return 1
@@ -4510,11 +4509,11 @@ L_finally_pop() {
 #    L_unittest_eq 1 1
 
 # @description Integer that increases with every failed test.
-: "${L_unittest_fails:=0}"
+L_unittest_fails=${L_unittest_fails:-0}
 # @description Set this variable to 1 to exit immediately when a test fails.
-: "${L_unittest_exit_on_error:=0}"
+L_unittest_exit_on_error=${L_unittest_exit_on_error:-0}
 # @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
-: "${L_unittest_unset_x:=$L_HAS_LOCAL_DASH}"
+L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 
 # @description internal unittest function
 # @env L_unittest_fails
@@ -4530,7 +4529,7 @@ _L_unittest_internal() {
 	fi
 	"${@:3}" || _L_tmp=$?
 	((_L_invert ? (_L_tmp = !_L_tmp) : 1, 1))
-	: "${L_unittest_fails:=0}"
+	L_unittest_fails=${L_unittest_fails:-0}
 	if ((_L_tmp)); then
 		echo -n "${L_RED}${L_BRIGHT}"
 	fi
@@ -4708,7 +4707,7 @@ _L_unittest_cmd_exit_trap() {
 L_unittest_cmd() {
 	if ((L_unittest_unset_x)) && [[ $- = *x* ]]; then
 		local -
-		set +x
+		# set +x
 		local _L_uopt_setx=1
 	else
 		local _L_uopt_setx=0
@@ -4729,7 +4728,7 @@ L_unittest_cmd() {
 		o) _L_uopt_capture=1 _L_uopt_output=$OPTARG ;;
 		e) _L_uopt_exitcode=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4915,7 +4914,7 @@ L_unittest_contains() {
 }
 
 # ]]]
-# Map [[[
+# map [[[
 # @section map
 # @description Key value store without associative array support
 # L_map consist of an null initial value.
@@ -5141,13 +5140,14 @@ L_map_save() {
 	done
 }
 
-# shellcheck disable=2018
-
 # ]]]
 if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-# asa - Associative Array [[[
+# asa [[[
 # @section asa
-# @description collection of function to work on associative array
+# @description Collection of function to work on associative array.
+# Maybe will renamed to dict.
+# "asa" sounds better than "assarray", less confusing than "asarray"
+# and shorter that associative array.
 # @note unstable
 
 # @description Copy associative dictionary.
@@ -7684,7 +7684,7 @@ L_proc_popen() {
 		p) L_assert '-p option must be greater than 3' test "$OPTARG" -gt 3; _L_addpipe+=("$OPTARG") ;;
 		n) _L_dryrun=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7866,7 +7866,7 @@ L_proc_wait() {
 		v) _L_v="$OPTARG" ;;
 		c) _L_close=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7924,7 +7924,7 @@ L_read_fds() {
 		t) _L_timeout="$OPTARG" ;;
 		p) _L_poll="$OPTARG" ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -8004,7 +8004,7 @@ L_proc_communicate() {
 		k) _L_kill=1 ;;
 		v) _L_v="$OPTARG" ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -8301,14 +8301,6 @@ _L_lib_main() {
 		fi
 		_L_lib_usage
 		exit 0
-		;;
-	test)
-		set -euo pipefail
-		local _L_pre=""
-		printf -v _L_pre "%s\n" "${!_L_@}"
-		L_trap_err_enable
-		_L_lib_run_tests "$@"
-		printf "%s\n" "${!_L_@}" | diff <(printf "%s" "$_L_pre") -
 		;;
 	cmd) _L_lib_main_cmd "$@" ;;
 	nop) ;;
