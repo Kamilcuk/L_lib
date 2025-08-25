@@ -389,51 +389,69 @@ _L_test_format() {
 }
 
 _L_test_json_escape() {
+	t() {
+		local tmp input="$1"
+		L_json_escape -v tmp "$1"
+		L_unittest_cmd -o "$tmp" eval 'printf "%s" "$input" | jq -R -s .'
+	}
+	t $'1 hello\n\t\bworld'
+	t $'2 \x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+	t $'3 \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
+	t $'4 \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f'
+	t $'5 \x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f'
+	t "! ${L_ALLCHARS::127}"
+	local i a LC_ALL=C
+	for ((i=1;i<127;++i)); do
+		printf -v a "%02x" "$i"
+		printf -v a "%b" "\\x$a"
+		t "${a}|"
+	done
+	t $'\1f'
+	t $'\7f'
+	unset -f t
+}
+
+_L_test_json() {
 	{
-		if L_hash jq; then
-			t() {
-				local tmp out
-				L_json_escape -v tmp "$1"
-				# L_log "JSON ${tmp@Q}"
-				out=$(echo "{\"v\":$tmp}" | jq -r .v)
-				L_unittest_eq "$1" "$out"
-			}
-			t $'1 hello\n\t\bworld'
-			t $'2 \x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
-			t $'3 \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
-			t $'4 \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f'
-			t $'5 \x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f'
-			t "! ${L_ALLCHARS::127}"
-			unset -f t
-		fi
+		L_log "test L_json_make"
+		L_unittest_cmd -o '{"a":"b"}' eval 'L_json_make { a : b } | jq -c'
+		L_unittest_cmd -o '{"a":"b","c":["1",2,true,false,null]}'\
+			eval 'L_json_make { a : b , c :[ 1 ,2,true,false,null] } | jq -c'
+		L_unittest_cmd -o '{"\t":"\t "}' \
+			eval $'L_json_make { "\t" : "\t " } | jq -c'
 	}
 	{
-		if L_hash curl; then
-			t() {
-				local tmp
-				L_json_escape -v tmp "$1"
-				# L_log "JSON ${tmp@Q}"
-				L_unittest_cmd -o '{"errors":[],"valid":true}' curl -sS \
-					-H "Content-Type: application/json" \
-					-d'{
-  						"schema": {
-  							"type": "object",
-  							"properties": { "v": { "type": "string" }},
-  							"required": ["v"]
-							},
-  						"json": {
-  							"v": '"$tmp"'
-  						}
-						}' "https://assertible.com/json"
-			}
-			t $'1 hello\n\t\bworld'
-			t $'2 \x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
-			t $'3 \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
-			t $'4 \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f'
-			t $'5 \x40\x41\x42\x43\x44\x45\x46\x47\x48\x49\x4a\x4b\x4c\x4d\x4e\x4f'
-			t "! ${L_ALLCHARS::127}"
-			unset -f t
-		fi
+		L_log "test L_json_get"
+		local json='{"a":["b",{"c":[1,2],"i":2,"j":true,"k":false,"m":null}], "d":{ "e":"f","g":"h" }}'
+		L_unittest_cmd eval 'jq -c <<<"$json"'
+		L_unittest_cmd -o $'1\n2' L_json_get "$json" a 1 c
+		L_unittest_cmd -o $'e\nf\ng\nh' L_json_get "$json" d
+		L_unittest_cmd -o 2 L_json_get "$json" a 1 i
+		L_unittest_cmd -o true L_json_get "$json" a 1 j
+		L_unittest_cmd -o false L_json_get "$json" a 1 k
+		L_unittest_cmd -o null L_json_get "$json" a 1 m
+	}
+	{
+		local json_is json_shouldbe
+		L_log "test L_json_edit"
+
+		check() {
+			local json1="$1" expr="$2" input="$3" json2
+			#
+			L_json_pretty -v json1 "$json1"
+			json2=$(jq "$expr" <<<"$input")
+			L_unittest_eq "$json1" "$json2"
+			#
+			L_json_compact -v json1 "$json1"
+			json2=$(jq -c "$expr" <<<"$input")
+			L_unittest_eq "$json1" "$json2"
+		}
+
+		{
+			local json_no_d
+			L_json_rm -v json_no_d "$json" d
+			check "$json_no_d" 'del(.d)' "$json"
+		}
 	}
 }
 
