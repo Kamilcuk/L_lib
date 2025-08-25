@@ -4,6 +4,7 @@ COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 
 FROM app AS test
+RUN apk add --no-cache jq
 COPY tests/ /tests/
 ARG ARGS=""
 RUN /tests/test.sh ${ARGS}
@@ -24,3 +25,7 @@ COPY mkdocs.yml .
 RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 /app/site /
+
+ARG VERSION=latest
+FROM bash:${VERSION} AS tester
+RUN apk add --no-cache jq

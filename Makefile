@@ -33,9 +33,11 @@ test: \
 test_local:
 	./tests/test.sh $(ARGS)
 test_bash%:
+	docker build --target tester --build-arg BASH=$* .
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		bash:$* ./tests/test.sh $(ARGS)
+		$$(docker build -q --target tester --build-arg BASH=$* .) \
+		./tests/test.sh $(ARGS)
 test_docker%:
 	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
 
