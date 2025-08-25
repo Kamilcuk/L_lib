@@ -1,4 +1,23 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
+ulimit -c 0
+. "$(dirname "$0")"/../bin/L_lib.sh
+L_log_configure -L
+
+get_all_variables() {
+	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
+	unset -v L_v IFS LC_ALL _L_TRAP_L
+	# if L_var_is_set _L_finally_pid; then
+	# 	unset -v _L_finally_pid
+	# 	unset -v _L_finally_arr
+	# fi
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM)="
+}
+
+VARIABLES_BEFORE=$(get_all_variables)
+
+###############################################################################
 
 _L_test_color() {
 	{
@@ -3151,20 +3170,21 @@ _L_test_func_usage() {
 	! grep 'L_func_help[; ]' bin/L_lib.sh | grep -v "^#" | grep -v '; return 0'
 }
 
-###############################################################################
-
-get_all_variables() {
-	unset SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
-	unset L_v IFS LC_ALL _L_TRAP_L
-	unset _L_finally_pid
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID)="
+_L_test_sections_ok() {
+	local vim_sections file_sections docs_sections list_sections
+	vim_sections=$(sed -n 's/# \+\(.*\) \+\[\[\[$/\1/p' bin/L_lib.sh | sort)
+	file_sections=$(sed -n 's/# @section \+\(.*\)$/\1/p' bin/L_lib.sh | sort)
+	docs_sections=$(cd docs/section && printf "%s\n" *.md | sed 's/\.md$//' | sort | grep -vxF all)
+	list_sections=$(sed -n '/- Documentation:/,/^$/{/Documentation:/d;s/.*- \([^:]*\).*/\1/p}' mkdocs.yml | grep -vxF all | sort)
+	L_unittest_eq "$vim_sections" "$file_sections"
+	L_unittest_eq "$vim_sections" "$docs_sections"
+	L_unittest_eq "$vim_sections" "$list_sections"
 }
 
-. "$(dirname "$0")"/../bin/L_lib.sh
+###############################################################################
 
-VARIABLES_BEFORE=$(get_all_variables)
-
-. "$(dirname "$0")"/../bin/L_lib.sh test "$@"
+L_trap_err_enable
+_L_lib_run_tests "$@"
 
 # Check for any new variables.
 diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
