@@ -3834,6 +3834,19 @@ L_version_cmp() {
 #     L_error "this is an error"
 #     L_info "this is information"
 #     L_debug "This is debug"
+#
+# @description was log system configured?
+# _L_logconf_configured=0
+# @description int current global log level
+# _L_logconf_level=$L_LOGLEVEL_INFO
+# @description 1 or 0 or ''. Should we use the color for logging output?
+# _L_logconf_color=
+# @description if this regex is set, allow elements
+# _L_logconf_selecteval=
+# @description default formatting function
+# _L_logconf_formateval='L_log_format_default "$@"'
+# @description default outputting function
+# _L_logconf_outputeval=L_log_output_to_stderr
 
 L_LOGLEVEL_CRITICAL=50
 L_LOGLEVEL_ERROR=40
@@ -3855,62 +3868,59 @@ L_LOGLEVEL_NAMES=(
 # @description get color associated with particular loglevel
 # shellcheck disable=SC2153
 L_LOGLEVEL_COLORS=(
-	[L_LOGLEVEL_CRITICAL]="${L_STANDOUT}${L_BOLD}${L_RED}"
-	[L_LOGLEVEL_ERROR]="${L_BOLD}${L_RED}"
-	[L_LOGLEVEL_WARNING]="${L_BOLD}${L_YELLOW}"
-	[L_LOGLEVEL_NOTICE]="${L_BOLD}${L_CYAN}"
-	[L_LOGLEVEL_INFO]="$L_BOLD"
+	[L_LOGLEVEL_CRITICAL]="${L_ANSI_STANDOUT}${L_ANSI_BOLD}${L_ANSI_RED}"
+	[L_LOGLEVEL_ERROR]="${L_ANSI_BOLD}${L_ANSI_RED}"
+	[L_LOGLEVEL_WARNING]="${L_ANSI_BOLD}${L_ANSI_YELLOW}"
+	[L_LOGLEVEL_NOTICE]="${L_ANSI_BOLD}${L_ANSI_CYAN}"
+	[L_LOGLEVEL_INFO]="$L_ANSI_BOLD"
 	[L_LOGLEVEL_DEBUG]=""
-	[L_LOGLEVEL_TRACE]="$L_LIGHT_GRAY"
+	[L_LOGLEVEL_TRACE]="$L_ANSI_LIGHT_GRAY"
 )
 
-# @description was log system configured?
-_L_logconf_configured=0
-# @description int current global log level
-_L_logconf_level=$L_LOGLEVEL_INFO
-# @description 1 or ''. Should we use the color for logging output?
-L_logconf_color=1
-# @description if this regex is set, allow elements
-_L_logconf_selecteval=true
-# @description default formatting function
-_L_logconf_formateval='L_log_format_default "$@"'
-# @description default outputting function
-_L_logconf_outputeval='L_log_output_to_stderr "$@"'
-
-# @description configure L_log system
-# @option -h               Print help and return 0.
-# @option -r               Allow for reconfiguring L_log system. Otherwise second call of this function is ignored.
+# @description Configure L_log module.
+# @option -h               Print this help and return 0.
+# @option -r               Allow for reconfiguring L_log system. Otherwise the next call of this function is ignored.
 # @option -l <LOGLEVEL>    Set loglevel. Can be \$L_LOGLEVEL_INFO INFO or 30. Default: $_L_logconf_level
-# @option -c <BOOL>        Enable/disable the use of color. Default: $L_logconf_color
-# @option -f <FORMATEVAL>  Evaluate expression for formatting. Default: $_L_logconf_formateval
-# @option -s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: $_L_logconf_selecteval
-# @option -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: $_L_logconf_outputeval
+# @option -c <BOOL>        Set to 1 to enable the use of color, set to 0 to disable the use of color.
+#                          Set to '' empty string to detect if stdout has color support. Default: ''
+# @option -f <FORMATEVAL>  Evaluate expression for formatting. Default: 'L_log_format_default "$@"'
+#                          The function should format arguments and put the message into the L_logline variable.
+# @option -F <FORMATFUNC>  Equal to -f '<FORMATFUNC> "$@"'. Shorthand to use a function.
+# @option -s <SELECTEVAL>  If eval "SELECTEVAL" exits with nonzero, do not print the line. Default: ''
+# @option -o <OUTPUTEVAL>  Evaluate expression for outputting. Default: L_log_output_to_stderr
+#                          The function should output the content of L_logline.
+# @option -L               Equal to -F L_log_format_long
+# @option -J               Equal to -F L_log_format_json
 # @noargs
 # @example
 #   L_log_configure \
 #     -l debug \
 #     -c 0 \
-#     -f 'printf -v L_logrecord_msg "%s" "${@:2}"' \
-#     -o 'printf "%s\n" "$@" >&2' \
-#     -s 'L_log_select_source_regex ".*/script.sh"'
+#     -f 'printf -v L_logline "${@:2}"' \
+#     -o 'printf "%s\n" "$L_logline" >&2' \
+#     -s '[[ $L_logline_source == */script.sh ]]'
 L_log_configure() {
 	local OPTIND OPTARG OPTERR _L_opt
-	while getopts hrl:c:f:s:o: _L_opt; do
+	while getopts hrl:c:f:F:s:o:LJ _L_opt; do
 		case "$_L_opt" in
-			r) _L_logconf_configured=0 ;;
-			[lcfso]) ;;
 			h) L_func_help; return 0; ;;
-			*) L_func_error || return 2; ;;
+			r) _L_logconf_configured=0 ;;
+			[lcfFsoLJ])
+				if ((${_L_logconf_configured:-0} == 0)); then
+					case "$_L_opt" in
+						l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
+						c) L_exit_to_1null _L_logconf_color L_is_true "$OPTARG" ;;
+						f) _L_logconf_formateval=$OPTARG ;;
+						F) _L_logconf_formateval="$OPTARG"' "$@"' ;;
+						s) _L_logconf_selecteval=$OPTARG ;;
+						o) _L_logconf_outputeval=$OPTARG ;;
+						L) _L_logconf_formateval='L_log_format_long "$@"' ;;
+						J) _L_logconf_formateval='L_log_format_json "$@"' ;;
+					esac
+				fi
+				;;
+			*) L_func_error; return 2; ;;
 		esac
-		if ((!_L_logconf_configured)); then
-			case "$_L_opt" in
-				l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
-				c) L_exit_to_1null L_logconf_color L_is_true "$OPTARG" ;;
-				f) _L_logconf_formateval=$OPTARG ;;
-				s) _L_logconf_selecteval=$OPTARG ;;
-				o) _L_logconf_outputeval=$OPTARG ;;
-			esac
-		fi
 	done
 	shift "$((OPTIND-1))"
 	L_func_assert "invalid arguments: $*" test "$#" -eq 0 || return 2
@@ -3920,42 +3930,14 @@ L_log_configure() {
 # @description increase log level
 # @arg $1 <int> amount, default: 10
 L_log_level_inc() {
-	_L_logconf_level=$(( _L_logconf_level - ${1:-10} ))
+	_L_logconf_level=$(( ${_L_logconf_level:-$L_LOGLEVEL_INFO} - ${1:-10} ))
 }
 
 # @description decrease log level
 # @arg $1 <int> amount, default: 10
 L_log_level_dec() {
-	_L_logconf_level=$(( _L_logconf_level + ${1:-10} ))
+	_L_logconf_level=$(( ${_L_logconf_level:-$L_LOGLEVEL_INFO} + ${1:-10} ))
 }
-
-# @description int positive stack level to omit when printing caller information
-# @example
-# 	echo \
-#      "${BASH_SOURCE[L_logrecord_stacklevel]}" \
-#      "${FUNCNAME[L_logrecord_stacklevel]}" \
-#      "${BASH_LINENO[L_logrecord_stacklevel]}"
-L_logrecord_stacklevel=2
-# @description int current log line log level
-# @example
-#     printf "%sHello%s\n" \
-#       "${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
-#       "${L_logconf_color:+$L_COLORRESET}"
-L_logrecord_loglevel=0
-
-# @description increase stacklevel of logging information
-# @noargs
-# @see L_fatal implementation
-L_log_stack_inc() { ((++L_logrecord_stacklevel)); }
-# @description decrease stacklevel of logging information
-# @noargs
-# @example
-#   func() {
-#       L_log_stack_inc
-#       trap L_log_stack_dec RETURN
-#       L_info hello world
-#   }
-L_log_stack_dec() { ((--L_logrecord_stacklevel)); }
 
 # @description Convert log string to number
 # @arg $1 str variable name
@@ -3980,199 +3962,190 @@ L_log_level_to_int() {
 	printf -v "$1" "%d" "$L_v"
 }
 
-# @description Check if loggin is enabled for specified level
-# @env _L_logconf_level
-# @set L_logrecord_loglevel
+# @description Check if log of such level is enabled to log.
 # @arg $1 str|int loglevel or log string
 L_log_is_enabled_for() {
-	L_log_level_to_int L_logrecord_loglevel "$1"
-	# echo "$L_logrecord_loglevel $L_log_level"
-	((_L_logconf_level <= L_logrecord_loglevel))
+	local v
+	L_log_level_to_int v "$1"
+	_L_log_is_enabled_for "$v"
 }
 
-# @description Finction that can be passed to filtereval to filter specific bash source name.
-# @arg $1 Regex to match against BASH_SOURCE
-# @see L_log_configure
-L_log_select_source_regex() {
-	[[ "${BASH_SOURCE[L_logrecord_stacklevel]}" =~ $* ]]
-}
-
-# @description Finction that can be passed to filtereval to filter specific bash source name.
-# @arg $1 Regex to match against BASH_SOURCE
-# @see L_log_configure
-L_log_select_function_regex() {
-	[[ "${FUNCNAME[L_logrecord_stacklevel]}" =~ $* ]]
+# @description Check if log of such level is enabled to log.
+# @env _L_logconf_level
+# @arg $1 int loglevel
+_L_log_is_enabled_for() {
+	# echo "$L_logline_levelno $L_log_level"
+	(( ${_L_logconf_level:-$L_LOGLEVEL_INFO} <= $1 ))
 }
 
 # @description Default logging formatting
 # @arg $1 str log line printf format string
 # @arg $@ any log line printf arguments
-# @env L_logrecord_stacklevel
-# @env L_logrecord_loglevel
-# @set L_logrecord_msg
-# @env L_LOGLEVEL_NAMES
-# @env L_LOGLEVEL_COLORS
-# @env BASH_LINENO
-# @env FUNCNAME
-# @env L_NAME
-# @see L_log_configure
 L_log_format_default() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
-	printf -v L_logrecord_msg "%s""%s:%s:%d:$1""%s" \
-		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
+	printf -v L_logline "%s:%s:%d:$1" \
 		"$L_NAME" \
-		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
-		"${BASH_LINENO[L_logrecord_stacklevel]}" \
-		"${@:2}" \
-		"${L_logconf_color:+$L_COLORRESET}"
+		"$L_logline_levelname" \
+		"$L_logline_lineno" \
+		"${@:2}"
 }
 
-# @description Format logrecord with timestamp information.
+# @description Format logline with timestamp information.
 # @arg $1 str log line printf format string
 # @arg $@ any log line printf arguments
-# @env L_logrecord_stacklevel
-# @env L_logrecord_loglevel
-# @set L_logrecord_msg
-# @env L_LOGLEVEL_NAMES
-# @env L_LOGLEVEL_COLORS
-# @env BASH_LINENO
-# @env FUNCNAME
-# @env L_NAME
-# @see L_log_configure
 L_log_format_long() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
-	printf -v L_logrecord_msg "%s""%(%Y-%m-%dT%H:%M:%S%z)T: %s:%s:%d: %s $1""%s" \
-		"${L_logconf_color:+${L_LOGLEVEL_COLORS[L_logrecord_loglevel]:-}}" \
-		-1 \
+	local L_v
+	L_date_v %Y-%m-%dT%H:%M:%S%z
+	printf -v L_logline "%s %q:%s:%d %s $1" \
+		"$L_v" \
 		"$L_NAME" \
-		"${FUNCNAME[L_logrecord_stacklevel]}" \
-		"${BASH_LINENO[L_logrecord_stacklevel]}" \
-		"${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-}" \
-		"${@:2}" \
-		"${L_logconf_color:+$L_COLORRESET}"
+		"$L_logline_funcname" \
+		"$L_logline_lineno" \
+		"$L_logline_levelname" \
+		"${@:2}"
 }
 
-# @description Output formatted line to stderr
-# @arg $@ message to output
-# @see L_log_configure
+# @description Output logs in json format.
+# shellcheck disable=SC2059
+L_log_format_json() {
+	local msg out="" ts L_v i pid
+	if (($# == 1)); then set -- "%s" "$*"; fi
+	printf -v msg "$@"
+	L_date_v %Y-%m-%dT%H:%M:%S%z
+	L_bashpid_to pid
+	for i in \
+		timestamp:"$L_v" \
+		funcname:"$L_logline_funcname" \
+		lineno:"$L_logline_lineno" \
+		source:"$L_logline_source" \
+		levelname:"$L_logline_levelname" \
+		level:"$L_logline_levelno" \
+		message:"$msg" \
+		script:"$0" \
+		pid:"$pid" \
+		ppid:"$PPID" \
+	; do
+		out+=",\"${i%%:*}\":"
+		L_json_escape_v "${i#*:}"
+		out+="$L_v"
+	done
+	printf -v L_logline "%s" "{${out#,}}"
+}
+
+# @description Output L_logline to stderr.
 L_log_output_to_stderr() {
-	printf "%s\n" "$@" >&2
+	printf "%s\n" \
+		"${L_logline_color:+${L_LOGLEVEL_COLORS[L_logline_levelno]:-}}$L_logline${L_logline_color:+$L_COLORRESET}" >&2
 }
 
-# @description Output formatted line with logger
+# @description Output L_logline with logger.
 # @arg $@ message to output
-# @env L_NAME
-# @env L_logrecord_loglevel
-# @env L_LOGLEVEL_NAMES
-# @see L_log_configure
 L_log_output_to_logger() {
 	logger \
-		--tag "$L_NAME" \
-		--priority "local3.${L_LOGLEVEL_NAMES[L_logrecord_loglevel]:-notice}" \
+		--tag="$L_NAME" \
+		--id=$$ \
+		${L_logline_levelname:+--priority="user.$L_logline_levelname"} \
 		--skip-empty \
-		-- "$@"
-}
-
-# @description Handle log message to output
-# @arg $@ Log message
-# @env L_logrecord_loglevel
-# @env L_logrecord_stacklevel
-# @warning Users could overwrite this function.
-L_log_handle() {
-	if L_log_is_enabled_for "$L_logrecord_loglevel" && eval "$_L_logconf_selecteval"; then
-		local L_logrecord_msg=
-		# Should set L_logrecord_msg from "$@"
-		eval "$_L_logconf_formateval"
-		set -- "$L_logrecord_msg"
-		# Should output "$@"
-		eval "$_L_logconf_outputeval"
-	fi
+		-- "$L_logline"
 }
 
 # shellcheck disable=SC2140
 # @description main logging entrypoint
 # @option -s <int> Increment stacklevel by this much
 # @option -l <int|string> loglevel to print log line as
-# @arg $1 str log line printf format string
-# @arg $@ any log line printf arguments
-# @set L_logrecord_loglevel
-# @set L_logrecord_stacklevel
+# @arg $@ any log arguments
+# @return 0 if nothing was logged, or the exit status of formatter && outputter functions.
 L_log() {
-	local OPTIND OPTARG OPTERR _L_opt
-	L_logrecord_loglevel=$L_LOGLEVEL_INFO
+	local OPTIND OPTARG OPTERR _L_opt _L_stacklevel=1 \
+		L_logline_levelno="$L_LOGLEVEL_INFO" \
+		L_logline=""
 	while getopts :s:l: _L_opt; do
 		case "$_L_opt" in
-		s) ((L_logrecord_stacklevel += OPTARG, 1)) ;;
-		l) L_log_level_to_int L_logrecord_loglevel "$OPTARG" ;;
+		s) _L_stacklevel=$((OPTARG + _L_stacklevel)) ;;
+		l) L_log_level_to_int L_logline_levelno "$OPTARG" ;;
 		*) break ;;
 		esac
 	done
-	shift "$((OPTIND-1))"
-	L_log_handle "$@"
-	L_logrecord_stacklevel=2
+	if _L_log_is_enabled_for "$L_logline_levelno"; then
+		shift "$((OPTIND-1))"
+		if (($#)); then
+			local \
+				L_logline_stacklevel="$_L_stacklevel" \
+				L_logline_funcname="${FUNCNAME[_L_stacklevel+1]}" \
+				L_logline_source="${BASH_SOURCE[_L_stacklevel]}" \
+				L_logline_lineno="${BASH_LINENO[_L_stacklevel]}" \
+				L_logline_levelname="${L_LOGLEVEL_NAMES[L_logline_levelno]:-}"
+			if ${_L_logconf_selecteval:+eval} ${_L_logconf_selecteval:+"$_L_logconf_selecteval"}; then
+				# Detect color.
+				if [[ -n "${_L_logconf_color:-}" ]]; then
+					local L_logline_color="$_L_logconf_color"
+				elif L_term_has_color; then
+					local L_logline_color=1
+				else
+					local L_logline_color=""
+				fi
+				# Should set L_logline from "$@"
+				eval "${_L_logconf_formateval:-L_log_format_default \"\$@\"}" &&
+					eval "${_L_logconf_outputeval:-L_log_output_to_stderr}"
+			fi
+		fi
+	fi
 }
 
 # @description output a critical message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_critical() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_CRITICAL" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_CRITICAL" "$@"
 }
 
 # @description output a error message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_error() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_ERROR" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_ERROR" "$@"
 }
 
 # @description output a warning message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_warning() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_WARNING" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_WARNING" "$@"
 }
 
 # @description output a notice
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_notice() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_NOTICE" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_NOTICE" "$@"
 }
 
 # @description output a information message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_info() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_INFO" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_INFO" "$@"
 }
 
 # @description output a debugging message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_debug() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_DEBUG" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_DEBUG" "$@"
 }
 
 # @description output a tracing message
 # @option -s <int> stacklevel increase
 # @arg $1 message
 L_trace() {
-	L_log_stack_inc
-	L_log -l "$L_LOGLEVEL_TRACE" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_TRACE" "$@"
 }
 
 # @description Output a critical message and exit the script with 2.
 # @arg $@ L_critical arguments
 L_fatal() {
-	L_log_stack_inc
-	L_critical "$@"
+	L_critical -s 1 "$@"
 	exit 2
 }
 
@@ -4180,18 +4153,17 @@ L_fatal() {
 # Is not affected by L_dryrun variable.
 # @arg $@ command to execute
 L_logrun() {
-	L_log "+ $*"
+	L_log -s 1 "+ $*"
 	"$@"
 }
 
 # @description set to 1 if L_run should not execute the function.
-: "${L_dryrun:=0}"
+L_dryrun=${L_dryrun:-0}
 
-# @description
-# Logs the quoted argument with a leading +.
+# @description Logs the quoted argument with a leading +.
 # if L_dryrun is nonzero, executes the arguments.
-# @option -l <loglevel> Set loglevel
-# @option -s <stacklevel> Increment stacklevel by this number
+# @option -l <loglevel> Set loglevel.
+# @option -s <stacklevel> Increment stacklevel by this number.
 # @option -h Print this help and return 0.
 # @arg $@ command to execute
 # @env L_dryrun
@@ -4202,7 +4174,7 @@ L_run() {
 			l) _L_logargs+=(-l "$OPTARG") ;;
 			s) _L_logargs+=(-s "$OPTARG") ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4212,13 +4184,11 @@ L_run() {
 	else
 		_L_logargs+=("+$_L_opt")
 	fi
-	L_log_stack_inc
-	L_log "${_L_logargs[@]}"
+	L_log -s 1 "${_L_logargs[@]}"
 	if ((!L_dryrun)); then
 		"$@"
 	fi
 }
-
 
 # ]]]
 # sort [[[
