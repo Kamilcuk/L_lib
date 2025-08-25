@@ -19,7 +19,7 @@
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-# Globals [[[
+# globals [[[
 # @section globals
 # @description some global variables
 
@@ -257,7 +257,7 @@ L_ANSI_COLORRESET=$'\E[m'
 L_ANSI_RESET=$'\E[m'
 
 # ]]]
-# Ansi [[[
+# ansi [[[
 # @section ansi
 # @description Very basic functions for manipulating cursor position and color.
 # @note unstable
@@ -8062,7 +8062,7 @@ L_proc_kill() {
 }
 
 # ]]]
-# private lib functions [[[
+# lib [[[
 # @section lib
 # @description internal functions and section.
 # Internal functions to handle terminal interaction.
@@ -8317,10 +8317,7 @@ _L_lib_main() {
 }
 
 # ]]]
-# main [[[
 
 if L_is_main || L_has_sourced_arguments; then
 	_L_lib_main "$@"
 fi
-
-# ]]]
