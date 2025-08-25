@@ -761,9 +761,9 @@ L_regex_escape_v() {
 	# ERE . [ \ ( * + ? { | ^ $
 	# BRE . [ \   *         ^ $
 	# Most of the time there are none of these characters, so it makes sense to speed up.
-	if [[ "$*" == *[\.\[\\\(\*\+\?\{\|\^\$]* ]]; then
+	if [[ "$*" == *[".[\\(*+?{|^$"]* ]]; then
 		L_v=${*//\\/\\\\}
-		L_v=${L_v//\[/[\[]}
+		L_v=${L_v//\[/[\[]}  # ]]
 		L_v=${L_v//\./\\\.}
 		L_v=${L_v//\+/[\+]}
 		L_v=${L_v//\*/\\\*}
@@ -818,7 +818,7 @@ L_regex_replace() {
 		c) _L_countmax=$OPTARG ;;
 		n) _L_count_v=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error || return 2 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
