@@ -153,7 +153,7 @@ L_color_disable() {
 # @env TERM
 # @env NO_COLOR
 L_term_has_color() {
-	[[ -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" && -t "${1:-1}" ]]
+	[[ -t "${1:-1}" && -z "${NO_COLOR:-}" && "${TERM:-dumb}" != "dumb" ]]
 }
 
 # shellcheck disable=SC2120
