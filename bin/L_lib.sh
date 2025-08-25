@@ -4369,7 +4369,7 @@ L_sort() {
 L_print_traceback() {
 	L_color_detect
 	local i s l tmp offset=${1:-0} around=${2:-2}
-	echo "${L_CYAN}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET}"
+	echo "${L_CYAN:-}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET:-}"
 	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
 		s=${BASH_SOURCE[i]}
 		l=${BASH_LINENO[i - 1]}
@@ -4588,9 +4588,10 @@ else
 	}
 fi
 
-# @description Suffix a newline and the command to the trap value
+# @description Add a newline and the command to the trap value.
 # @arg $1 str command to execute
 # @arg $2 str signal to handle
+# @see L_trap_pop
 # shellcheck disable=SC2064
 L_trap_push() {
 	local L_v i
@@ -4601,9 +4602,10 @@ L_trap_push() {
 	done
 }
 
-# shellcheck disable=SC2064
-# @description remove a command from trap up until the last newline
+# @description Remove a line from the trap value from the end up until the last newline.
 # @arg $1 str signal to handle
+# @see L_trap_push
+# shellcheck disable=SC2064
 L_trap_pop() {
 	local L_v &&
 	L_trap_get_v "$1" &&
@@ -4614,50 +4616,46 @@ L_trap_pop() {
 		fi
 }
 
+# @description Trap function with reversed order of arguments, to force expansions upon calling.
+# @arg $1 Space or comma separated list of signal names or numbers.
+# @arg $@ Action to execute.
+L_trap() {
+	local v s
+	printf -v v " %q" "${@:2}"
+	IFS=$' \r\t\n,' read -r -a s <<<"$1"
+	# shellcheck disable=SC2064
+	trap "${v# }" "${s[@]}"
+}
+
 # ]]]
 # finally [[[
 # @section finally
-
-# @description List of all signals that terminate.
-_L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
-if ((L_HAS_BASH5_0)); then
-	# Bash below 5.0 does not understand SIGRTMIN+15. No idea why. Other SIGRT work.
-	_L_FINALLY_TERM_SIGNALS+=" SIGRTMIN+15"
-fi
-
 # @description Array of newline separated lines of tab separated items.
-# =( # signals... \t multi index \t source func \t action... )
-_L_finally_arr=()
-
+# =( # <index>[0-9]+ <RETURN>[01] \t (source " " func)? \t action... \n )
+# _L_finally_arr=()
 # @description Space separated list of functions that have action registered on RETURN.
-_L_finally_functions=""
-
+# _L_finally_functions=""
 # @description BASHPID that registered traps.
-_L_finally_pid=""
-
-# @description Space separated list of signal names that do not terminate the program.
-_L_finally_noterm_signals=""
-
-# @description Action index.
-_L_finally_index=""
+# _L_finally_pid=""
 
 # @description L_finally signal handler for RETURN trap.
 # @arg $1 The value of $?.
 L_finally_run_return() {
-	# Fast exit in case of return from functions used by L_finally_run. Do not to pollute set -x and for speed.
-	# L_xargs is the only L_* function that uses it.
-  if [[ " $_L_finally_functions " == *" ${FUNCNAME[1]:-} "* ]]; then
-  	local _L_location _L_pid L_FINALLY_RET="$1"
+	if [[ " ${_L_finally_functions:-} " == *" ${FUNCNAME[1]:-} "* ]]; then
+  	local _L_location _L_pid L_FINALLY_RET="$1" L_SIGNAL=RETURN
   	L_bashpid_to _L_pid
 		if [[ "$_L_finally_pid" == "$_L_pid" ]]; then
-  		printf -v _L_location "%q %s" "${BASH_SOURCE[${2:-0}]}" "${FUNCNAME[${2:-0}+1]}"
-  		L_glob_escape -v _L_location "$_L_location"
-  		L_finally_run RETURN "$_L_location"
-  		# If there are any more RETURN traps.
-  		if [[ "${_L_finally_arr[*]###* RETURN *$'\t'*$'\t'*$'\t'}" != "${_L_finally_arr[*]}" ]]; then
-  			# We no longer need to trap return when there are no more RETURN traps.
-  			# Do not pollute set -x output.
-  			_L_finally_functions=""
+  		printf -v _L_location "%q %s" "${BASH_SOURCE[0]}" "${FUNCNAME[1]}"
+  		# Execute action.
+			# shellcheck disable=SC2294
+			eval ${_L_finally_arr[@]:+"${_L_finally_arr[@]###* 1$'\t'"$_L_location"$'\t'}"}
+			_L_finally_arr=(${_L_finally_arr[@]:+"${_L_finally_arr[@]###* 1$'\t'"$_L_location"$'\t'*}"})
+			# Regenerate functions RETURN list.
+			local IFS=' ' tmp
+			tmp=(${_L_finally_arr[@]:+"${_L_finally_arr[@]%$'\t'*}"})
+			tmp=("${tmp[@]###* 0$'\t'* }")
+			_L_finally_functions=" ${tmp[*]##* } "
+  		if [[ -z "$_L_finally_functions" ]]; then
   			trap - RETURN
   		fi
   	else
@@ -4668,40 +4666,38 @@ L_finally_run_return() {
 
 # @description L_finally signal handler.
 # @arg [$1] The trap signal name to handle. Default: EXIT
-# @arg [$2] Execution location glob. Set when handling RETURN trap.
-L_finally_run() {
-  local L_SIGNAL="${1:-EXIT}" _L_location="${2:-*}" _L_i _L_p=$'*([^\t\n])'
-  if [[ " DEBUG RETURN EXIT ERR POP " != *" $L_SIGNAL "* ]]; then
+L_finally_die() {
+  local L_SIGNAL="${1:-EXIT}" _L_pid
+  if [[ " DEBUG RETURN EXIT ERR " != *" $L_SIGNAL "* ]]; then
   	trap - "$L_SIGNAL"
   fi
-	# "# signals... \t index multi \t source func \t action... \n"
+  # Execute actions.
 	# shellcheck disable=SC2294
-	eval "${_L_finally_arr[@]###* $L_SIGNAL *$'\t'*$'\t'$_L_location$'\t'}"
-	_L_finally_arr=("${_L_finally_arr[@]###* $L_SIGNAL *$'\t'0 *$'\t'$_L_location$'\t'*}")
+	eval ${_L_finally_arr[@]:+"${_L_finally_arr[@]##*$'\t'}"}
+	_L_finally_arr=()
 	#
-  if [[ " $_L_FINALLY_TERM_SIGNALS " == *" $L_SIGNAL "* && " $_L_finally_noterm_signals " != *" $L_SIGNAL "* ]]; then
-  	# Call EXIT trap yourself when Bash doesn't.
-		L_finally_run EXIT
-		#
+  if [[ " DEBUG RETURN EXIT ERR " != *" $L_SIGNAL "* ]]; then
   	if [[ "$L_SIGNAL" == "SIGQUIT" ]]; then
   		# kill -SIGQUIT exits with 0 (??)
   		exit 131
   	fi
   	# Properly preserve exit status for parent processes.
   	# https://www.cons.org/cracauer/sigint.html
-  	trap - "$L_SIGNAL"
+  	L_bashpid_to _L_pid
   	# echo "${FUNCNAME[0]}: Killing myself: kill -$L_SIGNAL $_L_pid" >&2
   	kill -"$L_SIGNAL" "$_L_pid"
-  elif [[ " DEBUG RETURN EXIT ERR POP " != *" $L_SIGNAL "* ]]; then
-  	# shellcheck disable=SC2064
-  	trap "${FUNCNAME[0]} $L_SIGNAL" "$L_SIGNAL"
   fi
 }
 
 # @description List elements registered by L_finally and trap values.
 L_finally_list() {
-	local IFS=' '
-  L_table -s $'\t' $'signals\tindex multi\tsource func\taction\n'"${_L_finally_arr[*]}"
+	local IFS=' ' s
+	s=(${_L_finally_arr[@]:+"${_L_finally_arr[@]/ /$'\t'}"})
+	s=${s[*]/ /$'\t'}
+	s=${s###}
+	s=${s//$'\n' #/$'\n'}
+	s=$'index\treturn\tsource\tfunc\taction\n'"${s%%$'\n'}"
+  L_table -s $'\2' "${s//$'\t'/$'\2'}"
 }
 
 # @description Register an action to be executed upon termination.
@@ -4720,18 +4716,11 @@ L_finally_list() {
 #            the nth position in the stack relative to the current position. Default: 0
 # @option -l Add action to be executed last, not first of the stack.
 #            Calling L_finally_pop after registering such action is undefined.
-# @option -n <signals...> Execute the action on this space separated list of signals. Default: EXIT
-#            Signals can be numbers or names.
-# @option -H <signals...> Equal to -tmn signals.... You can just use trap 'action' signal.
-#            Use this to register custom callback that will be executed each time the signal is received.
-# @option -c Continue the execution after signals.
-#            The signals specified with -n will be added to list of non-terminating signals.
-# @option -m Multiple times the action can be executed, instead of only one.
-# @option -d Do not modify any trap. Used only for testing really.
+# @option -R Force reregister all the traps. Unless this option, traps are only registered on the first call of a BASHPID.
 # @option -v <var> Store the action index in the variable.
 #            This index can be used with `L_finally_pop -i` to remove the action.
 # @option -h Print this help and return 0.
-# @arg $@ Action to execute.
+# @arg $@ Action to execute. When action is missing, then only traps are registered.
 # The command may not call `eval 'return'`. It would just return from the handler function.
 #
 # @see L_finally_pop
@@ -4747,95 +4736,73 @@ L_finally_list() {
 #       # tmpf automatically cleaned up once on RETURN or EXIT or signal, whichever comes first.
 #    }
 L_finally() {
-  local trapv i L_v signals="EXIT" IFS=' ' OPTIND OPTARG OPTERR up=0 last=1 first="" pid="" IFS=' ' multiple="" what register=1 noterm=0 register_signals count exclude=1
-  _L_finally_index=${_L_finally_index:-$RANDOM}
-  while getopts rs:ln:H:cmdv:h i; do
+  local IFS=' ' OPTIND OPTARG OPTERR i onreturn=0 up=0 first=1 pid register=0 register_signals index=$RANDOM
+  # Find free index.
+  while [[ " ${_L_finally_arr:+${_L_finally_arr[*]%% *}} " == *" #$index "* ]]; do
+  	index=$RANDOM
+  done
+  # Parse arguments.
+  while getopts rs:lRv:h i; do
     case "$i" in
-    r) signals+=" RETURN"; set -o functrace ;;
+    r) onreturn=1; set -o functrace ;;
     s) up=$OPTARG ;;
-    l) last="" first=1 ;;
-    n|H)
-    	if [[ "$i" == H ]]; then
-  			continue=1
-  			multiple=1
-  		fi
-  		#
-    	IFS=$' \t\n' read -r -a i <<<"$OPTARG"
-    	signals=""
-    	for i in "${i[@]}"; do
-    		L_func_assert "Invalid signal: $i" L_trap_to_name -v i "$i" || return 2
-    		signals+="${signals:+ }$i"
-    	done
-    	L_func_assert "${FUNCNAME[0]}: No signals given to register" test -n "$signals" || return 2
-    	exit
-    	;;
-    c) noterm=1 ;;
-    m) multiple=1 ;;
-    d) register=0 ;;
-    v) printf -v "$OPTARG" "%s" "$((_L_finally_index+1))" ;;
+    l) first=0 ;;
+    R) register=1 ;;
+    v) printf -v "$OPTARG" "%s" "$index" ;;
     h) L_func_help; return 0 ;;
-    *) L_func_error || return 2 ;;
+    *) L_func_error; return 2 ;;
     esac
   done
   shift "$((OPTIND-1))"
-  #
-  # Reset traps if pid changed.
+  # Register traps if pid changed.
   L_bashpid_to pid
-  if [[ "$_L_finally_pid" != "$pid" ]]; then
+  if [[ "${_L_finally_pid:-}" != "$pid" ]]; then
   	# Reset values.
     _L_finally_pid=$pid
     _L_finally_arr=()
     _L_finally_functions=""
-    _L_finally_noterm_signals=""
-  fi
-  # If signals were not specified by the user.
-  if ((noterm)); then
-	  _L_finally_noterm_signals+=" ${signals//RETURN} "
+    register=1
   fi
   # Prepare return glob for skipping.
-  if [[ " $signals " == *" RETURN "* ]]; then
-		i="${FUNCNAME[1+up]}"
+  if ((onreturn)); then
+  	# When calling from top, FUNCNAME[1] will be empty, which is ok.
+		i="${FUNCNAME[1+up]:-}"
 		if [[ " $_L_finally_functions " != *" $i "* ]]; then
 			_L_finally_functions+=${_L_finally_functions:+ }$i
+			trap 'L_finally_run_return "$?"' RETURN
 		fi
 	fi
-	#
+  # Add element to our array variable.
 	if (($#)); then
-  	# Add element to our array variable.
   	printf -v i "%q " "$@"
-  	printf -v i "# %s \t%s %s\t%q %s\t%s\n" \
-  		"$signals" "${multiple:-0}" "$((_L_finally_index++))" \
-  		"${BASH_SOURCE[0+up]:-}" "${FUNCNAME[1+up]:-}" "${i% }"
-		_L_finally_arr=(
-			${last:+${_L_finaly_arr[@]:+"${_L_finally_arr[@]}"}}
-			"$i"
-			${first:+${_L_finally_arr[@]:+"${_L_finally_arr[@]}"}}
-		)
+  	printf -v i "#%d %d\t%q %s\t%s\n" \
+  		"$index" "$onreturn" "${BASH_SOURCE[0+up]:-}" "${FUNCNAME[1+up]:-}" "${i% }"
+  	if ((first)); then
+  		_L_finally_arr=("$i" ${_L_finally_arr[@]:+"${_L_finally_arr[@]}"})
+  	else
+  		_L_finally_arr+=("$i")
+  	fi
 	fi
   # Initialize traps with our callback.
-  if ((register)); then
-  	if [[ -z "$_L_finally_registered" ]]; then
-  		if ((pid != $$ && !L_HAS_BASH5_2)); then
-  			# If in process substition and below Bash4.3 trap on all signals.
-  			register_signals=" EXIT $_L_FINALLY_TERM_SIGNALS "
-  		else
-  			# Register on Real-Time signals, they also exit.
-  			register_signals=" EXIT SIGQUIT SIGSTKFLT SIGPROF SIGIO SIGPWR SIGRTMAX ${_L_FINALLY_TERM_SIGNALS%* SIGRTMAX}"
-  		fi
-  	fi
-  	# It is going to be split anyway and I know it is safe.
-  	for i in ${signals//RETURN} $register_signals; do
-  		if [[ " $_L_finally_registered " != *" $i "* ]]; then
-  			_L_finally_registered+=" $i"
-  			# shellcheck disable=SC2064
-      	trap "L_finally_run $i" "$i" || return 1
-      fi
-    done
-    if [[ -n "$_L_finally_functions" ]]; then
-			trap 'if [[ " $_L_finally_functions " == *" ${FUNCNAME[0]} "* ]]; then L_finally_run_return "$?"; fi' RETURN
+	if ((register)); then
+		# List of all signals that result in termination.
+		local _L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+15 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
+		if ((!L_HAS_BASH5_0)); then
+       	# Bash below 5.0 does not understand SIGRTMIN+15. No idea why. Other SIGRT work.
+       	_L_FINALLY_TERM_SIGNALS=${_L_FINALLY_TERM_SIGNALS//SIGRTMIN+15}
+		fi
+		#
+  	if ((pid != $$ && !L_HAS_BASH5_2)); then
+  		# If in process substition and below Bash4.3 trap on all signals.
+  		register_signals=" EXIT $_L_FINALLY_TERM_SIGNALS "
   	else
-  		trap - RETURN
+  		# Register on Real-Time signals, they also exit.
+  		register_signals=" EXIT SIGQUIT SIGSTKFLT SIGPROF SIGIO SIGPWR SIGRTMAX ${_L_FINALLY_TERM_SIGNALS%* SIGRTMAX}"
   	fi
+  	for i in $register_signals; do
+  		# shellcheck disable=SC2064
+      trap "L_finally_die $i" "$i" || return 1
+    done
   fi
 }
 
@@ -4844,41 +4811,47 @@ L_finally() {
 # @option -i <index> Remove action of index <index>.
 # @option -h Print this help and return 0.
 # @see L_finally
-# @return 1 if nothing was popped.
+# @return 1 if nothing was popped, 2 on invalid usage,
+# otherwise return the exit status of the executed action.
 L_finally_pop() {
-	local _L_pid OPTIND OPTARG OPTERR _L_i _L_run=1 _L_idx="" _L_prefix=""
+	local _L_pid OPTIND OPTARG OPTERR _L_i _L_run=1 _L_idx="" _L_prefix="" _L_ret=0
 	while getopts ni:h _L_i; do
 		case "$_L_i" in
-			n) _L_run="" ;;
+			n) _L_run=0 ;;
 			i) _L_idx=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error || return 2 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	L_func_assert "too many arguments" test "$#" -eq 0 || return 2
 	# Protect against invalid pid.
 	L_bashpid_to _L_pid
-	if [[ "$_L_finally_pid" == "$_L_pid" ]]; then
-		# Run the command and remove it.
-		if [[ -z "$_L_idx" ]]; then
-			# Find first element in _L_finally_arr without an index.
-			_L_idx=("${_L_finally_arr[@]%$'\t'*$'\t'*}")
-			for _L_idx in "${_L_idx[@]##* }"; do
-				if [[ -n "$_L_idx" ]]; then
-					break
-				fi
-			done
-		fi
-		if [[ -n "$_L_idx" ]]; then
-			${_L_run:+eval} ${_L_run:+"${_L_finally_arr[@]###*$'\t'* $_L_idx$'\t'*$'\t'}"}
-			_L_finally_arr=("${_L_finally_arr[@]###*$'\t'* $_L_idx$'\t'*$'\t'*}")
-		else
-			return 1
-		fi
-	else
+	if [[ "$_L_finally_pid" != "$_L_pid" ]]; then
+		L_func_error "nothing to pop in subshell"
 		return 1
 	fi
+	if [[ -z "$_L_idx" ]]; then
+		if (( ${_L_finally_arr[@]:+${#_L_finally_arr[@]}}+0 == 0 )); then
+			L_func_error "nothing to pop"; return 1
+		fi
+		# Find first index.
+		printf -v _L_idx "%s" "${_L_finally_arr[@]%% *}"
+		_L_idx=${_L_idx###}
+		_L_idx=${_L_idx%%#*}
+	else
+		if [[ "${_L_finally_arr:+${_L_finally_arr[*]###$_L_idx *$'\t'}}" == \
+				"${_L_finally_arr:+${_L_finally_arr[*]}}" ]]; then
+			L_func_error "index not found: $_L_idx"
+			return 1
+		fi
+	fi
+	if ((_L_run)); then
+		# shellcheck disable=SC2294
+		eval "${_L_finally_arr[@]###$_L_idx *$'\t'}" || _L_ret=$?
+	fi
+	_L_finally_arr=("${_L_finally_arr[@]###$_L_idx *}")
+	return "$_L_ret"
 }
 
 # ]]]
