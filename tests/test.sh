@@ -1326,7 +1326,7 @@ _L_test_sort() {
 	}
 }
 
-_L_test_trapchain() {
+_L_test_L_trap() {
 	{
 		L_log "test converting int to signal name"
 		local tmp
@@ -2533,6 +2533,7 @@ _L_test_PATH() {
 _L_test_L_proc() {
 	local proc exitcode line
 	{
+		L_log ''
 		L_proc_popen -Ipipe -Opipe proc cat
 		L_proc_printf proc "%s\n" "Hello, world!"
 		L_proc_close_stdin proc
@@ -2541,6 +2542,7 @@ _L_test_L_proc() {
 		L_unittest_vareq line "Hello, world!"
 	}
 	{
+		L_log ''
 		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
 		L_proc_printf proc "%s\n" "Hello world"
 		L_proc_close_stdin proc
@@ -2550,6 +2552,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		L_log ''
 		declare a pid cmd exitcode
 		L_proc_popen proc bash -c 'sleep 0.5; exit 123'
 		while L_proc_poll proc; do
@@ -2559,6 +2562,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 123
 	}
 	{
+		L_log 'test sleep timeout, takes about 3 seconds'
 		declare proc tmp exitcode
 		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
 		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
@@ -2568,6 +2572,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 123
 	}
 	{
+		L_log ''
 		declare a pid cmd exitcode
 		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
 		L_proc_get_stdin -v a proc
@@ -2584,6 +2589,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		L_log ''
 		declare stdout proc
 		L_proc_popen -Opipe proc bash -c 'echo stdout; sleep 0.01; echo stdout'
 		L_proc_communicate -o stdout -t 2 -v exitcode proc
@@ -2591,6 +2597,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		L_log "get stdout and stderr to separate variables"
 		declare stdout stderr proc
 		L_proc_popen -Opipe -Epipe proc bash -c 'echo stdout; sleep 0.01; echo stderr >&2; echo stderr >&2; sleep 0.01; echo stdout'
 		L_proc_communicate -o stdout -e stderr -t 2 -v exitcode proc
@@ -2599,6 +2606,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 0
 	}
 	{
+		L_log "get stdout and stderr to separate variables #2"
 		declare stdout stderr proc
 		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]"; exit 101'
 		L_proc_read proc line
@@ -2609,6 +2617,7 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 101
 	}
 	{
+		L_log "check there are nano left temporary files"
 		local leftovers=(/tmp/L_*)
 		L_unittest_arreq leftovers "/tmp/L_*"
 	}
@@ -2675,6 +2684,26 @@ _L_test_quoted_maths() {
 	# L_unittest_cmd ! grep -n 'L_unittest_eq \"${.*[\*]}\"' "$L_LIB_SCRIPT"
 }
 
+_L_test_glob_escape() {
+	local v
+	L_glob_escape -v v "*"
+	L_unittest_cmd ! L_glob_match a "$v"
+	L_unittest_cmd L_glob_match "*" "$v"
+	#
+	L_glob_escape -v v "@(a|b)"
+	L_unittest_cmd L_shopt_extglob L_glob_match "a" "@(a|b)"
+	L_unittest_cmd ! L_shopt_extglob L_glob_match "a" "$v"
+	L_unittest_cmd L_shopt_extglob L_glob_match "@(a|b)" "$v"
+}
+
+_L_test_regex_escape() {
+	local v i=". [ \ ( * + ? { | ^ $"
+	L_regex_escape -v v "$i"
+	L_unittest_cmd L_regex_match "$i" "$v"
+	L_unittest_cmd L_regex_match "$i" "$v"
+	L_unittest_cmd ! L_regex_match "a${i}a" "^$v$"
+}
+
 _L_test_bashpid() {
 	check() {
 		shouldbe=$(pstree -p $$)
@@ -2710,7 +2739,8 @@ _L_test_bashpid() {
 }
 
 _L_test_finally() {
-	L_finally -r L_log 'Test finally done'
+	L_finally -r L_log -s 1 'Test finally done #2'
+	L_finally L_log -s 1 'Test finally done #1'
 	{
 		func() {
 			L_finally -r echo "$L_UUID"
@@ -2719,34 +2749,67 @@ _L_test_finally() {
 	}
 	{
 		func() {
-			L_finally -r echo world
-			L_finally -r echo -n 'Hello '
-			L_finally_list >&2
+			L_finally -r printf 2
+			L_finally -r printf 1
+			# L_finally_list >&2
 		}
-		L_unittest_cmd -o "Hello world" func
+		L_unittest_cmd -o 12 func
 	}
 	{
 		func() {
-			L_finally echo world
-			L_finally -r echo -n 'Hello '
-			L_finally_list >&2
+			L_finally printf 2
+			L_finally -r printf 1
+			# L_finally_list >&2
 		}
-		L_unittest_cmd -o "Hello world" func
+		L_unittest_cmd -o 12 func
+	}
+	{
+		func() {
+			L_finally printf 3
+			L_finally -r printf 1
+			L_finally printf 2
+			# L_finally_list >&2
+		}
+		L_unittest_cmd -o 123 func
+	}
+	{
+		func_inner() {
+			printf i
+			L_finally -r printf 2
+		}
+		func_outer() {
+			printf 1
+			L_finally printf 4
+			L_finally -r printf 3
+			func_inner
+			func_inner
+			func_inner
+		}
+		L_unittest_cmd -o 1i2i2i234 func_outer
 	}
 	{
 		L_info "Test inner RETURN finaly works"
 		func_very_inner() {
+			L_finally printf V
+			printf v
 			L_finally -r printf 1
 		}
 		func_inner() {
+			L_finally printf I
+			printf i
 			L_finally -r printf 2
+			func_very_inner
+			func_very_inner
 			func_very_inner
 		}
 		func_outer() {
+			L_finally printf O
 			L_finally -r printf 3
 			func_inner
+			func_inner
+			func_inner
 		}
-		L_unittest_cmd -o 123 func_outer
+		L_unittest_cmd -o iv1v1v12''iv1v1v12''iv1v1v12''3''VVVIVVVIVVVIO func_outer
 	}
 	{
 		L_info "Test L_finally_pop works"
@@ -2755,11 +2818,71 @@ _L_test_finally() {
 			echo -n 1
 			L_finally_pop
 			echo -n 3
-			L_finally_pop
+			! L_finally_pop
 			echo -n 4
-			L_finally_pop
+			! L_finally_pop
+			return 0
 		}
 		L_unittest_cmd -o "1234" func
+		#
+		func() {
+			L_finally printf 2
+			L_finally printf 1
+			L_finally_pop
+			L_finally_pop
+		}
+		L_unittest_cmd -o 12 func
+		#
+		func() {
+			local a b c
+			L_finally -r printf 5
+			L_finally -v b printf 2
+			L_finally -r -v a printf 1
+			L_finally -v c printf 3
+			L_finally printf 4
+			L_finally_pop -i "$a"
+			L_finally_pop -i "$b"
+			L_finally_pop -i "$c"
+			L_finally_pop
+		}
+		L_unittest_cmd -o 12345 func
+		#
+		#
+		func_inner() {
+			L_finally -r printf "$1"
+		}
+		func() {
+			local a b c
+			func_inner 1
+			func_inner 2
+			L_finally -r printf 8
+			L_finally -v b printf 5
+			func_inner 3
+			L_finally -r -v a printf 4
+			L_finally -v c printf 6
+			L_finally printf 7
+			L_finally_pop -i "$a"
+			L_finally_pop -i "$b"
+			L_finally_pop -i "$c"
+			L_finally_pop
+		}
+		L_unittest_cmd -o 12345678 func
+		#
+		func() {
+			L_finally printf 9
+			L_finally -r printf 8
+			L_finally printf 6
+			L_finally -r printf 4
+			L_finally printf 2
+			printf 1
+			L_finally_pop
+			printf 3
+			L_finally_pop
+			printf 5
+			L_finally_pop
+			printf 7
+		}
+		L_unittest_cmd -o 123456789 func
 	}
 	{
 		L_info "Test that L_finally_pop not afects subshells"
@@ -2782,6 +2905,7 @@ _L_test_finally() {
 			func_inner
 			printf 3
 			L_finally_pop
+			return 0
 		}
 		L_unittest_cmd -o 123 func_outer
 		#
@@ -2862,34 +2986,15 @@ _L_test_finally() {
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
 	}
 	{
-		L_info "test different signals"
-		func() {
-			L_finally -r printf 'RETURN '
-			(
-				L_finally -r -n RETURN printf 'WILL_NEVER_EXECUTE '
-				L_finally -1 -t -n EXIT echo -n 'EXIT '
-				L_finally -1 -t -n INT echo -n 'INT '
-				L_finally -1 -t -n TERM echo -n 'TERM '
-				L_finally -1 -t -n 'EXIT USR1' echo -n 'EXIT_USR1 '
-				L_finally -l -1 -t -n 'EXIT USR2' echo -n 'EXIT_USR2 '
-				# L_unsetx L_finally_list >&2
-				L_raise -"$1"
-			)
-		}
-		L_unittest_cmd -o 'INT EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number INT) )) L_setx func INT
-		L_unittest_cmd -o 'TERM EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
-		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
-		L_unittest_cmd -o 'EXIT_USR1 EXIT EXIT_USR2 RETURN ' -e $(( 128 + $(L_trap_to_number USR1) )) func USR1
-	}
-	{
 		L_info "test custom handler"
 		func() {
 			(
+				L_finally
+				L_trap USR1 printf 'USR1 '
+				L_trap USR2 printf 'USR2 '
 				L_finally echo 'EXIT'
-				L_finally -n USR1 echo -n 'USR1 '
-				L_finally -n USR2 echo -n 'USR2 '
-				L_finally -n HUP echo -n 'HUP '
-				L_finally -n INT echo -n 'INT '
+				L_trap HUP printf 'HUP '
+				L_trap INT printf 'INT '
 				# set -x
 				L_raise -USR2
 				L_raise -INT
@@ -2964,7 +3069,6 @@ _L_test_finally() {
 				L_raise -"$1"
 			)
 		}
-		ulimit -c 0
 		local i
 		for i in $(L_trap_names); do
 			case "$i" in
@@ -2975,7 +3079,11 @@ _L_test_finally() {
 			esac
 		done
 	}
-	L_finally_list | grep L_log
+	L_finally_list
+	local a
+	a=$(L_finally_list)
+	L_unittest_cmd -I grep -q L_log <<<"$a"
+	L_finally_pop
 }
 
 _L_test_unset() {

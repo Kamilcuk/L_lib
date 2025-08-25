@@ -36,7 +36,6 @@ How `L_finally` works?
 Example:
 
 ```
-
 tmpf=$(mktemp)
 L_finally rm -rf "$tmpf"
 : do something to tmpf >"$tmpf"
@@ -55,7 +54,7 @@ if
 Function return example:
 
 ```
-some_function() {
+option_func() {
   local tmpf=$(mktemp)
   L_finally -r rm -rf "$tmpf"
   echo Do something with temporary file >"$tmpf"
@@ -65,6 +64,14 @@ some_function() {
   # kill $BASHPID  # this will also remove the tempfile
   # the tempfile is automatically removed on the end of function
 }
+
+main() {
+  tmpf=$(mktemp)
+  L_finally -r rm -rf "$tmpf"
+  if [[ -n "$option" ]]; then
+    option_func
+  fi
+}
 ```
 
 Custom action on signal:
@@ -72,9 +79,13 @@ Custom action on signal:
 ```
 increase_volume() { : your function to increase volume; }
 
-# kill -USR1 $BASHPID   # will terminate the process, default action
-L_finally -n USR1 increase_volume
-# kill -USR1 $BASHPID   # will increase volume and continue execution
+L_finally                    # with no arguments, just registers the action on all traps for this BASHPID.
+# kill -USR1 $BASHPID        # would terminate the process executing L_finally_run
+trap 'increase_volume' USR1
+kill -USR1 $BASHPID          # will increase volume and continue execution
+
+L_finally -R                 # re-registers L_finally for all the traps.
+# kill -USR1 $BASHPID        # would terminate the process executing L_finally_run
 ```
 
 # Generated documentation from source:
