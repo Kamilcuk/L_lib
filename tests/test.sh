@@ -3300,23 +3300,47 @@ _L_test_finally() {
 		L_unittest_cmd -o 12345678 bash -c ". $L_LIB_SCRIPT && a"
 	}
 	{
-		L_info "test all signals"
+		L_info "test all signals in subshell"
 		func() {
 			(
+				set -x
 				L_finally echo EXIT
+				trap 'L_finally_handle SIGPIPE' SIGPIPE
+				trap -p SIGPIPE >&2
+				trap 'L_finally_handle SIGPIPE' SIGPIPE
+				trap -p SIGPIPE >&2
+				trap 'L_finally_handle SIGPIPE' SIGPIPE
+				trap -p SIGPIPE >&2
+				trap 'L_finally_handle SIGPIPE' SIGPIPE
+				trap -p SIGPIPE >&2
 				L_raise -"$1"
 			)
 		}
 		local i
 		for i in $(L_trap_names); do
 			case "$i" in
-			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU) ;;
+			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE) ;;
 			SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
 			SIGSTKFLT) ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
 			esac
 		done
 	}
+	{
+		L_info "test all signals in process"
+		script() {
+			bash -c ". $L_LIB_SCRIPT; L_finally echo EXIT; L_raise -$1"
+		}
+		for i in $(L_trap_names); do
+			case "$i" in
+			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU) ;;
+			SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
+			SIGSTKFLT) ;;
+			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
+			esac
+		done
+	}
+	#
 	L_finally_list
 	local a
 	a=$(L_finally_list)
