@@ -4709,7 +4709,7 @@ L_trap_err_init() {
 # @description String of trap numbers and names separated by spaces.
 # Extracted from trap -l output.
 # @see _L_TRAP_L_init
-_L_TRAP_L=""
+# _L_TRAP_L=""
 
 # shellcheck disable=SC2329
 # @description initialize _L_TRAP_L variable
@@ -4718,10 +4718,14 @@ _L_TRAP_L=""
 _L_TRAP_L_init() {
 	# Convert the output of trap -l into list of trap names.
 	_L_TRAP_L=$(trap -l)
-	_L_TRAP_L=${_L_TRAP_L//)}
-	local max=${_L_TRAP_L% [^0-9]*}
+	local max=${_L_TRAP_L%)*}
 	max=${max##*[^0-9]}
-	_L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } $((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
+	#
+	# Word splitting executes in 0.003s, but ${//[$'\t\n']/ } takes 0.2seconds?? on bash 4.1.
+	# shellcheck disable=SC2086
+	printf -v _L_TRAP_L " %s" "0 EXIT" ${_L_TRAP_L//)} "$((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
+	# _L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } $((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
+	#
 	# shellcheck disable=SC2317
 	_L_TRAP_L_init() { :; }
 }
@@ -4733,8 +4737,7 @@ L_trap_names_v() {
 	_L_TRAP_L_init
 	L_v="${_L_TRAP_L// [0-9] / }"
 	L_v="${L_v// [0-9][0-9] / }"
-	local -a _L_tmp="($L_v)"
-	L_v=("${_L_tmp[@]}")
+	eval "L_v=($L_v)"
 }
 
 # @description Convert trap name to number.
@@ -4900,7 +4903,9 @@ L_finally_handle_return() {
 # @description L_finally signal handler.
 # @arg [$1] The trap signal name to handle. Default: EXIT
 L_finally_handle() {
+  set -x
   local L_SIGNAL="${1:-EXIT}" _L_pid
+  trap -p "$L_SIGNAL" SIGPIPE EXIT >&2
   # Disable RETURN trap as it can generate a lot not relevant set -x output.
   trap - "$L_SIGNAL" RETURN EXIT
   # Execute actions.
@@ -4911,11 +4916,10 @@ L_finally_handle() {
   # Properly preserve exit status for parent processes.
   # https://www.cons.org/cracauer/sigint.html
   L_bashpid_to _L_pid
-  if
-  	# SIGQUIT always exits with 0, so make it exit properly.
-  	# Re-signaling does not work in subshells before bash5.2.
-  	[[ "$L_SIGNAL" = SIGQUIT || ( _L_pid -ne $$ && L_HAS_BASH5_2 -eq 0 && "$L_SIGNAL" = SIG* ) ]]
-  then
+  # if [[ "$L_SIGNAL" == SIGQUIT || ( "$_L_pid" != "$$" && "$L_SIGNAL" == SIG* ) ]]; then
+  if [[ "$L_SIGNAL" == "SIGQUIT" || ( "$_L_pid" != "$$" && "$L_SIGNAL" == SIG* ) ]]; then
+  	# Re-signaling does not work properly on specific signals.
+  	# Re-signaling does not work properly in subshells and subshell exits with 0.
   	L_trap_to_number_v "$L_SIGNAL" && exit "$((128+L_v))"
   fi
   # echo "${FUNCNAME[0]}: Killing myself: kill -$L_SIGNAL $_L_pid" >&2
