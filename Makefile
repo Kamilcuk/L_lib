@@ -32,12 +32,12 @@ test: \
 	@echo 'make test finished with SUCCESS'
 test_local:
 	./tests/test.sh $(ARGS)
+IMAGE = $$(docker build -q --target tester --build-arg VERSION=$* .)
 test_bash%:
 	docker build --target tester --build-arg BASH=$* .
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		$$(docker build -q --target tester --build-arg BASH=$* .) \
-		./tests/test.sh $(ARGS)
+		$(IMAGE) ./tests/test.sh $(ARGS)
 test_docker%:
 	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
 
@@ -64,15 +64,15 @@ term-%:
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR) -w $(CURDIR) \
-		bash:$* -l $(ARGS)
+		$(IMAGE) -l +H $(ARGS)
 termnoload-%:
 	@touch .bash_history
 	docker run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		bash:$* -l $(ARGS)
+		$(IMAGE) -l +H $(ARGS)
 run-%:
-	docker run --rm $(DOCKERTERM) -u$(shell id -u):$(shell id -g) --volume $(CURDIR):$(CURDIR) -w $(CURDIR) bash:$* -lc 'bin/L_lib.sh $(ARGS)' bash
+	docker run --rm $(DOCKERTERM) -u$(shell id -u):$(shell id -g) --volume $(CURDIR):$(CURDIR) -w $(CURDIR) $(IMAGE) -l +H -c 'bin/L_lib.sh $(ARGS)' bash
 
 runall: $(addprefix run-, $(BASHES))
 

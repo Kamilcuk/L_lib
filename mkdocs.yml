@@ -31,6 +31,7 @@ nav:
       - sort: section/sort.md
       - trap: section/trap.md
       - finally: section/finally.md
+      - with: section/with.md
       - unittest: section/unittest.md
       - map: section/map.md
       - asa: section/asa.md
