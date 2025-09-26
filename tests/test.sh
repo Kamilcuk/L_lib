@@ -701,7 +701,7 @@ _L_test_array_string() {
 	helper() {
 		local src dst str i
 		src=("$@")
-		L_var_to_string -v str src
+		L_setx L_var_to_string -v str src
 		local -a dst="$str"
 		L_pretty_print src str dst
 		L_unittest_arreq dst ${src[@]+"${src[@]}"}
@@ -2569,7 +2569,7 @@ _L_test_cache() {
   	local -A shouldbeasa=([a]=b [$' \t\n']=$' \t\n' ["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS")
   fi
 	#
-	for opt in "" "-f $cachef"; do
+	for opt in "" "-f$cachef"; do
 		echo "USING $opt"
 		{
 			cachevars() {
@@ -2584,7 +2584,7 @@ _L_test_cache() {
 			L_cache $opt -r cachevars
 			local asaarg=""
 			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-				asaarg="-s asa"
+				asaarg="-sasa"
 			fi
 			L_decorate L_cache -T 1 -s var -s array $asaarg $opt cachevars
 			#
@@ -2642,6 +2642,7 @@ _L_test_cache() {
 	unset -f cachevars cachestdout
 }
 
+# shellcheck disable=SC2178
 _L_test_var_to_string() {
 	local tmp i
 	#
@@ -2662,23 +2663,29 @@ _L_test_var_to_string() {
 	L_unittest_arreq a ${b[@]:+"${b[@]}"}
 	#
 	unset b
-	local -a a=("$L_SAFE_ALLCHARS")
-	local b=123
-	L_var_to_string -v tmp a
-	eval "b=$tmp"
-	L_unittest_arreq a ${b[@]:+"${b[@]}"}
+	local -a arr=("$L_SAFE_ALLCHARS")
+	local brr=123
+	L_var_to_string -v tmp arr
+	eval "brr=$tmp"
+	L_unittest_arreq arr ${brr[@]:+"${brr[@]}"}
+	#
+	unset b
+	local -a arr=("$L_ALLCHARS")
+	L_var_to_string -v tmp arr
+	local -a brr="$tmp"
+	L_unittest_arreq arr ${brr[@]:+"${brr[@]}"}
 	#
 	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 		unset a b
-		local -A a=() b=(1 2 3 4)
+		local -A a=() b=([1]=2 [3]=4)
 		L_var_to_string -v tmp a
 		eval "b=$tmp"
 		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "${!a[*]}" "${!b[*]}"
-		L_unittest_eq "${a[*]}" "${b[*]}"
-		L_unittest_eq "${#a[@]}" 0
+		L_unittest_eq "A${a[*]+${!a[*]}}" "A${b[*]+${!b[*]}}"
+		L_unittest_eq "A${a[*]+${a[*]}}" "A${b[*]+${b[*]}}"
+		L_unittest_eq "$((${a[@]+${#a[@]}}+0))" 0
 		#
-		local -A a=("$L_SAFE_ALLCHARS" "$L_SAFE_ALLCHARS") b=(1 2 3 4)
+		local -A a=(["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS") b=([1]=2 [3]=4)
 		L_var_to_string -v tmp a
 		eval "b=$tmp"
 		L_unittest_cmd L_asa_cmp a b
@@ -2688,6 +2695,17 @@ _L_test_var_to_string() {
 		L_unittest_eq "${#b[@]}" 1
 		L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
 		L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+		#
+		local -A a=(["$L_ALLCHARS"]="$L_ALLCHARS") b=([1]=2 [3]=4)
+		L_var_to_string -v tmp a
+		local -A b="$tmp"
+		L_unittest_cmd L_asa_cmp a b
+		L_unittest_eq "${!a[*]}" "${!b[*]}"
+		L_unittest_eq "${a[*]}" "${b[*]}"
+		L_unittest_eq "${#a[@]}" 1
+		L_unittest_eq "${#b[@]}" 1
+		L_unittest_eq "${a["$L_ALLCHARS"]}" "$L_ALLCHARS"
+		L_unittest_eq "${b["$L_ALLCHARS"]}" "$L_ALLCHARS"
 	fi
 }
 

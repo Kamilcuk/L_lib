@@ -1695,8 +1695,9 @@ if ((L_HAS_QEPAa_EXPANSIONS)); then
 	L_var_to_string_v() {
 		local -; set +u
 		if [[ ${!1@a} == *[aA]* ]]; then
-			L_v="$1[@]"
-			L_v="${!L_v@A}"
+			# Indirect expansion with @A does not work in Bash5.0
+			# We know $1 is a sane valid variable name, becuase above worked.
+			eval "L_v=\${$1[@]@A}"
 			# @A does not print =() empty arrays assignment. Fix that.
 			if [[ "$L_v" != *" $1=("* ]]; then
 				L_v="()"
@@ -5962,10 +5963,10 @@ L_asa_assign() {
 #        echo "equal"
 #    fi
 L_asa_cmp() {
-	local a b
-	L_var_to_string -v a "$1" || return 2
-	L_var_to_string -v b "$2" || return 2
-	[[ "$a" == "$b" ]]
+	local _L_asa L_v
+	L_var_to_string -v _L_asa "$1" || return 2
+	L_var_to_string_v "$2" || return 2
+	[[ "$_L_asa" == "$L_v" ]]
 }
 
 # ]]]
