@@ -779,7 +779,7 @@ L_function_copy() {
 # @description Add a script on the top or the end of a function.
 # @arg $1 The function to modify
 # @arg $2 Script to put in front of the function body.
-# @arg $3 Script to execute on the end of the function body.
+# @arg $3 Script to put on the end of the function body.
 L_function_modify() {
   local def middle
   def=$(declare -f "$1") &&
@@ -787,7 +787,24 @@ L_function_modify() {
     eval "${def%%\{*} { ${2:+$'\n'$2$'\n'} ${middle#*\{} ${3:+$'\n'$3$'\n'} }"  # } }
 }
 
+# @arg $@ Decorator to apply.
+# @arg $#-2 Function to decorate.
+# @arg $#-1 Result of declare -f of the function to decorate.
+_L_redecorate() {
+	# local -;set -x
+  local deco restore
+  printf -v deco "%q " "${@:1:$#-1}"
+	printf -v restore "%q" "${*:$#}"
+	printf -v restore "%q" "_L_redecorate $deco$restore"
+  eval "${*:$#-1:1}(){ ${*:$#};$deco\"\$@\";eval $restore\";return \$?\";}"
+  #                                              ^^^^^^^^   - _L_redecorate decorator args func "$(declare -f func)"
+  #                            ^^^^^                        - decorator args func
+  #                    ^^^^^^^                              - declare -f func
+  #     ^^^^^^^^^^^                                         - func
+}
+
 # @description Apply a decorator on a function.
+# The next call on a function will call the decorator with arguments followed by function name with arguments.
 # @arg $@ Decorator to apply with arguments.
 # @arg $#-1 Function.
 # @example
@@ -798,22 +815,49 @@ L_function_modify() {
 # 	}
 # 	func  # outputs something
 # 	func  # outputs something
-# 	L_decorate pring_and_call func
+# 	L_decorate print_and_call func
 # 	func  # outputs "CALLING func" and then "something"
 # 	func  # outputs "CALLING func" and then "something"
 #
+# @example
+# 	func() { L_print_traceback; }
 # 	L_decorate L_setx func
+# 	L_decorate time func
+# 	L_decorate L_setx time func
+# 	func arg  # calls: [L_setx time func arg]
+# 	          # which calls [time func arg]
+# 	          # which calls L_setx func arg
+#
 L_decorate() {
-  local new deco
-  # Find a new unused function name.
-  new="_L_decorate_${*:$#}_0"
-  while L_hash "$new"; do
-    new=${new%_*}_$(( ${new##*_}+1 ))
-  done
-  # Decorate the function.
-  L_function_copy "${@:$#}" "$new" &&
-    printf -v deco "%q " "${@:1:$#-1}" &&
-    eval "${*:$#}() { $deco $new \"\$@\"; }"
+  local def deco func="${*:$#}"
+  def=$(declare -f "$func") || return 2
+  # if [[ "$def" == "$func"*"()"*"{"*":"*"eval"*"$func"*"\"\$@\""*"_L_redecorate"*"$func"*"}" ]]; then
+  # def=$(
+  # 	:() { printf "%q " "$@"; exit 1; }
+  # 	"$func"
+  # )
+  # eval "def=($def)"
+  # 	_L_redecorate "${@:1:$#-1}" "${def[@]}"
+  # else
+  _L_redecorate "$@" "$def"
+}
+# L_decorate() {
+#   local deco func="${*:$#}" new="_L_decorate_${*:$#}_0"
+#   # Find a new unused function name.
+#   while L_hash "$new"; do
+#     new=${new%_*}_$(( ${new##*_}+1 ))
+#   done
+#   # Decorate the function.
+#   L_function_copy "$func" "$new" &&
+#     printf -v deco " %q" "${@:1:$#-1}" "$new" &&
+#     eval "$func(){$deco \"\$@\";}"
+# }
+
+# @description Measure time with the command, but include the command in the time message output and use %6l format.
+# @arg $@ command to measure.
+L_time() {
+	local _L_time=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'} TIMEFORMAT="real=%6lR user=%6lU system=%6lS [${*//$'\n'}]"
+	time TIMEFORMAT="$_L_time" "$@"
 }
 
 # @description Parse 1w1d1h2m2s into number of microseconds.
@@ -832,7 +876,7 @@ L_duration_to_usec_v() {
 
 _L_cache_remove_append() {
   # Remove the key from cache.
-  for ((_L_i = 0; _L_i < ${#_L_cache[@]}; _L_i += 3)); do
+  for ((_L_i = 0; _L_i < ${_L_cache[@]:+${#_L_cache[@]}}+0; _L_i += 3)); do
     if [[ "${_L_cache[_L_i]}" == "$_L_key" ]]; then
       if ((_L_clear)); then
         # Remove the element.
@@ -852,24 +896,29 @@ _L_cache_remove_append() {
 }
 
 # @description Cache the execution of a command.
-# @option -o Cache the stdout of the command. Will run the command in process substitution.
+# The command execution is cached in _L_CACHE global variable or in file when -f option is present.
+# The second execution of the command will result in a cached execution.
+# On cached execution the exit status of the command will be extracted from the cache.
+#
+# @option -o Cache the stdout of the command.
+#            It will run the command in a process substitution.
 # @option -O <var> Cache the stdout of the command and store it in variable <var> instead of printing.
-#            Will run the command in process substitution.
-# @option -s <var> Add this varaible to the cache. All such variables will be restored.
-# @option -f <file> Use the file as cache, ignore -V.
+#            It will run the command in a process substitution.
+# @option -s <var> Add this variable to the cache. All cache variables will be restored on cached execution.
+# @option -f <file> Use the file as cache.
 #            The file has a header with version number.
 #            The file stores internal cache state from declare -p _L_cache variable.
 #            The file content is eval-ed upon loading.
-# @option -V <var> Use this variable name as cache. Default: L_CACHE_$1 is used as the cache variable name.
-# @option -r Instead of executing, remove the cache entry associated with command.
-# @option -l List entires in cache.
-# @option -T <ttl> Set time to live.
-# @option -L <01> Lock the file with flock. Default: use flock is available.
-# @option -k <str> Overwrite the command name to store in the cache. Meant to be used with L_decorate.
+# @option -r Instead of executing, remove the cache entry associated with the command.
+# @option -l Instead of executing, only list the entires in the cache.
+# @option -T <ttl> Set time to live in duration string. Default: infinity.
+# @option -L <01> Lock the file with flock. Default: use flock if available.
+# @option -k <key> Use this key to index the cache. Default: %q quoted command with argumnets.
 # @option -h Print this help and return 0.
 # @arg $1 Command to execute.
 # @arg $@ Arguments.
-# @option -h Print this help and exit.
+# @set _L_CACHE
+# @env _L_CACHE
 # @return 222 on internal error
 #         otherwise returns the exit status of the cached command.
 #
@@ -884,16 +933,15 @@ _L_cache_remove_append() {
 #    myfunc
 # shellcheck disable=SC2094
 L_cache() {
-  local OPTIND OPTARG OPTERR _L_i _L_file="" _L_var _L_vars=() _L_ret=0 _L_stdout_var="" _L_stdout_output=0 _L_stdout="" \
+  local OPTIND OPTARG OPTERR _L_i _L_file="" _L_vars=() _L_ret=0 _L_stdout_var="" _L_stdout_output=0 _L_stdout="" \
     _L_clear=0 _L_ttl="" _L_flock="" _L_cache="" _L_cache_timestamp _L_cache_row _L_data="" _L_key="" _L_now \
-    _L_cache_header="# L_cache version 1 $L_HAS_DECLARE_WITH_NO_QUOTES"$'\n'"declare -a _L_cache=" _L_list=0
-  while getopts oO:s:f:V:rlk:T:L:h _L_i; do
+    _L_cache_header="# L_cache version 1 $L_HAS_DECLARE_WITH_NO_QUOTES"$'\n'"declare -a _L_cache=" _L_list=0 _L_tmp=""
+  while getopts oO:s:f:rlk:T:L:h _L_i; do
     case "$_L_i" in
       o) _L_stdout_output=1 ;;
       O) _L_stdout_var="$OPTARG" ;;
       s) _L_vars+=("$OPTARG") ;;
       f) _L_file=$OPTARG ;;
-      V) _L_var=$OPTARG ;;
       r) _L_clear=1 ;;
       l) _L_list=1 ;;
       k) _L_key=$OPTARG ;;
@@ -929,13 +977,7 @@ L_cache() {
   if ((!_L_clear)); then
     # Extract current cache content.
     if [[ -z "$_L_file" ]]; then
-      _L_var=${_L_var:-L_CACHE_$1}
-      if ! L_is_valid_variable_name "$_L_var"; then
-        L_func_usage_error "Not a valid variable name: $1"
-        return 222
-      fi
-      _L_var="$_L_var[@]"
-      _L_cache=(${!_L_var:+"${!_L_var}"})
+      _L_cache=(${_L_CACHE[@]:+"${_L_CACHE[@]}"})
     else
       if [[ -z "$_L_flock" ]]; then
         L_exit_to_10 _L_flock L_hash flock
@@ -952,13 +994,16 @@ L_cache() {
       fi
     fi
     if ((_L_list)); then
+    	local res=($'cmd\ttimestamp\teval') tmp
       for ((_L_i = 0; _L_i < ${#_L_cache[@]}; _L_i += 3)); do
         local ts="${_L_cache[_L_i+1]}"
         if L_hash date; then
           ts="[$(date -d @"${ts::${#ts}-6}" +"%Y-%m-%dT%H:%M:%S.${ts:${#ts}-6}%z")]"
         fi
-        printf "%q\t%s\t%q\n" "${_L_cache[_L_i]}" "$ts" "${_L_cache[_L_i+2]}"
+        printf -v tmp "%q\t%s\t%q" "${_L_cache[_L_i]}" "$ts" "${_L_cache[_L_i+2]}"
+        res+=("$tmp")
       done
+      L_table -s $'\t' "${res[@]}"
       return 0
     fi
     # Is the key in cache and ttl is ok?
@@ -995,15 +1040,18 @@ L_cache() {
     else
       "$@" || _L_ret=$?
     fi
-    _L_data=$'\n'$( declare -p _L_ret ${_L_vars[@]:+"${_L_vars[@]}"} _L_stdout ) || return 222
-    _L_data=${_L_data//$'\n'declare -[-iaA] / }
-    _L_data=${_L_data## }
+    for _L_i in ${_L_vars[@]:+"${_L_vars[@]}"} _L_ret _L_stdout; do
+    	L_var_to_string -v _L_tmp "$_L_i" || return 222
+    	_L_data+="${_L_data:+ }$_L_i=$_L_tmp"
+    done
+    # printf "%q\n" "_L_data=$_L_data" >&2
     L_epochrealtime_usec -v _L_now || return 222
   fi
   # Store data back in the cache.
   if [[ -z "$_L_file" ]]; then
+    _L_cache=(${_L_CACHE[@]:+"${_L_CACHE[@]}"})
     _L_cache_remove_append
-    L_array_assign "${_L_var%%\[*}" ${_L_cache[@]:+"${_L_cache[@]}"}
+    _L_CACHE=(${_L_cache[@]:+"${_L_cache[@]}"})
   else
     {
       if ((_L_flock)); then flock 9; fi
@@ -1037,23 +1085,6 @@ _L_getopts_forward() {
     fi
   done
   L_array_assign "$_L_v" "$((OPTIND-1))" "${_L_ret[@]}"
-}
-
-# @description Make the function cached.
-# Decorates the function with a call to L_cache with given arguments.
-# @option -* Any option supported by L_cache.
-# @arg $@ Shell function to decorate.
-# @example
-#     mycurl() { curl -sS "$@"; }
-#     L_cache_decorate -T 10s -o -f /tmp/cache.L_cache mycurl
-#     var=$(mycurl https://github.com/Kamilcuk/L_lib)
-#     var2=$(mycurl https://github.com/Kamilcuk/L_lib)  # uses file cache with 10 seconds ttl
-# @see L_decorate
-L_cache_decorate() {
-  local _L_args
-  _L_getopts_forward _L_args oO:s:f:V:rlk:T:L:h "$@" || return "$?"
-  shift "${_L_args[0]}"
-  L_decorate L_cache "${_L_args[@]:1}" -k "$1" "$@"  # []"
 }
 
 # @description Wrapper function for handling -v arguments to other functions.
@@ -1332,8 +1363,12 @@ L_regex_replace() {
 	fi
 }
 
-# @description inverts exit status
-# @arg $@ Command to execute
+# @description Executes the command.
+# @arg $@ Command to execute.
+L_execute() { "$@"; }
+
+# @description Inverts exit status.
+# @arg $@ Command to execute.
 L_not() { ! "$@"; }
 
 # @description Return the first argument
@@ -1392,21 +1427,15 @@ else
 			"$@"
 		else
 			set -x
-			if "$@"; then
-				set +x
-			else
-				eval "set +x;return \"$?\""
-			fi
+			"$@"
+			eval "set +x;return \"$?\""
 		fi
 	}
 	L_unsetx() {
 		if shopt -po xtrace >/dev/null; then
 			set +x
-			if "$@"; then
-				set -x
-			else
-				eval "set -x;return \"$?\""
-			fi
+			"$@"
+			eval "set -x;return \"$?\""
 		else
 			"$@"
 		fi
@@ -1417,21 +1446,15 @@ else
 			"$@"
 		else
 			set -o posix
-			if "$@"; then
-				set +o posix
-			else
-				eval "set +o posix;return \"$?\""
-			fi
+			"$@"
+			eval "set +o posix;return \"$?\""
 		fi
 	}
 	L_unsetposix() {
 		if shopt -po posix >/dev/null; then
 			set +o posix
-			if "$@"; then
-				set -o posix
-			else
-				eval "set -o posix;return \"$?\""
-			fi
+			"$@"
+			eval "set -o posix;return \"$?\""
 		else
 			"$@"
 		fi
@@ -1634,16 +1657,59 @@ L_var_is_set() { [[ -n "${!1+y}" ]]; }
 # @exitcode 0 if variable is set, nonzero otherwise
 L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 
+# @description Serialize variable value to a string that can be declared.
+#
+# The result is a string that is the value of variable quoted
+# in a format that can be reused as input to declare.
+#
+# For scalar variables, the function outputs a quoted value of the variable.
+# For array and associative array variables, the function outputs
+# a string in the form of `([a]=b)` that can be used to assign to another variable.
+#
+# Use `declare` with `-a` or `-A` for arrays to load the result into a variable.
+# Eval is not preferred and might result in in valid values on Bash<4.4.
+# Bash<4.4 prepends byte 0x01 in front of bytes 0x01 and 0x7f.
+# Single 0x01 in declare -p output results in double 0x01,0x01.
+#
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 <var> variable name
+# @example
+#    local -A map=([a]=b [c]=d)
+#    L_var_to_string -v tmp map
+#    declare -A map2=$tmp
+# @see L_HAS_DECLARE_WITH_NO_QUOTES
+# @see L_HAS_QEPAa_EXPANSIONS
+# @see L_cache
+L_var_to_string() { L_handle_v_scalar "$@"; }
+
 if ((L_HAS_QEPAa_EXPANSIONS)); then
 	# The set +u is needed when the variable is unset, but has attributes.
-	# For example `declere -r var` makes `var` readonly without assigning any value to it.
+	# For example `declare -r var` makes `var` readonly without assigning any value to it.
 	L_var_is_notarray() { local -; set +u; [[ -n "${!1+y}" && "${!1@a}" != *[aA]* ]]; }
 	L_var_is_array() { local -; set +u; [[ "${!1@a}" == *a* ]]; }
 	L_var_is_associative() { local -; set +u; [[ "${!1@a}" == *A* ]]; }
 	L_var_is_readonly() { local -; set +u; [[ "${!1@a}" == *r* ]]; }
 	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
 	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
+
+	L_var_to_string_v() {
+		local -; set +u
+		if [[ ${!1@a} == *[aA]* ]]; then
+			L_v="$1[@]"
+			L_v="${!L_v@A}"
+			# @A does not print =() empty arrays assignment. Fix that.
+			if [[ "$L_v" != *" $1=("* ]]; then
+				L_v="()"
+			else
+				L_v="${L_v#*=}"
+			fi
+		else
+			# Non array variable.
+			printf -v L_v "%q" "${!1}"
+		fi
+	}
 else
+
 # @description Return 0 if variable is not an array neither an associative array.
 # @arg $1 variable nameref
 L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA]* ]]; }
@@ -1667,6 +1733,21 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @description Return 0 if variable is exported.
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
+
+L_var_to_string_v() {
+	L_v=$(LC_ALL=C declare -p "$1") || return 2
+	# If it is an array or associative array.
+	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
+  	# Remove one level of quoting.
+  	eval "L_v=${L_v#*=}"
+		# Fix erroneus \001 in front of every \177 and \001.
+  	L_v=${L_v//$'\001\001'/$'\001'}
+  	L_v=${L_v//$'\001\177'/$'\177'}
+  else
+		printf -v L_v "%q" "${!1}"
+  fi
+}
+
 fi
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
@@ -2015,7 +2096,7 @@ L_path_dirname_v() {
 # @see https://en.cppreference.com/w/cpp/filesystem/path/extension.html
 L_path_extension() { L_handle_v_scalar "$@"; }
 L_path_extension_v() {
-	L_basename_v "$*"
+	L_path_basename_v "$*"
 	case $L_v in
 	.|..) L_v="" ;;
 	?*.*) L_v=.${L_v##*.} ;;
@@ -2029,14 +2110,20 @@ L_path_extension_v() {
 # @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.suffixes
 L_path_extensions() { L_handle_v_array "$@"; }
 L_path_extensions_v() {
-	local _L_ext=""
-	while
-		L_path_extension -v _L_ext "$*"
-		[[ -n "$_L_ext" ]]
-	do
-		L_v=( "$_L_ext" ${L_v[@]:+"${L_v[@]}"} )
-		set -- "${*%"$_L_ext"}"
-	done
+	L_path_basename_v "$*"
+	case $L_v in
+	.|..) L_v=() ;;
+	?*.*)
+		IFS=. read -r -d '' -a L_v <<<"$1"
+		# Remove additional newline from <<< from last element.
+		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
+		# Remove basename.
+		unset -v 'L_v[0]'
+		# Add dots
+		L_v=("${L_v[@]/#/.}")
+		;;
+	*) L_v=() ;;
+	esac
 }
 
 # @description The final path component, without its suffix:
@@ -2045,7 +2132,7 @@ L_path_extensions_v() {
 # @see https://en.cppreference.com/w/cpp/filesystem/path/stem
 L_path_stem() { L_handle_v_scalar "$@"; }
 L_path_stem_v() {
-	L_basename_v "$*"
+	L_path_basename_v "$*"
 	case $L_v in
 	.|..) ;;
 	?*.*) L_v=${L_v%.*} ;;
@@ -2058,7 +2145,12 @@ L_path_stem_v() {
 # @arg $1 new name
 L_path_with_name() { L_handle_v_scalar "$@"; }
 L_path_with_name_v() {
-	L_v=${1%/*}/$2
+	case "$1" in
+	..) L_v=$2 ;;
+	?*/*) L_v=${1%/*}/$2 ;;
+	/*) L_v=/$2 ;;
+	*) L_v=$2 ;;
+	esac
 }
 
 # @description Return a new path with the stem changed.
@@ -2066,21 +2158,21 @@ L_path_with_name_v() {
 # @arg $1 path
 # @arg $2 new stem
 L_path_with_stem() { L_handle_v_scalar "$@"; }
+# shellcheck disable=SC2179
 L_path_with_stem_v() {
-	if (($# != 2)); then L_func_error "invalid number of arguments" 2; return 2; fi
-	if [[ "$1" == */ ]]; then L_func_error "path does not have a name" 2; return 1; fi
-	local _L_e
-	L_path_dirname_v "$1"
-	L_path_extension -v _L_e "$1"
-	L_v+="$2$_L_e"
+	L_path_extension_v "$1"
+	L_path_with_name_v "$1" "$2$L_v"
 }
 
+# @description Return a new path with the suffix changed.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 path
+# @arg $2 new suffix
 L_path_with_suffix() { L_handle_v_scalar "$@"; }
+# shellcheck disable=SC2179
 L_path_with_suffix_v() {
-	local _L_n
-	L_path_dirname_v "$1"
-	L_path_name -v _L_n "$1"
-	L_v+="/$_L_n$2"
+	L_path_stem_v "$1"
+	L_path_with_name_v "$1" "$L_v${2:+.${2#.}}"
 }
 
 # @description Return whether the path is absolute or not.
@@ -2107,34 +2199,34 @@ L_path_relative_to_v() {
 		L_func_error "invalid number of arguments" 2
 		return 2
 	fi
-  local _L_current="${1:+"$2"}"
-  local _L_target="${1:-"$2"}"
-  if [[ "$_L_target" == . ]]; then
-  	_L_target=/
-  else
-  	_L_target="/${_L_target##/}"
-  fi
-  if [[ "$_L_current" == . ]]; then
-  	_L_current=/
-  else
-  	_L_current="${_L_current:="/"}"
-  	_L_current="/${_L_current##/}"
-  fi
-  local _L_appendix="${_L_target##/}"
-  L_v=''
-  while
-    _L_appendix="${_L_target#"$_L_current"/}"
-    [[ "$_L_current" != '/' && "$_L_appendix" == "$_L_target" ]]
-  do
-    if [ "$_L_current" = "$_L_appendix" ]; then
-      L_v="${L_v:-.}"
-      L_v="${L_v#/}"
-      return 0
-    fi
-    _L_current="${_L_current%/*}"
-    L_v+="${L_v:+/}.."
-  done
-  L_v+="${L_v:+${_L_appendix:+/}}${_L_appendix#/}"
+	local _L_current="${1:+"$2"}"
+	local _L_target="${1:-"$2"}"
+	if [[ "$_L_target" == . ]]; then
+		_L_target=/
+	else
+		_L_target="/${_L_target##/}"
+	fi
+	if [[ "$_L_current" == . ]]; then
+		_L_current=/
+	else
+		_L_current="${_L_current:="/"}"
+		_L_current="/${_L_current##/}"
+	fi
+	local _L_appendix="${_L_target##/}"
+	L_v=''
+	while
+		_L_appendix="${_L_target#"$_L_current"/}"
+		[[ "$_L_current" != '/' && "$_L_appendix" == "$_L_target" ]]
+	do
+		if [ "$_L_current" = "$_L_appendix" ]; then
+			L_v="${L_v:-.}"
+			L_v="${L_v#/}"
+			return 0
+		fi
+		_L_current="${_L_current%/*}"
+		L_v+="${L_v:+/}.."
+	done
+	L_v+="${L_v:+${_L_appendix:+/}}${_L_appendix#/}"
 }
 
 # @description Check if a path is relative to other path.
@@ -2159,7 +2251,7 @@ L_path_append() {
 	esac
 }
 
-# @description Prepend a path to path variable is not already there.
+# @description Prepend a path to path variable if not already there.
 # @arg $1 Variable name. For example PATH
 # @arg $2 Path to prepend. For example /usr/bin
 # @arg [$3] Optional path separator. Default: ':'
@@ -3333,41 +3425,6 @@ L_array_andjoin_v() {
 	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
 }
 
-# @description Serialize an array to string representation.
-# @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 <var> array nameref
-# @see L_array_from_string
-L_array_to_string() { L_handle_v_scalar "$@"; }
-L_array_to_string_v() {
-	L_v=$(LC_ALL=C declare -p "$1")
-}
-
-if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-# @description Deserialize an array from string.
-# @arg $1 <var> array nameref
-# @arg $2 str result from L_array_to_string
-# @see L_array_to_string
-# @example
-#   arr=(1 2 3)
-#   L_array_to_string -v tmp
-#   L_array_from_string arr2 "$tmp"
-#   echo "${arr2[@]}"
-L_array_from_string() {
-  L_assert "invalid declare output: $2" L_extglob_match "$2" "$_L_DECLARE_P_ARRAY_EXTGLOB"
-  local -a _L_tmp="${2#*=}"
-  L_array_assign "$1" ${_L_tmp[@]:+"${_L_tmp[@]}"}
-}
-else
-	L_array_from_string() {
-  	L_assert "invalid declare output: $2" L_extglob_match "$2" "$_L_DECLARE_P_ARRAY_EXTGLOB"
-  	local _L_tmp
-  	_L_tmp="${2//$'\001\001'/$'\001'}"
-  	_L_tmp="${_L_tmp//$'\001\177'/$'\177'}"
-  	eval "local -a _L_tmp=${_L_tmp#*=}"
-  	L_array_assign "$1" ${_L_tmp[@]:+"${_L_tmp[@]}"}
-	}
-fi
-
 # ]]]
 # args [[[
 # @section args
@@ -3495,7 +3552,7 @@ L_min_v() {
 # shellcheck disable=SC1105,SC2201,SC2102,SC2035,SC2211,SC2283,SC2094
 # @description Make a table
 # @option -v <var> Store the output in variable instead of printing it.
-# @option -s <separator> IFS column separator to use
+# @option -s <separator> IFS column separator to use. Default: space or tab.
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
 # @option -h Print this help and return 0.
@@ -3724,8 +3781,16 @@ L_pretty_print() {
 	while (($#)); do
 		if ! L_is_valid_variable_name "$1" || ! _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
 			_L_pretty_print_output "%s" "$1"
-		elif ((${#_L_pp_declare} <= _L_pp_width)) || [[ "$_L_pp_declare" != "declare -"[aA]* ]]; then
-			_L_pretty_print_output "%s" "$_L_pp_declare"
+		elif
+			((${#_L_pp_declare} <= _L_pp_width)) ||
+				[[ "$_L_pp_declare" != "declare -"[aA]* ]] ||
+				((!L_HAS_ASSOCIATIVE_ARRAY))
+		then
+			if L_isprint "$_L_pp_declare"; then
+				_L_pretty_print_output "%s" "$_L_pp_declare"
+			else
+				_L_pretty_print_output "%q" "$_L_pp_declare"
+			fi
 		else
 			_L_pretty_print_nested "${_L_pp_declare%%=*}" "${_L_pp_declare#*=}"
 		fi
@@ -4576,6 +4641,16 @@ L_print_traceback() {
 	done
 }
 
+# @description Print simple traceback using builtin caller command.
+L_print_caller() {
+	local i
+	# local -; set -x
+	# declare -p FUNCNAME BASH_LINENO BASH_SOURCE
+	for ((i = ${#FUNCNAME[@]} - 2; i >= 0; i--)); do
+		caller "$i"
+	done
+}
+
 # @description Callback to be exectued on ERR trap that prints just the caller.
 # @example
 #   trap 'L_trap_err_small' ERR
@@ -4931,6 +5006,7 @@ L_finally() {
 		if [[ " $_L_finally_functions " != *" $i "* ]]; then
 			_L_finally_functions+=${_L_finally_functions:+ }$i
 			trap 'L_finally_handle_return "$?"' RETURN
+			# trap 'if [[ " ${_L_finally_functions:-} " == *" ${FUNCNAME[1]:-} "* ]]; then L_finally_handle_return "$?"
 		fi
 	fi
   # Add element to our array variable.
@@ -5102,33 +5178,39 @@ L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 # @arg $2 message to print on failure
 # @arg $@ command to execute, can start with '!' to invert exit status
 _L_unittest_internal() {
-	local _L_tmp=0 _L_invert=0 IFS=' ' i
+	local _L_ret=0 _L_invert=0 IFS=' ' up=1
+	if [[ "$1" == -s ]]; then
+		up=$(($2+1))
+		shift 2
+	fi
+	#
 	if [[ "$3" == "!" ]]; then
 		_L_invert=1
 		shift
 	fi
-	"${@:3}" || _L_tmp=$?
-	((_L_invert ? (_L_tmp = !_L_tmp) : 1, 1))
+	"${@:3}" || _L_ret=$?
+	if ((_L_invert)); then
+		_L_ret=$((!_L_ret))
+	fi
 	L_unittest_fails=${L_unittest_fails:-0}
-	if ((_L_tmp)); then
+	if ((_L_ret)); then
 		echo -n "${L_RED}${L_BRIGHT}"
 	fi
 	# Find first function in the stack that does not start with _L_unittest_
-	for ((i=1;;++i)); do
-		case "${FUNCNAME[i]:-}" in
+	while ((++up)); do
+		case "${FUNCNAME[up]:-}" in
 		"") break ;;
 		_L_unittest_*|L_unittest_*) ;;
 		*) break ;;
 		esac
 	done
-	echo -n "${FUNCNAME[i]}:${BASH_LINENO[i-1]}: test: ${1:-}: "
+	echo -n "${FUNCNAME[up]}:${BASH_LINENO[up-1]}: test: ${1:-}: "
 	#
-	if ((_L_tmp == 0)); then
+	if ((_L_ret == 0)); then
 		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
 		((++L_unittest_fails))
-		_L_tmp=("${@:3}")
-		echo "expression ${_L_tmp[*]} FAILED!${2:+ }${2:-}${L_COLORRESET}"
+		echo "command [${*:3}] FAILED!${2:+ }${2:-}${L_COLORRESET}"
 		if ((L_unittest_exit_on_error)); then
 			exit 17
 		else
@@ -5278,6 +5360,7 @@ _L_unittest_cmd_exit_trap() {
 # @option -r <regex> Compare output of the command with this regex.
 # @option -o <str> Compare output of the command with this string.
 # @option -e <int> Command should exit with this exit status (default: 0)
+# @option -s <int> Stack up
 # @arg $@ Command to execute.
 # If a command starts with `!`, this implies -i and, if one of -v -r -o option is used, it implies -j.
 # @example
@@ -5292,8 +5375,8 @@ L_unittest_cmd() {
 	else
 		local _L_uopt_setx=0
 	fi
-	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0 _L_uopt_closestdin=1
-	while getopts cifINjxXv:r:o:e:h _L_uc; do
+	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0 _L_uopt_closestdin=1 _L_uopt_up=0
+	while getopts cifINjxXv:r:o:e:s:h _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_curenv=1 ;;
 		i) _L_uopt_invert=1 ;;
@@ -5307,6 +5390,7 @@ L_unittest_cmd() {
 		r) _L_uopt_capture=1 _L_uopt_regex=$OPTARG ;;
 		o) _L_uopt_capture=1 _L_uopt_output=$OPTARG ;;
 		e) _L_uopt_exitcode=$OPTARG ;;
+		s) _L_uopt_up=$OPTARG ;;
 		h) L_func_help; return 0 ;;
 		*) L_func_error; return 2 ;;
 		esac
@@ -5319,7 +5403,9 @@ L_unittest_cmd() {
 			_L_uopt_stdjoin=1
 		fi
 	fi
-	_L_unittest_internal "command found: [$(L_quote_printf "$@")]" "" L_hash "$1"
+	if ! L_hash "$1"; then
+		_L_unittest_internal -s "$_L_uopt_up" "command found: [$(L_quote_printf "$@")]" "" L_hash "$1"
+	fi
 	if ((_L_uopt_setx)); then
 		set -- L_setx "$@"
 	fi
@@ -5356,7 +5442,7 @@ L_unittest_cmd() {
 		fi
 		L_trap_pop EXIT
 	else  # _L_uopt_curenv
-		printf -v _L_uc "trap - ERR; %s" "$_L_uc"
+		_L_uc="set +e;trap - ERR;$_L_uc"
 		if ((_L_uopt_capture)); then
 			_L_uout=$( eval "$_L_uc" ) || _L_uret=$?
 		else
@@ -5371,15 +5457,15 @@ L_unittest_cmd() {
 		# For nice output
 		set -- "!" "$@"
 	fi
-	_L_unittest_internal "[$(L_quote_printf "$@")] exited with $_L_uret =? $_L_uopt_exitcode" "${_L_uout+output $(printf %q "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_exitcode" ]
+	_L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] exited with $_L_uret =? $_L_uopt_exitcode" "${_L_uout+output $(printf %q "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_exitcode" ]
 	if [[ -n $_L_uopt_regex ]]; then
-		if ! _L_unittest_internal "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") matches $(printf %q "$_L_uopt_regex")" "" L_regex_match "$_L_uout" "$_L_uopt_regex"; then
+		if ! _L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") matches $(printf %q "$_L_uopt_regex")" "" L_regex_match "$_L_uout" "$_L_uopt_regex"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_regex"
 			return 1
 		fi
 	fi
 	if [[ -n $_L_uopt_output ]]; then
-		if ! _L_unittest_internal "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") equal $(printf %q "$_L_uopt_output")" "" [ "$_L_uout" = "$_L_uopt_output" ]; then
+		if ! _L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") equal $(printf %q "$_L_uopt_output")" "" [ "$_L_uout" = "$_L_uopt_output" ]; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_output"
 			return 1
 		fi
@@ -5846,46 +5932,6 @@ else
 	}
 fi
 
-# @description Extract associative array from string
-# @arg $1 var associative array nameref to store
-# @arg $2 =
-# @arg $3 var source variable nameref
-# @see L_asa_dump
-# @see L_asa_copy
-# @example
-#    declare -A map=([a]=b [c]=d)
-#    declare string=""
-#    string=$(declare -p "map")
-#    declare -A mapcopy=()
-#    L_asa_from_declare mapcopy = "${string}"
-L_asa_from_declare() {
-	L_assert "not an associative array: $1" L_var_is_associative "$1"
-	# L_assert '' L_regex_match "${!3}" "^[^=]*=[(].*[)]$"
-	L_assert "source nameref does not match $_L_DECLARE_P_ARRAY_EXTGLOB: $3" \
-		L_extglob_match "$3" "$_L_DECLARE_P_ARRAY_EXTGLOB"
-	L_asa_from_declare_unsafe "$@"
-}
-
-if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-	L_asa_from_declare_unsafe() {
-		# This has to be eval - it expands to `var=([a]=b [c]=d)`
-		eval "$1=${3#*=}"
-		# Is 1000 times faster, then the below, because L_asa_copy is slow.
-		# if [[ $3 != _L_asa ]]; then declare -n _L_asa="$3"; fi
-		# if [[ $1 != _L_asa_to ]]; then declare -n _L_asa_to="$1"; fi
-		# declare -A _L_tmpa="$_L_asa"
-		# _L_asa_to=()
-		# L_asa_copy _L_tmpa "$1"
-	}
-else
-	L_asa_from_declare_unsafe() {
-		# Godspeed.
-		# First expansion un-quotes the output of declare -A.
-		# Second assigns the associative array.
-		eval "eval \$1=${3#*=}"
-	}
-fi
-
 # @description Copy associative dictionary
 # Notice: the destination array is cleared.
 # Much faster then L_asa_copy.
@@ -5895,15 +5941,31 @@ fi
 # @arg $3 var Source associative array
 # @see L_asa_copy
 # @see L_asa_dump
-# @see L_asa_from_declare
 # @example
 #   local -A map=([a]=b [c]=d)
 #   local -A mapcopy=()
 #   L_asa_assign mapcopy = map
 L_asa_assign() {
-	local _L_tmp
-	_L_tmp=$(declare -p "$3")
-	L_asa_from_declare "$1" = "${_L_tmp}"
+	local L_v
+	L_var_to_string_v "$3" || return 2
+	eval "$1=$L_v"
+}
+
+# @description check if one associative array is equal to another
+# @arg $1 associative array name
+# @arg $2 associative array name
+# @exitcode 0 if equal, 1 otherwise
+# @example
+#    local -A a=([a]=1 [b]=2)
+#    local -A b=([a]=1 [b]=2)
+#    if L_asa_cmp a b; then
+#        echo "equal"
+#    fi
+L_asa_cmp() {
+	local a b
+	L_var_to_string -v a "$1" || return 2
+	L_var_to_string -v b "$2" || return 2
+	[[ "$a" == "$b" ]]
 }
 
 # ]]]

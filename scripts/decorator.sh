@@ -2,6 +2,27 @@
 set -euo pipefail
 . bin/L_lib.sh -s
 
+# function help
+func() {
+  L_print_caller
+  L_print_traceback 0 0
+  #
+  local OPTIND OPTARG OPTERR o
+  while getopts h o; do
+    case "$o" in
+      h) L_func_help; return 0 ;;
+      *) L_func_error; return 2 ;;
+    esac
+  done
+}
+L_decorate L_execute func
+L_decorate L_execute func
+L_decorate L_execute func
+L_decorate L_execute func
+L_decorate L_execute func
+func -h
+exit
+
 ###############################################################################
 
 export TIMEFORMAT="real=%6lR user=%6lU system=%6lS"
