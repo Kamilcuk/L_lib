@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ulimit -c 0
+export TIMEFORMAT='real=%6lR user=%6lU system=%6lS'
 . "$(dirname "$0")"/../bin/L_lib.sh
 L_log_configure -L
 
@@ -14,6 +15,8 @@ get_all_variables() {
 	# fi
 	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM)="
 }
+
+L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
 
 VARIABLES_BEFORE=$(get_all_variables)
 
@@ -694,11 +697,18 @@ _L_test_array_reverse() {
 }
 
 _L_test_array_string() {
+	local IFS=' '
 	helper() {
-		local src=("$@") dst str
-		L_array_to_string -v str src
-		L_array_from_string dst "$str"
-		L_unittest_arreq dst ${src[@]:+"${src[@]}"}
+		local src dst str i
+		src=("$@")
+		L_var_to_string -v str src
+		local -a dst="$str"
+		L_pretty_print src str dst
+		L_unittest_arreq dst ${src[@]+"${src[@]}"}
+		L_unittest_eq "${!src[*]}" "${!dst[*]}"
+		for i in ${src[@]+"${!src[@]}"}; do
+			L_unittest_eq "${src[$i]}" "${dst[$i]}"
+		done
 	}
 	helper
 	helper ''
@@ -706,6 +716,7 @@ _L_test_array_string() {
 	helper 1 2 3
 	helper $'\001'
 	helper $'\177'
+	helper $'\177' $'\001' $'\177' $'\001'
 	helper "$L_ALLCHARS"
 	helper "$L_ALLCHARS" "$L_ALLCHARS" "$L_ALLCHARS" "$L_ALLCHARS"
 }
@@ -1638,12 +1649,12 @@ _L_test_asa() {
 	}
 	{
 		L_info "_L_test_asa: nested asa"
-		local -A map2=([c]=d [e]=f)
-		map[mapkey]=$(declare -p "map2")
+		local -A map2=([c]=d [e]=f) tmp
+		L_var_to_string -v tmp map2
+		map[mapkey]=$tmp
 		L_asa_has map mapkey
 		L_asa_get map mapkey
-		local -A map3=()
-		L_asa_from_declare map3 = "${map[mapkey]}"
+		local -A map3=${map[mapkey]}
 		L_asa_get -v v map3 c
 		L_unittest_eq "$v" d
 		L_asa_get -v v map3 e
@@ -1656,9 +1667,9 @@ _L_test_asa() {
 	}
 	{
 		L_info "_L_test_asa: nested asa with quotes"
-		local -A map3 map2=([a]="='='=")
-		map[mapkey]=$(declare -p "map2")
-		L_asa_from_declare map3 = "${map[mapkey]}"
+		local -A map2=([a]="='='=")
+		L_var_to_string -v tmp map2
+		local -A map3=$tmp
 		L_unittest_eq "${map2[a]}" "${map3[a]}"
 	}
 }
@@ -2377,7 +2388,7 @@ _L_test_z_argparse9_time_profile() {
 _L_test_path() {
 	local v
 	{
-		tester() { local v; L_basename -v v "$1"; L_unittest_vareq v "$2"; }
+		tester() { local v; L_path_basename -v v "$1"; L_unittest_vareq v "$2"; }
 		tester /foo/bar.txt bar.txt
 		tester /foo/.bar .bar
 		tester /foo/bar/ ''
@@ -2388,7 +2399,7 @@ _L_test_path() {
 		tester //host host
 	}
 	{
-		tester() { local v; L_dirname -v v "$1"; L_unittest_vareq v "$2"; }
+		tester() { local v; L_path_dirname -v v "$1"; L_unittest_vareq v "$2"; }
 		tester '' .
 		tester . .
 		tester .. .
@@ -2401,7 +2412,7 @@ _L_test_path() {
 		tester a/b/c a/b
 	}
 	{
-		tester() { local v; L_extension -v v "$1"; caller; L_unittest_vareq v "$2"; }
+		tester() { local v; L_path_extension -v v "$1"; caller; L_unittest_vareq v "$2"; }
 		tester /foo/bar.txt .txt
 		tester /foo/bar. .
 		tester /foo/bar ''
@@ -2414,7 +2425,7 @@ _L_test_path() {
 		tester /foo/..bar '.bar'
 	}
 	{
-		tester() { local v; L_stem -v v "$1"; caller; L_unittest_vareq v "$2"; }
+		tester() { local v; L_path_stem -v v "$1"; caller; L_unittest_vareq v "$2"; }
 		tester /foo/bar.txt bar
 		tester /foo/.bar .bar
 		tester foo.bar.baz.tar foo.bar.baz
@@ -2423,13 +2434,14 @@ _L_test_path() {
 		tester /foo/bar bar
 	}
 	{
-		tester() { local v; L_extensions -v v "$1"; caller; L_unittest_arreq v "${@:2}"; }
+		tester() { local v; L_path_extensions -v v "$1"; caller; L_unittest_arreq v "${@:2}"; }
 		tester my/library.tar.gar .tar .gar
 		tester my/library.tar.gz .tar .gz
 		tester my/library
+		tester my
 	}
 	{
-		tester() { local v; L_relative_to -v v "$1" "$2"; caller; L_unittest_arreq v "$3"; }
+		tester() { local v; L_path_relative_to -v v "$1" "$2"; caller; L_unittest_arreq v "$3"; }
 		tester /etc/passwd / etc/passwd
 		tester /etc/passwd /etc passwd
 		tester /etc/passwd /usr ../etc/passwd
@@ -2500,12 +2512,183 @@ _L_test_path() {
 	{
 		L_unittest_cmd ! L_dir_is_empty /
 		L_unittest_cmd ! L_dir_is_empty /usr
+		L_unittest_cmd ! L_dir_is_empty /proc/mount
 		(
 			f=$(mktemp -d)
 			trap 'rm -rf "$f"' EXIT
 			L_unittest_cmd L_dir_is_empty "$f"
+			touch "$f"/a
+			L_unittest_cmd ! L_dir_is_empty "$f"
 		)
 	}
+	{
+		L_unittest_cmd -o c:/Downloads/setup.py L_path_with_name c:/Downloads/pathlib.tar.gz setup.py
+		L_unittest_cmd -o c:/setup.py           L_path_with_name c:/                         setup.py c:/setup.py
+	}
+	{
+		L_unittest_cmd -o c:/Downloads/final.txt L_path_with_stem c:/Downloads/draft.txt      final
+		L_unittest_cmd -o c:/Downloads/lib.gz    L_path_with_stem c:/Downloads/pathlib.tar.gz lib
+		with_stem_tester() {
+			L_unittest_cmd -s 1 -o "$3" L_path_with_stem "$1" "$2"
+		}
+		with_stem_tester ...a    stem stem.a
+		with_stem_tester a.a     stem stem.a
+		with_stem_tester /..     stem /stem
+		with_stem_tester /.      stem /stem
+		with_stem_tester /       stem /stem
+		with_stem_tester /a/..   stem /a/stem
+		with_stem_tester /a/.    stem /a/stem
+		with_stem_tester /a/     stem /a/stem
+		with_stem_tester /a/b/.. stem /a/b/stem
+		with_stem_tester /a/b/.  stem /a/b/stem
+		with_stem_tester /a/b/   stem /a/b/stem
+		with_stem_tester a/b/..  stem a/b/stem
+		with_stem_tester a/b/.   stem a/b/stem
+		with_stem_tester a/b/    stem a/b/stem
+	}
+	{
+		local tmp
+		L_path_with_suffix -v tmp c:/Downloads/pathlib.tar.gz .bz2
+		L_unittest_vareq tmp c:/Downloads/pathlib.tar.bz2
+		L_path_with_suffix -v tmp README .txt
+		L_unittest_vareq tmp README.txt
+		L_path_with_suffix -v tmp README.txt ''
+		L_unittest_vareq tmp README
+	}
+}
+
+_L_test_cache() {
+	local opt i stdout cachef
+	L_with_tmpfile_to cachef
+	exec 100>&2
+	local BASH_XTRACEFD=100
+	# L_decorate L_setx L_cache
+	#
+	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS")
+  if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+  	local -A shouldbeasa=([a]=b [$' \t\n']=$' \t\n' ["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS")
+  fi
+	#
+	for opt in "" "-f $cachef"; do
+		echo "USING $opt"
+		{
+			cachevars() {
+  			var="$shouldbevar"
+  			array=("${shouldbearray[@]}")
+  			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+  				L_asa_copy shouldbeasa asa
+  				declare -p asa
+  			fi
+  			executed=1
+			}
+			L_cache $opt -r cachevars
+			local asaarg=""
+			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+				asaarg="-s asa"
+			fi
+			L_decorate L_cache -T 1 -s var -s array $asaarg $opt cachevars
+			#
+			for i in _ _; do
+				L_cache $opt -r cachevars
+				for i in 1 0 0; do
+					local var="" array=() executed=0
+					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+						local -A asa=()
+					fi
+					cachevars
+					L_unittest_vareq var "$shouldbevar"
+					L_unittest_arreq array "${shouldbearray[@]}"
+					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+						L_unittest_eq "${asa[a]}" "b"
+						L_unittest_eq "${asa[$' \t\n']}" $' \t\n'
+						L_unittest_eq "${asa[$L_SAFE_ALLCHARS]}" "$L_SAFE_ALLCHARS"
+					fi
+					L_unittest_vareq executed "$i"
+				done
+			done
+		}
+		{
+			cachestdout() { echo 123; echo EXECUTED >&2; }
+			L_decorate L_cache -T 1 -o $opt cachestdout
+			for i in _ _; do
+				L_cache $opt -r cachestdout a
+				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout a
+				L_unittest_cmd -c -j -r "^123$" cachestdout a
+				L_cache $opt -r cachestdout
+				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout
+				L_unittest_cmd -c -j -r "^123$" cachestdout
+				L_unittest_cmd -c -j -r "^123$" cachestdout
+				L_unittest_cmd -c -j -r "^123$" cachestdout a
+			done
+		}
+		{
+			local ret=123
+			cacheerr() { echo "$ret"; return "$ret"; }
+			L_decorate L_cache $opt cacheerr
+			for i in _ _; do
+				L_cache $opt -r cacheerr
+				ret=123
+				L_unittest_cmd -c -e 123 cacheerr
+				ret=1
+				L_unittest_cmd -c -e 123 cacheerr
+				L_unittest_cmd -c -e 123 cacheerr
+			done
+		}
+	done
+	#
+	L_unittest_cmd L_cache -l
+	L_unittest_cmd L_cache -f "$cachef" -l
+	#
+	unset -f cachevars cachestdout
+}
+
+_L_test_var_to_string() {
+	local tmp i
+	#
+	local a=1 b=123
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_vareq b "$a"
+	#
+	local a="" b=123
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_vareq b "$a"
+	#
+	local -a a=()
+	local b=123
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_arreq a ${b[@]:+"${b[@]}"}
+	#
+	unset b
+	local -a a=("$L_SAFE_ALLCHARS")
+	local b=123
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_arreq a ${b[@]:+"${b[@]}"}
+	#
+	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+		unset a b
+		local -A a=() b=(1 2 3 4)
+		L_var_to_string -v tmp a
+		eval "b=$tmp"
+		L_unittest_cmd L_asa_cmp a b
+		L_unittest_eq "${!a[*]}" "${!b[*]}"
+		L_unittest_eq "${a[*]}" "${b[*]}"
+		L_unittest_eq "${#a[@]}" 0
+		#
+		local -A a=("$L_SAFE_ALLCHARS" "$L_SAFE_ALLCHARS") b=(1 2 3 4)
+		L_var_to_string -v tmp a
+		eval "b=$tmp"
+		L_unittest_cmd L_asa_cmp a b
+		L_unittest_eq "${!a[*]}" "${!b[*]}"
+		L_unittest_eq "${a[*]}" "${b[*]}"
+		L_unittest_eq "${#a[@]}" 1
+		L_unittest_eq "${#b[@]}" 1
+		L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+		L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+	fi
 }
 
 _L_test_PATH() {
