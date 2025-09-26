@@ -3,7 +3,7 @@
 
 if (($# == 0)); then
   a=$(
-    L_json_make \
+    L_json_create \
     { \
       "a" : "b" , \
       "d" : "e" , \

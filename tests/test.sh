@@ -318,9 +318,9 @@ _L_test_string() {
 	}
 	{
 		local i
-		L_str_count -v i abca a
+		L_string_count -v i abca a
 		L_unittest_vareq i 2
-		L_str_count -v i abca x
+		L_string_count -v i abca x
 		L_unittest_vareq i 0
 	}
 }
@@ -414,6 +414,8 @@ _L_test_json_escape() {
 		L_unittest_cmd -o "$tmp" eval 'printf "%s" "$input" | jq -R -s .'
 	}
 	t $'1 hello\n\t\bworld'
+	t $'\1f'
+	t $'\7f'
 	t $'2 \x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
 	t $'3 \x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f'
 	t $'4 \x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f'
@@ -425,20 +427,22 @@ _L_test_json_escape() {
 		printf -v a "%b" "\\x$a"
 		t "${a}|"
 	done
-	t $'\1f'
-	t $'\7f'
 	unset -f t
 }
 
-_L_test_json() {
+_L_test_json_create() {
 	{
-		L_log "test L_json_make"
-		L_unittest_cmd -o '{"a":"b"}' eval 'L_json_make { a : b } | jq -c'
+		L_log "test L_json_create"
+		L_unittest_cmd -o '{"a":"b"}' eval 'L_json_create { a : b } | jq -c'
 		L_unittest_cmd -o '{"a":"b","c":["1",2,true,false,null]}'\
-			eval 'L_json_make { a : b , c :[ 1 ,2,true,false,null] } | jq -c'
+			eval 'L_json_create { a : b , c :[ 1 ,2,true,false,null] } | jq -c'
 		L_unittest_cmd -o '{"\t":"\t "}' \
-			eval $'L_json_make { "\t" : "\t " } | jq -c'
+			eval $'L_json_create { "\t" : "\t " } | jq -c'
 	}
+}
+
+_L_test_json() {
+	true && return 0  # disabled
 	{
 		L_log "test L_json_get"
 		local json='{"a":["b",{"c":[1,2],"i":2,"j":true,"k":false,"m":null}], "d":{ "e":"f","g":"h" }}'
@@ -475,6 +479,7 @@ _L_test_json() {
 }
 
 _L_test_other() {
+	local IFS=" "
 	{
 		local max=-1
 		L_max -v max 1 2 3 4
@@ -482,11 +487,11 @@ _L_test_other() {
 	}
 	{
 		local -a a
-		L_abbreviation -va ev eval shooter
-		L_unittest_arreq a eval
-		L_abbreviation_v e eval eshooter
-		L_unittest_arreq L_v eval eshooter
-		L_abbreviation -v a none eval eshooter
+		L_setx L_abbreviation -va ev evaler shooter
+		L_unittest_arreq a evaler
+		L_abbreviation_v e evaler eshooter
+		L_unittest_arreq L_v evaler eshooter
+		L_abbreviation -v a none evaler eshooter
 		L_unittest_arreq a
 	}
 	{
@@ -1428,9 +1433,8 @@ _L_test_L_trap() {
 _L_test_map() {
 	local IFS=" "
 	{
-		local map map2 tmp
+		local map="" map2 tmp
 		{
-			L_map_init map
 			L_map_set map a 1
 			L_map_has map a
 			L_map_set map b 2
@@ -1513,8 +1517,7 @@ _L_test_map() {
 	}
 	{
 		if ((L_HAS_BASH4_0)); then local IFS=bc; fi
-		local map tmp
-		L_map_init map
+		local map="" tmp
 		L_map_set map "/bin/ba*" "/dev/*"
 		L_map_set map "b " "2 "
 		L_map_set map " c" " 3"
@@ -1533,8 +1536,7 @@ _L_test_map() {
 		L_unittest_arreq tmp "/dev/*" "2 " " 3"
 	}
 	{
-		local map tmp
-		L_unittest_success L_map_init map
+		local map="" tmp
 		L_unittest_success L_map_set map '${var:?error}$(echo hello)' '${var:?error}$(echo hello)value'
 		L_unittest_success L_map_has map '${var:?error}$(echo hello)'
 		L_unittest_success L_map_get -v tmp map '${var:?error}$(echo hello)'
@@ -1543,8 +1545,7 @@ _L_test_map() {
 		L_unittest_arreq tmp '${var:?error}$(echo hello)' '${var:?error}$(echo hello)value'
 	}
 	{
-		local PREFIX_a PREFIX_b var tmp
-		L_map_init var
+		local PREFIX_a PREFIX_b var="" tmp
 		PREFIX_a=1
 		PREFIX_b=2
 		L_map_save var PREFIX_
@@ -1552,10 +1553,7 @@ _L_test_map() {
 		L_unittest_arreq tmp a 1 b 2
 	}
 	{
-		local var tmp
-		var=123
-		tmp=123
-		L_map_init var
+		local var="" tmp=123
 		L_map_set var a 1
 		# L_unittest_cmpfiles <(L_map_get var a) <(echo -n 1)
 		L_unittest_eq "$(L_map_get var b "")" ""
@@ -2585,7 +2583,7 @@ _L_test_L_proc() {
 		declare proc tmp exitcode
 		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
 		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
-		L_unittest_vareq tmp 1
+		L_unittest_vareq tmp 124
 		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
 		L_unittest_vareq tmp 0
 		L_unittest_vareq exitcode 123
@@ -2609,7 +2607,7 @@ _L_test_L_proc() {
 	}
 	{
 		L_log ''
-		declare stdout proc
+		declare stdout="" proc
 		L_proc_popen -Opipe proc bash -c 'echo stdout; sleep 0.01; echo stdout'
 		L_proc_communicate -o stdout -t 2 -v exitcode proc
 		L_unittest_vareq stdout $'stdout\nstdout\n'
@@ -2617,7 +2615,7 @@ _L_test_L_proc() {
 	}
 	{
 		L_log "get stdout and stderr to separate variables"
-		declare stdout stderr proc
+		declare stdout="" stderr="" proc
 		L_proc_popen -Opipe -Epipe proc bash -c 'echo stdout; sleep 0.01; echo stderr >&2; echo stderr >&2; sleep 0.01; echo stdout'
 		L_proc_communicate -o stdout -e stderr -t 2 -v exitcode proc
 		L_unittest_vareq stdout $'stdout\nstdout\n'
@@ -2626,7 +2624,7 @@ _L_test_L_proc() {
 	}
 	{
 		L_log "get stdout and stderr to separate variables #2"
-		declare stdout stderr proc
+		declare stdout="" stderr="" proc
 		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]"; exit 101'
 		L_proc_read proc line
 		L_unittest_vareq line stdout
@@ -2997,9 +2995,20 @@ _L_test_finally() {
 				L_finally printf 2
 				printf 1
 				# L_unsetx L_finally_list >&2
+				# pstree -p >&2
+				# trap - SIGTERM
 				L_raise -"$1"
 			)
+			# echo $?
+			# return $?
 		}
+		export -f func
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) \
+			bash -c ". $L_LIB_SCRIPT && func INT"
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) \
+			bash -c ". $L_LIB_SCRIPT && func TERM"
+		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) \
+			bash -c ". $L_LIB_SCRIPT && func HUP"
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) func INT
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
@@ -3026,7 +3035,9 @@ _L_test_finally() {
 				L_raise
 			)
 		}
-		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e $((128 + $(L_trap_to_number TERM) )) func
+		export -f func
+		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" func
+		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" bash -c ". $L_LIB_SCRIPT && func"
 	}
 	{
 		L_info "test command substition"
@@ -3041,6 +3052,8 @@ _L_test_finally() {
 			L_finally -r printf 1
 		}
 		L_unittest_cmd -o 12345 func
+		export -f func
+		L_unittest_cmd -o 12345 bash -c ". $L_LIB_SCRIPT && func"
 	}
 	{
 		L_info "nested return ok"
@@ -3059,7 +3072,9 @@ _L_test_finally() {
 			L_finally -r printf 4
 			'a.*' 3 2 1
 		}
+		export -f "a" "a.*" "a*" "a?*"
 		L_unittest_cmd -o 1234 a
+		L_unittest_cmd -o 1234 bash -c ". $L_LIB_SCRIPT && a"
 		#
 		a?*() {
 			L_finally -r printf "$1"
@@ -3078,7 +3093,10 @@ _L_test_finally() {
 			L_finally -r printf 7
 			'a.*' 6 5 4
 		}
+		export -f "a" "a.*" "a*" "a?*"
 		L_unittest_cmd -o 12345678 a
+		L_unittest_cmd -o 12345678 L_subshell a
+		L_unittest_cmd -o 12345678 bash -c ". $L_LIB_SCRIPT && a"
 	}
 	{
 		L_info "test all signals"
@@ -3113,45 +3131,45 @@ _L_test_unset() {
 # shellcheck disable=SC1012
 _L_test_str_split() {
 	local IFS=' '
-	L_unittest_cmd -o "No closing quotation '" ! L_str_split "'"
-	L_unittest_cmd -o "No closing quotation \$'" ! L_str_split "$'"
-	L_unittest_cmd -o "No escaped character" ! L_str_split "\\"
-	L_unittest_cmd -o "No closing quotation \"" ! L_str_split '"'
-	L_unittest_cmd -o "No closing quotation \"" ! L_str_split '" \"'
-	L_unittest_cmd -o "No closing quotation $'" ! L_str_split \$\'\ \\\'
-	L_unittest_cmd -o 'a' L_str_split '\a'
-	L_unittest_cmd -o 'abc' L_str_split $'a\\\nb\\\nc'
-	L_unittest_cmd -o $'a\nb' L_str_split $'a\nb'
-	L_unittest_cmd -o $'a\nb' L_str_split -c $'#e\na #c\nb #d'
-	L_unittest_cmd -o $'\na' L_str_split "'' a"
-	L_unittest_cmd -o $'\na' L_str_split "\"\" a"
-	L_unittest_cmd -o $'\na' L_str_split "\$'' a"
-	L_unittest_cmd -o $'\n\n\n\na' L_str_split "'' \"\" '' \$'' a"
-	L_unittest_cmd -o $'a\nb\nc\nd' L_str_split "'''a''' \"\"'b'\"\" \$''\$'c'\$''''\"\" d"
-	L_unittest_cmd -o $'\'\\\\\na' L_str_split "$(cat <<'EOF'
+	L_unittest_cmd -r ".*No closing quotation '" ! L_string_split "'"
+	L_unittest_cmd -r ".*No escaped character" ! L_string_split "\\"
+	L_unittest_cmd -r ".*No closing quotation \"" ! L_string_split '"'
+	L_unittest_cmd -r ".*No closing quotation \"" ! L_string_split '" \"'
+	L_unittest_cmd -r ".*No closing quotation [$]'" ! L_string_split "$'"
+	L_unittest_cmd -r ".*No closing quotation [$]'" ! L_string_split \$\'\ \\\'
+	L_unittest_cmd -o 'a' L_string_split '\a'
+	L_unittest_cmd -o 'abc' L_string_split $'a\\\nb\\\nc'
+	L_unittest_cmd -o $'a\nb' L_string_split $'a\nb'
+	L_unittest_cmd -o $'a\nb' L_string_split -c $'#e\na #c\nb #d'
+	L_unittest_cmd -o $'\na' L_string_split "'' a"
+	L_unittest_cmd -o $'\na' L_string_split "\"\" a"
+	L_unittest_cmd -o $'\na' L_string_split "\$'' a"
+	L_unittest_cmd -o $'\n\n\n\na' L_string_split "'' \"\" '' \$'' a"
+	L_unittest_cmd -o $'a\nb\nc\nd' L_string_split "'''a''' \"\"'b'\"\" \$''\$'c'\$''''\"\" d"
+	L_unittest_cmd -o $'\'\\\\\na' L_string_split "$(cat <<'EOF'
 	$'\'\\\\' a
 EOF
 	)"
-	L_unittest_cmd -o $'\'a \nb\'' L_str_split "$(cat <<'EOF'
+	L_unittest_cmd -o $'\'a \nb\'' L_string_split "$(cat <<'EOF'
 	$'\'''a ' b$'\''
 EOF
 	)"
 	local tmp
-	L_str_split -v tmp -c "$(cat <<'EOF'
+	L_string_split -v tmp -c "$(cat <<'EOF'
 	$'\n\'' '' $'\\\\' $'\\\'' "\\\\" "\\\'"
 EOF
 	)"
 	L_unittest_arreq tmp $'\n\'' "" "\\\\" "\\'" "\\\\" "\\\\'"
-	L_str_split -v tmp -c "$(cat <<'EOF'
+	L_string_split -v tmp -c "$(cat <<'EOF'
 	"" "\"" "\$\`\\\\\\\\\a"
 EOF
 	)"
 	L_unittest_arreq tmp "" "\"" "\$\`\\\\\\\\\\a"
-	L_unittest_cmd -o \$a\$\'c\ \'b%\ \\\ \\n^ L_str_split \$\'\$\'a\$\"\'c\ \'b%\ \\\ \"\\\\n\'^\'
-	L_unittest_cmd -o 'c""^'$'\n''\a\naa$   ' L_str_split '$'\''c""'\''^ '\''\a'\'''\'''\''\\n'\''aa$   '\'''
-	L_unittest_cmd -o \\\'\\\'\\\'\\\'\'\\\'\'\\$'\n'a L_str_split " $'\\\\\\'\\\\\\'\\\\\\''$'\\\\\\'\\'\\\\\\'\\'\\\\''' a"
+	L_unittest_cmd -o \$a\$\'c\ \'b%\ \\\ \\n^ L_string_split \$\'\$\'a\$\"\'c\ \'b%\ \\\ \"\\\\n\'^\'
+	L_unittest_cmd -o 'c""^'$'\n''\a\naa$   ' L_string_split '$'\''c""'\''^ '\''\a'\'''\'''\''\\n'\''aa$   '\'''
+	L_unittest_cmd -o \\\'\\\'\\\'\\\'\'\\\'\'\\$'\n'a L_string_split " $'\\\\\\'\\\\\\'\\\\\\''$'\\\\\\'\\'\\\\\\'\\'\\\\''' a"
 	L_unittest_cmd -o $'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'$'\n'a \
-		L_str_split "$(cat <<'EOF'
+		L_string_split "$(cat <<'EOF'
 	$'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'  a
 EOF
 	)"

@@ -26,6 +26,5 @@ RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 /app/site /
 
-ARG VERSION=latest
 FROM bash:${VERSION} AS tester
 RUN apk add --no-cache jq
