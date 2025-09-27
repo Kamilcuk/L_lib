@@ -4708,34 +4708,34 @@ L_trap_err_init() {
 
 # @description String of trap numbers and names separated by spaces.
 # Extracted from trap -l output.
-# @see _L_TRAP_L_init
-# _L_TRAP_L=""
+# @see _L_TRAPS_init
+# _L_TRAPS=""
 
 # shellcheck disable=SC2329
-# @description initialize _L_TRAP_L variable
-# @set _L_TRAP_L
+# @description initialize _L_TRAPS variable
+# @set _L_TRAPS
 # @see https://github.com/bminor/bash/blob/a8a1c2fac029404d3f42cd39f5a20f24b6e4fe4b/trap.h#L40
-_L_TRAP_L_init() {
+_L_TRAPS_init() {
 	# Convert the output of trap -l into list of trap names.
-	_L_TRAP_L=$(trap -l)
-	local max=${_L_TRAP_L%)*}
+	_L_TRAPS=$(trap -l)
+	local max=${_L_TRAPS%)*} IFS=$' \t\n'
 	max=${max##*[^0-9]}
 	#
 	# Word splitting executes in 0.003s, but ${//[$'\t\n']/ } takes 0.2seconds?? on bash 4.1.
 	# shellcheck disable=SC2086
-	printf -v _L_TRAP_L " %s" "0 EXIT" ${_L_TRAP_L//)} "$((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
-	# _L_TRAP_L=" 0 EXIT ${_L_TRAP_L//[$'\t\n']/ } $((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
+	printf -v _L_TRAPS " %s" "0 EXIT" ${_L_TRAPS//)} "$((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
+	# _L_TRAPS=" 0 EXIT ${_L_TRAPS//[$'\t\n']/ } $((max+1)) DEBUG $((max+2)) ERR $((max+3)) RETURN "
 	#
 	# shellcheck disable=SC2317
-	_L_TRAP_L_init() { :; }
+	_L_TRAPS_init() { :; }
 }
 
 # @description Return an array of all trap names. Index is the trap name number.
 # @option -v <var>
 L_trap_names() { L_handle_v_array "$@"; }
 L_trap_names_v() {
-	_L_TRAP_L_init
-	L_v="${_L_TRAP_L// [0-9] / }"
+	_L_TRAPS_init
+	L_v="${_L_TRAPS// [0-9] / }"
 	L_v="${L_v// [0-9][0-9] / }"
 	eval "L_v=($L_v)"
 }
@@ -4750,24 +4750,24 @@ L_trap_to_number_v() {
 	case "$1" in
 	EXIT) L_v=0 ;;
 	DEBUG|ERR|RETURN)
-		_L_TRAP_L_init
-		L_v=${_L_TRAP_L%%" $1 "*}
-		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
+		_L_TRAPS_init
+		L_v=${_L_TRAPS%%" $1 "*}
+		if [[ "$L_v" == "$_L_TRAPS" ]]; then
       L_func_error "trap $1 not found"; return 1
     fi
 		L_v=${L_v##* }
 		;;
 	[0-9]*)
-		_L_TRAP_L_init
-		if [[ "$_L_TRAP_L" != *" $1 "* ]]; then
+		_L_TRAPS_init
+		if [[ "$_L_TRAPS" != *" $1 "* ]]; then
       L_func_error "trap $1 not found"; return 1
     fi
 		L_v=$1
 		;;
 	[A-Z][A-Z]*)
-		_L_TRAP_L_init
-		L_v=${_L_TRAP_L%%" SIG${1#SIG} "*}
-		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
+		_L_TRAPS_init
+		L_v=${_L_TRAPS%%" SIG${1#SIG} "*}
+		if [[ "$L_v" == "$_L_TRAPS" ]]; then
       L_func_error "trap $1 not found"; return 1
     fi
 		L_v=${L_v##* }
@@ -4786,17 +4786,17 @@ L_trap_to_name_v() {
 	0) L_v=EXIT ;;
 	DEBUG|RETURN|EXIT|ERR) L_v="$1" ;;
 	[0-9]*)
-		_L_TRAP_L_init
-		L_v=${_L_TRAP_L##*" $1 "}
-		if [[ "$L_v" == "$_L_TRAP_L" ]]; then
+		_L_TRAPS_init
+		L_v=${_L_TRAPS##*" $1 "}
+		if [[ "$L_v" == "$_L_TRAPS" ]]; then
 			L_func_error "trap $1 not found"; return 1
 		fi
 		L_v=${L_v%% *}
 		;;
 	[A-Z][A-Z][A-Z]*)
-		_L_TRAP_L_init
+		_L_TRAPS_init
 		L_v="SIG${1/#SIG}"
-		if [[ "$_L_TRAP_L" != *" $L_v "* ]]; then
+		if [[ "$_L_TRAPS" != *" $L_v "* ]]; then
 			L_func_error "trap $1 not found" ; return 1
 		fi
 		;;
