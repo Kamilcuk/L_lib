@@ -537,7 +537,7 @@ L_check() {
 # @section func
 # @description Function for writing function programs.
 
-_L_func_line_is_function_declaration_with_comment() {
+_L_func_line_is_function_definition_with_comment() {
 	[[
 		"$_L_i" -gt 0 &&
 		"${_L_lines[_L_i]}" =~ \
@@ -547,16 +547,19 @@ _L_func_line_is_function_declaration_with_comment() {
 	]] # ))
 }
 
-# @description Extract the comment above the calling function.
-# @option -v <var>
-# @option -f <funcname> Print the comment of this function instead of calling function.
-# @option -b Use bash, do not use sed. For testing.
+# @description Extract the comment above the function.
+# By default, get the comment of the calling function.
+# @option -v <var> Assign result to this variable.
+# @option -f <funcname> Print the comment of given function instead of the calling function.
+# @option -s <int> Consider the calling function this many stackframes above. Default: 0
+# @option -b Use Bash, do not use sed. For testing.
 # @option -h Print this help and return 0.
-# @arg $1 Consider function this many stackframes above.
 # @return 0 if extracted an non-empty comment above the function definition.
 # @example
 #
-#   and # some comment
+#    # some unrelated comment followed by an empty line
+#
+#    # some comment
 #    somefunc() {
 #       L_func_command
 #    }
@@ -564,8 +567,8 @@ _L_func_line_is_function_declaration_with_comment() {
 #    somefunc  # outputs '# some comment'
 L_func_comment() {
 	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
-		_L_f="" _L_usebash=0 L_v=""
-	while getopts v:f:bh _L_i; do
+		_L_f="" _L_usebash=0 L_v="" _L_up=0 _L_funcname_escaped
+	while getopts v:f:bs:h _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
 			f)
@@ -577,22 +580,19 @@ L_func_comment() {
 				fi
 				;;
 			b) _L_usebash=1 ;;
+			s) _L_up=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
+	_L_up=${_L_up:-${1:-0}}
 	# L_print_traceback
 	# declare -p BASH_SOURCE FUNCNAME BASH_LINENO
 	# local -; set -x
-	local _L_up="$((${1:-0}))" _L_funcname_escaped
+	_L_funcname=${_L_funcname:-${FUNCNAME[1+_L_up]}}
 	_L_lineno=${_L_lineno:-${BASH_LINENO[_L_up]}}
 	_L_source=${_L_source:-${BASH_SOURCE[1+_L_up]}}
-	_L_funcname=${_L_funcname:-${FUNCNAME[1+_L_up]}}
-	#
-	if ! [[ -f "$_L_source" && -r "$_L_source" && -s "$_L_source" ]]; then
-		return 1
-	fi
 	#
 	if ! {
 		# Try using sed.
@@ -607,7 +607,7 @@ L_func_comment() {
 		L_readarray _L_lines <"$_L_source" || return 1
 		#
 		_L_i=$((_L_lineno-1))
-		if ! _L_func_line_is_function_declaration_with_comment; then
+		if ! _L_func_line_is_function_definition_with_comment; then
 			# In interactive shells, BASH_LINENO is all wrong. extdebug is fast and works.
 			if
 				if [[ -z "$_L_f" ]]; then
@@ -615,14 +615,14 @@ L_func_comment() {
           	_L_f=$(shopt -s extdebug && declare -F "$_L_funcname") &&
           	IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f" &&
           	_L_i=$((_L_lineno-1)) &&
-          	_L_func_line_is_function_declaration_with_comment
+          	_L_func_line_is_function_definition_with_comment
           }
 				fi
 			then
 				# Still couldn't find it. Traverse the whole file to find the function.
 				for ((_L_i = ${#_L_lines[@]} - 1; _L_i >= 0; --_L_i)); do
 					# Does line _L_i look like a definition of the function?
-					if _L_func_line_is_function_declaration_with_comment; then
+					if _L_func_line_is_function_definition_with_comment; then
 						break
 					fi
 				done
@@ -638,7 +638,7 @@ L_func_comment() {
 		done
 	fi
 	#
-	[[ -n "$L_v" ]] && L_printf_append "$_L_v" "%s\n" "${L_v%$'\n'}"
+	[[ -n "$L_v" ]] && printf -v "$_L_v" "%s\n" "${L_v%$'\n'}"
 }
 
 # @description Print function comment as usage message.
@@ -669,9 +669,8 @@ L_func_comment() {
 #    }
 #
 L_func_help() {
-	local v up="$((${1:-0}+1))"
-	echo "$0: ${FUNCNAME[up]}:" >&2
-	if L_func_comment -v v "$up"; then
+	local up="$((${1:-0}+1))" v=""
+	if L_func_comment -v v -s "$up" "$@"; then
 		v="${v###}"
 		v="${v## }"
 		v="${v//$'\n' /$'\n'}"
@@ -679,18 +678,17 @@ L_func_help() {
 		v="${v//$'\n' /$'\n'}"
 		v="${v%%$'\n'}"
 		v="${v%%$'\n'}"
-		echo "$v" >&2
 	else
-		echo "unknown help" >&2
+		v="unknown help"
 	fi
+	echo "$0: ${FUNCNAME[up]}: $v" >&2
 }
-
 
 # @description Print funtion usage to stderr.
 # @arg [$1] How many stack frames up.
 L_func_usage() {
-	local _L_up="${1:-0}" v i short="" long="" args="" usage="" line
-	if L_func_comment -v v "$((_L_up+1))"; then
+	local up="$((${1:-0}+1))" v i short="" long="" args="" usage="" line
+	if L_func_comment -v v -s "$up"; then
 		while IFS= read -r line; do
 			if [[ "$line" =~ ^\#[[:space:]]+@(usage|option|arg)[[:space:]]+(.*)$ ]]; then
 				line=${BASH_REMATCH[2]}
@@ -711,7 +709,7 @@ L_func_usage() {
 			fi
 		done <<<"$v"
 		if [[ -n "${usage:=${short:+ [-$short]}$long$args}" ]]; then
-			echo "${FUNCNAME[1+_L_up]}: usage: ${FUNCNAME[1+_L_up]}$usage" >&2
+			echo "${FUNCNAME[up]}: usage: ${FUNCNAME[up]}$usage" >&2
 		fi
 	fi
 }
