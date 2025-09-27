@@ -4903,9 +4903,7 @@ L_finally_handle_return() {
 # @description L_finally signal handler.
 # @arg [$1] The trap signal name to handle. Default: EXIT
 L_finally_handle() {
-  set -x
-  local L_SIGNAL="${1:-EXIT}" _L_pid
-  trap -p "$L_SIGNAL" SIGPIPE EXIT >&2
+  local L_SIGNAL="${1:-EXIT}" L_SIGNUM=${2:-0} _L_pid
   # Disable RETURN trap as it can generate a lot not relevant set -x output.
   trap - "$L_SIGNAL" RETURN EXIT
   # Execute actions.
@@ -4913,18 +4911,15 @@ L_finally_handle() {
 	eval ${_L_finally_arr[@]:+"${_L_finally_arr[@]##*$'\t'}"}
 	_L_finally_arr=()
 	#
-  # Properly preserve exit status for parent processes.
-  # https://www.cons.org/cracauer/sigint.html
-  L_bashpid_to _L_pid
-  # if [[ "$L_SIGNAL" == SIGQUIT || ( "$_L_pid" != "$$" && "$L_SIGNAL" == SIG* ) ]]; then
-  if [[ "$L_SIGNAL" == "SIGQUIT" || ( "$_L_pid" != "$$" && "$L_SIGNAL" == SIG* ) ]]; then
+  if [[ "$L_SIGNAL" == SIG* ]]; then
+  	# Properly preserve exit status for parent processes.
+  	# https://www.cons.org/cracauer/sigint.html
+  	L_bashpid_to _L_pid
+  	kill -"$L_SIGNAL" "$_L_pid"
   	# Re-signaling does not work properly on specific signals.
   	# Re-signaling does not work properly in subshells and subshell exits with 0.
-  	L_trap_to_number_v "$L_SIGNAL" && exit "$((128+L_v))"
+  	exit "$((128+L_SIGNUM))"
   fi
-  # echo "${FUNCNAME[0]}: Killing myself: kill -$L_SIGNAL $_L_pid" >&2
-  # kill -EXIT is equal to kill -0, but it overwrites exit status on Bash3.2.
-  kill -"$L_SIGNAL" "$_L_pid"
 }
 
 # @description List elements registered by L_finally and trap values.
@@ -4975,7 +4970,7 @@ L_finally_list() {
 #       # tmpf automatically cleaned up once on RETURN or EXIT or signal, whichever comes first.
 #    }
 L_finally() {
-  local IFS=' ' OPTIND OPTARG OPTERR i onreturn=0 up=1 first=1 pid register=0 register_signals index=$RANDOM
+  local IFS=' ' OPTIND OPTARG OPTERR i onreturn=0 up=1 first=1 pid register=0 register_signals index=$RANDOM L_v
   # Find free index.
   while [[ " ${_L_finally_arr[*]:+${_L_finally_arr[*]%% *}} " == *" #$index "* ]]; do
   	index=$RANDOM
@@ -5026,11 +5021,8 @@ L_finally() {
   # Initialize traps with our callback.
 	if ((register)); then
 		# List of all signals that result in termination.
-		local _L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+15 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
-		if ((!L_HAS_BASH5_0)); then
-       	# Bash below 5.0 does not understand SIGRTMIN+15. No idea why. Other SIGRT work.
-       	_L_FINALLY_TERM_SIGNALS=${_L_FINALLY_TERM_SIGNALS//SIGRTMIN+15}
-		fi
+    # Except SIGRTMIN+15, which does not work everywhere, like in docker, so it is not there.
+		local _L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
 		#
   	if ((pid != $$ && !L_HAS_BASH5_2)); then
   		# If in process substition and below Bash4.3 trap on all signals.
@@ -5040,8 +5032,9 @@ L_finally() {
   		register_signals=" SIGQUIT SIGSTKFLT SIGPROF SIGIO SIGPWR SIGRTMAX ${_L_FINALLY_TERM_SIGNALS%* SIGRTMAX}"
   	fi
   	for i in EXIT $register_signals; do
+  		L_trap_to_number_v "$i" || return 1
   		# shellcheck disable=SC2064
-      trap "L_finally_handle $i" "$i" || return 1
+      trap "L_finally_handle $i $L_v" "$i" || return 1
     done
   fi
 }
