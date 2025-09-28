@@ -12,7 +12,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_functions _L_finally_pid
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
@@ -295,28 +295,28 @@ _L_test_string() {
 		L_unittest_eq "$tmp" "a b"
 	}
 	{
-			L_strupper -v tmp " a b  "
-			L_unittest_eq "$tmp" " A B  "
-			L_strlower -v tmp " A B  "
-			L_unittest_eq "$tmp" " a b  "
-			L_unittest_cmd -c L_strstr " a b  " "a b"
-			L_unittest_cmd -c ! L_strstr " a b  " "a X"
-			L_unittest_cmd -c L_strhash -v tmp "  a b "
-			L_unittest_cmd -c L_is_integer "$tmp"
-			L_unittest_cmd -c L_strhash_bash -v tmp "  a b "
-			L_unittest_cmd -c L_is_integer "$tmp"
-			L_capitalize -v tmp "abc"
-			L_unittest_eq "$tmp" "Abc"
-			L_capitalize -v tmp "ABC"
-			L_unittest_eq "$tmp" "ABC"
-			L_capitalize -v tmp ""
-			L_unittest_eq "$tmp" ""
-			L_uncapitalize -v tmp "abc"
-			L_unittest_eq "$tmp" "abc"
-			L_uncapitalize -v tmp "ABC"
-			L_unittest_eq "$tmp" "aBC"
-			L_uncapitalize -v tmp ""
-			L_unittest_eq "$tmp" ""
+		L_strupper -v tmp " a b  "
+		L_unittest_eq "$tmp" " A B  "
+		L_strlower -v tmp " A B  "
+		L_unittest_eq "$tmp" " a b  "
+		L_unittest_cmd -c L_strstr " a b  " "a b"
+		L_unittest_cmd -c ! L_strstr " a b  " "a X"
+		L_unittest_cmd -c L_strhash -v tmp "  a b "
+		L_unittest_cmd -c L_is_integer "$tmp"
+		L_unittest_cmd -c L_strhash_bash -v tmp "  a b "
+		L_unittest_cmd -c L_is_integer "$tmp"
+		L_capitalize -v tmp "abc"
+		L_unittest_eq "$tmp" "Abc"
+		L_capitalize -v tmp "ABC"
+		L_unittest_eq "$tmp" "ABC"
+		L_capitalize -v tmp ""
+		L_unittest_eq "$tmp" ""
+		L_uncapitalize -v tmp "abc"
+		L_unittest_eq "$tmp" "abc"
+		L_uncapitalize -v tmp "ABC"
+		L_unittest_eq "$tmp" "aBC"
+		L_uncapitalize -v tmp ""
+		L_unittest_eq "$tmp" ""
 	}
 	{
 		local i
@@ -324,6 +324,19 @@ _L_test_string() {
 		L_unittest_vareq i 2
 		L_string_count -v i abca x
 		L_unittest_vareq i 0
+	}
+	{
+		local i
+		L_string_count_lines -v i $'!'
+		L_unittest_vareq i 1
+		L_string_count_lines -v i $'!\n'
+		L_unittest_vareq i 1
+		L_string_count_lines -v i $'!\n!'
+		L_unittest_vareq i 2
+		L_string_count_lines -v i $'!\n!\n'
+		L_unittest_vareq i 2
+		L_string_count_lines -v i $'!\n!\n!'
+		L_unittest_vareq i 3
 	}
 }
 
@@ -489,7 +502,7 @@ _L_test_other() {
 	}
 	{
 		local -a a
-		L_setx L_abbreviation -va ev evaler shooter
+		L_abbreviation -va ev evaler shooter
 		L_unittest_arreq a evaler
 		L_abbreviation_v e evaler eshooter
 		L_unittest_arreq L_v evaler eshooter

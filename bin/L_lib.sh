@@ -2910,6 +2910,19 @@ L_string_count_v() {
 	L_v="$(( ${#1} - ${#L_v} ))"
 }
 
+# @description Count lines in a string.
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
+# @arg $1 String.
+L_string_count_lines() { L_handle_v_scalar "$@"; }
+L_string_count_lines_v() {
+	L_string_count_v "$1" $'\n'
+	# If there is anything after the last newline.
+	if [[ -n "$1" && "${1: -1}" != $'\n' ]]; then
+		L_v=$((L_v+1))
+	fi
+}
+
 # @description Split a string with quotes without the risk of execution anything.
 #
 # Rules:
