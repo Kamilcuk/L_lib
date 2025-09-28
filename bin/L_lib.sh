@@ -982,7 +982,7 @@ L_cache() {
       fi
       if
         { ((_L_flock)) && { _L_cache=$(flock "$_L_file" cat "$_L_file") || return 222; }; } ||
-        { [[ -e "$_L_file" ]] && { _L_cache=$(cat "$_L_file") || return 222; }; }
+        { [[ -e "$_L_file" ]] && { _L_cache=$(< "$_L_file") || return 222; }; }
       then
         if [[ "$_L_cache" != "$_L_cache_header"* ]]; then
           _L_cache=()
@@ -1053,7 +1053,7 @@ L_cache() {
   else
     {
       if ((_L_flock)); then flock 9; fi
-      _L_cache=$(cat <&9)$'\n'
+      _L_cache=$(< /dev/fd/9)$'\n'
       if [[ "$_L_cache" != "$_L_cache_header"* ]]; then
         # Cache has wrong version or wrong header - clear it.
         _L_cache=()
@@ -1948,7 +1948,7 @@ L_epochrealtime_usec_v() {
 	elif L_hash perl; then
 		L_epochrealtime_usec_v() { L_v=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
 	elif [[ -r /proc/uptime ]]; then
-		L_epochrealtime_usec_v() { L_v=$(cat /proc/uptime) && L_secdot_to_usec_v "${L_v// *}"; }
+		L_epochrealtime_usec_v() { L_v=$(< /proc/uptime) && L_secdot_to_usec_v "${L_v// *}"; }
 	elif L_hash python3; then
 		L_epochrealtime_usec_v() { L_v=$(python -c 'import time; print("%.6f" % time.time())'); L_v=${L_v//[,.]}; }
 	elif L_hash busybox; then
