@@ -6,6 +6,7 @@ RUN /bin/L_lib.sh --help
 FROM app AS test
 RUN apk add --no-cache jq
 COPY tests/ /tests/
+COPY docs/ /docs/
 ARG ARGS=""
 RUN /tests/test.sh ${ARGS}
 
