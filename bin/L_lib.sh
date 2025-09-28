@@ -8201,6 +8201,60 @@ L_wait_all_jobs() {
 	done <<<"$(jobs)"
 }
 
+# @description Get all pids of all child processes including grandchildren recursively.
+# @option -v <var>
+# @arg [$1] Pid of the parent. Default: $BASHPID.
+# @see https://stackoverflow.com/a/52544126/9072753
+L_get_all_childs() { L_handle_v_array "$@"; }
+L_get_all_childs_v() {
+	local toppid=${1:-} IFS=$' \t\n' ps_output ps_pid children_of pid ppid unproc_idx
+	if [[ -z "$toppid" ]]; then
+		L_bashpid_to toppid
+	fi
+	#
+	L_hash ps && ps_output=$(
+			L_bashpid_to pid
+			echo "$pid"
+			exec ps -e -o pid= -o ppid=
+	) && {
+		# Extract ps pid that we conveniently put as the first item.
+		read -r ps_pid <<<"$ps_output"
+		# Populate a sparse array mapping pids to (string) lists of child pids.
+		children_of=()
+		while read -r pid ppid; do
+			if [[ -n "$pid" && -n "$ppid" && pid -ne ppid && pid -ne ps_pid && ppid -ne ps_pid ]]; then
+				children_of[ppid]+=" $pid"
+			fi
+		done <<<"$ps_output"
+		# Add children to the list of pids until all descendants are found
+		L_v=("$toppid")
+		unproc_idx=0    # Index of first process whose children have not been added
+		while (( ${L_v[@]+${#L_v[@]}}+0 > unproc_idx )) ; do
+			pid=${L_v[unproc_idx++]}     # Get first unprocessed, and advance
+			# shellcheck disable=SC2206
+ 			L_v+=(${children_of[pid]-})  # Add child pids (ignore ShellCheck)
+		done
+		# ( echo "${L_v[@]}"; pstree -p "$toppid" ) | sed 's/^/init /' >&100
+		# I do not want to return toppid of itself.
+		unset -v 'L_v[0]'
+	}
+}
+
+# @description Kills all childs of the pid.
+# @arg -sigspec Signal to use.
+# @arg [$1] Pid of the process to kill all childs of. Defualt: $BASHPID
+L_kill_all_childs() {
+	local L_v sig
+	while [[ "${1:-}" == -* ]]; do
+		sig="$1"
+		shift
+	done
+	L_get_all_childs_v "$@"
+	if (( ${L_v[*]:+${#L_v[*]}}+0 )); then
+		kill ${sig:+"$sig"} "${L_v[@]}"
+	fi
+}
+
 # @description Check if file descriptor is open.
 # @arg $1 file descriptor
 # shellcheck disable=SC2188
