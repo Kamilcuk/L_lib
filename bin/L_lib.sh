@@ -1538,7 +1538,7 @@ else
 		case "$1" in
 		-V)
 			local _L_tmp
-			if _L_tmp=$(set +u; compgen "${@:3}"); then
+			if _L_tmp=$(set +e; compgen "${@:3}"); then
 				L_readarray "$2" <<<"$_L_tmp"
 			else
 				return "$?"
@@ -1546,7 +1546,7 @@ else
 			;;
 		-V*)
 			local _L_tmp
-			if _L_tmp=$(set +u; compgen "${@:2}"); then
+			if _L_tmp=$(set +e; compgen "${@:2}"); then
 				L_readarray "${1#-V}" <<<"$_L_tmp"
 			else
 				return "$?"
