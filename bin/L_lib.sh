@@ -4914,9 +4914,10 @@ L_finally_handle_return() {
 }
 
 # @description L_finally signal handler.
-# @arg [$1] The trap signal name to handle. Default: EXIT
+# @arg $1 The trap signal name to handle. Default: EXIT
+# @arg $2 The trap signal number to handle. Default: 0
 L_finally_handle() {
-  local L_SIGNAL="${1:-EXIT}" L_SIGNUM=${2:-0} _L_pid
+  local L_SIGNAL="${1:-EXIT}" L_SIGNUM=${2:-0}
   # Disable RETURN trap as it can generate a lot not relevant set -x output.
   trap - "$L_SIGNAL" RETURN EXIT
   # Execute actions.
@@ -4924,11 +4925,10 @@ L_finally_handle() {
 	eval ${_L_finally_arr[@]:+"${_L_finally_arr[@]##*$'\t'}"}
 	_L_finally_arr=()
 	#
-  if [[ "$L_SIGNAL" == SIG* ]]; then
+  if ((L_SIGNUM)); then
   	# Properly preserve exit status for parent processes.
   	# https://www.cons.org/cracauer/sigint.html
-  	L_bashpid_to _L_pid
-  	kill -"$L_SIGNAL" "$_L_pid"
+  	kill -"$L_SIGNAL" "$_L_finally_pid"
   	# Re-signaling does not work properly on specific signals.
   	# Re-signaling does not work properly in subshells and subshell exits with 0.
   	exit "$((128+L_SIGNUM))"
@@ -5034,20 +5034,14 @@ L_finally() {
   # Initialize traps with our callback.
 	if ((register)); then
 		# List of all signals that result in termination.
-    # Except SIGRTMIN+15, which does not work everywhere, like in docker, so it is not there.
-		local _L_FINALLY_TERM_SIGNALS="SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGKILL SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
+		local _L_FINALLY_TERM_SIGNALS="EXIT SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+15 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9"
 		#
-  	if ((pid != $$ && !L_HAS_BASH5_2)); then
-  		# If in process substition and below Bash4.3 trap on all signals.
-  		register_signals=" $_L_FINALLY_TERM_SIGNALS "
-  	else
-  		# Register on Real-Time signals, they also exit.
-  		register_signals=" SIGQUIT SIGSTKFLT SIGPROF SIGIO SIGPWR SIGRTMAX ${_L_FINALLY_TERM_SIGNALS%* SIGRTMAX}"
-  	fi
-  	for i in EXIT $register_signals; do
-  		L_trap_to_number_v "$i" || return 1
-  		# shellcheck disable=SC2064
-      trap "L_finally_handle $i $L_v" "$i" || return 1
+  	for i in EXIT $_L_FINALLY_TERM_SIGNALS; do
+  		# If the trap exists, extract it's number.
+  		if L_trap_to_number_v "$i" 2>/dev/null; then
+  			# shellcheck disable=SC2064
+      	trap "L_finally_handle $i $L_v" "$i" || return 1
+      fi
     done
   fi
 }
