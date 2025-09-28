@@ -5142,7 +5142,7 @@ L_with_cd_tmpdir() {
 
 _L_with_redirect_stdout_to_finally() {
   eval "exec 1>&$3"
-  printf -v "$1" "%s" "$(cat "$2")"
+  printf -v "$1" "%s" "$(< "$2")"
 }
 
 # @description Temporary redirect stdout to string.
@@ -5343,7 +5343,7 @@ L_unittest_failure_capture() {
 
 # @description helper function executed in exit trap
 _L_unittest_cmd_exit_trap() {
-	printf "${L_RED}${L_BOLD}unittested command running in current shell %q exited with $1. It should not exit${L_COLORRESET}\n" "$BASH_COMMAND" >&2
+	printf "${L_RED}${L_BOLD}unittested command [%q] running in current shell exited with %d. It should not exit. This means you have an error in the function you are testing. It needs to _return_ a status, not exit.${L_COLORRESET}\n" "${*:2}" "$1" >&2
 	exit 1
 }
 
@@ -5425,7 +5425,7 @@ L_unittest_cmd() {
 	fi
 	#
 	if ((_L_uopt_curenv)); then
-		L_trap_push '_L_unittest_cmd_exit_trap $?' EXIT
+		L_trap_push "_L_unittest_cmd_exit_trap $? $(L_quote_printf "$@")" EXIT
 		# shellcheck disable=2030,2093,1083
 		if ((_L_uopt_capture)); then
 			# Use temporary file
@@ -5438,7 +5438,7 @@ L_unittest_cmd() {
 					rm "$_L_utmpf"
 					eval "$_L_uc || _L_uret=\$?"
 				} >"$_L_utmpf" 111<&-
-				_L_uout=$(cat <&111)
+				_L_uout=$(< /dev/fd/111)
 			} 111<"$_L_utmpf"
 		else
 			eval "$_L_uc || _L_uret=\$?"
