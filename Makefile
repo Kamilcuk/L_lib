@@ -1,4 +1,4 @@
-MAKEFLAGS = -rR --warn-undefined-variables --no-print-directories
+MAKEFLAGS = -rR --warn-undefined-variables --no-print-directory
 SHELL = bash
 GNUMAKEFLAGS =
 export PROGRESS_NO_TRUNC=1
@@ -8,6 +8,8 @@ ARGS ?=
 DOCKERTERM = -eTERM $(shell [ -t 0 ] && printf -- -t)
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
+DOCKERNICE = --cpu-shares 10 --cpus "$(shell echo $$(( 1 + ( ( ($$(nproc)+0) * 3 ) / 4 ) )) )" --memory 512M
+NICE = timeout 5m nice -n 39 ionice -c 3
 define NL
 
 
@@ -17,27 +19,39 @@ BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3
 all: test doc
 	@echo SUCCESS all
 
-test_parallel:
-	@mkdir -vp build
-	if ! $(MAKE) -O -j $(shell nproc) test > >(tee build/output >&2) 2>&1; then \
-		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
-		exit 2; \
-	fi
-test: \
+TESTS = \
 		test_local \
 		shellcheck \
 		$(addprefix test_bash, $(BASHES)) \
 		docs_build \
 		#
+test_parallel:
+	@mkdir -vp build
+	if ! $(MAKE) -O -j $(shell nproc) test > >(tee build/output >&2) 2>&1; then \
+		grep -B500 '^make\[.*\]:.*Makefile.*\] Error' build/output; \
+		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
+		exit 2; \
+	fi
+test_parallel2:
+	@mkdir -vp build
+	printf "%s\n" $(TESTS) | \
+		$(NICE) xargs -i -P $(shell nproc) $(NICE) bash -c \
+		'if make {} ARGS="$$1" >build/output_{}.txt 2>&1; then echo SUCCESS {}; else echo FAILURE {}; fi' \
+		-- '$(ARGS)'
+	grep -l '^make\[.*\]:.*Makefile.*\] Error' build/output_*.txt | xargs -rt cat
+	! grep -q '^make\[.*\]:.*Makefile.*\] Error' build/output_*.txt
+test: $(TESTS)
 	@echo 'make test finished with SUCCESS'
 test_local:
 	./tests/test.sh $(ARGS)
 IMAGE = $$(docker build -q --target tester --build-arg VERSION=$* .)
 test_bash%:
-	docker build --target tester --build-arg BASH=$* .
+	docker build -q --target tester --build-arg VERSION=$* . || \
+			docker build --target tester --build-arg VERSION=$* .
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
-		$(IMAGE) ./tests/test.sh $(ARGS)
+		$(DOCKERNICE) $(IMAGE) $(NICE) ./tests/test.sh $(ARGS)
+	@echo "test_bash$* success"
 test_docker%:
 	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
 
