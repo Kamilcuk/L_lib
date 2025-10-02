@@ -12,12 +12,13 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_functions _L_finally_pid
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
 
-VARIABLES_BEFORE=$(get_all_variables)
+USR1_CNT=0
+USR2_CNT=0
 
 ###############################################################################
 
@@ -3391,103 +3392,228 @@ _L_test_finally_proc() {
 	}
 }
 
-_L_test_wait_int() {
-	local childs=() mypid i
-	local rets i ret pid left
+###############################################################################
+
+wait_interrupt() {
+	local mypid
 	L_bashpid_to mypid
-	L_finally -r eval 'kill "${childs[@]}" 2>/dev/null || :'
-	trap 'echo received USR1 all ok' USR1
-	sleep 0.30 && exit 130 &
+	sleep ${1:-0.1} && kill -USR$((1+RANDOM%2)) "$mypid" 2>/dev/null || : &
+}
+
+wait_test_prepare_with_3_childs() {
+	local mypid
+	L_bashpid_to mypid
+	L_assert '' L_var_is_array childs
+	exec 1001>&2
+	trap 'echo "received USR1 all ok $((++USR1_CNT))" >&1001' USR1
+	trap 'echo "received USR2 all ok $((++USR2_CNT))" >&1001' USR2
+	L_epochrealtime_usec -v starttime
+	# (
+	# 	sleep 0.3
+	# 	if ! kill -USR1 "$mypid" 2>/dev/null; then
+	# 		exit 123
+	# 	fi
+	# 	sleep 0.3
+	# 	if ! kill -USR2 "$mypid" 2>/dev/null; then
+	# 		exit 123
+	# 	fi
+	# 	sleep 0.3
+	# 	if ! kill -USR2 "$mypid" 2>/dev/null; then
+	# 		exit 123
+	# 	fi
+	# ) &
+	# killer=$!
+	# for ((i=15;i<100;i+=20)); do
+	# 	sleep 0.$i && kill -USR2 "$mypid" && exit "${i}0" &
+	# done
+
+	childs=()
+	wait_sleep_exit 33 &
 	childs+=($!)
-	sleep 0.75 && exit 175 &
+	wait_sleep_exit 66 &
 	childs+=($!)
-	sleep 1 && exit 100 &
+	wait_sleep_exit 100 &
 	childs+=($!)
-	for i in 2 21 3 4 5 6 7 8 9; do
-		sleep 0.$i && kill -USR1 "$mypid" && exit "${i}0" &
-		childs+=($!)
+}
+
+wait_test_finish() {
+	wait
+	local endtime passed limit_sec=3 limit_usec i passed_sec
+	for i in "${childs[@]}"; do
+		L_unittest_cmd -r 'No such process' ! kill -0 "$i"
 	done
+	L_epochrealtime_usec -v endtime
+	passed=$(( endtime - starttime ))
+	L_sec_to_usec -v limit_usec "$limit_sec"
+	L_usec_to_sec -v passed_sec "$passed"
+	L_log "limit_sec=$limit_usec passed_sec=$passed_sec"
+	L_unittest_cmd eval '(( limit_usec > (endtime - starttime) ))'
 	#
-	L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq pid "${childs[3]}"
-	L_unittest_arreq ret 20
-	L_unittest_arreq left "${childs[@]::3}" "${childs[@]:4}"
-	L_unittest_cmd -c L_wait -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret 130 175 100 20 210 30 40 50 60 70 80 90
-	L_unittest_arreq pid "${childs[@]}"
-	L_unittest_arreq left
+	# wait "$killer"
+}
+
+wait_sleep_exit() {
+	local pid start stop=0 end i lived
+	trap 'stop=1' USR1
+	L_bashpid_to pid
+	L_epochrealtime_usec -v start
+	for ((i=0; i<1000 && !stop; ++i)); do sleep 0.05; done
+	L_epochrealtime_usec -v end
+	L_usec_to_sec -v lived "$((end-start))"
+	echo "PID $pid exiting with $1 after sleeping for $lived"
+	exit "$1"
 }
 
 _L_test_wait_t_n() {
-	local childs=() mypid i
-	local rets i ret pid left
-	L_finally -r eval 'kill "${childs[@]}" 2>/dev/null || :'
-	L_bashpid_to mypid
-	trap 'echo received USR1 all ok' USR1
-	for i in 2 3 4 5 6 7 8 9; do
-		sleep 0.$i && kill -USR1 "$mypid" &
+	L_log "Check if L_wait -n -t can be interrupted by a signal"
+	local opt
+	for opt in "" "-b"; do
+		local childs=() mypid rets i ret pid left killer starttime
+		wait_test_prepare_with_3_childs
+		#
+		wait_interrupt
+		L_unittest_cmd -c -e 124 L_wait $opt -t 0.2 -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret
+		L_unittest_arreq pid
+		L_unittest_arreq left "${childs[@]}"
+		childs=("${left[@]}")
+		#
+		kill -USR1 "${childs[@]}"
+		sleep 0.5
+		L_unittest_cmd -c L_wait $opt -t 1000 -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 33
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left "${childs[@]:1}"
+		childs=("${left[@]}")
+		#
+		L_unittest_cmd -c L_wait $opt -t 1000 -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 66
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left "${childs[@]:1}"
+		childs=("${left[@]}")
+		#
+		L_unittest_cmd -c L_wait $opt -t 123.456 -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 100
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left
+		#
+		wait_test_finish
 	done
-	#
-	childs=()
-	sleep 1 && exit 100 &
-	childs+=($!)
-	sleep 0.5 && exit 50 &
-	childs+=($!)
-	L_unittest_cmd -c -e 124 L_wait -t 0.1 -n -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret
-	L_unittest_arreq pid
-	L_unittest_arreq left "${childs[@]}"
-	L_unittest_cmd -c L_wait -t 0.6 -n -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret 50
-	L_unittest_arreq pid "${childs[1]}"
-	L_unittest_arreq left "${childs[0]}"
-	L_unittest_cmd -c L_wait -t 2 -v ret -p pid -l left "${childs[@]}"
-	L_sort -n ret
-	L_sort -n pid
-	L_unittest_arreq ret 50 100
-	L_unittest_arreq pid "${childs[@]}"
-	L_unittest_arreq left
 }
 
 _L_test_wait_t() {
-	local childs=() mypid i
-	local rets i ret pid left
-	# L_finally -r eval 'kill "${childs[@]}" 2>/dev/null || :'
-	L_bashpid_to mypid
-	trap 'echo received USR1 all ok' USR1
-	for i in 2 3 4 5 6 7 8 9; do
-		sleep 0.$i && kill -USR1 "$mypid" 2>/dev/null || : &
+	L_log "Check if L_wait -t"
+	local opt
+	for opt in "" "-b"; do
+		local childs=() mypid i rets i ret pid left killer starttime
+		wait_test_prepare_with_3_childs
+		#
+		L_unittest_cmd -c -e 124 L_wait $opt -t 0 -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret
+		L_unittest_arreq pid
+		L_unittest_arreq left "${childs[@]}"
+		childs=("${left[@]}")
+		#
+		wait_interrupt
+		L_unittest_cmd -c -e 124 L_wait $opt -t 0.2 -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret
+		L_unittest_arreq pid
+		L_unittest_arreq left "${childs[@]}"
+		childs=("${left[@]}")
+		#
+		sleep 0.1 && kill -USR1 "${childs[0]}" "${childs[1]}" &
+		wait_interrupt
+		L_unittest_cmd -c -e 124 L_wait $opt -t 0.6 -v ret -p pid -l left "${childs[@]}"
+		L_sort ret
+		L_sort pid
+		L_unittest_arreq ret 33 66
+		L_unittest_arreq pid "${childs[@]::2}"
+		L_unittest_arreq left "${childs[@]:2}"
+		childs=("${left[@]}")
+		#
+		L_unittest_cmd -c -e 124 L_wait $opt -t 0 -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret
+		L_unittest_arreq pid
+		L_unittest_arreq left "${childs[0]}"
+		childs=("${left[@]}")
+		#
+		sleep 0.1 && kill -USR1 "${childs[@]}" &
+		wait_interrupt
+		L_unittest_cmd -c L_wait $opt -t 1000 -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 100
+		L_unittest_arreq pid "${childs[@]}"
+		L_unittest_arreq left
+		#
+		wait_test_finish
 	done
-	#
-	childs=()
-	sleep 1 && exit 100 &
-	childs+=($!)
-	sleep 0.5 && exit 50 &
-	childs+=($!)
-	#
-	L_unittest_cmd -c -e 124 L_wait -t 0 -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret
-	L_unittest_arreq pid
-	L_unittest_arreq left "${childs[@]}"
-	L_unittest_cmd -c -e 124 L_wait -t 0.1 -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret
-	L_unittest_arreq pid
-	L_unittest_arreq left "${childs[@]}"
-	L_unittest_cmd -c -e 124 L_wait -t 0.6 -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret 50
-	L_unittest_arreq pid "${childs[1]}"
-	L_unittest_arreq left "${childs[0]}"
-	L_unittest_cmd -c -e 124 L_wait -t 0 -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret 50
-	L_unittest_arreq pid "${childs[1]}"
-	L_unittest_arreq left "${childs[0]}"
-	L_unittest_cmd -c L_wait -t 2 -v ret -p pid -l left "${childs[@]}"
-	L_sort -n ret
-	L_sort -n pid
-	L_unittest_arreq ret 50 100
-	L_unittest_arreq pid "${childs[@]}"
-	L_unittest_arreq left
 }
+
+_L_test_wait_n() {
+	local opt
+	for opt in "" "-b"; do
+		local childs=() mypid i rets i ret pid left killer starttime
+		wait_test_prepare_with_3_childs
+		#
+		sleep 0.2 && kill -USR1 "${childs[0]}" &
+		wait_interrupt
+		L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 33
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left "${childs[@]:1}"
+		childs=("${left[@]}")
+		#
+		wait_interrupt
+		sleep 0.2 && kill -USR1 "${childs[0]}" &
+		L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 66
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left "${childs[@]:1}"
+		childs=("${left[@]}")
+		#
+		wait_interrupt
+		sleep 0.2 && kill -USR1 "${childs[0]}" &
+		L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[@]}"
+		L_unittest_arreq ret 100
+		L_unittest_arreq pid "${childs[0]}"
+		L_unittest_arreq left
+		#
+		wait_test_finish
+	done
+}
+
+###############################################################################
+
+_L_test_timeout() {
+	L_unittest_cmd -o  123000000 L_sec_to_usec 123.000000000000000
+	L_unittest_cmd -o    1000000 L_sec_to_usec 1
+	L_unittest_cmd -o     123456 L_sec_to_usec 0.123456678
+	L_unittest_cmd -o      12345 L_sec_to_usec 0.0123456678
+	L_unittest_cmd -o       1234 L_sec_to_usec 0.00123456678
+	L_unittest_cmd -o        123 L_sec_to_usec 0.000123456678
+	L_unittest_cmd -o         12 L_sec_to_usec 0.0000123456678
+	L_unittest_cmd -o          1 L_sec_to_usec 0.00000123456678
+	L_unittest_cmd -o          0 L_sec_to_usec 0.000000123456678
+	L_unittest_cmd -o          0 L_sec_to_usec 0.000000000000000
+	#
+	L_unittest_cmd -o 123.000000 L_usec_to_sec 123000000
+	L_unittest_cmd -o 123.456789 L_usec_to_sec 123456789
+	L_unittest_cmd -o   1.000000  L_usec_to_sec 1000000
+	L_unittest_cmd -o   0.123456  L_usec_to_sec 123456
+	L_unittest_cmd -o   0.012345  L_usec_to_sec 12345
+	L_unittest_cmd -o   0.001234  L_usec_to_sec 1234
+	L_unittest_cmd -o   0.000123  L_usec_to_sec 123
+	L_unittest_cmd -o   0.000012  L_usec_to_sec 12
+	L_unittest_cmd -o   0.000001  L_usec_to_sec 1
+	L_unittest_cmd -o   0.000000  L_usec_to_sec 0
+	#
+	local tt
+	L_timeout_set_to tt 0.1
+	L_unittest_cmd ! L_timeout_expired "$tt"
+	sleep 0.2
+	L_unittest_cmd L_timeout_expired "$tt"
+}
+
+###############################################################################
 
 _L_test_all_childs() {
 	(
@@ -3533,32 +3659,6 @@ _L_test_all_childs() {
 		declare -p pids realpids
 		L_unittest_arreq pids "${realpids[@]}"
 	}
-}
-
-_L_test_wait_n() {
-	local childs=() mypid i
-	local rets i ret pid left
-	L_finally -r eval 'kill "${childs[@]}" 2>/dev/null || :'
-	L_bashpid_to mypid
-	trap 'echo received USR1 all ok' USR1
-	for i in 2 3 4 5 6 7 8 9; do
-		sleep 0.$i && kill -USR1 "$mypid" &
-	done
-	#
-	childs=()
-	sleep 1 && exit 100 &
-	childs+=($!)
-	sleep 0.5 && exit 50 &
-	childs+=($!)
-	#
-	L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[@]}"
-	L_unittest_arreq ret 50
-	L_unittest_arreq pid "${childs[1]}"
-	L_unittest_arreq left "${childs[0]}"
-	L_unittest_cmd -c L_wait -n -v ret -p pid -l left "${childs[0]}"
-	L_unittest_arreq ret 100
-	L_unittest_arreq pid "${childs[0]}"
-	L_unittest_arreq left
 }
 
 _L_test_unset() {
@@ -3638,6 +3738,8 @@ _L_test_sections_ok() {
 }
 
 ###############################################################################
+
+VARIABLES_BEFORE=$(get_all_variables)
 
 L_trap_err_enable
 _L_lib_run_tests "$@"

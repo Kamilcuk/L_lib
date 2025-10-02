@@ -1919,7 +1919,19 @@ L_date_v() {
 	# Support python %f.
 	L_v=${1//%f/%6N}
 	# If the format string contains %N or the timestamp is not seconds since epoch.
-	if ((!L_HAS_PRINTF_T)) || [[ "$L_v" =~ %[0-9]*N || "${2:-}" == *[^0-9]* ]]; then
+	if [[ "$L_v" =~ (^|[^%])%[0-9]*N ]]; then
+		if ! _L_has_date_N; then
+			local now
+			L_epochrealtime_usec -v now
+			while [[ "$L_v" =~ (^|(.*[^%]))%([0-9]*)N(.*) ]]; do
+				printf -v L_v "%s%0${BASH_REMATCH[3]:-9}d%s" \
+					"${BASH_REMATCH[2]}" \
+					"$(( 10#${now:${#now}-6}000 / 10**( 9 - ${BASH_REMATCH[3]:-9} ) ))" \
+					"${BASH_REMATCH[4]}"
+			done
+		fi
+		L_v=$(date ${2:+-d"$2"} +"$L_v")
+	elif ((!L_HAS_PRINTF_T)) || [[ "${2:-}" == *[^0-9]* ]]; then
 		L_v=$(date ${2:+-d"$2"} +"$L_v")
 	else
 		printf -v L_v "%($L_v)T" "${2:--1}"
@@ -1928,7 +1940,13 @@ L_date_v() {
 
 # @description Return success if date supports %N option.
 _L_has_date_N() {
-	local tt && L_hash date && tt=$(date --help 2>&1) && [[ "$tt" == *" %N "* ]]
+	local tt
+	if L_hash date && tt=$(date --help 2>&1) && [[ "$tt" == *" %N "* ]]; then
+		_L_has_date_N() { return 0; }
+	else
+		_L_has_date_N() { return 1; }
+	fi
+	_L_has_date_N
 }
 
 # @description Return time in microseconds.
@@ -1948,17 +1966,21 @@ L_epochrealtime_usec_v() {
 	elif L_hash perl; then
 		L_epochrealtime_usec_v() { L_v=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
 	elif [[ -r /proc/uptime ]]; then
-		L_epochrealtime_usec_v() { L_v=$(< /proc/uptime) && L_secdot_to_usec_v "${L_v// *}"; }
-	elif L_hash python3; then
-		L_epochrealtime_usec_v() { L_v=$(python -c 'import time; print("%.6f" % time.time())'); L_v=${L_v//[,.]}; }
+		L_epochrealtime_usec_v() { L_v=$(< /proc/uptime) && L_sec_to_usec_v "${L_v// *}"; }
 	elif L_hash busybox; then
 		L_epochrealtime_usec_v() {
+			# https://elixir.bootlin.com/busybox/1.37.0/source/miscutils/adjtimex.c#L123
 			L_v=$(busybox adjtimex)
-			local a=${L_v##*time.tv_sec:} b=${L_v##*time.tv_usec:} _ IFS=$' \t\n'
-			read -r a _ <<<"$a" &&
-			read -r b _ <<<"$b" &&
-			L_v=$a${b::6}
+			# https://github.com/torvalds/linux/blob/50c19e20ed2ef359cf155a39c8462b0a6351b9fa/include/uapi/linux/timex.h#L187
+			local status=${L_v##*status:} sec=${L_v##*time.tv_sec:} usec=${L_v##*time.tv_usec:} STA_NANO=0x2000
+			L_lstrip_v "$sec"; sec=$L_v
+			L_lstrip_v "$usec"; usec=$L_v
+			L_lstrip_v "$status"; status=$L_v
+			sec=${sec%%[$' \t\n']*} usec=${usec%%[$' \t\n']*} status=${status%%[$' \t\n']*}
+			printf -v "L_v" "%d%06d" "$sec" "$(( (status & STA_NANO) ? ( usec / 1000 ) : usec ))"
 		}
+	elif L_hash python3; then
+		L_epochrealtime_usec_v() { L_v=$(python -c 'import time; print(int(time.time() * 1000000))'); }
 	else
 		return 1
 	fi
@@ -1966,30 +1988,33 @@ L_epochrealtime_usec_v() {
 }
 
 # @description Convert float seconds to microseconds.
-# @env L_v
-L_secdot_to_usec_v() {
+# @option -v <var>
+# @example  L_sec_to_usec 1.5 -> 1500000
+L_sec_to_usec() { L_handle_v_scalar "$@"; }
+L_sec_to_usec_v() {
 	case "$1" in
-	*.*) printf -v L_v "%s%.6s" "${1%%.*}" "${1##*.}000000" ;;
-	*) L_v="${1}000000" ;;
-	esac &&
-	L_v=$(( 10#$L_v ))
+	*.*) printf -v L_v "%s%.6s" "${1%%.*}" "${1##*.}000000" && L_v=$(( 10#$L_v )) ;;
+	*) L_v="$(( 10#${1}000000 ))" ;;
+	esac
 }
 
 # @description Convert microseconds to seconds with 6 digits after comma.
-# @env L_v
-L_usec_to_secdot_v() {
+# @option -v <var>
+L_usec_to_sec() { L_handle_v_scalar "$@"; }
+L_usec_to_sec_v() {
 	printf -v L_v "%d.%06d" "$(( $1 / 1000000 ))" "$(( $1 % 1000000 ))"
 }
 
-# @description Arm a timeout variable.
+# @description Calculate timeout value.
 # The timeout value is stored in microseconds.
-# @arg $1 Variable to assign with the timeout value.
+# @arg $1 Variable to assign with the timeout value in usec.
 # @arg $2 Timeout in seconds. May be a fraction.
 # @see L_epochrealtime_usec
-L_timeout_arm_to() {
+# @note should this be L_timeout_assign -v ?
+L_timeout_set_to() {
 	local _L__now L_v
 	L_epochrealtime_usec -v _L__now &&
-	L_secdot_to_usec_v "$2" &&
+	L_sec_to_usec_v "$2" &&
 	printf -v "$1" "%s" "$(( ${_L__now//.} + 10#${L_v//.} ))"
 }
 
@@ -2008,7 +2033,7 @@ L_timeout_left() { L_handle_v_scalar "$@"; }
 L_timeout_left_v() {
 	L_epochrealtime_usec_v &&
 	L_v=$(( $1 - ${L_v//.} )) &&
-	L_usec_to_secdot_v "$L_v"
+	L_usec_to_sec_v "$L_v"
 }
 
 # ]]]
@@ -2735,7 +2760,7 @@ L_float_cmp() {
 		printf -v b2 "%-*s" "${#a2}" "$b2"
 		b2=${b2// /0}
 	fi
-	local r=$(( a1 < b1 ? -1 : a1 > b1 ? 1 : a2 < b2 ? -1 : a2 > b2 ? 1 : 0 ))
+	local r=$(( 10#${a1:-0} < 10#${b1:-0} ? -1 : 10#${a1:-0} > 10#${b1:-0} ? 1 : 10#${a2:-0} < 10#${b2:-0} ? -1 : 10#${a2:-0} > 10#${b2:-0} ? 1 : 0 ))
 	# echo "$a1.$a2 $2 $b1.$b2 = $r"
 	case "$2" in
 	-lt|'<')  ((r == -1));;
@@ -2747,6 +2772,12 @@ L_float_cmp() {
 	'<=>') return "$((r + 10))" ;;
 	*) return 255;;
 	esac
+}
+
+# @description A simple wrapper script around awk to evaluate float expressions.
+# @arg $1 Expression to evaluate.
+L_float() {
+	awk "BEGIN{print ($1);exit}" <&-
 }
 
 # @description Print a string with percent format.
@@ -4308,15 +4339,15 @@ L_log() {
 		if (($#)); then
 			local \
 				L_logline_stacklevel="$_L_stacklevel" \
-				L_logline_funcname="${FUNCNAME[_L_stacklevel+1]-main}" \
-				L_logline_source="${BASH_SOURCE[_L_stacklevel]}" \
-				L_logline_lineno="${BASH_LINENO[_L_stacklevel]}" \
+				L_logline_funcname="${FUNCNAME[_L_stacklevel]-main}" \
+				L_logline_source="${BASH_SOURCE[_L_stacklevel-1]}" \
+				L_logline_lineno="${BASH_LINENO[_L_stacklevel-1]}" \
 				L_logline_levelname="${L_LOGLEVEL_NAMES[L_logline_levelno]:-}"
 			if ${_L_logconf_selecteval:+eval} ${_L_logconf_selecteval:+"$_L_logconf_selecteval"}; then
 				# Detect color.
 				if [[ -n "${_L_logconf_color:-}" ]]; then
 					local L_logline_color="$_L_logconf_color"
-				elif L_term_has_color; then
+				elif L_term_has_color 2; then
 					local L_logline_color=1
 				else
 					local L_logline_color=""
@@ -5425,7 +5456,7 @@ L_unittest_cmd() {
 	fi
 	#
 	if ((_L_uopt_curenv)); then
-		L_trap_push "_L_unittest_cmd_exit_trap $? $(L_quote_printf "$@")" EXIT
+		L_trap_push '_L_unittest_cmd_exit_trap $? '"$(L_quote_printf "$@")" EXIT
 		# shellcheck disable=2030,2093,1083
 		if ((_L_uopt_capture)); then
 			# Use temporary file
@@ -8655,52 +8686,53 @@ _L_wait_tail_has_pid() {
 }
 
 _L_wait_assign_pids_done_rets() {
+	# Remove from _L_pids pids that are finished.
+	local IFS=' ' _L_i
+	for _L_i in "${!_L_pids[@]}"; do
+		if [[ " ${_L_done[*]+${_L_done[*]}} " == *" ${_L_pids[_L_i]} "* ]]; then
+			unset -v "_L_pids[_L_i]"
+		fi
+	done
+	# Calculate return value.
+	# Timeout occurs when there are any unfinished pids.
+	# Timeout in -n mode occurs when no single one pid is finished.
+	if (( _L_all ? ${_L_pids[@]+${#_L_pids[@]}}+0 != 0 : ${_L_done[@]+${#_L_done[@]}}+0 == 0 )); then
+		_L_ret=124
+	fi
+	# Assign results.
 	if [[ -n "$_L_pids_var" ]]; then
 		L_array_assign "$_L_pids_var" ${_L_done[@]:+"${_L_done[@]}"}
 	fi
 	if [[ -n "$_L_rets_var" ]]; then
 		L_array_assign "$_L_rets_var" ${_L_rets[@]:+"${_L_rets[@]}"}
 	fi
-	local IFS=' ' _L_i
-	for _L_i in "${!_L_pids[@]}"; do
-		if [[ " ${_L_done[*]+${_L_done[*]}} " == *" ${_L_pids[_L_i]} "* ]]; then
-			unset "_L_pids[_L_i]"
-		fi
-	done
 	if [[ -n "$_L_left_var" ]]; then
 		L_array_assign "$_L_left_var" ${_L_pids[@]:+"${_L_pids[@]}"}
-	fi
-	# Timeout occurs when there are any unfinished pids.
-	# Timeout in -n mode occurs when no single one pid is finished.
-	if (( _L_all ? ${_L_pids[@]+${#_L_pids[@]}}+0 != 0 : ${_L_done[@]+${#_L_done[@]}}+0 == 0 )); then
-		_L_ret=124
 	fi
 }
 
 _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 	local _L_pid _L_tmp
 	for _L_pid in "${_L_pids[@]}"; do
-		while :; do
-			if ((L_HAS_WAIT_P)); then
-				wait -p _L_tmp "$_L_pid" && _L_i=0 || _L_i=$?
+		if ((L_HAS_WAIT_P)); then
+			while
+				wait -n -p _L_tmp "$_L_pid" && _L_i=0 || _L_i=$?
 				# -p is unset when receiving a signal.
-				if L_var_is_set _L_tmp; then
-					break
-				fi
-			else
-				wait "$_L_pid" && _L_i=0 || _L_i=$?
-				if (( _L_i <= 128 )); then
-					break
-				fi
-				# If received a signal, exit when the pid is no longer running.
+				! L_var_is_set _L_tmp
+			do
+				# We might have received a signal
+				:
+			done
+		else
+			while wait "$_L_pid" && _L_i=0 || _L_i=$?; (( _L_i > 128 )); do
+				# If received a signal while waiting, check if the pid is finished.
 				if ! kill -0 "$_L_pid" 2>/dev/null; then
-					# This has to be correct.
+					# If it is finihsed, collect it again to be extra sure.
 					wait "$_L_pid" && _L_i=0 || _L_i=$?
 					break
 				fi
-			fi
-			# We might have received a signal. Run it a second time to be sure.
-		done
+			done
+		fi
 		_L_rets+=("$_L_i")
 	done
 	_L_done=("${_L_pids[@]}")
@@ -8713,7 +8745,10 @@ _L_wait_collect_any_pids() {
 		if ! kill -0 "${_L_pids[_L_i]}" 2>/dev/null; then
 			wait "${_L_pids[_L_i]}" && _L_rets+=("$?") || _L_rets+=("$?")
 			_L_done+=("${_L_pids[_L_i]}")
-			unset "_L_pids[$_L_i]"
+			unset -v "_L_pids[$_L_i]"
+			if ((!_L_all)); then
+				break
+			fi
 		fi
 	done
 }
@@ -8759,39 +8794,21 @@ L_wait() {
 	# _L_ret - pid _L_done[i] exited with _L_ret[i]
 	local _L_pids=("$@") _L_done=() _L_rets=() _L_ret=0
 	if [[ -z "$_L_timeout" ]]; then
-		if ((_L_all)); then
+		if ((_L_all || $# == 1)); then
 			# Wait for all pids without a timeout.
 			_L_wait_collect_all_pids_and_assign_pids_done_rets
 		else
 			# Wait for the first pid without a timeout.
 			if ((L_HAS_WAIT_P)); then
-				while :; do
-					wait -n -p _L_pid "${_L_pids[@]}" && _L_i=0 || _L_i=$?
-					if L_var_is_set _L_pid; then
-						_L_rets+=("$_L_i")
-						_L_done+=("$_L_pid")
-						break
-					fi
+				while wait -n -p _L_pid "${_L_pids[@]}" && _L_i=0 || _L_i=$?; ! L_var_is_set _L_pid; do
+					:
 				done
-			elif (($# == 1)); then
-				# You can just wait for 1 pid without a timeout.
-				while :; do
-					wait "$1" && _L_i=0 || _L_i=$?
-					if ((_L_i <= 128)); then
-						break
-					fi
-					if ! kill -0 "$1" 2>/dev/null; then
-						wait "$1" && _L_i=0 || _L_i=$?
-						break
-					fi
-				done
-				_L_rets=("$_L_i")
-				_L_done=("$1")
-				_L_pids=()
+				_L_rets+=("$_L_i")
+				_L_done+=("$_L_pid")
 			else
 				# Wait for any pid to finish.
-				while (( ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 )); do
-					_L_wait_collect_any_pids
+				while _L_wait_collect_any_pids; (( ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 )); do
+					sleep "$_L_polltime"
 				done
 			fi
 			_L_wait_assign_pids_done_rets
@@ -8838,15 +8855,16 @@ L_wait() {
 			fi
 		fi
 		# Busy loop.
-		L_timeout_arm_to _L_timeout "$_L_timeout"
-		while (( ${_L_pids[@]:+1} )); do
+		L_timeout_set_to _L_timeout "$_L_timeout"
+		while
 			_L_wait_collect_any_pids
-			if (( !_L_all && ${_L_rets[@]+${#_L_rets[@]}}+0 != 0 )); then
-				break
-			fi
-			if L_timeout_expired "$_L_timeout"; then
-				break
-			fi
+			# Are there any still running pids?
+			(( ${_L_pids[@]:+1} )) &&
+				# If waiting for any pid, are no pids finished?
+				(( _L_all || ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 )) &&
+				# Has timeout not expired?
+				! L_timeout_expired "$_L_timeout"
+		do
 			sleep "$_L_polltime"
 		done
 		_L_wait_assign_pids_done_rets
@@ -8913,7 +8931,7 @@ L_read_fds() {
 		_L_timeout="" _L_poll=0.05 IFS="" _L_cb="" _L_n="" _L_once=0 _L_delim=''
 	while getopts t:p:C:n:d:1h _L_i; do
 		case "$_L_i" in
-		t) if ! L_timeout_arm_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
+		t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
 		p) _L_poll="$OPTARG" ;;
 		C) _L_cb="$OPTARG" ;;
 		n) _L_n="$OPTARG"; printf -v "$_L_n" "%s" "" || return 2 ;;
