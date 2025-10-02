@@ -1243,9 +1243,35 @@ _L_test_argskeywords() {
 
 _L_test_log() {
 	{
+		L_unittest_cmd -c -r 'L_log_configure' eval 'L_log_configure -h 2>&1'
+		L_unittest_cmd -c L_log_configure -r -J
+		L_unittest_cmd -c eval 'L_log "$L_ALLCHARS" | jq'
+		L_unittest_cmd -c L_log_configure -r -L
+		L_unittest_cmd -c eval 'L_log "hello world" 2>&1 | grep "hello world"'
+
+		L_unittest_cmd -c L_log_configure -r -l debug
+		L_unittest_cmd -c L_log_is_enabled_for info
+		L_unittest_cmd -c L_log_is_enabled_for err
+		L_unittest_cmd -c L_log_is_enabled_for debug
+
+		L_unittest_cmd -c L_log_configure -r -l err
+		L_unittest_cmd -c ! L_log_is_enabled_for info
+		L_unittest_cmd -c L_log_is_enabled_for err
+		L_unittest_cmd -c ! L_log_is_enabled_for debug
+
+		L_unittest_cmd -c L_log_configure -r -l info
+		L_unittest_cmd -c L_log_is_enabled_for info
+		L_unittest_cmd -c L_log_is_enabled_for err
+		L_unittest_cmd -c ! L_log_is_enabled_for debug
+	}
+	{
 		local i
 		L_log_level_to_int i INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
+		L_log_level_to_int i ERR
+		L_unittest_eq "$i" "$L_LOGLEVEL_ERROR"
+		L_log_level_to_int i WARN
+		L_unittest_eq "$i" "$L_LOGLEVEL_WARNING"
 		L_log_level_to_int i L_LOGLEVEL_INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
 		L_log_level_to_int i info
@@ -1253,6 +1279,13 @@ _L_test_log() {
 		L_log_level_to_int i "$L_LOGLEVEL_INFO"
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
 	}
+}
+
+_L_test_log_from() {
+	local dir
+	L_path_dirname -v dir "${BASH_SOURCE[0]}"
+	L_unittest_cmd -jr " log_1.sh:log_function:8 " env L_LIB_SCRIPT="$L_LIB_SCRIPT" bash "$dir"/log_1.sh 1
+	L_unittest_cmd -jr " log_1.sh:main:13 " env L_LIB_SCRIPT="$L_LIB_SCRIPT" bash "$dir"/log_1.sh 2
 }
 
 _L_test_setx() {
