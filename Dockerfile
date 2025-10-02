@@ -7,6 +7,7 @@ FROM app AS test
 RUN apk add --no-cache jq
 COPY tests/ /tests/
 COPY docs/ /docs/
+COPY mkdocs.yml mkdocs.yml
 ARG ARGS=""
 RUN /tests/test.sh ${ARGS}
 
