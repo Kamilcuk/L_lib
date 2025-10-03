@@ -3581,6 +3581,17 @@ _L_test_wait_n() {
 	done
 }
 
+_L_test_wait_err() {
+	local opt
+	L_unittest_cmd L_wait
+	for opt in "" "-b"; do
+		L_unittest_cmd -e 1 L_wait $opt -t 1 999
+		L_unittest_cmd -e 1 L_wait $opt 999
+		L_unittest_cmd -e 1 L_wait $opt -n 999
+		L_unittest_cmd -e 1 L_wait $opt -n -t 1 999
+	done
+}
+
 ###############################################################################
 
 _L_test_timeout() {
