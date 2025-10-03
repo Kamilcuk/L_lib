@@ -8697,7 +8697,7 @@ _L_wait_assign_pids_done_rets() {
 	# Timeout occurs when there are any unfinished pids.
 	# Timeout in -n mode occurs when no single one pid is finished.
 	if (( _L_all ? ${_L_pids[@]+${#_L_pids[@]}}+0 != 0 : ${_L_done[@]+${#_L_done[@]}}+0 == 0 )); then
-		_L_ret=124
+		_L_return=124
 	fi
 	# Assign results.
 	if [[ -n "$_L_pids_var" ]]; then
@@ -8711,29 +8711,45 @@ _L_wait_assign_pids_done_rets() {
 	fi
 }
 
+# @arg $1 exit code of previous wait call
+# @arg $@ wait arguments that resulted in this exit code
+_L_wait_handle_err() {
+	if (($1 == 127)); then
+		# Wait returns 127 on error.
+		local tmpf
+		tmpf=$(mktemp) || return 1
+		{
+			rm "$tmpf"
+			wait "${@:2}" 2>&10
+			err=$(< /dev/fd/10)
+			if [[ -n "$err" ]]; then
+				return 1
+			fi
+		} 10<>"$tmpf"
+	fi
+}
+
 _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 	local _L_pid _L_tmp
 	for _L_pid in "${_L_pids[@]}"; do
 		if ((L_HAS_WAIT_P)); then
-			while
-				wait -n -p _L_tmp "$_L_pid" && _L_i=0 || _L_i=$?
-				# -p is unset when receiving a signal.
-				! L_var_is_set _L_tmp
-			do
-				# We might have received a signal
-				:
+			# -p is unset when receiving a signal.
+			while wait -n -p _L_tmp "$_L_pid" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_tmp; do
+				# We have received a signal, wait again.
+				_L_wait_handle_err "$_L_ret" -n -p _L_tmp "$_L_pid" || return "$?"
 			done
 		else
-			while wait "$_L_pid" && _L_i=0 || _L_i=$?; (( _L_i > 128 )); do
+			while wait "$_L_pid" && _L_ret=0 || _L_ret=$?; (( _L_ret > 128 )); do
 				# If received a signal while waiting, check if the pid is finished.
 				if ! kill -0 "$_L_pid" 2>/dev/null; then
 					# If it is finihsed, collect it again to be extra sure.
-					wait "$_L_pid" && _L_i=0 || _L_i=$?
+					wait "$_L_pid" && _L_ret=0 || _L_ret=$?
 					break
 				fi
 			done
+			_L_wait_handle_err "$_L_ret" "$_L_pid" || return "$?"
 		fi
-		_L_rets+=("$_L_i")
+		_L_rets+=("$_L_ret")
 	done
 	_L_done=("${_L_pids[@]}")
 	_L_pids=()
@@ -8743,7 +8759,9 @@ _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 _L_wait_collect_any_pids() {
 	for _L_i in "${!_L_pids[@]}"; do
 		if ! kill -0 "${_L_pids[_L_i]}" 2>/dev/null; then
-			wait "${_L_pids[_L_i]}" && _L_rets+=("$?") || _L_rets+=("$?")
+			wait "${_L_pids[_L_i]}" && _L_ret=$? || _L_ret=$?
+			_L_wait_handle_err "$_L_ret" "${_L_pids[_L_i]}" || return "$?"
+			_L_rets+=("$_L_ret")
 			_L_done+=("${_L_pids[_L_i]}")
 			unset -v "_L_pids[$_L_i]"
 			if ((!_L_all)); then
@@ -8788,26 +8806,32 @@ L_wait() {
 		esac
 	done
 	shift "$((OPTIND-1))"
+	# Return with 0 with no PIDs.
+	if ((!$#)); then return 0; fi
 	# local -;set -x
 	# _L_pids - runnign pids
 	# _L_done - finished pids
-	# _L_ret - pid _L_done[i] exited with _L_ret[i]
-	local _L_pids=("$@") _L_done=() _L_rets=() _L_ret=0
+	# _L_rets - pid _L_done[i] exited with _L_rets[i]
+	# _L_return - the return code
+	local _L_pids=("$@") _L_done=() _L_rets=() _L_return=0
 	if [[ -z "$_L_timeout" ]]; then
 		if ((_L_all || $# == 1)); then
 			# Wait for all pids without a timeout.
-			_L_wait_collect_all_pids_and_assign_pids_done_rets
+			_L_wait_collect_all_pids_and_assign_pids_done_rets || return "$?"
 		else
 			# Wait for the first pid without a timeout.
 			if ((L_HAS_WAIT_P)); then
-				while wait -n -p _L_pid "${_L_pids[@]}" && _L_i=0 || _L_i=$?; ! L_var_is_set _L_pid; do
-					:
+				while wait -n -p _L_pid "${_L_pids[@]}" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_pid; do
+					_L_wait_handle_err "$_L_ret" -n -p _L_pid "${_L_pids[@]}" || return "$?"
 				done
-				_L_rets+=("$_L_i")
+				_L_rets+=("$_L_ret")
 				_L_done+=("$_L_pid")
 			else
 				# Wait for any pid to finish.
-				while _L_wait_collect_any_pids; (( ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 )); do
+				while
+					_L_wait_collect_any_pids || return "$?"
+					(( ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 ))
+				do
 					sleep "$_L_polltime"
 				done
 			fi
@@ -8830,34 +8854,34 @@ L_wait() {
 					fi
 				then
 					if ((_L_all)); then
-						_L_wait_collect_all_pids_and_assign_pids_done_rets
+						_L_wait_collect_all_pids_and_assign_pids_done_rets || return "$?"
 					else
-						_L_wait_collect_any_pids
+						_L_wait_collect_any_pids || return "$?"
 						_L_wait_assign_pids_done_rets
 					fi
 					return 0
 				elif (($? == 3)); then
-					_L_wait_collect_any_pids
+					_L_wait_collect_any_pids || return "$?"
 					_L_wait_assign_pids_done_rets
-					return "$_L_ret"
+					return "$_L_return"
 				fi
 			fi
 			# Tail can only wait for _all_ pids, not on the first one.
 			if (($# == 1 || _L_all)) && L_hash timeout tail && _L_wait_tail_has_pid; then
 				if timeout "$_L_timeout" tail "${@/#/--pid=}" -f /dev/null; then
-					_L_wait_collect_all_pids_and_assign_pids_done_rets
+					_L_wait_collect_all_pids_and_assign_pids_done_rets || return "$?"
 					return 0
 				elif (($? == 124)); then
-					_L_wait_collect_any_pids
+					_L_wait_collect_any_pids || return "$?"
 					_L_wait_assign_pids_done_rets
-					return "$_L_ret"
+					return "$_L_return"
 				fi
 			fi
 		fi
 		# Busy loop.
 		L_timeout_set_to _L_timeout "$_L_timeout"
 		while
-			_L_wait_collect_any_pids
+			_L_wait_collect_any_pids || return "$?"
 			# Are there any still running pids?
 			(( ${_L_pids[@]:+1} )) &&
 				# If waiting for any pid, are no pids finished?
@@ -8868,7 +8892,7 @@ L_wait() {
 			sleep "$_L_polltime"
 		done
 		_L_wait_assign_pids_done_rets
-		return "$_L_ret"
+		return "$_L_return"
 	fi
 }
 
