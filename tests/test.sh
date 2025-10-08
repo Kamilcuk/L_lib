@@ -3624,17 +3624,17 @@ wait_test_prepare_with_3_childs() {
 	childs=()
 	wait_sleep_exit 33 &
 	childs+=($!)
-	allchilds+=($!)
 	wait_sleep_exit 66 &
 	childs+=($!)
-	allchilds+=($!)
 	wait_sleep_exit 100 &
 	childs+=($!)
-	allchilds+=($!)
 }
 
 wait_test_finish() {
-	wait "${allchilds[@]}"
+	if ((${allchilds[*]+1})); then
+		wait "${allchilds[@]}" || L_error "wait on allchilds=${allchilds[*]} exited with $? which is highly odd"
+		allchilds=()
+	fi
 	local endtime passed limit_sec=3 limit_usec i passed_sec
 	for i in "${childs[@]}"; do
 		L_unittest_cmd -r 'No such process' ! kill -0 "$i"
