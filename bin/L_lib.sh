@@ -4196,7 +4196,7 @@ L_log_configure() {
 			[lcfFsoLJ])
 				if ((${_L_logconf_configured:-0} == 0)); then
 					case "$_L_opt" in
-						l) L_log_level_to_int _L_logconf_level "$OPTARG" ;;
+						l) L_log_level_to_int_to _L_logconf_level "$OPTARG" ;;
 						c) L_exit_to_1null _L_logconf_color L_is_true "$OPTARG" ;;
 						f) _L_logconf_formateval=$OPTARG ;;
 						F) _L_logconf_formateval="$OPTARG"' "$@"' ;;
@@ -4230,7 +4230,7 @@ L_log_level_dec() {
 # @description Convert log string to number
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
-L_log_level_to_int() {
+L_log_level_to_int_to() {
 	local L_v=${2##*_}
 	case "$L_v" in
 	[0-9]*) L_v=$2 ;;
@@ -4254,7 +4254,7 @@ L_log_level_to_int() {
 # @arg $1 str|int loglevel or log string
 L_log_is_enabled_for() {
 	local v
-	L_log_level_to_int v "$1"
+	L_log_level_to_int_to v "$1"
 	_L_log_is_enabled_for "$v"
 }
 
@@ -4351,7 +4351,7 @@ L_log() {
 	while getopts :s:l: _L_opt; do
 		case "$_L_opt" in
 		s) _L_stacklevel=$((OPTARG + _L_stacklevel)) ;;
-		l) L_log_level_to_int L_logline_levelno "$OPTARG" ;;
+		l) L_log_level_to_int_to L_logline_levelno "$OPTARG" ;;
 		*) break ;;
 		esac
 	done

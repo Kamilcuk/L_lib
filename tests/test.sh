@@ -1267,17 +1267,17 @@ _L_test_log() {
 	}
 	{
 		local i
-		L_log_level_to_int i INFO
+		L_log_level_to_int_to i INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int i ERR
+		L_log_level_to_int_to i ERR
 		L_unittest_eq "$i" "$L_LOGLEVEL_ERROR"
-		L_log_level_to_int i WARN
+		L_log_level_to_int_to i WARN
 		L_unittest_eq "$i" "$L_LOGLEVEL_WARNING"
-		L_log_level_to_int i L_LOGLEVEL_INFO
+		L_log_level_to_int_to i L_LOGLEVEL_INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int i info
+		L_log_level_to_int_to i info
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int i "$L_LOGLEVEL_INFO"
+		L_log_level_to_int_to i "$L_LOGLEVEL_INFO"
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
 	}
 }
