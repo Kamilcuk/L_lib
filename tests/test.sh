@@ -10,9 +10,9 @@ get_all_variables() {
 	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
 	unset -v L_v IFS LC_ALL _L_TRAPS
 	if L_var_is_set _L_finally_pid; then
-		unset -v _L_finally_arr _L_finally_functions _L_finally_pid
+		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
@@ -3295,6 +3295,7 @@ _L_test_finally() {
 				L_finally printf 3
 				L_finally printf 2
 			)
+			L_unittest_vareq a 23 >&2 || exit 2
 			L_finally -r printf "%s" "$a"
 			L_finally -r printf 1
 		}
@@ -3325,25 +3326,30 @@ _L_test_finally() {
 		#
 		a?*() {
 			L_finally -r printf "$1"
+			echo -n a
 		}
 		a*() {
 			L_finally -r printf "$1"
 			'a?*' "$2"
+			echo -n b
 		}
 		a.*() {
 			L_finally -r printf "$1"
 			'a*' "$2" "$3"
+			echo -n c
 		}
 		a() {
 			L_finally -r printf 8
 			'a.*' 3 2 1
 			L_finally -r printf 7
 			'a.*' 6 5 4
+			echo -n d
 		}
 		export -f "a" "a.*" "a*" "a?*"
-		L_unittest_cmd -o 12345678 a
-		L_unittest_cmd -o 12345678 L_subshell a
-		L_unittest_cmd -o 12345678 bash -c ". $L_LIB_SCRIPT && a"
+		L_unittest_cmd -o a1b2c3a4b5c6d78 a
+		L_unittest_cmd -o a1b2c3a4b5c6d78 L_subshell a
+		L_unittest_cmd -o a1b2c3a4b5c6d78 bash -c ". $L_LIB_SCRIPT && a"
+		L_unittest_cmd -o a1b2c3a4b5c6d78 bash -eEo functrace -c ". $L_LIB_SCRIPT && a"
 	}
 	#
 	L_finally_list
@@ -3351,6 +3357,51 @@ _L_test_finally() {
 	a=$(L_finally_list)
 	L_unittest_cmd -I grep -q L_log <<<"$a"
 	L_finally_pop
+}
+
+_L_test_finally_loop() {
+	{
+		L_log "many calls slow down?"
+		func() {
+			L_finally echo -n "$i "
+			L_finally -r echo -n "$i "
+			# set -x
+		}
+		f() {
+			local i
+			for ((i=0;i<$1;++i)); do
+				func
+				# set +x
+			done
+			for ((i=0;i<$1;++i)); do
+				L_finally_pop
+			done
+			echo
+			echo "${#_L_finally_arr[@]}"
+		}
+		L_unittest_cmd L_time f 100
+		L_unittest_cmd L_time f 1000
+	}
+	{
+		L_log "nested calls"
+		func() {
+			L_finally echo -n 6
+			L_finally -r echo -n 3
+			func() {
+				L_finally echo -n 5
+				L_finally -r echo -n 2
+				func() {
+					L_finally echo -n 4
+					L_finally -r echo -n 1
+				}
+				func
+				func
+			}
+			func
+			func
+		}
+		L_unittest_cmd -o 1121344456 func
+	}
 }
 
 _L_test_finally_subshells() {
@@ -3389,6 +3440,149 @@ _L_test_finally_proc() {
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
 			esac
 		done
+	}
+}
+
+_L_test_finally_interrupt() {
+	{
+		L_info "test SIGRET"
+		f() { L_finally eval 'echo $L_SIGRET'; exit 123; }
+		L_unittest_cmd -o 123 -e 123 f
+		f() { L_finally -r eval 'echo $L_SIGRET'; exit 234; }
+		L_unittest_cmd -o 234 -e 234 f
+	}
+	waiter() {
+		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
+		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
+		enable sleep || :
+		local to; L_timeout_set_to to 10; while ! L_timeout_expired "$to"; do sleep 0.1; done
+	}
+	{
+		local e=$((128+$(L_trap_to_number USR1)))
+		L_info "test interrupting error handling"
+		f() {
+			L_finally waiter
+			L_bashpid_to bashpid
+			sleep 0.1 && kill -USR1 "$bashpid" || : &
+			case "$1" in
+				pop) L_finally_pop ;;
+				return) return ;;
+				exit) exit ;;
+				signal) L_raise -USR1 ;;
+			esac
+		}
+		L_unittest_cmd -e "$e" f pop
+		L_unittest_cmd -e "$e" f return
+		L_unittest_cmd -e "$e" f exit
+		L_unittest_cmd -e "$e" f signal
+	}
+	{
+		L_info "test interrupting error handling twice"
+		f2() {
+			L_finally waiter
+			L_bashpid_to bashpid
+			sleep 0.1 && kill -USR1 "$bashpid" &
+			sleep 0.2 && kill -USR1 "$bashpid" &
+			case "$1" in
+				pop) L_finally_pop ;;
+				return) return ;;
+				exit) exit ;;
+				signal) L_raise -USR1 ;;
+			esac
+		}
+		L_unittest_cmd -e "$e" f2 pop
+		L_unittest_cmd -e "$e" f2 return
+		L_unittest_cmd -e "$e" f2 exit
+		if ((!L_HAS_BASH5_0)); then
+			L_warning "Disabled below bash5.0"
+			return
+		fi
+		L_unittest_cmd -e "$e" f2 signal
+	}
+	{
+		L_info "test good function calls return"
+		f1() {
+			echo -n 1
+			f2
+			echo -n 10
+		}
+		f2() {
+			echo -n 2
+			f3
+			echo -n 9
+		}
+		f3() {
+			L_finally -r echo -n 8
+			echo -n 3
+			f4
+			echo -n 7
+		}
+		f4() {
+			echo -n 4
+			f5
+			echo -n 6
+		}
+		f5() {
+			L_finally echo -n 11
+			echo -n 5
+		}
+		L_unittest_cmd -o 1234567891011 f1
+		L_unittest_cmd -o 1234567891011 bash -c ". $L_LIB_SCRIPT;"'. "$1"' bash <(declare -f f1 f2 f3 f4 f5; echo f1)
+	}
+}
+
+_L_test_finally_source() {
+	if ((!L_HAS_BASH4_4)); then
+		L_warning "ignoring test for bash below 4.4"
+		return
+	fi
+	{
+		L_log "source return finally works?"
+		L_unittest_cmd -o 21 bash -euo pipefail -c ". $L_LIB_SCRIPT; . <(echo 'L_finally echo -n 1'); echo -n 2"
+		L_unittest_cmd -o 12 bash -euo pipefail -c ". $L_LIB_SCRIPT
+			. <(echo '
+				L_finally -r echo -n 1
+				return 2
+				'
+			) || r=\$?
+			echo -n \$r
+			"
+		L_log "using L_source instead of ."
+		L_unittest_cmd -o 1234567 bash -euo pipefail -c ". $L_LIB_SCRIPT -s
+			f() {
+				local r
+				L_finally -r echo -n 6
+				echo -n 2
+				L_source <(echo '
+					L_finally -r echo -n 4
+					echo -n 3
+					return 5
+					'
+				) || r=\$?
+				echo -n \$r
+			}
+			echo -n 1
+			f
+			echo -n 7
+			"
+		L_log "using source. Special handling"
+		L_unittest_cmd -o 1234567 bash -euo pipefail -c ". $L_LIB_SCRIPT -s
+			f() {
+				local r
+				L_finally -r echo -n 6
+				echo -n 2
+				. <(echo '
+					L_finally -r echo -n 4
+					echo -n 3
+					return 5
+					'
+				) || r=\$?
+				echo -n \$r
+			}
+			echo -n 1
+			f
+			echo -n 7
+			"
 	}
 }
 

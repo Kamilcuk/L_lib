@@ -14,6 +14,7 @@ define NL
 
 
 endef
+NPROC = $(shell nproc)
 BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3
 
 all: test doc
@@ -27,7 +28,7 @@ TESTS = \
 		#
 test_parallel:
 	@mkdir -vp build
-	if ! $(MAKE) -O -j $(shell nproc) test > >(tee build/output >&2) 2>&1; then \
+	if ! $(MAKE) -O -j $(NPROC) test > >(tee build/output >&2) 2>&1; then \
 		grep -B500 '^make\[.*\]:.*Makefile.*\] Error' build/output; \
 		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
 		exit 2; \
@@ -35,7 +36,7 @@ test_parallel:
 test_parallel2:
 	@mkdir -vp build
 	printf "%s\n" $(TESTS) | \
-		$(NICE) xargs -i -P $(shell nproc) $(NICE) bash -c \
+		$(NICE) xargs -i -P $(NPROC) $(NICE) bash -c \
 		'if make {} ARGS="$$1" >build/output_{}.txt 2>&1; then echo SUCCESS {}; else echo FAILURE {}; fi' \
 		-- '$(ARGS)'
 	grep -l '^make\[.*\]:.*Makefile.*\] Error' build/output_*.txt | xargs -rt cat
