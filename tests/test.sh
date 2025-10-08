@@ -3398,6 +3398,7 @@ wait_interrupt() {
 	local mypid
 	L_bashpid_to mypid
 	sleep ${1:-0.1} && kill -USR$((1+RANDOM%2)) "$mypid" 2>/dev/null || : &
+	allchilds+=($!)
 }
 
 wait_test_prepare_with_3_childs() {
@@ -3422,22 +3423,24 @@ wait_test_prepare_with_3_childs() {
 	# 		exit 123
 	# 	fi
 	# ) &
-	# killer=$!
+	# allchilds=()=$!
 	# for ((i=15;i<100;i+=20)); do
 	# 	sleep 0.$i && kill -USR2 "$mypid" && exit "${i}0" &
 	# done
-
 	childs=()
 	wait_sleep_exit 33 &
 	childs+=($!)
+	allchilds+=($!)
 	wait_sleep_exit 66 &
 	childs+=($!)
+	allchilds+=($!)
 	wait_sleep_exit 100 &
 	childs+=($!)
+	allchilds+=($!)
 }
 
 wait_test_finish() {
-	wait
+	wait "${allchilds[@]}"
 	local endtime passed limit_sec=3 limit_usec i passed_sec
 	for i in "${childs[@]}"; do
 		L_unittest_cmd -r 'No such process' ! kill -0 "$i"
@@ -3449,7 +3452,7 @@ wait_test_finish() {
 	L_log "limit_sec=$limit_usec passed_sec=$passed_sec"
 	L_unittest_cmd eval '(( limit_usec > (endtime - starttime) ))'
 	#
-	# wait "$killer"
+	# wait "$allchilds=()"
 }
 
 wait_sleep_exit() {
@@ -3468,7 +3471,7 @@ _L_test_wait_t_n() {
 	L_log "Check if L_wait -n -t can be interrupted by a signal"
 	local opt
 	for opt in "" "-b"; do
-		local childs=() mypid rets i ret pid left killer starttime
+		local childs=() mypid rets i ret pid left allchilds=() starttime
 		wait_test_prepare_with_3_childs
 		#
 		wait_interrupt
@@ -3505,7 +3508,7 @@ _L_test_wait_t() {
 	L_log "Check if L_wait -t"
 	local opt
 	for opt in "" "-b"; do
-		local childs=() mypid i rets i ret pid left killer starttime
+		local childs=() mypid i rets i ret pid left allchilds=() starttime
 		wait_test_prepare_with_3_childs
 		#
 		L_unittest_cmd -c -e 124 L_wait $opt -t 0 -v ret -p pid -l left "${childs[@]}"
@@ -3551,7 +3554,7 @@ _L_test_wait_t() {
 _L_test_wait_n() {
 	local opt
 	for opt in "" "-b"; do
-		local childs=() mypid i rets i ret pid left killer starttime
+		local childs=() mypid i rets i ret pid left allchilds=() starttime
 		wait_test_prepare_with_3_childs
 		#
 		sleep 0.2 && kill -USR1 "${childs[0]}" &
