@@ -3441,6 +3441,25 @@ L_array_filter_eval() {
 	eval "${_L_v%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
 }
 
+# @description Find an index of an element in the array equal to second argument.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 array nameref
+# @arg $2 element to find
+L_array_index() { L_handle_v_scalar "$@"; }
+L_array_index_v() {
+	local _L_i="$1[@]"
+	(( ${!_L_i:+1}+0 )) && {
+		eval "local _L_i=(\"\${!$1[@]}\")"
+		for L_v in "${_L_i[@]}"; do
+			_L_i="$1[$L_v]"
+			if [[ "$2" == "${!_L_i}" ]]; then
+				return 0
+			fi
+		done
+		return 1
+	}
+}
+
 # @description Join array elements separated with the second argument.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
@@ -3532,23 +3551,25 @@ L_args_contain() {
 L_args_index() { L_handle_v_scalar "$@"; }
 L_args_index_v() {
 	local _L_needle="$1" _L_start="$#" IFS=$'\x1D'
-	if [[ "${*//"$IFS"}" == "$*" ]]; then
-		L_v="$IFS${*:2}$IFS"
-		L_v="${L_v%%"$IFS$1$IFS"*}"
-		L_v="${L_v//[^$IFS]}"
-		L_v=${#L_v}
-		[[ "$L_v" -lt "$#" ]]
-	else
-		shift
-		while (($#)); do
-			if [[ "$1" == "$_L_needle" ]]; then
-				L_v=$((_L_start-1-$#))
-				return 0
-			fi
+	(( $# > 1 )) && {
+		if [[ "${*//"$IFS"}" == "$*" ]]; then
+			L_v="$IFS${*:2}$IFS"
+			L_v="${L_v%%"$IFS$1$IFS"*}"
+			L_v="${L_v//[^$IFS]}"
+			L_v=${#L_v}
+			[[ "$L_v" -lt "$#" ]]
+		else
 			shift
-		done
-		return 1
-	fi
+			while (($#)); do
+				if [[ "$1" == "$_L_needle" ]]; then
+					L_v=$((_L_start-1-$#))
+					return 0
+				fi
+				shift
+			done
+			return 1
+		fi
+	}
 }
 
 # @description return max of arguments
