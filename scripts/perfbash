@@ -90,7 +90,10 @@ if ((${#compare[@]})); then
     partresult=""
     for script in "${command[@]}"; do
       extract_from_run "$script" bash "$arg"
-      partresult+="\`$script\`$L_RS$arg$L_RS$ret$L_RS$instructions$L_RS$seconds_time_elapsed ± $seconds_time_elapsed_dev ($seconds_time_elapsed_percent)$L_RS"$'\n'
+      script_str=${script//[ $'\t\n']/ }
+      max_len=70
+      script_str=${script_str:${#script_str} > max_len ? ${#script_str} - max_len : 0}
+      partresult+="\`$script_str\`$L_RS$arg$L_RS$ret$L_RS$instructions$L_RS$seconds_time_elapsed ± $seconds_time_elapsed_dev ($seconds_time_elapsed_percent)$L_RS"$'\n'
     done
     result+=$(sort -t "$L_RS" -k 4 -n <<<"$partresult")
   done
