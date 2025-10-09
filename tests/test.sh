@@ -1419,12 +1419,14 @@ _L_test_L_trap() {
 		L_unittest_eq "$tmp" SIGHUP
 		L_trap_to_name -v tmp DEBUG
 		L_unittest_eq "$tmp" DEBUG
-		L_trap_to_name -v tmp SIGRTMIN+5
-		L_unittest_eq "$tmp" SIGRTMIN+5
-		L_trap_to_number -v tmp SIGRTMAX-5
-		L_unittest_eq "$tmp" 59
-		L_trap_to_number -v tmp SIGRTMAX
-		L_unittest_eq "$tmp" 64
+		if [[ $MACHTYPE == *linux* ]]; then
+			L_trap_to_name -v tmp SIGRTMIN+5
+			L_unittest_eq "$tmp" SIGRTMIN+5
+			L_trap_to_number -v tmp SIGRTMAX-5
+			L_unittest_eq "$tmp" 59
+			L_trap_to_number -v tmp SIGRTMAX
+			L_unittest_eq "$tmp" 64
+		fi
 		L_trap_names -v tmp
 		local tmp2
 		for tmp in "${tmp[@]}"; do
@@ -3418,7 +3420,7 @@ _L_test_finally_subshells() {
 		for i in $(L_trap_names); do
 			case "$i" in
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
+			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
 			esac
 		done
@@ -3436,7 +3438,7 @@ _L_test_finally_proc() {
 			case "$i" in
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
 			SIGSTKFLT) ;;
-			SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
+			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
 			esac
 		done
