@@ -683,6 +683,10 @@ L_func_help() {
 		v="${v//$'\n' /$'\n'}"
 		v="${v%%$'\n'}"
 		v="${v%%$'\n'}"
+		v=${v#@description }
+		if [[ "$v" == @* && "$v" == *$'\n'* ]]; then
+			v=$'\n'$v
+		fi
 	else
 		v="unknown help"
 	fi
