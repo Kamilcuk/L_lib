@@ -561,10 +561,12 @@ _L_func_line_is_function_definition_with_comment() {
 #
 #    # some comment
 #    somefunc() {
-#       L_func_command
+#       L_func_comment
 #    }
 #
 #    somefunc  # outputs '# some comment'
+#
+#    L_func_comment -f somefunc
 L_func_comment() {
 	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
 		_L_f="" _L_usebash=0 L_v="" _L_up=0 _L_funcname_escaped
@@ -642,7 +644,7 @@ L_func_comment() {
 }
 
 # @description Print function comment as usage message.
-# @arg [$1] How many stack frames up.
+# @arg [int] How many stack frames up.
 # @see L_func_comment
 # @see L_func_error
 # @return 0
@@ -653,8 +655,8 @@ L_func_comment() {
 #    # @option -h Print this help and return 0.
 #    # @arg arg This is an argument
 #    utility() {
-#      local OPTING OPTARG OPTERR opt t g
-#      while getopt tg:h opt; do
+#      local OPTIND OPTARG OPTERR opt t g
+#      while getopts tg:h opt; do
 #        case "$opt" in
 #          t) t=1 ;;
 #          g) g=$OPTARG ;;
@@ -667,6 +669,9 @@ L_func_comment() {
 #      #
 #      : utility logic
 #    }
+#
+#    utility -h        # prints the comment above the function
+#    utility -invalid  # prints 'Usage: utility [-th] [-g arg] arg'
 #
 L_func_help() {
 	local up="$((${1:-0}+1))" v=""
@@ -1588,7 +1593,7 @@ L_is_main() { ! L_is_sourced; }
 # @description Return 0 if current script sourced.
 # Comparing BASH_SOURCE to $0 only works, when BASH_SOURCE is different from $0.
 # When calling `.` or `source` builtin it will be added as an "source" into `FUNCNAME` array.
-# This function returns false, if there exists a source elemtn in FUNCNAME array.
+# This function returns false, if there exists a source element in FUNCNAME array.
 L_is_sourced() {
 	local IFS=" "
 	[[ " ${FUNCNAME[*]} " == *" source "* ]]
@@ -1604,7 +1609,7 @@ L_is_sourced() {
 #     d e f
 #
 # It is hard to detect if the script arguments are real arguments passed to `source` command or not.
-# This function detect the case.
+# This function detect the case by checking for a command "source" in FUNCNAME.
 #
 # @example
 #    if L_is_main; then
@@ -8452,13 +8457,13 @@ else
 fi
 
 # @description Open two connected file descriptors.
-# This intenrally creates a temporary file with mkfifo
+# This internally creates a temporary file with mkfifo
 # The result variable is assigned an array that:
 #   - [0] element is input from the pipe,
 #   - [1] element is the output to the pipe.
 # This is meant to mimic the pipe() C function.
-# @arg $1 <var> variable name to assign result to
-# @arg [$2] <str> template temporary filename, default: ${TMPDIR:/tmp}/L_pipe_XXXXXXXXXX
+# @arg <var> variable name to assign result to
+# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_pipe_XXXXXXXXXX
 L_pipe() {
 	local _L_i _L_file _L_1 _L_0 _L_tmp
 	L_assert 'mktemp or mkfifo utilities are missing' L_hash mktemp mkfifo
@@ -8540,15 +8545,16 @@ _L_proc_init_setup_redir() {
 #   - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
 #
 # There first argument specifies an output variable that will be assigned string with content:
-# `<exitcode> pid<pid> 0fd<stdin> 1fd<stdout> 2fd<stderr>\tcmd...`
+# `<exitcode> pid<pid> 0fd<stdin> 1fd<stdout> 2fd<stderr>\t<cmd...>`.
 #
-# The string is used to extract:
-#   - Exitcode or empty if not yet finished.
-#   - Pid.
-#   - If -Ipipe the file descriptor connected to stdin of the program, otherwise empty.
-#   - If -Opipe the file descriptor connected to stdout of the program, otherwise empty.
-#   - If -Epipe the file descriptor connected to stderr of the program, otherwise empty.
-#   - %q escaped command.
+# The outputs variable contains elements:
+#
+#   - `<exitcode>` - Exitcode or empty if not yet finished.
+#   - `<pid>` - Pid.
+#   - `<stdin>` - If -Ipipe the file descriptor connected to stdin of the program, otherwise empty.
+#   - `<stdout>` - If -Opipe the file descriptor connected to stdout of the program, otherwise empty.
+#   - `<stderr>` - If -Epipe the file descriptor connected to stderr of the program, otherwise empty.
+#   - `<cmd...>` - The %q escaped command that was executed.
 #
 # You should use getters `L_proc_get_*` to extract the data from proc variable.
 # The proc variable is _not_ an array, so it can be used in an array to run many processes.
