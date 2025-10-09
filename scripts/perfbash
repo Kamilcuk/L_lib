@@ -16,6 +16,7 @@ Pass script arguments as an option to --compare option. Example: --compare arg1 
   -- -p --perfargs action=append help="additoinal perf arguments" \
   -- -d --diff flag=1 help="Show difference scripts execution instructions and times" \
   -- -P --previous flag=1 help="Show difference to previous execution of the script" \
+  -- --prefix help="Add this at th begining of the script" \
   -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
   ---- "$@"
 #
@@ -89,7 +90,7 @@ if ((${#compare[@]})); then
   for arg in "${compare[@]}"; do
     partresult=""
     for script in "${command[@]}"; do
-      extract_from_run "$script" bash "$arg"
+      extract_from_run "$prefix$script" bash "$arg"
       script_str=${script//[ $'\t\n']/ }
       max_len=70
       script_str=${script_str:${#script_str} > max_len ? ${#script_str} - max_len : 0}
