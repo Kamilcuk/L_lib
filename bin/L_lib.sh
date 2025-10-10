@@ -3298,26 +3298,26 @@ L_array_len() { L_handle_v_scalar "$@"; }
 
 if ((L_HAS_NAMEREF)); then
 
-L_array_len_v() { local -n _L_arr="$1"; L_v=${#_L_arr[@]}; }
+L_array_len_v() { local -n _L_arr="$1" || return 2; L_v=${#_L_arr[@]}; }
 
 # @description Set elements of array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to set
 # @example L_array_assign arr 1 2 3
-L_array_assign() { local -n _L_arr="$1"; _L_arr=("${@:2}"); }
+L_array_assign() { local -n _L_arr="$1" || return 2; _L_arr=("${@:2}"); }
 
 # @description Assign element of an array
 # @arg $1 <var> array nameref
 # @arg $2 <int> array index
 # @arg $3 <str> value to assign
 # @example L_array_assign arr 5 "Hello"
-L_array_set() { local -n _L_arr="$1"; _L_arr["$2"]="$3"; }
+L_array_set() { local -n _L_arr="$1" || return 2; _L_arr["$2"]="$3"; }
 
 # @description Append elements to array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to append
 # @example L_array_append arr "Hello" "World"
-L_array_append() { local -n _L_arr="$1"; _L_arr+=("${@:2}"); }
+L_array_append() { local -n _L_arr="$1" || return 2; _L_arr+=("${@:2}"); }
 
 # @description Insert element at specific position in an array.
 # This will move all elements from the position to the end of the array.
@@ -3325,22 +3325,22 @@ L_array_append() { local -n _L_arr="$1"; _L_arr+=("${@:2}"); }
 # @arg $2 <int> index position
 # @arg $@ elements to append
 # @example L_array_insert arr 2 "Hello" "World"
-L_array_insert() { local -n _L_arr="$1"; _L_arr=(${_L_arr[@]+"${_L_arr[@]::$2}"} "${@:3}" ${_L_arr[@]+"${_L_arr[@]:$2}"}); }
+L_array_insert() { local -n _L_arr="$1" || return 2; _L_arr=(${_L_arr[@]+"${_L_arr[@]::$2}"} "${@:3}" ${_L_arr[@]+"${_L_arr[@]:$2}"}); }
 
 # @description Remove first array element.
 # @arg $1 <var> array nameref
-L_array_pop_front() { local -n _L_arr="$1"; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"}); }
+L_array_pop_front() { local -n _L_arr="$1" || return 2; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"}); }
 
 # @description Remove last array element.
 # @arg $1 <var> array nameref
 # @example L_array_pop_back arr
-L_array_pop_back() { local -n _L_arr="$1"; unset -v "_L_arr[${#_L_arr[@]}-1]"; }
+L_array_pop_back() { local -n _L_arr="$1" || return 2; unset -v "_L_arr[${#_L_arr[@]}-1]"; }
 
 # @description Return success, if all array elements are in sequence from 0.
 # @arg $1 <var> array nameref
 # @example if L_array_is_dense arr; then echo "Array is dense"; fi
 L_array_is_dense() {
-	local -n _L_arr="$1"
+	local -n _L_arr="$1" || return 2
 	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
 }
 
@@ -4567,7 +4567,7 @@ L_run() {
 # @description Shuffle an array
 # @arg $1 array nameref
 L_shuf_bash() {
-	local -n _L_arr=$1
+	local -n _L_arr="$1" || return 2
 	local _L_i _L_j _L_tmp
 	# RANDOM range is 0..32767
 	for ((_L_i=${#_L_arr[@]}-1; _L_i; --_L_i)); do
@@ -4667,7 +4667,7 @@ L_sort_bash() {
 		_L_c="$1[@]"
 		_L_array=(${!_L_c+"${!_L_c}"})
 	else
-		local -n _L_array=$1
+		local -n _L_array="$1" || return 2
 	fi
 	_L_sort_bash_in 0 "$((${#_L_array[@]}-1))"
 	if ((!L_HAS_NAMEREF)); then
