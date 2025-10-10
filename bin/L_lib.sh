@@ -1094,6 +1094,8 @@ _L_getopts_forward() {
   L_array_assign "$_L_v" "$((OPTIND-1))" "${_L_ret[@]}"
 }
 
+if ((!L_HAS_NAMEREF)); then
+
 # @description Wrapper function for handling -v arguments to other functions.
 # It calls a function called `<caller>_v` with arguments, but without `-v <var>`.
 # The function `<caller>_v` should set the variable nameref L_v to the returned value.
@@ -1117,41 +1119,33 @@ L_handle_v_scalar() {
 	local L_v
 	case "${1:-}" in
 	-v?*)
-		if [[ "${2:-}" == -- ]]; then
-			if "${FUNCNAME[1]}"_v "${@:3}"; then
-				printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
+		if
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
 			else
-				local _L_r=$?
-				printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
-				return "$_L_r"
+				"${FUNCNAME[1]}"_v "${@:2}"
 			fi
+		then
+			printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
 		else
-			if "${FUNCNAME[1]}"_v "${@:2}"; then
-				printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
-			else
-				local _L_r=$?
-				printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
-				return "$_L_r"
-			fi
+			local _L_r=$?
+			printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
+			return "$_L_r"
 		fi
 		;;
 	-v)
-		if [[ "${3:-}" == -- ]]; then
-			if "${FUNCNAME[1]}"_v "${@:4}"; then
-				printf -v "$2" "%s" "${L_v:-}" || return "$?"
+		if
+			if [[ "${3:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:4}"
 			else
-				local _L_r=$?
-				printf -v "$2" "%s" "${L_v:-}" || return "$?"
-				return "$_L_r"
+				"${FUNCNAME[1]}"_v "${@:3}"
 			fi
+		then
+			printf -v "$2" "%s" "${L_v:-}" || return "$?"
 		else
-			if "${FUNCNAME[1]}"_v "${@:3}"; then
-				printf -v "$2" "%s" "${L_v:-}" || return "$?"
-			else
-				local _L_r=$?
-				printf -v "$2" "%s" "${L_v:-}" || return "$?"
-				return "$_L_r"
-			fi
+			local _L_r=$?
+			printf -v "$2" "%s" "${L_v:-}" || return "$?"
+			return "$_L_r"
 		fi
 		;;
 	--)
@@ -1200,46 +1194,38 @@ L_handle_v_array() {
 	case "${1:-}" in
 	-v?*)
 		if ! L_is_valid_variable_name "${1##-v}"; then
-			L_panic "not a valid identifier: ${1##-v}" || return "$?"
+			L_func_error "not a valid identifier: ${1##-v}" 1; return 2
 		fi
-		if [[ "${2:-}" == -- ]]; then
-			if "${FUNCNAME[1]}"_v "${@:3}"; then
-				eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+		if
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
 			else
-				local _L_r=$?
-				eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-				return "$_L_r"
+				"${FUNCNAME[1]}"_v "${@:2}"
 			fi
+		then
+			eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
 		else
-			if "${FUNCNAME[1]}"_v "${@:2}"; then
-				eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-			else
-				local _L_r=$?
-				eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-				return "$_L_r"
-			fi
+			local _L_r=$?
+			eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			return "$_L_r"
 		fi
 		;;
 	-v)
 		if ! L_is_valid_variable_name "${2:-}"; then
-			L_panic "not a valid identifier: $2"
+			L_func_error "not a valid identifier: $2" 1; return 1
 		fi
-		if [[ "${3:-}" == -- ]]; then
-			if "${FUNCNAME[1]}"_v "${@:4}"; then
-				eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+		if
+			if [[ "${3:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:4}"
 			else
-				local _L_r=$?
-				eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-				return "$_L_r"
+				"${FUNCNAME[1]}"_v "${@:3}"
 			fi
+		then
+			eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
 		else
-			if "${FUNCNAME[1]}"_v "${@:3}"; then
-				eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-			else
-				local _L_r=$?
-				eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
-				return "$_L_r"
-			fi
+			local _L_r=$?
+			eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			return "$_L_r"
 		fi
 		;;
 	--)
@@ -1262,6 +1248,92 @@ L_handle_v_array() {
 		fi
 	esac
 }
+
+else  # L_HAS_NAMEREF
+
+	L_handle_v_scalar() {
+		case "${1:-}" in
+		-v?*)
+			local -n L_v="${1##-v}" || return 2
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
+			else
+				"${FUNCNAME[1]}"_v "${@:2}"
+			fi
+			;;
+		-v)
+			local -n L_v="$2" || return 2
+			if [[ "${3:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:4}"
+			else
+				"${FUNCNAME[1]}"_v "${@:3}"
+			fi
+			;;
+		--)
+			local L_v
+			if "${FUNCNAME[1]}"_v "${@:2}"; then
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			else
+				local _L_r=$?
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				return "$_L_r"
+			fi
+			;;
+		-h) L_func_help 1; return 0 ;;
+		*)
+			local L_v
+			if "${FUNCNAME[1]}"_v "$@"; then
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			else
+				local _L_r=$?
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				return "$_L_r"
+			fi
+		esac
+	}
+
+	L_handle_v_array() {
+		case "${1:-}" in
+		-v?*)
+			local -n L_v="${1##-v}" || return 2
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
+			else
+				"${FUNCNAME[1]}"_v "${@:2}"
+			fi
+			;;
+		-v)
+			local -n L_v="$2" || return 2
+			if [[ "${3:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:4}"
+			else
+				"${FUNCNAME[1]}"_v "${@:3}"
+			fi
+			;;
+		--)
+			local L_v
+			if "${FUNCNAME[1]}"_v "${@:2}"; then
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			else
+				local _L_r=$?
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				return "$_L_r"
+			fi
+			;;
+		-h) L_func_help 1; return 0 ;;
+		*)
+			local L_v
+			if "${FUNCNAME[1]}"_v "$@"; then
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			else
+				local _L_r=$?
+				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				return "$_L_r"
+			fi
+		esac
+	}
+
+fi  # L_HAS_NAMEREF
 
 # ]]]
 # stdlib [[[
