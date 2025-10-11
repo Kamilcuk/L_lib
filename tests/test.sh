@@ -12,7 +12,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
@@ -1292,8 +1292,8 @@ _L_test_log_from() {
 _L_test_setx() {
 	aaa_1() { echo hi; return "$1"; }
 	aaa_2() { aaa_1 "$@"; }
-	L_unittest_cmd -jr '.*+ echo hi.*' L_setx aaa_2 0
-	L_unittest_cmd -jr '.*+ echo hi.*' -e 123 L_setx aaa_2 123
+	L_unittest_cmd -jr '[+] echo hi.*[+] return 0' L_setx aaa_2 0
+	L_unittest_cmd -jr '[+] echo hi.*[+] return 123' -e 123 L_setx aaa_2 123
 	unset aaa_1 aaa_2
 }
 
@@ -3253,11 +3253,11 @@ _L_test_finally() {
 		}
 		export -f func
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) \
-			bash -c ". $L_LIB_SCRIPT && func INT"
+			"${newbash[@]}" func INT
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) \
-			bash -c ". $L_LIB_SCRIPT && func TERM"
+			"${newbash[@]}" func TERM
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) \
-			bash -c ". $L_LIB_SCRIPT && func HUP"
+			"${newbash[@]}" func HUP
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) func INT
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
@@ -3286,7 +3286,7 @@ _L_test_finally() {
 		}
 		export -f func
 		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" func
-		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" bash -c ". $L_LIB_SCRIPT && func"
+		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" "${newbash[@]}" func
 	}
 	{
 		L_info "test command substition"
@@ -3303,7 +3303,7 @@ _L_test_finally() {
 		}
 		L_unittest_cmd -o 12345 func
 		export -f func
-		L_unittest_cmd -o 12345 bash -c ". $L_LIB_SCRIPT && func"
+		L_unittest_cmd -o 12345 "${newbash[@]}" func
 	}
 	{
 		L_info "nested return ok"
@@ -3324,7 +3324,7 @@ _L_test_finally() {
 		}
 		export -f "a" "a.*" "a*" "a?*"
 		L_unittest_cmd -o 1234 a
-		L_unittest_cmd -o 1234 bash -c ". $L_LIB_SCRIPT && a"
+		L_unittest_cmd -o 1234 "${newbash[@]}" a
 		#
 		a?*() {
 			L_finally -r printf "$1"
@@ -3350,7 +3350,7 @@ _L_test_finally() {
 		export -f "a" "a.*" "a*" "a?*"
 		L_unittest_cmd -o a1b2c3a4b5c6d78 a
 		L_unittest_cmd -o a1b2c3a4b5c6d78 L_subshell a
-		L_unittest_cmd -o a1b2c3a4b5c6d78 bash -c ". $L_LIB_SCRIPT && a"
+		L_unittest_cmd -o a1b2c3a4b5c6d78 "${newbash[@]}" a
 		L_unittest_cmd -o a1b2c3a4b5c6d78 bash -eEo functrace -c ". $L_LIB_SCRIPT && a"
 	}
 	#
@@ -3456,16 +3456,17 @@ _L_test_finally_interrupt() {
 	waiter() {
 		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
 		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
+		# set +x
 		enable sleep || :
-		local to; L_timeout_set_to to 10; while ! L_timeout_expired "$to"; do sleep 0.1; done
+		local to; L_timeout_set_to to "$1"; while ! L_timeout_expired "$to"; do sleep 0.1; done
 	}
 	{
 		local e=$((128+$(L_trap_to_number USR1)))
 		L_info "test interrupting error handling"
 		f() {
-			L_finally waiter
+			L_finally waiter 0.5
 			L_bashpid_to bashpid
-			sleep 0.1 && kill -USR1 "$bashpid" || : &
+			sleep 0.2 && kill -USR1 "$bashpid" || : &
 			case "$1" in
 				pop) L_finally_pop ;;
 				return) return ;;
@@ -3473,6 +3474,11 @@ _L_test_finally_interrupt() {
 				signal) L_raise -USR1 ;;
 			esac
 		}
+		export -f f waiter
+		L_unittest_cmd -e "$e" "${newbash[@]}" f pop
+		L_unittest_cmd -e "$e" "${newbash[@]}" f return
+		L_unittest_cmd -e "$e" "${newbash[@]}" f exit
+		L_unittest_cmd -e "$e" "${newbash[@]}" f signal
 		L_unittest_cmd -e "$e" f pop
 		L_unittest_cmd -e "$e" f return
 		L_unittest_cmd -e "$e" f exit
@@ -3481,10 +3487,10 @@ _L_test_finally_interrupt() {
 	{
 		L_info "test interrupting error handling twice"
 		f2() {
-			L_finally waiter
+			L_finally waiter 10
 			L_bashpid_to bashpid
-			sleep 0.1 && kill -USR1 "$bashpid" &
 			sleep 0.2 && kill -USR1 "$bashpid" &
+			sleep 0.4 && kill -USR1 "$bashpid" &
 			case "$1" in
 				pop) L_finally_pop ;;
 				return) return ;;
@@ -3492,9 +3498,13 @@ _L_test_finally_interrupt() {
 				signal) L_raise -USR1 ;;
 			esac
 		}
+		export -f f2
 		L_unittest_cmd -e "$e" f2 pop
 		L_unittest_cmd -e "$e" f2 return
 		L_unittest_cmd -e "$e" f2 exit
+		L_unittest_cmd -e "$e" "${newbash[@]}" f2 pop
+		L_unittest_cmd -e "$e" "${newbash[@]}" f2 return
+		L_unittest_cmd -e "$e" "${newbash[@]}" f2 exit
 		if ((!L_HAS_BASH5_0)); then
 			L_warning "Disabled below bash5.0"
 			return
@@ -3938,10 +3948,11 @@ _L_test_func_usage() {
 
 _L_test_sections_ok() {
 	local vim_sections file_sections docs_sections list_sections
-	vim_sections=$(sed -n 's/# \+\(.*\) \+\[\[\[$/\1/p' bin/L_lib.sh | sort)
-	file_sections=$(sed -n 's/# @section \+\(.*\)$/\1/p' bin/L_lib.sh | sort)
+	vim_sections=$(sed -n 's/# *\(.*\)  *\[\[\[$/\1/p' "$L_LIB_SCRIPT" | sort)
+	file_sections=$(sed -n 's/# @section *\(.*\)$/\1/p' "$L_LIB_SCRIPT" | sort)
 	docs_sections=$(cd docs/section && printf "%s\n" *.md | sed 's/\.md$//' | sort | grep -vxF all)
-	list_sections=$(sed -n '/- Documentation:/,/^$/{/Documentation:/d;s/.*- \([^:]*\).*/\1/p}' mkdocs.yml | grep -vxF all | sort)
+	list_sections=$(sed -n '/- Documentation:/,/^$/{ /Documentation:/d; s/.*- \([^:]*\).*/\1/p; }' mkdocs.yml |
+		grep -vxF all | sort)
 	L_unittest_eq "$vim_sections" "$file_sections"
 	L_unittest_eq "$vim_sections" "$docs_sections"
 	L_unittest_eq "$vim_sections" "$list_sections"
@@ -3949,6 +3960,7 @@ _L_test_sections_ok() {
 
 ###############################################################################
 
+newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)
 
 L_trap_err_enable

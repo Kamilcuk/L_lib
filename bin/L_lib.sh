@@ -1062,7 +1062,7 @@ L_cache() {
   else
     {
       if ((_L_flock)); then flock 9; fi
-      _L_cache=$(< /dev/fd/9)$'\n'
+      _L_cache=$(cat <&9)$'\n'
       if [[ "$_L_cache" != "$_L_cache_header"* ]]; then
         # Cache has wrong version or wrong header - clear it.
         _L_cache=()
@@ -2219,7 +2219,7 @@ L_path_extensions_v() {
 	case $L_v in
 	.|..) L_v=() ;;
 	?*.*)
-		IFS=. read -r -d '' -a L_v <<<"$1"
+		IFS=. read -r -d '' -a L_v <<<"$L_v" || :
 		# Remove additional newline from <<< from last element.
 		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
 		# Remove basename.
@@ -5671,7 +5671,7 @@ L_unittest_cmd() {
 					rm "$_L_utmpf"
 					eval "$_L_uc || _L_uret=\$?"
 				} >"$_L_utmpf" 111<&-
-				_L_uout=$(< /dev/fd/111)
+				_L_uout=$(cat <&111)
 			} 111<"$_L_utmpf"
 		else
 			eval "$_L_uc || _L_uret=\$?"
@@ -8924,11 +8924,11 @@ _L_wait_handle_err() {
 		{
 			rm "$tmpf"
 			wait "${@:2}" 2>&10
-			err=$(< /dev/fd/10)
+			err=$(cat <&11)
 			if [[ -n "$err" ]]; then
 				return 1
 			fi
-		} 10<>"$tmpf"
+		} 10>"$tmpf" 11<"$tmpf"
 	fi
 }
 
