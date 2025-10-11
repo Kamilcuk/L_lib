@@ -5065,7 +5065,7 @@ L_finally_handle_return() {
 	fi
 	#
 	if ((${_L_finally_pending[@]:+1})); then
-		unset L_SIGNAL
+		unset -v L_SIGNAL
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 		exit "$((128+_L_finally_pending[1]))"
 	fi
@@ -5285,8 +5285,7 @@ L_finally_pop() {
 		# shellcheck disable=SC2294
 		local L_SIGNAL=POP
 		eval "${_L_finally_arr[_L_idx]}" || _L_ret=$?
-		unset -v "_L_finally_arr[$_L_idx]"
-		unset L_SIGNAL
+		unset -v "_L_finally_arr[$_L_idx]" L_SIGNAL
 		if ((${_L_finally_pending[@]:+1})); then
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 			exit "$((128+_L_finally_pending[1]))"
@@ -5319,7 +5318,7 @@ L_finally_critical_section() {
 	fi
 	local L_SIGNAL=NONE _L_ret=0
 	"$@" || _L_ret=$?
-	unset L_SIGNAL
+	unset -v L_SIGNAL
 	if ((${_L_finally_pending[@]:+1})); then
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 		exit "$((128+_L_finally_pending[1]))"
