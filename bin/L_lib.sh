@@ -5297,8 +5297,7 @@ L_finally_pop() {
 	_L_elem=";unset -v \"_L_finally_arr[$_L_idx]\";"$'\t'
 	for _L_idx in ${_L_finally_return[@]:+"${!_L_finally_return[@]}"}; do
 		if [[ "${_L_finally_return[_L_idx]}" == *"$_L_elem"* ]]; then
-			_L_i=${_L_finally_return[_L_idx]}
-			_L_finally_return[_L_idx]=${_L_i#*$'\t'*"$_L_elem"}$'\t'${_L_i%$'\t'*"$_L_elem"*}
+			_L_finally_return[_L_idx]=${_L_finally_return[_L_idx]#*$'\t'*"$_L_elem"}$'\t'${_L_finally_return[_L_idx]%$'\t'*"$_L_elem"*}
 			break
 		fi
 	done
