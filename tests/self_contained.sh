@@ -19,10 +19,10 @@ work() {
   done
 }
 if L_hash L_xargs; then
-  L_xargs -P"$(nproc)" -i work {} <<<"$functions"
+  L_xargs -t -P "$(nproc)" -i work {} <<<"$functions"
 else
   export -f $functions work
   export all_functions functions
-  xargs -P"$(nproc)" -i bash -c "work {}" <<<"$functions"
+  xargs -t -P "$(nproc)" -n1 bash -c 'work $1' bash <<<"$functions"
 fi
 echo "SUCCESS"

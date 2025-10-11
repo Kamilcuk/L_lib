@@ -18,7 +18,7 @@ if [[ "$1" == "show"* ]]; then
   exit
 fi
 
-one=$("$0" show | sed 's/pid [0-9]\+//' | tee /dev/stderr)
-two=$("$0" show_nomapfile | sed 's/pid [0-9]\+//' | tee /dev/stderr)
+one=$("$0" show | sed 's/pid [0-9]*/pid REDACTED/' | tee /dev/stderr)
+two=$("$0" show_nomapfile | sed 's/pid [0-9]*/pid REDACTED/' | tee /dev/stderr)
 L_unittest_cmd L_glob_match "$one" "Traceback from*"
 L_unittest_eq "$one" "$two"
