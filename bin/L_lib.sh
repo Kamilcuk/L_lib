@@ -8930,6 +8930,10 @@ _L_wait_handle_err() {
 }
 
 _L_wait_collect_all_pids_and_assign_pids_done_rets() {
+	# For wait -p _L_tmp variable to be unset, it _has to_ be local within the same scope.
+	# Otherwise it will unset and fallback to the upper scope _L_tmp,
+	# which might happen to have a value.
+	local _L_tmp
 	for _L_pid in "${_L_pids[@]}"; do
 		if ((L_HAS_WAIT_P)); then
 			# -p is unset when receiving a signal.
