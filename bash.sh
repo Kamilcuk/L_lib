@@ -4,6 +4,7 @@ set -euo pipefail
   description="Compare behavior of multiple bash versions" \
   -- -q --quiet flag=1 help="Silence output from dockers" \
   -- -i --input help="Stdin" default="" \
+  -- -c --script flag=1 help="Instead of bash arguments take script to execute" \
   -- versions nargs="?" help="Bash version to test against, or all. Default: all" default="all" \
   -- args nargs="*" help="Bash arguments" \
   ---- "$@"
@@ -15,6 +16,10 @@ fi
 if [[ -z "$input" ]] && read -t 0; then
   input=$(cat)
   echo "input=$input"
+fi
+
+if ((script)); then
+  args=(-c "${args[*]}")
 fi
 
 IFS=$', \t\n' read -r -a versions <<<"$versions"
