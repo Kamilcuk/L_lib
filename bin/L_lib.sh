@@ -8888,7 +8888,6 @@ _L_wait_tail_has_pid() {
 
 _L_wait_assign_pids_done_rets() {
 	# Remove from _L_pids pids that are finished.
-	local IFS=' ' _L_i
 	for _L_i in "${!_L_pids[@]}"; do
 		if [[ " ${_L_done[*]+${_L_done[*]}} " == *" ${_L_pids[_L_i]} "* ]]; then
 			unset -v "_L_pids[_L_i]"
@@ -8914,24 +8913,23 @@ _L_wait_assign_pids_done_rets() {
 
 # @arg $1 exit code of previous wait call
 # @arg $@ wait arguments that resulted in this exit code
+# shellcheck disable=SC2094
 _L_wait_handle_err() {
 	if (($1 == 127)); then
 		# Wait returns 127 on error.
-		local tmpf
-		tmpf=$(mktemp) || return 1
+		_L_tmpf=$(mktemp) || return 1
 		{
-			rm "$tmpf"
+			rm "$_L_tmpf"
 			wait "${@:2}" 2>&10
 			err=$(cat <&11)
 			if [[ -n "$err" ]]; then
 				return 1
 			fi
-		} 10>"$tmpf" 11<"$tmpf"
+		} 10>"$_L_tmpf" 11<"$_L_tmpf"
 	fi
 }
 
 _L_wait_collect_all_pids_and_assign_pids_done_rets() {
-	local _L_pid _L_tmp
 	for _L_pid in "${_L_pids[@]}"; do
 		if ((L_HAS_WAIT_P)); then
 			# -p is unset when receiving a signal.
@@ -8992,7 +8990,8 @@ _L_wait_collect_any_pids() {
 #         124 timeout
 L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
-		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid
+		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
+		_L_pids _L_done=() _L_rets=() _L_return=0
 	while getopts t:v:p:l:P:nbih _L_i; do
 		case "$_L_i" in
 			t) _L_timeout=$OPTARG ;;
@@ -9006,15 +9005,14 @@ L_wait() {
 			*) L_func_error; return 2 ;;
 		esac
 	done
-	shift "$((OPTIND-1))"
-	# Return with 0 with no PIDs.
-	if ((!$#)); then return 0; fi
 	# local -;set -x
 	# _L_pids - runnign pids
 	# _L_done - finished pids
 	# _L_rets - pid _L_done[i] exited with _L_rets[i]
 	# _L_return - the return code
-	local _L_pids=("$@") _L_done=() _L_rets=() _L_return=0
+	_L_pids=("${@:OPTIND}")
+	# Return with 0 with no PIDs.
+	if ((!${_L_pids[*]:+1}+0)); then return 0; fi
 	if [[ -z "$_L_timeout" ]]; then
 		if ((_L_all || $# == 1)); then
 			# Wait for all pids without a timeout.
