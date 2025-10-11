@@ -3791,7 +3791,7 @@ _L_test_wait_n() {
 }
 
 _L_test_wait_err() {
-	local opt
+	local opt _L_tmp=12345
 	L_unittest_cmd L_wait
 	for opt in "" "-b"; do
 		L_unittest_cmd -e 1 L_wait $opt -t 1 999
