@@ -2433,6 +2433,16 @@ _L_test_z_argparse9_time_profile() {
 	check run -h
 }
 
+_L_test_z_argparse10_remainder() {
+	{
+		local cmd args
+		L_log "test that when the nargs=remainder is the second argument then you can start wiht a dash -"
+		L_argparse -- cmd -- args nargs=remainder ---- a -v -h
+		L_unittest_vareq cmd a
+		L_unittest_arreq args -v -h
+	}
+}
+
 _L_test_path() {
 	local v
 	{
