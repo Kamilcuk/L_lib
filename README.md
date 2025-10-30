@@ -48,16 +48,16 @@ bash <(curl -sS https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/b
 Below is some list with some of the library features. The library contains much more.
 
 - argument parsing in Bash with short, long optiong, subparsers, subfunctions support and shell completion
-    [`L_argparse`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_argparse)
+    [`L_argparse`](https://kamilcuk.github.io/L_lib/section/argparse/)
 - logging library with levels and configurable output and filtering
-    [`L_log_configure`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_log_configure)
+    [`L_log_configure`](https://kamilcuk.github.io/L_lib/section/log/)
     [`L_info`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_info)
     [`L_logrun`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_logrun)
     [`L_run`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_run)
 - pretty function stack printing usually on ERR trap
     [`L_print_traceback`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_print_traceback)
 - execute an action on EXIT, any terminating signal or RETURN trap of any function
-    [`L_finally`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_finally)
+    [`L_finally`](https://kamilcuk.github.io/L_lib/section/finally/)
 - create temporary directory and cd to it for the duration of a function with auto removal after return
     [`L_with_cd`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_with_cd)
     [`L_with_cd_tmpdir`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_with_cd_tmpdir)
