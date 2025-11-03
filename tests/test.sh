@@ -1922,8 +1922,8 @@ Options:
 Usage: myprogram [-h] [--foo FOO]
 
 Options:
-  -h, --help  show this help message and exit
-  --foo FOO   foo of the myprogram program"
+  -h, --help     show this help message and exit
+      --foo FOO  foo of the myprogram program"
 	}
 	{
 		local foo bar
@@ -1934,8 +1934,8 @@ Arguments:
   bar  bar help
 
 Options:
-  -h, --help   show this help message and exit
-  --foo [FOO]  foo help" \
+  -h, --help       show this help message and exit
+      --foo [FOO]  foo help" \
 			-- L_argparse prog=PROG usage="PROG [options]" \
 			-- --foo nargs="?" help="foo help" \
 			-- bar nargs="+" help="bar help" \
@@ -2129,8 +2129,8 @@ Arguments:
   bar
 
 Options:
-  -h, --help  show this help message and exit
-  --foo FOO" \
+  -h, --help     show this help message and exit
+      --foo FOO" \
 			-- L_argparse prog=prog -- --foo -- bar ---- -h
   	}
 }
