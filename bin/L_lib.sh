@@ -7088,7 +7088,7 @@ _L_argparse_spec_call_parameter() {
 _L_argparse_spec_argument_common() {
 	# Special
 	if [[ "${_L_opt_nargs[_L_opti]:-}" == remainder ]]; then
-		_L_opt_action[_L_opti]=remainder
+		_L_parser_remainder[_L_parseri]=1
 		_L_opt_nargs[_L_opti]="*"
 	fi
 	{
@@ -7141,12 +7141,6 @@ _L_argparse_spec_argument_common() {
 			# 	_L_argparse_spec_fatal "eval=${_L_opt_eval[_L_opti]} is invalid"
 			# fi
 			: "${_L_opt_nargs[_L_opti]:=0}"
-			;;
-		remainder)
-			if [[ -n "${_L_opt__options[_L_opti]:-}" ]]; then
-				_L_argparse_spec_fatal "action=${_L_opt_action[_L_opti]} can be used with positional args only"
-			fi
-			: "${_L_opt_nargs[_L_opti]:="*"}"
 			;;
 		_subparser|count|help) ;;
 		*) _L_argparse_spec_fatal "invalid action=${_L_opt_action[_L_opti]:-}. Action has to be one of: store, store_const, store_true, store_false, store_0, store_1, store_1null, append, append_const, eval or remainder. "
@@ -7202,7 +7196,7 @@ _L_argparse_parser_get_all_options() {
 _L_argparse_parser_get_long_option() {
 	if _L_argparse_parser_find_option "$1" "$2"; then
 		return 0
-	elif L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-1}"; then
+	elif L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-0}"; then
 		local IFS=$' \t\n' _L_abbrev_matches _L_options
 		_L_argparse_parser_get_all_options _L_options
 		_L_abbrev_matches=$(compgen -W "$_L_options" -- "$2" || :)
@@ -7292,7 +7286,7 @@ _L_argparse_optspec_dest_arr_append() {
 _L_argparse_optspec_execute_action() {
 	_L_assigned_parameters+=" $_L_opti "
 	case ${_L_opt_action[_L_opti]} in
-	store|append|remainder|eval)
+	store|append|eval)
 		_L_argparse_optspec_validate_values "$@" || return 1
 	esac
 	case ${_L_opt_action[_L_opti]} in
@@ -7952,24 +7946,11 @@ _L_argparse_parse_args_short_option() {
 }
 
 _L_argparse_parse_args_parse_options() {
-	# Lookahead action=remainder.
-	# When:
-	# - there was at least one positional argument,
-	# - there are more positional arguments to parse,
-	# - the next positional argument is action=remainder,
-	# we stop parsing options right away.
-	# echo "$_L_argumentsi ${#_L_arguments[*]} ${_L_opt_action[_L_arguments[_L_argumentsi+1]]}"
-	if (( _L_argumentsi != -1 && _L_argumentsi+1 < ${#_L_arguments[*]} )); then
-		if [[ "${_L_opt_action[_L_arguments[_L_argumentsi+1]]}" == "remainder" ]]; then
-			_L_parseoptions=""
-			return
-		fi
-	fi
 	# Parse -short and --long options.
 	case "${_L_args[_L_argsi]}" in
 	--)
 		if ((_L_argsi+1 == ${#_L_args[@]})); then _L_argparse_gen_option_names_completion "${_L_args[_L_argsi]}"; fi
-		_L_parseoptions=""
+		_L_options_enabled=""
 		((_L_argsi++))
 		;;
 	["$_L_pc"]["$_L_pc"]?*) _L_argparse_parse_args_long_option || return "$?" ;;
@@ -7999,7 +7980,7 @@ _L_argparse_parse_args() {
 		local _L_opti=-1  # Last evaluated positional argument.
 		while (( (_L_init_argsi = _L_argsi) < ${#_L_args[@]})); do
 			# Parse options arguments, if enabled.
-			${_L_parseoptions:+_L_argparse_parse_args_parse_options}
+			${_L_options_enabled:+_L_argparse_parse_args_parse_options}
 			if ((_L_init_argsi == _L_argsi)); then
 				# If no arguments were parsed, parse positional arguments.
 				if ((${#_L_args_accumulator[@]} == 0)); then
@@ -8009,19 +7990,15 @@ _L_argparse_parse_args() {
 						break
 					fi
 					_L_opti=${_L_arguments[_L_argumentsi]}
+					if ((${_L_parser_remainder[_L_parseri]:-})); then
+						_L_options_enabled=""
+					fi
 					case "${_L_opt_action[_L_opti]}" in
 					store) if ((_L_opt__isarray[_L_opti])); then _L_argparse_optspec_dest_arr_clear; fi ;;
-					remainder)
-						_L_argparse_optspec_dest_arr_clear
-						_L_argparse_optspec_dest_arr_append "${_L_args[@]:_L_argsi}"
-						_L_parseoptions=""
-						_L_argsi=${#_L_args[@]}
-						break
-						;;
 					_subparser)
 						_L_argparse_optspec_dest_arr_clear
 						_L_argparse_optspec_dest_arr_append "${_L_args[@]:_L_argsi}"
-						_L_parseoptions=""
+						_L_options_enabled=""
 						_L_subparser_opti=$_L_opti
 						_L_subparser_argsi=$_L_argsi
 						_L_argsi=${#_L_args[@]}
@@ -8029,24 +8006,39 @@ _L_argparse_parse_args() {
 						;;
 					esac
 				fi
-				_L_args_accumulator+=("${_L_args[_L_argsi]}")
-				case "${_L_opt_nargs[_L_opti]}" in
-				"+"|"*")
-					_L_argparse_optspec_execute_action "${_L_args[_L_argsi]}" || return "$?"
-					;;
-				"?")
-					_L_argparse_optspec_execute_action "${_L_args[_L_argsi]}" || return "$?"
-					_L_args_accumulator=()
-					;;
-				[0-9]*)
-					if ((${#_L_args_accumulator[@]} == _L_opt_nargs[_L_opti])); then
-						_L_argparse_optspec_execute_action "${_L_args_accumulator[@]}" || return "$?"
-						_L_args_accumulator=()
+				if [[ -n "${_L_parser_fromfile_prefix_chars[_L_parseri]:-}" && \
+						"${_L_parser_fromfile_prefix_chars[_L_parseri]}" == *"${_L_args[_L_argsi]::1}"* ]]; then
+					if [[ ! -e "${_L_args[_L_argsi]:1}" ]]; then
+						L_argparse_fatal "arguments input file ${_L_args[_L_argsi]:1} does not exists" || return "$?"
 					fi
-					;;
-				*) _L_argparse_spec_fatal "invalid nargs specification of $_L_opti nargs=${_L_opt_nargs[_L_opti]} $(_L_argparse_print_curopt)" ;;
-				esac
-				if ((_L_argsi+1 == ${#_L_args[@]})); then _L_argparse_optspec_gen_completion "${_L_args[_L_argsi]}" || return "$?"; fi
+					while IFS= read -r line; do
+						L_array_insert _L_args "$_L_argsi" "$line"
+					done <"${_L_args[_L_argsi]:1}"
+				else
+					_L_args_accumulator+=("${_L_args[_L_argsi]}")
+					case "${_L_opt_nargs[_L_opti]}" in
+					"+"|"*")
+						if ((_L_options_enabled)); then
+							_L_argparse_optspec_execute_action "${_L_args[_L_argsi]}" || return "$?"
+						else
+							_L_argparse_optspec_execute_action "${_L_args[@]:_L_argsi}" || return "$?"
+							_L_argsi=${#_L_args[@]}
+						fi
+						;;
+					"?")
+						_L_argparse_optspec_execute_action "${_L_args[_L_argsi]}" || return "$?"
+						_L_args_accumulator=()
+						;;
+					[0-9]*)
+						if ((${#_L_args_accumulator[@]} == _L_opt_nargs[_L_opti])); then
+							_L_argparse_optspec_execute_action "${_L_args_accumulator[@]}" || return "$?"
+							_L_args_accumulator=()
+						fi
+						;;
+					*) _L_argparse_spec_fatal "invalid nargs specification of $_L_opti nargs=${_L_opt_nargs[_L_opti]} $(_L_argparse_print_curopt)" ;;
+					esac
+					if ((_L_argsi+1 == ${#_L_args[@]})); then _L_argparse_optspec_gen_completion "${_L_args[_L_argsi]}" || return "$?"; fi
+				fi
 				((++_L_argsi))
 			fi
 		done
@@ -8077,7 +8069,7 @@ _L_argparse_parse_args() {
 			esac
 			_L_args_accumulator=()
 		done
-		if ((_L_parseoptions)); then
+		if ((_L_options_enabled)); then
 			# If there are no arguments to complete, complete option names.
 			_L_argparse_gen_option_names_completion || return "$?"
 		fi
@@ -8154,6 +8146,9 @@ _L_argparse_spec_parse_args() {
 			prog=*) _L_parser_prog[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			show_default=?*) _L_parser_show_default[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			usage=*) _L_parser_usage[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			remainder=*) _L_parser_remainder[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			unknown_args=*) _L_parser_unknown_args[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			fromfile_prefix_chars=*) _L_parser_fromfile_prefix_chars[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			color=*) _L_parser_color[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			*[$' \r\v\t\n=']*|*=*|'') _L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}" || return 2 ;;
 			*)
@@ -8338,6 +8333,9 @@ L_argparse() {
 			_L_parser_prefix_chars \
 			_L_parser_show_default \
 			_L_parser_usage \
+			_L_parser_remainder \
+			_L_parser_unknown_args \
+			_L_parser_fromfile_prefix_chars \
 			_L_parser_color \
 			_L_parser__parent \
 			_L_parser__optionlookup \
