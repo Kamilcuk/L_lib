@@ -9123,12 +9123,13 @@ L_wait() {
 			*) L_func_error; return 2 ;;
 		esac
 	done
+	shift "$((OPTIND-1))"
 	# local -;set -x
 	# _L_pids - runnign pids
 	# _L_done - finished pids
 	# _L_rets - pid _L_done[i] exited with _L_rets[i]
 	# _L_return - the return code
-	_L_pids=("${@:OPTIND}")
+	_L_pids=("$@")
 	# Return with 0 with no PIDs.
 	if ((!${_L_pids[*]:+1}+0)); then return 0; fi
 	if [[ -z "$_L_timeout" ]]; then
