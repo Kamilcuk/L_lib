@@ -6477,7 +6477,7 @@ L_argparse_print_help() {
 	local IFS=' '
 	{
 		# parse arguments
-		local _L_short=0 OPTIND OPTARG OPTIND o _L_err=0
+		local _L_short=0 OPTIND OPTARG OPTERR o _L_err=0
 		while getopts useh o; do
 			case "$o" in
 				u|s) _L_short=1 ;;
