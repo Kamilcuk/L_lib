@@ -131,7 +131,7 @@ Currently there are the following internal options:
     - `count` - every time option is used, `dest` is incremented, starting from if unset
     - `eval` - evaluate the string given in `eval` argument
     - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
-     - `help` - Print help and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
+    - `action=help` - Print help to standard output and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
 - `nargs=` - The number of command-line arguments that should be consumed.
     - `1`. Argument from the command line will be assigned to variable `dest`.
     - An integer. Arguments from the command line will be gathered together into an array `dest`.
