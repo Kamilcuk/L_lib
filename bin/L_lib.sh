@@ -3260,15 +3260,16 @@ L_json_escape_v() {
 # This argument is preceeded by a previous argument ending with ] or },
 # when the counter starts over.
 # @example
-#   L_json_make { \
+#   L_json_create { \
 #     a : b , \
 #     b :[ 1 , 2 , 3 , 4 ] \
 #     c :[true, 1 ,null,false] \
 #   }
 #   #   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
 #   # outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
-L_json_create() {
-  local L_v escape=0 o=""
+L_json_create() { L_handle_v_scalar "$@"; }
+L_json_create_v() {
+  local escape=0 o=""
   while (($#)); do
     if ((escape++ % 2)); then
       L_json_escape_v "$1"
@@ -3281,7 +3282,7 @@ L_json_create() {
     fi
     shift
   done
-  echo "$o"
+  L_v="$o"
 }
 
 # ]]]
@@ -4386,18 +4387,22 @@ L_log_format_json() {
 	for i in \
 		timestamp:"$L_v" \
 		funcname:"$L_logline_funcname" \
-		lineno:"$L_logline_lineno" \
+		\"lineno\":"$L_logline_lineno" \
 		source:"$L_logline_source" \
+		\"level\":"$L_logline_levelno" \
 		levelname:"$L_logline_levelname" \
-		level:"$L_logline_levelno" \
 		message:"$msg" \
 		script:"$0" \
-		pid:"$pid" \
-		ppid:"$PPID" \
+		\"pid\":"$pid" \
+		${PPID:+\"ppid\":"$PPID"} \
 	; do
-		out+=",\"${i%%:*}\":"
-		L_json_escape_v "${i#*:}"
-		out+="$L_v"
+		if [[ "${i::1}" == \" ]]; then
+			out+=",$i"
+		else
+			out+=",\"${i%%:*}\":"
+			L_json_escape_v "${i#*:}"
+			out+="$L_v"
+		fi
 	done
 	printf -v L_logline "%s" "{${out#,}}"
 }
