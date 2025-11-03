@@ -1289,6 +1289,15 @@ _L_test_log_from() {
 	L_unittest_cmd -jr " log_1.sh:main:13 " env L_LIB_SCRIPT="$L_LIB_SCRIPT" bash "$dir"/log_1.sh 2
 }
 
+_L_test_log_json() {
+	local line
+	line=$( L_log_configure -r -J ; L_info "Hello world" 2>&1 )
+	L_unittest_cmd -I jq . <<<"$line"
+	L_unittest_cmd -I -r '^[0-9]+$' jq .lineno <<<"$line"
+	L_unittest_cmd -I -r '^[0-9]+$' jq .pid <<<"$line"
+	L_unittest_cmd -I -r '^[0-9]+$' jq .level <<<"$line"
+}
+
 _L_test_setx() {
 	aaa_1() { echo hi; return "$1"; }
 	aaa_2() { aaa_1 "$@"; }
