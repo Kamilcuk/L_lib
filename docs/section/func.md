@@ -3,6 +3,7 @@ Functions that are useful for writing utility functions that use getopts or simi
 The idea is to print usable message to the user and spent no time creating it.
 
 How it works:
+
 - Bash function has a help message stored in the comment preceeding the function.
 - We can extract the comment by finding the function definition and parsing the file.
 - The comment becomes the help message.
@@ -13,6 +14,7 @@ How it works:
    - `# @usage description` - allows to specify custom usage line
 
 How to use:
+
 - Use `L_func_help` to print the help message.
 - Use `L_func_error "error message" || return 2` to print the error message with usage of the function, and then return from your function.
 - Use `L_func_assert "not enough arguments" test "$#" -lt 1 || return 2` to print the error message with usage of the function and then return from your function when the command `test "$#" -lt 1` fails, which effectively checks if there are enough arguments.
