@@ -2161,10 +2161,27 @@ _L_test_z_argparse4() {
 		L_argparse prog=prog -- -a -- dest nargs="*" ---- -a 1 2 3 -a 2
 		L_unittest_arreq dest 2 3
 		L_unittest_eq "$a" 2
+		#
 		local a='' dest=()
-		L_argparse prog=prog -- -a -- dest action=remainder ---- -a 1 2 3 -a
+		L_argparse prog=prog -- -a -- dest nargs=remainder ---- -a 1 2 3 -a
 		L_unittest_arreq dest 2 3 -a
 		L_unittest_eq "$a" 1
+		#
+		local a='' cmd="" args=()
+		L_argparse prog=prog -- -a -- cmd nargs=1 -- args nargs=remainder ---- -a 1 cmd arg1 arg2
+		L_unittest_vareq a 1
+		L_unittest_vareq cmd cmd
+		L_unittest_arreq args arg1 arg2
+		#
+		L_argparse prog=prog -- -a -- cmd nargs=1 -- args nargs=remainder ---- -a 1 cmd -h arg1 arg2
+		L_unittest_vareq a 1
+		L_unittest_vareq cmd cmd
+		L_unittest_arreq args -h arg1 arg2
+		#
+		L_argparse prog=prog -- -a -- cmd nargs=1 -- args nargs=remainder ---- -a -h cmd -h -h -h
+		L_unittest_vareq a -h
+		L_unittest_vareq cmd cmd
+		L_unittest_arreq args -h -h -h
 	}
 	{
 		local tmp
