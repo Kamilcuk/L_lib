@@ -4852,7 +4852,7 @@ L_trap_err_disable() {
 # @example
 #    L_trap_err_init
 L_trap_err_init() {
-	if [[ $- == *e* ]] && [[ -z "$(trap -p ERR)" ]]; then
+	if [[ $- == *e* && -z "$(trap -p ERR)" ]]; then
 		L_trap_err_enable
 	fi
 }
