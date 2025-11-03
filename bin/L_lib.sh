@@ -7972,7 +7972,7 @@ _L_argparse_parse_args() {
 	_L_argparse_parse_args_internal
 	{
 		local _L_pc="${_L_parser_prefix_chars[_L_parseri]:--}"
-		local _L_init_argsi="" _L_parseoptions=1  # When empty, options are not parsed.
+		local _L_init_argsi="" _L_options_enabled=1  # When empty, options are not parsed.
 		local _L_args_accumulator=()  # arguments assigned currently to _L_optspec
 		local _L_assigned_parameters=""  # List of assigned _L_opti, used for checking required ones.
 		local -a _L_arguments="(${_L_parser__argumentsi[_L_parseri]:-})"  # Indexes of arguments specifications into _L_opt variables.
