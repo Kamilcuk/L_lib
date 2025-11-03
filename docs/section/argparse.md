@@ -21,124 +21,100 @@ echo "$count $verbose $filename"  # outputs: 5 1 ./file1
 
 - no code generation or similar
 - supports Bash 3.2+
-- sets Bash variable values inline in the script
+- Sets Bash variable values inline in the script
 - help generation
 - optional arguments to options
 - support Bash, Zsh and Fish shell completion
 - `-one_dash_long_options`
 - custom option prefix
+- colors
 
 ## Specification
 
 ```
-L_argparse <parser_settings> \
-  -- <add_argument> \
-  -- call=subparser <add_subparser> \
-  { \
-    <parser_settings> \
-    -- <add_argument> \
-    -- call=subparser <add_subparser> \
-    { \
-      <parser_settings> \
-      -- <add_argument> \
-    } \
-  } \
-  { \
-    <parser_settings> \
-    -- <add_argument> \
-  } \
-  -- call=function <add_func> \
-  ---- "$@"
+L_argparse <parser_specification> ---- <command_line_arguments>
 ```
 
-The `L_argparse` command takes multiple "chains" of command line arguments.
-Each chain is separated by `--` with sub-chains enclosed in `{` `}`.
-The last chain is terminated with `----` which separates argument parsing specification from the actual command line arguments.
+The `L_argparse` utility takes two set of arguments separated by `----` argument.
 
-Each chain is composed positional arguments like `arg`, `-o` or `--option` and keyword arguments like `nargs="*"`.
-There are several "types" of chains which receive different positional arguments and keyword arguments.
+- The `<parser_specifation>` defines how the parser parses the arguments.
+- The `<command_line_arguments>` are the actual command line arguments to parse.
+
+### Parser specification
 
 ```
-L_argparse <parser_settings> ...
+L_argparse [parser_settings chain] \
+    [-- <add_argument chain>]... \
+    [-- call=subparser <add_subparser chain>]... \
+    [-- call=function <add_function chain>]... \
+    ---- <command_line_arguments>
 ```
 
-The first chain of arguments specifies the global `parser_settings` of the command line parsing.
+The parser specification consists of a list of "chains" of key=value arguments separated by `--`.
 
-Next there are many chains of arguments specifying option parsing.
-If the first argument of a chain is not `call=function` or `call=subparser` the it is an `add_argument` option.
+The first argument of the chain determines the type of the chain. `call=subparser` follows sub-parser chain arguments, while `call=function` follows function chain arguments. Any other means an `add_argument` chain type.
+
+Chain `key=value` arguments have types of values:
+
+- String - the default type,
+- Array - list of quotes values separated by whitespaces. The list will be parsed with `declare -a arr="($value)"`,
+- Boolean - the truth of value is determined with `L_is_true`.
+
+### `parser_settings` parameters
+
+The parser takes the following chain options:
+
+- `prog=` - The name of the program (defaults: `${L_NAME:-${0##*/}}`).
+- `usage=` - The string describing the program usage (default: generated from arguments added to parser).
+  - The string `%(prog)s` is replaced by the program name in usage messages. `printf` formatting options are not supported.
+- `description=` - Text to display before the argument help (by default, no text).
+- `epilog=` - Text to display after the argument help (by default, no text).
+- `add_help=` (bool) - Add `-h --help` options to the parser (default: 1).
+- `allow_abbrev=` (bool) - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: 0)
+- `allow_subparser_abbrev=` - Allows sub-parser command names to be abbreviated if the abbreviation is unambiguous. (default: 0)
+- `Adest=` - Store all values as keys into a variable that is an associated dictionary.
+  If the result is an array, it is properly quoted and appended. Array can be extracted with `declare -a var="(${Adest[key]})"`.
+- `show_default=` (bool) - Default value of `show_default` property of all options. Example `show_default=1`. (default: 0).
+- `prefix_chars=` - The set of characters that prefix optional arguments (default: '-')
+- `color=` (bool) - Allow colors (default: 1)
+- `fromfile_prefix_chars=` - The set of characters that prefix files from which additional arguments should be read (by default, no prefix is special)
+    - The arguments are read from the file split by lines.
+    - Example: `L_argparse fromfile_prefix_chars=@ ---- @file.txt` read options from `file.txt`.
+- `unknown_args=` - Unrecognized arguments do not fail the parsing and are instead assigned to the specified array variable. (by default, unrecognized arguments fail the parsing)
+- `remainder=` (boolean) - Options are not considered after the first non-option arguments. (default: 0)
+- `name=` - If the parser is a sub-parser, this is the command name displayed in help messages.
+  This has to be set for sub-parsers.
+- `aliases=` (array) - Not implemented. Ping me if needed. Additional aliases for `name=` for sub-parsers.
+
+### `add_argument` options
 
 The `add_argument` chains of arguments attaches individual argument specifications to the parser.
 It defines how a single command-line argument should be parsed.
 
-If the first argument of a chain is `call=subparser` then it is followed by `add_subparser` group allows for adding sub-parsers.
-Each sub-parser definition starts with `{` and ends with `}`.
-Multiple sub-parsers are specified with multiple `{` `}` blocks.
-The first chain specifies the `parser_settings` similar to a parser.
-Then the next chains can be arguments or nested subparser or a function call.
-
-If the first argument of a chain is `call=function` then it specifies a function call.
-This causes the parsing to call a function after parsing options for this chain.
-Additionally, the sub-parsers of a call might be aware that they are called from parent subparser, similar to `call=subparser`.
-In other words, they will display proper help message with the name of the program concatenated to the parent name.
-
-### Reserved options
-
-The prefix `--L_argparse_` of the first command line argument for parser is reserved for internal use.
-
-Currently there are the following internal options:
-
-- `--L_argparse_get_completion` - output completion stream for given arguments
-- `--L_argparse_complete_bash` - print Bash completion script and exit
-- `--L_argparse_complete_zsh` - print Zsh completion script and exit
-- `--L_argparse_complete_fish` - print Fish completion script and exit
-- `--L_argparse_print_completion` - print a helpful message how to use bash completion
-- `--L_argparse_print_usage` - print usage and exit
-- `--L_argparse_print_help` - print help and exit
-- `--L_argparse_dump_parser` - serialize the parser to stdout surrounded by UUIDs and exit
-
-### `parser_settings` parameters:
-
-- `prog=` - The name of the program (defaults: `${L_NAME:-${0##*/}}`).
-- `usage=` - The string describing the program usage (default: generated from arguments added to parser).
-  - The string `%(prog)s` is replaced by the program name in usage messages, however `printf` formatting options are not supported.
-- `description=` - Text to display before the argument help (by default, no text).
-- `epilog=` - Text to display after the argument help (by default, no text).
-- `add_help=` - Add a -h/--help option to the parser (default: 1).
-- `allow_abbrev=` - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: 1)
-- `allow_subparser_abbrev=` - Allows subparser command to be abbreviated if the abbreviation is unambiguous. (default: 0)
-- `Adest=` - Store all values as keys into a variable that is an associated dictionary.
-  If the result is an array, it is properly quoted and appended. Array can be extracted with `declare -a var="(${Adest[key]})"`.
-- `show_default=` - Default value of `show_default` property of all options. Example `show_default=1`. (default: 0).
-- `prefix_chars=` - The set of characters that prefix optional arguments (default: ‘-‘)
-- any name or `name=` - If the parser is a subparser, this it the command name displayed in help messages.
-  If has to be set for subparsers.
-
-### `add_argument` options:
-
-- name or flags - Either a name or a list of option strings, e.g. 'foo' or '-f', '--foo'.
+- name or flags - Either a name or a list of option strings, e.g. `foo` or `-f`, `--foo`.
    - See https://docs.python.org/3/library/argparse.html#name-or-flags
 - `action=` - The basic type of action to be taken when this argument is encountered at the command line.
-    - `store` or unset - store the value given on command line. Implies `nargs=1`
-    - `store_const` - when option is used, assign the value of `const` to variable `dest`
-    - `store_0` - set `action=store_const` `const=0` `default=1`
-    - `store_1` - set `action=store_const` `const=1` `default=0`
-    - `store_1null` - set `action=store_const` `const=1` `default=`
-        - Useful for `${var:+var is set}` pattern.
-    - `store_true` - set `action=store_const` `const=true` `default=false`
-    - `store_false` - set `action=store_const` `const=false` `default=true`
-    - `append` - append the option value to array variable `dest`
-    - `append_const` - when option is used, append the value of `const` to array variable `dest`
-    - `count` - every time option is used, `dest` is incremented, starting from if unset
-    - `eval` - evaluate the string given in `eval` argument
-    - `remainder` - After first non-option argument, collect all remaining command line arguments into a list. Default nargs is `*`.
+    - `action=store` or unset - store the value given on command line. Implies `nargs=1`
+    - `action=store_const` - when option is used, assign the value of `const` to variable `dest`
+    - `action=store_0` - set `action=store_const` `const=0` `default=1`
+    - `action=store_1` - set `action=store_const` `const=1` `default=0`
+    - `action=store_1null` - set `action=store_const` `const=1` `default=`
+        - Useful for `action=${var:+var is set}` pattern.
+    - `action=store_true` - set `action=store_const` `const=true` `default=false`
+    - `action=store_false` - set `action=store_const` `const=false` `default=true`
+    - `action=append` - append the option value to array variable `dest`
+    - `action=append_const` - when option is used, append the value of `const` to array variable `dest`
+    - `action=count` - every time option is used, `dest` is incremented, starting from if unset
+    - `action=eval` - evaluate the string given in `eval` argument
     - `action=help` - Print help to standard output and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
 - `nargs=` - The number of command-line arguments that should be consumed.
-    - `1`. Argument from the command line will be assigned to variable `dest`.
-    - An integer. Arguments from the command line will be gathered together into an array `dest`.
-    - `?`. One argument will be consumed from the command line if possible and assigned to `dest`.
-    - `*`. All command-line arguments present are gathered into an array `dest`.
-    - `+`. Just like `*`, all command-line arguments present are gathered into an array.
+    - `nargs=1`. Argument from the command line will be assigned to the variable.
+    - An integer. Arguments from the command line will be gathered together into an array variable.
+    - `nargs=?`. One argument will be consumed from the command line if possible and assigned.
+    - `nargs=*`. All command-line arguments present are gathered into an array.
+    - `nargs=+`. Just like `*`, all command-line arguments present are gathered into an array.
       Additionally, an error message will be generated if there was not at least one command-line argument present.
+    - `nargs=remainder` - equal to `nargs=*` and setting `remainder=true` parser setting
 - `const=` - The constant value to store into `dest` depending on `action`.
 - `eval=` - The Bash script to evaluate when option is used. Implies `action=eval`. Note: the command is evaluated upon parsing options. Multiple repeated options like `-a -a -a` will execute the script multiple times. The script should be stateless. Example: `-- -v --verbose eval='((verbose_level++))'`.
 - `flag=` - Shorthand for `action=store_*`.
@@ -147,21 +123,21 @@ Currently there are the following internal options:
     - `flag=true` - equal to `action=store_true`
     - `flag=false` - equal to `action=store_false`
 - `default=` - store this default value into `dest`
-    - If the result of the option is an array, this value is parsed as if by  `declare -a dest="($default)"`. Example: `-- -a --append action=append default='first_element "second element"'`.
+    - If the result of the option is an array, this value is parsed as if by `declare -a dest="($default)"`. Example: `-- -a --append action=append default='first_element "second element"'`.
     - `default=""` sets the default to an empty string.
 - `type=` - The type to which the command-line argument should be converted.
-    - `int` - set `validate='L_is_integer "$1"'`
-    - `float` - set `validate='L_is_float "$1"'`
-    - `nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
-    - `positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
-    - `file` - set `validate='[[ -f "$1" ]]' complete=filenames`
-    - `file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
-    - `file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
-    - `dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
-    - `dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
-    - `dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
+    - `type=int` - set `validate='L_is_integer "$1"'`
+    - `type=float` - set `validate='L_is_float "$1"'`
+    - `type=nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
+    - `type=positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
+    - `type=file` - set `validate='[[ -f "$1" ]]' complete=filenames`
+    - `type=file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
+    - `type=file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
+    - `type=dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
+    - `type=dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
+    - `type=dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
 - `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_opt_choices[_L_opti]})"`. Example: `choices="a b c 'with space'"`
-- `required=` - Whether or not the command-line option may be omitted (optionals only). Example `required=1`.
+- `required=` - Whether or not the command-line option may be omitted (options arguments only). Example `required=1`.
 - `help=` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar=` - A name for the argument in usage messages.
 - `dest=` - The name of the variable variable that is assigned as the result of the option. Default: argument name or first long option without dashes or first short option.
@@ -183,7 +159,7 @@ Currently there are the following internal options:
 	              - Empty second field.
 	              - Description of the completion. Relevant for Zsh only.
 	     - Example: `complete='compgen -P "plain${L_TAB}" -W "a b c" -- "$1"'`
-	     - The function `L_argparse_compgen` automatically adds `-P` `-S` arguments to compgen based on the `help=` of an option.
+	     - The function `L_argparse_compgen` automatically adds `-P` `-S` arguments to `compgen` based on the `help=` of an option.
 	          - Example: `complete='L_argparse_compgen -W "a b c" -- "$1"'`
 	     - Example: `complete='nospace,compgen -P "plain${L_TAB}" -S "${L_TAB}Completion description" -W "a b c" -- "$1"'`
 	     - The function `L_argparse_optspec_get_description` can be used to get the completion description of an option.
@@ -204,24 +180,62 @@ Currently there are the following internal options:
 
 ### `add_subparser` options:
 
-Subparser takes following options from `add_argument`: `action=`, `metavar=` and `dest=`.
+```
+L_argparse \
+  -- call=subparser [call_subparser_settings] \
+  { \
+     [parser_settings chain] \
+     [-- <chains>]... \
+  } \
+  { \
+     [parser_settings chain] \
+     [-- <chains>]... \
+  } \
+  ---- "$@"
+```
 
-### `add_func` options:
+The `call=subparser` starts call sub-parser settings chain that follows one or more sub-parsers specifications.
 
-Function call takes following `k=v` options:
+Each sub-parser specification consists of parser settings and argument chains just like root parser.
+
+The sub-parsers can be nested freely. The sub-parser might include `call=subparser {` and another level of sub-parser specification, and so on.
+
+The `name=` value of `parser_settings` is required and determines the name of the sub-parser to call.
+
+Example:
+
+```
+L_argparse help="sort files" \
+  -- -r --reverse action=store_1 \
+  -- call=subparser \
+  { name=date help="by date" } \
+  { name=size help="by size" } \
+  { name=name help="by size" -- -l --locale help="locale to use" } \
+  ---- "$@"
+```
+
+#### `call_subparser_settings` options
+
+The sub-parser settings takes options from `add_argument` with the same meaning: `action=`, `metavar=` and `dest=`.
+
+When `dest=` is set, the sub-parser `parser_settings` name is extracted assigned to the value.
+
+### `add_function` options:
+
+Function call takes following `key=value` options:
 
 - `prefix=` - Required. Consider all functions to call with specified prefix, with prefix removed.
 - `required=` `metavar=` `dest=` - like in `add_argument`.
 - `subcall=` - Specify if parent parser is allowed to call the function when generating descriptions for parent parser help messages and to generate shell completions.
-    - `0` - Sub-functions will not be called. The help messages will be empty and shell completions for subparsers will not work. This is the default.
+    - `0` - Sub-functions will not be called. The help messages will be empty and shell completions for sub-parsers will not work. This is the default.
     - `1` - Sub-functions will be called.
     - `detect` - It is checked with a regex is the sub-function definition contains a call to `L_argparse`. If it does, then the sub-function will be called.
 
-When generating help message `--help` for the parent parser or when generating shell completion, the parent parser needs to decide if it is ok to call the function or not. The function is called with a builtin `--L_argparse_*` option to generate the proper messages for parent parser.
+When generating help message `--help` for the parent parser or when generating shell completion, the parent parser needs to decide if it is ok to call the function or not. The function is called with a built-in `--L_argparse_*` option to generate the proper messages for parent parser.
 
 There might be defined a variable named `<prefix>_<funcname>_help` that will be used as the description message of the option for the parent parser. It takes precedence over `subcall=1`.
 
-#### `add_func` option `subcall=`
+#### `add_function` option `subcall=`
 
 Consider the following script:
 
@@ -250,9 +264,24 @@ The `fetch` description was taken from `CMD_fetch_help` variable.
 
 The `pull` command has no description, as neither the `CMD_pull_help` variable exists neither the function calls `L_argparse`.
 
+### Reserved command line arguments
+
+The prefix `--L_argparse_` of the first command line argument for parser is reserved for internal use.
+
+Currently, there are the following internal options:
+
+- `--L_argparse_get_completion` - output completion stream for given arguments
+- `--L_argparse_complete_bash` - print Bash completion script and exit
+- `--L_argparse_complete_zsh` - print Zsh completion script and exit
+- `--L_argparse_complete_fish` - print Fish completion script and exit
+- `--L_argparse_print_completion` - print a helpful message how to use bash completion
+- `--L_argparse_print_usage` - print usage and exit
+- `--L_argparse_print_help` - print help and exit
+- `--L_argparse_dump_parser` - serialize the parser to standard output surrounded by UUIDs and exit
+
 ## Implementation documentation
 
-Parser with subparsers implementation is a tree where each node is a parser and each leaf is an argument.
+Parser with sub-parsers implementation is a tree where each node is a parser and each leaf is an argument.
 
 ```
 parser0 +-> argument1
@@ -264,27 +293,28 @@ parser0 +-> argument1
                        \> subparser3 -> argument6
 ```
 
-However Bash does not support nested data structures.
+However, Bash does not support nested data structures.
 
 By assigning a number to each parser and argument the structure can be "flattened" out completely.
 Each object property is stored as an index in an array.
-The information about childs or parents are stored as an reference of an index that owns an optio.
-For exmaple `_L_opt__parseri[4]=1` means that `argument4` is owned by `subparser1`.
+The information about children or parents are stored as a reference of an index that owns an option.
+For example `_L_opt__parseri[4]=1` means that `argument4` is owned by `subparser1`.
 
 Properties that do not map to arguments from the user are prefixed with additional `_`.
 
-### `_L_parser`
+### `_L_parser_*`
 
 `_L_parser_*` array variables allow to:
 - access the parser settings
 - find an argument associated with long `--option`
 - find an argument associated with short option `-o`
-- find a subparser by its name
+- find a sub-parser by its name
 - iterate over all options
 - iterate over all arguments
-- iterate over all subparsers
+- iterate over all sub-parsers
+- first parser has index 1!
 
-### `_L_opt`
+### `_L_opt_*`
 
 `_L_opt_*` array variables store options and arguments speis an associative array used to store options and arguments specifications.
 Additional keys set internally in `_L_optspec` when parsing arguments:
@@ -330,7 +360,7 @@ This works great. The call to `L_argparse` take around 20ms.
 
 ## Reason it exists
 
-I did not like argbash that requires some code generation. There should
+I did not like `argbash` that requires some code generation. There should
 be no generation required. It is just a function that executes.
 
 ::: bin/L_lib.sh argparse

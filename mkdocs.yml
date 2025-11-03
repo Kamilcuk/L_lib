@@ -1,44 +1,50 @@
 ---
-site_name: "L_lib.sh"
-site_url: "https://kamilcuk.github.io/L_lib.sh"
-repo_url: "https://github.com/kamilcuk/L_lib.sh"
-repo_name: "kamilcuk/L_lib.sh"
-watch: [mkdocs.yml, README.md, bin]
+site_name: "L_lib"
+site_author: Kamil Cukrowski
+site_url: "https://kamilcuk.github.io/L_lib"
+site_description: Collection of Bash usefull functions and features.
+repo_url: "https://github.com/kamilcuk/L_lib"
+repo_name: "kamilcuk/L_lib"
+watch:
+  - mkdocs.yml
+  - README.md
+  - bin
+  - docs
 copyright: Copyright &copy; 2025 Kamil Cukrowski
 edit_uri: edit/main/docs/
 
 nav:
-  - Overview:
-      - Index: index.md
-      - Bash expansions: expansions.md
-      - Bash bugs: bash_bugs.md
-  - Documentation:
-      - globals: section/globals.md
-      - colors: section/colors.md
-      - ansi: section/ansi.md
-      - has: section/has.md
-      - assert: section/assert.md
-      - func: section/func.md
-      - stdlib: section/stdlib.md
-      - json: section/json.md
-      - exit_to: section/exit_to.md
-      - path: section/path.md
-      - string: section/string.md
-      - array: section/array.md
-      - args: section/args.md
-      - utilities: section/utilities.md
-      - log: section/log.md
-      - sort: section/sort.md
-      - trap: section/trap.md
-      - finally: section/finally.md
-      - with: section/with.md
-      - unittest: section/unittest.md
-      - map: section/map.md
-      - asa: section/asa.md
-      - argparse: section/argparse.md
-      - proc: section/proc.md
-      - lib: section/lib.md
-      - all: section/all.md
+  - Introduction: index.md
+  - Sections documentation:
+    - globals: section/globals.md
+    - colors: section/colors.md
+    - ansi: section/ansi.md
+    - has: section/has.md
+    - assert: section/assert.md
+    - func: section/func.md
+    - stdlib: section/stdlib.md
+    - json: section/json.md
+    - exit_to: section/exit_to.md
+    - path: section/path.md
+    - string: section/string.md
+    - array: section/array.md
+    - args: section/args.md
+    - utilities: section/utilities.md
+    - log: section/log.md
+    - sort: section/sort.md
+    - trap: section/trap.md
+    - finally: section/finally.md
+    - with: section/with.md
+    - unittest: section/unittest.md
+    - map: section/map.md
+    - asa: section/asa.md
+    - argparse: section/argparse.md
+    - proc: section/proc.md
+    - lib: section/lib.md
+  - all: section/all.md
+  - Miscellaneous:
+    - Bash expansions: expansions.md
+    - Bash bugs: bash_bugs.md
 
 theme:
   name: material
@@ -48,13 +54,15 @@ theme:
   - content.action.view
   - content.code.annotate
   - content.code.copy
+  - content.tabs.link
   - content.tooltips
   - navigation.footer
+  - navigation.instant
   - navigation.instant.preview
+  - navigation.instant.progress
   - navigation.path
   - navigation.sections
-  - navigation.tabs
-  - navigation.tabs.sticky
+  - navigation.tracking
   - navigation.top
   - search.highlight
   - search.suggest
@@ -110,18 +118,20 @@ markdown_extensions:
 
 
 plugins:
-- search
-- autorefs
-# - markdown-exec
-- section-index
-- mkdocstrings:
-    default_handler: sh
-    handlers:
-      sh:
-        options:
-          includeregex: "^L_.*"
-          excluderegex: "^_L_.*$"
-          source_url: "https://github.com/Kamilcuk/L_lib/blob/main/{file}#L{line}"
+  - search
+  - autorefs
+  # - markdown-exec
+  - section-index
+  - git-revision-date-localized:
+      timezone: UTC # It can only be in UTC unless the ISO time can include timezone.
+  - mkdocstrings:
+      default_handler: sh
+      handlers:
+        sh:
+          options:
+            includeregex: "^L_.*"
+            excluderegex: "^_L_.*$"
+            source_url: "https://github.com/Kamilcuk/L_lib/blob/main/{file}#L{line}"
 
 extra:
   social:

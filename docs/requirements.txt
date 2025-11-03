@@ -2,3 +2,4 @@ mkdocs
 mkdocstrings-sh>=0.0.3
 mkdocs-section-index
 mkdocs-material
+mkdocs-git-revision-date-localized-plugin
