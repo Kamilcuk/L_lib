@@ -162,11 +162,11 @@ L_term_has_color() {
 # @arg [$1] file descriptor to check, default 1
 L_color_detect() {
 	if L_term_has_color "$@"; then
-		if [[ -z "${L_BOLD:-}" ]]; then
+		if [[ -z "${L_RESET:-}" ]]; then
 			L_color_enable
 		fi
 	else
-		if [[ -z "${L_BOLD+yes}" || -n "$L_BOLD" ]]; then
+		if [[ -z "${L_RESET+yes}" || -n "$L_RESET" ]]; then
 			L_color_disable
 		fi
 	fi
@@ -9246,7 +9246,7 @@ L_wait() {
 # @exitcode 0 if L_proc has finished, 1 if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
-	while getopts t:v:c:h _L_opt; do
+	while getopts t:v:ch _L_opt; do
 		case "$_L_opt" in
 		t) _L_timeout="$OPTARG" ;;
 		v) _L_v="$OPTARG" ;;

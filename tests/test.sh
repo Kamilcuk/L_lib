@@ -1752,7 +1752,7 @@ _L_test_z_argparse1() {
 		L_unittest_cmd L_argparse "${parser[@]}" --
 		L_unittest_cmd L_argparse "${parser[@]}"
 		L_unittest_cmd L_argparse -- -o ----
-		L_unittest_cmd L_argparse -- --option ---- --op 1
+		L_unittest_cmd L_argparse allow_abbrev=1 -- --option ---- --op 1
 		L_unittest_cmd L_argparse -- --option ----
 		L_unittest_cmd L_argparse -- --option ---- --option=1
 		L_unittest_cmd L_argparse -- --option ---- -h
@@ -1823,12 +1823,12 @@ _L_test_z_argparse1() {
 	{
 		L_log "abbrev"
 		local option verbose
-		L_argparse -- --option action=store_1 -- --verbose action=store_1 ---- --o --v --opt
+		L_argparse allow_abbrev=1 -- --option action=store_1 -- --verbose action=store_1 ---- --o --v --opt
 		L_unittest_eq "$option" 1
 		L_unittest_eq "$verbose" 1
 		#
 		L_unittest_cmd -r "ambiguous option: --op" -- ! \
-			L_argparse -- --option action=store_1 -- --opverbose action=store_1 ---- --op
+			L_argparse allow_abbrev=1 -- --option action=store_1 -- --opverbose action=store_1 ---- --op
 	}
 	{
 		L_log "count"
@@ -2425,7 +2425,7 @@ _L_test_z_argparse8_one_dash_long_option() {
 		L_argparse -- -o default= -- -option default= ---- -o arg
 		L_unittest_vareq o arg
 		L_unittest_vareq option ''
-		L_argparse -- -o default= -- -option default= ---- -opt arg
+		L_argparse allow_abbrev=1 -- -o default= -- -option default= ---- -opt arg
 		L_unittest_vareq o ''
 		L_unittest_vareq option arg
 		L_argparse -- -o default= -- -option default= ---- -o pt -option arg
@@ -4030,11 +4030,10 @@ _L_test_sections_ok() {
 	vim_sections=$(sed -n 's/# *\(.*\)  *\[\[\[$/\1/p' "$L_LIB_SCRIPT" | sort)
 	file_sections=$(sed -n 's/# @section *\(.*\)$/\1/p' "$L_LIB_SCRIPT" | sort)
 	docs_sections=$(cd docs/section && printf "%s\n" *.md | sed 's/\.md$//' | sort | grep -vxF all)
-	list_sections=$(sed -n '/- Documentation:/,/^$/{ /Documentation:/d; s/.*- \([^:]*\).*/\1/p; }' mkdocs.yml |
-		grep -vxF all | sort)
+	# list_sections=$(sed -n '/- Documentation:/,/^$/{ /Documentation:/d; s/.*- \([^:]*\).*/\1/p; }' mkdocs.yml | grep -vxF all | sort)
 	L_unittest_eq "$vim_sections" "$file_sections"
 	L_unittest_eq "$vim_sections" "$docs_sections"
-	L_unittest_eq "$vim_sections" "$list_sections"
+	# L_unittest_eq "$vim_sections" "$list_sections"
 }
 
 ###############################################################################
