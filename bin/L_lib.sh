@@ -7107,7 +7107,11 @@ _L_argparse_spec_argument_common() {
 	# Special
 	if [[ "${_L_opt_nargs[_L_opti]:-}" == remainder ]]; then
 		_L_parser_remainder[_L_parseri]=1
-		_L_opt_nargs[_L_opti]="*"
+		if L_is_true "${_L_opt_required[_L_opti]:-}"; then
+			_L_opt_nargs[_L_opti]="+"
+		else
+			_L_opt_nargs[_L_opti]="*"
+		fi
 	fi
 	{
 		# apply defaults depending on action
