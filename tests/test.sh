@@ -3982,6 +3982,49 @@ _L_test_func_usage() {
 	! grep 'L_func_help[; ]' bin/L_lib.sh | grep -v "^#" | grep -v '; return 0'
 }
 
+_L_test_getopts_documented() {
+	set +eu
+	local functions lines word
+	functions=$(
+		sed -Ez 's/\n\n+/\x00/g' < bin/L_lib.sh |
+		sed -Ezn 's/(getopts [^ ]*).*/\1/p' |
+		sed -Ezn 's/(^|.*\n)([a-zA-Z0-9_]+)\(\) *\{.*OPTIND.* getopts ([^ ]*).*/\2 \3 \1/p' |
+		tr -d '\n' |
+		sed -Ez 's/$/\n/' |
+		tr -d '\0' |
+		grep -v '^L_argparse_compgen ' |
+		grep -v '^_.*' || :
+	)
+	L_string_count_lines -v lines "$functions"
+	(( lines > 20 ))
+	local c i func spec rest
+	while IFS=' ' read -r func spec rest; do
+		if [[ "$spec" == *\$* ]]; then
+			continue
+		fi
+		L_string_split -v spec "$spec" || exit 123
+		spec=${spec//:}
+		for ((i=0;i<${#spec};++i)); do
+			c=${spec:i:1}
+			if [[ "$rest" != *"# @option -$c "* ]]; then
+				L_fatal "Documentation of -$c option of $func function is missing in getopts $spec"
+			else
+				L_ok "Documentation of -$c option of $func function is ok in getopts $spec"
+			fi
+		done
+		while [[ "$rest" =~ "(.*)# @option -(.)(.*)" ]]; do
+			rest=${BASH_REMATCH[1]}${BASH_REMATCH[3]}
+			c=${BASH_REMATCH[2]}
+			if [[ "$spec" != *"$c"* ]]; then
+				L_fatal "Option -$c is documented of $func but is not in getopts $spec"
+			else
+				L_ok "Option -$c is documented of $func and is present in getopts $spec"
+			fi
+		done
+	done <<<"$functions"
+	L_info OK
+}
+
 _L_test_sections_ok() {
 	local vim_sections file_sections docs_sections list_sections
 	vim_sections=$(sed -n 's/# *\(.*\)  *\[\[\[$/\1/p' "$L_LIB_SCRIPT" | sort)

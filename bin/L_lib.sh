@@ -3048,9 +3048,10 @@ L_string_count_lines_v() {
 # Why not declare? Declare allows execution, `declare -a array='($(echo something >&2))'`executes echo.
 #
 # @option -v <var> Store the output in variable instead of printing it.
-# @option -c Enable comments.
+# @option -c Enable ignoring comments.
 # @option -A Disable ANSI-C quoting.
 # @option -h Print this help and return 0.
+# @option -q Without -v, instead of printing one word per line, output words quoted with `printf %q`.
 # shellcheck disable=SC1003
 # @example
 #   $ L_string_split -v cmd "ls -l 'somefile; rm -rf ~'"
@@ -3267,6 +3268,8 @@ L_json_escape_v() {
 #   }
 #   #   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
 #   # outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
 L_json_create() { L_handle_v_scalar "$@"; }
 L_json_create_v() {
   local escape=0 o=""
@@ -3909,6 +3912,7 @@ _L_pretty_print_nested() {
 # @option -n Enable pretty printing nested arrays
 # @option -C Disable compact output for arrays, i.e. each key is on separate line.
 # @option -h Print this help and return 0.
+# @option -c Compact output.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
 	local OPTIND OPTARG OPTERR _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0 _L_pp_line="" _L_pp_compact=0 _L_pp_prefix_sav=""
@@ -4529,6 +4533,28 @@ L_fatal() {
 L_logrun() {
 	L_log -s 1 "+ $*"
 	"$@"
+}
+
+# @description Output a green information message
+# @option -s <int>
+# @option -l <level>
+# @arg $1 message
+L_ok() {
+	local OPTIND OPTARG OPTERR o a=()
+	while getopts s:l: o; do
+		case $o in
+			s) a+=(-s "$OPTARG") ;;
+			l) a+=(-l "$OPTARG") ;;
+			*) L_func_error; return 2 ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	if (($# <= 1)); then
+		set -- "$L_GREEN%s$L_RESET" "${1:-}"
+	else
+		set -- "$L_GREEN$1$L_RESET" "${@:2}"
+	fi
+	L_log -s 1 -l "$L_LOGLEVEL_INFO" "${a[@]}" "$@"
 }
 
 # @description set to 1 if L_run should not execute the function.
@@ -5464,22 +5490,12 @@ _L_unittest_internal() {
 # @option -P <prefix> Get functions with this prefix to test
 # @option -r <regex> filter tests with regex
 # @option -E exit on error
+# @option -p Run in parallel.
 L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_parallel=0
 	while getopts "hr:EP:p" _L_opt; do
 		case $_L_opt in
-		h)
-			cat <<EOF
-Options:
-  -h         Print this help and exit
-  -P PREFIX  Execute all function with this prefix
-  -r REGEX   Filter tests with regex
-  -E         Exit on error
-  -p         Run in parallel.
-EOF
-			exit
-			;;
 		P)
 			L_log "Getting function with prefix %q" "${OPTARG}"
 			L_list_functions_with_prefix -v _L_tests "$OPTARG"
@@ -5490,7 +5506,8 @@ EOF
 			;;
 		E) L_unittest_exit_on_error=1 ;;
 		p) _L_parallel=1 ;;
-		*) L_fatal "invalid argument: $_L_opt" ;;
+		h) L_func_help; return 0 ;;
+		*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -5531,9 +5548,9 @@ EOF
 		fi
 	}
 	if ((L_unittest_fails)); then
-		L_error "${L_RED}testing failed"
+		L_error "testing failed"
 	else
-		L_log "${L_GREEN}testing success"
+		L_ok "testing success"
 	fi
 	if ((L_unittest_fails)); then
 		exit "$L_unittest_fails"
@@ -6469,7 +6486,8 @@ _L_argparse_parser_get_full_program_name() {
 #   ^^^^^^^^^^^^^^^$'\n'^^^^^^^^^^^    - _L_usage_args_helps _L_usage_cmds_helps _L_options_helps
 # ```
 #
-# @option -u -s print only usage, not full help
+# @option -u print only usage, not full help
+# @option -s Alias to -u
 # @option -e Print this error message
 # @option -h Print this help and return 0.
 # @arg $@ error message to print
@@ -7314,7 +7332,7 @@ _L_argparse_optspec_execute_action() {
 # @description Run compgen that outputs correctly formatted completion stream.
 # With option description prefixed with the 'plain' prefix.
 # Any compgen option is accepted, arguments are forwarded to compgen.
-# @option --ANY Any options supported by compgen, except -P and -S
+# @option -ANY Any options supported by compgen, except -P and -S
 # @option -D <str> Specify the description of appended to the result. If description is an empty string, it is not printed. Default: help of the option.
 # @arg $1 <str> incomplete
 # @exitcode 0 if compgen returned 0 or 1, otherwise 2
@@ -9110,7 +9128,7 @@ L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
 		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
 		_L_pids _L_done=() _L_rets=() _L_return=0
-	while getopts t:v:p:l:P:nbih _L_i; do
+	while getopts t:v:p:l:P:nbh _L_i; do
 		case "$_L_i" in
 			t) _L_timeout=$OPTARG ;;
 			v) _L_rets_var=$OPTARG ;;
@@ -9224,7 +9242,7 @@ L_wait() {
 # @exitcode 0 if L_proc has finished, 1 if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
-	while getopts t:v:cd:h _L_opt; do
+	while getopts t:v:c:h _L_opt; do
 		case "$_L_opt" in
 		t) _L_timeout="$OPTARG" ;;
 		v) _L_v="$OPTARG" ;;
