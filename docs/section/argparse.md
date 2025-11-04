@@ -109,7 +109,7 @@ It defines how a single command-line argument should be parsed.
     - `action=help` - Print help to standard output and exit with 0. Equal to `eval='L_argparse_print_help;exit 0'`.
 - `nargs=` - The number of command-line arguments that should be consumed.
     - `nargs=1`. Argument from the command line will be assigned to the variable.
-    - An integer. Arguments from the command line will be gathered together into an array variable.
+    - `nargs=[0-9]+`. An integer. Arguments from the command line will be gathered together into an array variable.
     - `nargs=?`. One argument will be consumed from the command line if possible and assigned.
     - `nargs=*`. All command-line arguments present are gathered into an array.
     - `nargs=+`. Just like `*`, all command-line arguments present are gathered into an array.
@@ -205,13 +205,7 @@ The `name=` value of `parser_settings` is required and determines the name of th
 Example:
 
 ```
-L_argparse help="sort files" \
-  -- -r --reverse action=store_1 \
-  -- call=subparser \
-  { name=date help="by date" } \
-  { name=size help="by size" } \
-  { name=name help="by size" -- -l --locale help="locale to use" } \
-  ---- "$@"
+--8<-- "scripts/argparse_subparser_example.sh"
 ```
 
 #### `call_subparser_settings` options
@@ -234,6 +228,12 @@ Function call takes following `key=value` options:
 When generating help message `--help` for the parent parser or when generating shell completion, the parent parser needs to decide if it is ok to call the function or not. The function is called with a built-in `--L_argparse_*` option to generate the proper messages for parent parser.
 
 There might be defined a variable named `<prefix>_<funcname>_help` that will be used as the description message of the option for the parent parser. It takes precedence over `subcall=1`.
+
+Example:
+
+```
+--8<-- "scripts/argparse_function_example.sh"
+```
 
 #### `add_function` option `subcall=`
 
