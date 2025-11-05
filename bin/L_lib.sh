@@ -425,7 +425,7 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 # assert [[[
 # @section assert
 
-# @description Print stacktrace and the message to stderr and exit with 249.
+# @description Print stacktrace and the message to stderr and exit with 29.
 # @option -[0-9]+ Exit with this number.
 # @arg $@ Message to print.
 # @example [[ -r "$file" ]] || L_panic "File is not readable: $file"
@@ -439,7 +439,7 @@ L_panic() {
 		local e="${1#-}"
 		shift
 	else
-		local e=249
+		local e=29
 	fi
 	if [[ "$1" == -- ]]; then
 		shift
@@ -477,7 +477,7 @@ L_assert() {
 	fi
 }
 
-# @description Print the arguments to standard error and exit wtih 248.
+# @description Print the arguments to standard error and exit wtih 28.
 # @option -[0-9]+ Exit with this number.
 # @example test -r file || L_die "File is not readable"
 # @see L_panic
@@ -489,7 +489,7 @@ L_die() {
 		local e="${1#-}"
 		shift
 	else
-		local e=249
+		local e=28
 	fi
 	if [[ "$1" == -- ]]; then
 		shift
@@ -499,7 +499,7 @@ L_die() {
 }
 
 # @description With no arguments or an empty string, exit with 0.
-# Otherwise, the arguments are printed to stderr and exit with 247.
+# Otherwise, the arguments are printed to stderr and exit with 27.
 # @note If you want to exit with number, just call builtin exit,
 # @example
 # 	err=()
@@ -512,7 +512,7 @@ L_die() {
 L_exit() {
 	if [[ -n "$*" ]]; then
 		printf "%s\n" "$*" >&2
-		exit 247
+		exit 27
 	else
 		exit 0
 	fi
@@ -9277,17 +9277,20 @@ L_proc_wait() {
 # @option -t <timeout> Timeout in seconds.
 # @option -p <timeout> Poll timeout. The read -t argument value. Default: 0.05 or 1 in Bash3.2
 # @option -h Print this help and return 0.
-# @option -n <var> When the first fd errors or becomes EOF and assign it's number to <var> and return 0.
+# @option -n <var> After any fd errors or becomes EOF, assign the fd number to <var> and return 0.
 # @option -C <callback> Each time any chunk of data is read,
 #            evaluate the expression "<callback> <fd> <variable> <line>".
 # @option -d <delim> Read -d argument. Default: ''
-# @option -1 Run the loop until all file descriptors timeout.
+# @option -1 Run the reading loop possible once.
 # @arg $1 <int> File descriptor to read from.
 # @arg $2 <var> Variable to assign the output of $1.
 # @arg $@ Continued pairs of file descriptor and variable names.
 # @example
 #   exec 10< <(for ((i=0;i<5;++i)); do echo $i; sleep 1; done)
 #   exec 11< <(for ((i=0;i<5;++i)); do echo $i; sleep 2; done)
+#   L_read_fds 10 a 11 b
+#   echo "read from 10 fd text: $a"
+#   echo "read from 11 fd text: $b"
 # @return 0 on success
 #         124 on timeout
 L_read_fds() {
