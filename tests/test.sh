@@ -3984,30 +3984,57 @@ _L_test_func_usage() {
 
 _L_test_getopts_documented() {
 	set +eu
-	local functions lines word
-	functions=$(
-		sed -Ez 's/\n\n+/\x00/g' < bin/L_lib.sh |
-		sed -Ezn 's/(getopts [^ ]*).*/\1/p' |
-		sed -Ezn 's/(^|.*\n)([a-zA-Z0-9_]+)\(\) *\{.*OPTIND.* getopts ([^ ]*).*/\2 \3 \1/p' |
-		tr -d '\n' |
-		sed -Ez 's/$/\n/' |
-		tr -d '\0' |
-		grep -v '^L_argparse_compgen ' |
-		grep -v '^_.*' || :
-	)
-	L_string_count_lines -v lines "$functions"
-	(( lines > 20 ))
-	local c i func spec rest
-	while IFS=' ' read -r func spec rest; do
+	local functions function comments comment specs spec i=0 line acc="" linei=0
+	while ((++linei)); IFS= read -r line; do
+		L_strip -v line "$line"
+		if [[ -z "$line" ]]; then
+			function=""
+			comment=""
+		elif [[ "$line" == \#* ]]; then
+			comment+=${comment:+ }$line
+		elif [[ "$line" =~ ^([a-zA-Z0-9_]+)\(\)\ *\{ ]]; then
+			function=${BASH_REMATCH[1]}
+			spec=""
+		elif [[ "$line" =~ ^[^#]+getopts\ +([^\ ]*) ]]; then
+			if [[ "$function" == _* ]]; then
+				: "Ignore internal functions"
+			elif [[ "$function" == L_argparse_compgen ]]; then
+				: "Ignore special function"
+			elif [[ -n "$function" ]]; then
+				echo "Found $function getopts $spec comment ${#comment} chars"
+				functions[i]=$function
+				comments[i]=$comment
+				specs[i]=${BASH_REMATCH[1]}
+				((++i))
+			else
+				L_warning "function is empty for line $linei: $line"
+			fi
+			function=""
+			comment=""
+		fi
+	done <bin/L_lib.sh
+	local functionscnt=${#functions[@]}
+	L_ok "Found $functionscnt functions: ${functions[*]}"
+	if (( functionscnt < 23 )); then
+		L_fatal "Not enough"
+	fi
+	local c i func spec rest j reset func spec
+	for ((j = 0; j < functionscnt; ++j)); do
+		local spec=${specs[j]}
+		local func=${functions[j]}
+		local rest=${comments[j]}
 		if [[ "$spec" == *\$* ]]; then
 			continue
 		fi
 		L_string_split -v spec "$spec" || exit 123
-		spec=${spec//:}
-		for ((i=0;i<${#spec};++i)); do
+		# spec=${spec//:}
+		for ((i = 0; i < ${#spec}; ++i)); do
 			c=${spec:i:1}
+			if [[ "$c" == ":" ]]; then
+				continue
+			fi
 			if [[ "$rest" != *"# @option -$c "* ]]; then
-				L_fatal "Documentation of -$c option of $func function is missing in getopts $spec"
+				L_fatal "Documentation of -$c option of $func function is missing in getopts $spec: $L_NL $rest"
 			else
 				L_ok "Documentation of -$c option of $func function is ok in getopts $spec"
 			fi
@@ -4021,7 +4048,7 @@ _L_test_getopts_documented() {
 				L_ok "Option -$c is documented of $func and is present in getopts $spec"
 			fi
 		done
-	done <<<"$functions"
+	done
 	L_info OK
 }
 
