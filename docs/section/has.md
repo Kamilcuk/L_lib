@@ -1,4 +1,4 @@
-`L_HAS_` is a collection of functions to detect bash features.
+`L_HAS_` is a collection of variables to detect bash features.
 
 ```
 if ((L_HAS_SRANDOM)); then
