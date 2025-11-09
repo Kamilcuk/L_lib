@@ -37,7 +37,7 @@ for version in "${versions[@]}"; do
         docker run -q -i --rm -v $PWD:$PWD:ro -w "$PWD" bash:"$version" bash "${args[@]}" <<<"$input"
       ) || rc=$?
       echo "\ rc=$rc"
-    ) | tr '\n' $'\035'
+    ) | tr '\n' $'\002'
     echo
   ) &
-done | sort -gk1 | cut -d' ' -f2- | tr $'\035' '\n'
+done | sort -gk1 | cut -d' ' -f2- | tr $'\002' '\n' | sed '/^$/{$d}'
