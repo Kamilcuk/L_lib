@@ -2837,83 +2837,83 @@ _L_test_L_proc() {
 	{
 		L_log ''
 		L_proc_popen -Ipipe -Opipe proc cat
-		L_proc_printf proc "%s\n" "Hello, world!"
-		L_proc_close_stdin proc
-		L_proc_read proc line
-		L_proc_wait -c proc
+		L_proc_printf "$proc" "%s\n" "Hello, world!"
+		L_proc_close_stdin "$proc"
+		L_proc_read "$proc" line
+		L_proc_wait -c "$proc"
 		L_unittest_vareq line "Hello, world!"
 	}
 	{
 		L_log ''
 		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
-		L_proc_printf proc "%s\n" "Hello world"
-		L_proc_close_stdin proc
-		L_proc_read proc line
-		L_proc_wait -c -v exitcode proc
+		L_proc_printf "$proc" "%s\n" "Hello world"
+		L_proc_close_stdin "$proc"
+		L_proc_read "$proc" line
+		L_proc_wait -c -v exitcode "$proc"
 		L_unittest_vareq line "Hello World"
 		L_unittest_vareq exitcode 0
 	}
 	{
 		L_log ''
-		declare a pid cmd exitcode
+		local a pid cmd exitcode
 		L_proc_popen proc bash -c 'sleep 0.5; exit 123'
-		while L_proc_poll proc; do
+		while L_proc_poll "$proc"; do
 			sleep 0.1
 		done
-		L_proc_get_exitcode -v exitcode proc
+		L_proc_get_exitcode -v exitcode "$proc"
 		L_unittest_vareq exitcode 123
 	}
 	{
 		L_log 'test sleep timeout, takes about 3 seconds'
-		declare proc tmp exitcode
+		local proc tmp exitcode
 		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
+		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 124
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode proc
+		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 0
 		L_unittest_vareq exitcode 123
 	}
 	{
 		L_log ''
-		declare a pid cmd exitcode
+		local a pid cmd exitcode
 		L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
-		L_proc_get_stdin -v a proc
-		L_proc_get_stdout -v a proc
-		L_proc_get_stderr -v a proc
-		L_proc_get_pid -v pid proc
-		L_proc_get_cmd -v cmd proc
-		L_proc_get_exitcode -v exitcode proc
-		L_proc_printf proc "%s\n" "Hello world"
-		L_proc_close_stdin proc
-		L_proc_read proc line
-		L_proc_wait -c -v exitcode proc
+		L_proc_get_stdin -v a "$proc"
+		L_proc_get_stdout -v a "$proc"
+		L_proc_get_stderr -v a "$proc"
+		L_proc_get_pid -v pid "$proc"
+		L_proc_get_cmd -v cmd "$proc"
+		L_proc_get_exitcode -v exitcode "$proc"
+		L_proc_printf "$proc" "%s\n" "Hello world"
+		L_proc_close_stdin "$proc"
+		L_proc_read "$proc" line
+		L_proc_wait -c -v exitcode "$proc"
 		L_unittest_vareq line "Hello World"
 		L_unittest_vareq exitcode 0
 	}
 	{
 		L_log ''
-		declare stdout="" proc
+		local stdout="" proc
 		L_proc_popen -Opipe proc bash -c 'echo stdout; sleep 0.01; echo stdout'
-		L_proc_communicate -o stdout -t 2 -v exitcode proc
+		L_proc_communicate -o stdout -t 2 -v exitcode "$proc"
 		L_unittest_vareq stdout $'stdout\nstdout\n'
 		L_unittest_vareq exitcode 0
 	}
 	{
 		L_log "get stdout and stderr to separate variables"
-		declare stdout="" stderr="" proc
+		local stdout="" stderr="" proc
 		L_proc_popen -Opipe -Epipe proc bash -c 'echo stdout; sleep 0.01; echo stderr >&2; echo stderr >&2; sleep 0.01; echo stdout'
-		L_proc_communicate -o stdout -e stderr -t 2 -v exitcode proc
+		L_proc_communicate -o stdout -e stderr -t 2 -v exitcode "$proc"
 		L_unittest_vareq stdout $'stdout\nstdout\n'
 		L_unittest_vareq stderr $'stderr\nstderr\n'
 		L_unittest_vareq exitcode 0
 	}
 	{
 		L_log "get stdout and stderr to separate variables #2"
-		declare stdout="" stderr="" proc
+		local stdout="" stderr="" proc
 		L_proc_popen -Ipipe -Opipe -Epipe proc bash -c 'echo stdout; echo stderr >&2; tr "[:lower:]" "[:upper:]"; exit 101'
-		L_proc_read proc line
+		L_proc_read "$proc" line
 		L_unittest_vareq line stdout
-		L_proc_communicate -i "input"$'\n' -o stdout -e stderr -v exitcode proc
+		L_proc_communicate -i "input"$'\n' -o stdout -e stderr -v exitcode "$proc"
 		L_unittest_vareq stdout "INPUT"$'\n'
 		L_unittest_vareq stderr "stderr"$'\n'
 		L_unittest_vareq exitcode 101
@@ -2924,6 +2924,16 @@ _L_test_L_proc() {
 		L_unittest_arreq leftovers "/tmp/L_*"
 	}
 }
+
+_L_test_proc_array() {
+	{
+		local procs=() i proc
+		for ((i=0;i<5;++i)); do
+			L_proc_popen -Ipipe -Opipe -Epipe proc sleep 0.0$((RANDOM%10))
+			procs+=("$proc")
+		done
+		for 
+
 
 _L_test_all_getopts_have_local_OPTIND_OPTARG_OPTERR() {
 	declare funcs1 funcs2 func tmp

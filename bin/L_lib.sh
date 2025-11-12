@@ -1870,98 +1870,6 @@ else
 	}
 fi
 
-# @description An array to execute a command nicest way possible.
-# @example "${L_NICE[@]}" make -j $(nproc)
-L_NICE=()
-if L_hash ,nice; then
-	L_NICE=(",nice")
-else
-	if L_hash nice; then
-		L_NICE+=(nice -n 39)
-	fi
-	if L_hash ionice; then
-		L_NICE+=(ionice -c 3)
-	fi
-	if L_hash chrt; then
-		L_NICE+=(chrt -i 0)
-	fi
-fi
-
-# @description execute a command in nicest possible way
-# @arg $@ command to execute
-L_nice() {
-	"${L_NICE[@]}" "$@"
-}
-
-# @description Make the command be nicest possible.
-# @arg [$1] Pid of the process. Default: $BASHPID.
-L_renice() {
-	set -- "${1:-${BASHPID:-$$}}"
-	if L_hash ,nice; then
-		,nice -p "$1"
-	else
-		if L_hash nice;  then
-			renice -p "$1"
-		fi
-		if L_hash ionice; then
-			ionice -p "$1"
-		fi
-		if L_hash chrt; then
-			chrt -i -p 0 "$1"
-		fi
-	fi
-}
-
-# @description Show niceness levels of a process.
-# @arg [$1] Pid of the process. Default: $BASHPID
-L_show_nice() {
-	set -- "${1:-${BASHPID:-$$}}"
-	L_setx ps -l "$1"
-	L_setx ionice -p "$1"
-	L_setx chrt -v -p "$1"
-	local cgroup args=() f
-	if cgroup=$(<"/proc/$1/cgroup") 2>/dev/null; then
-		IFS=: read -r _ _ cgroup <<<"$cgroup"
-		for f in \
-				memory.high \
-				memory.max \
-				cpu.weight \
-				cpu.weight.nice \
-		; do
-			f="/sys/fs/cgroup/$cgroup/$f"
-			if [[ -r "$f" ]]; then
-				L_setx cat "$f"
-			fi
-		done
-	fi
-}
-
-_L_sudo_args_get_v() {
-	local envs=""
-	for i in no_proxy http_proxy https_proxy ftp_proxy rsync_proxy HTTP_PROXY HTTPS_PROXY FTP_PROXY RSYNC_PROXY; do
-		if [[ -n "${!i:-}" ]]; then
-			envs="${envs:---preserve-env=}${envs:+,}$i"
-		fi
-	done
-	if ((${#envs})); then
-		L_v=("$envs")
-	else
-		L_v=()
-	fi
-}
-
-# @description Execute a command with sudo if not root, otherwise just execute the command.
-# Preserves all proxy environment variables.
-L_sudo() {
-	local sudo=()
-	if ((UID != 0)) && hash sudo 2>/dev/null; then
-		local -a L_v=()
-		_L_sudo_args_get
-		sudo=(sudo -n "${L_v[@]}")
-	fi
-	L_run "${sudo[@]}" "$@"
-}
-
 # @description Generate uuid in bash.
 # @option -v <var> Store the output in variable instead of printing it.
 # @see https://digitalbunker.dev/understanding-how-uuids-are-generated/
@@ -2002,12 +1910,12 @@ L_date_v() {
 	# If the format string contains %N or the timestamp is not seconds since epoch.
 	if [[ "$L_v" =~ (^|[^%])%[0-9]*N ]]; then
 		if ! _L_has_date_N; then
-			local now
-			L_epochrealtime_usec -v now
+			local _L_now
+			L_epochrealtime_usec -v _L_now
 			while [[ "$L_v" =~ (^|(.*[^%]))%([0-9]*)N(.*) ]]; do
 				printf -v L_v "%s%0${BASH_REMATCH[3]:-9}d%s" \
 					"${BASH_REMATCH[2]}" \
-					"$(( 10#${now:${#now}-6}000 / 10**( 9 - ${BASH_REMATCH[3]:-9} ) ))" \
+					"$(( 10#${_L_now:${#_L_now}-6}000 / 10**( 9 - ${BASH_REMATCH[3]:-9} ) ))" \
 					"${BASH_REMATCH[4]}"
 			done
 		fi
@@ -2638,6 +2546,7 @@ L_strhash_v() {
 
 # @description Convert a string to a number in pure bash.
 # @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 string
 L_strhash_bash() { L_handle_v_scalar "$@"; }
 L_strhash_bash_v() {
 	local _L_c
@@ -2789,10 +2698,10 @@ L_list_functions_with_prefix_v() {
 L_list_functions_with_prefix_removed() { L_handle_v_array "$@"; }
 L_list_functions_with_prefix_removed_v() {
 	L_list_functions_with_prefix_v "$1"
-	local len=${L_v:+${#L_v[@]}}
+	local _L_len=${L_v:+${#L_v[@]}}
 	# Fix a bug on Bash4.0
 	L_v=(${L_v[@]+"${L_v[@]/#"$1"}"})
-	if ((len != ${#L_v[@]})); then
+	if ((_L_len != ${#L_v[@]})); then
 		L_v+=("")
 	fi
 }
@@ -2803,16 +2712,16 @@ L_list_functions_with_prefix_removed_v() {
 # @arg $@ elements
 L_abbreviation() { L_handle_v_array "$@"; }
 L_abbreviation_v() {
-	local cur=$1
+	local _L_cur=$1
 	shift
 	if [[ "${*//[$' \t\n'"\"'"]}" == "$*" ]]; then
-		if ! L_compgen -V L_v -W "$*" -- "$cur"; then
+		if ! L_compgen -V L_v -W "$*" -- "$_L_cur"; then
 			L_v=()
 		fi
 	else
 		L_v=()
 		while (($#)); do
-			if [[ "$1" == "$cur"* ]]; then
+			if [[ "$1" == "$_L_cur"* ]]; then
 				L_v+=("$1")
 			fi
 			shift
@@ -3272,20 +3181,20 @@ L_json_escape_v() {
 # @option -h Print this help and return 0.
 L_json_create() { L_handle_v_scalar "$@"; }
 L_json_create_v() {
-  local escape=0 o=""
+  local _L_escape=0 _L_o=""
   while (($#)); do
-    if ((escape++ % 2)); then
+    if ((_L_escape++ % 2)); then
       L_json_escape_v "$1"
-      o+="$L_v"
+      _L_o+="$L_v"
     else
       if [[ "${1:${#1}-1}" == ["]}"] ]]; then
-        escape=$((escape+1))
+        _L_escape=$((_L_escape+1))
       fi
-      o+="$1"
+      _L_o+="$1"
     fi
     shift
   done
-  L_v="$o"
+  L_v="$_L_o"
 }
 
 # ]]]
@@ -6253,20 +6162,20 @@ L_argparse_fatal() {
 # @arg $2 string to format
 _L_argparse_fmt() { L_handle_v_scalar "$@"; }
 _L_argparse_fmt_v() {
-	local line ws=$'\t\n '
+	local _L_line _L_ws=$'\t\n ' IFS=""
 	L_v=""
 	if [[ -n "$2" ]]; then
-		while IFS= read -r line; do
-			while [[ "${#line}" -gt $1 ]]; do
-				if [[ "$line" =~ ^(.{,$(($1-1))}[^$ws])[$ws]+(.*)$ ]]; then
+		while read -r _L_line; do
+			while [[ "${#_L_line}" -gt $1 ]]; do
+				if [[ "$_L_line" =~ ^(.{,$(($1-1))}[^$_L_ws])[$_L_ws]+(.*)$ ]]; then
 					L_v+=${L_v:+$'\n'}${BASH_REMATCH[1]}
-					line=${BASH_REMATCH[2]}
+					_L_line=${BASH_REMATCH[2]}
 				else
-					L_v+=${L_v:+$'\n'}${line::$1}
-					line=${line:$1}
+					L_v+=${L_v:+$'\n'}${_L_line::$1}
+					_L_line=${_L_line:$1}
 				fi
 			done
-			L_v+=${L_v:+$'\n'}$line
+			L_v+=${L_v:+$'\n'}$_L_line
 		done <<<"$2"
 	fi
 }
@@ -8574,35 +8483,35 @@ L_wait_all_jobs() {
 # @see https://stackoverflow.com/a/52544126/9072753
 L_get_all_childs() { L_handle_v_array "$@"; }
 L_get_all_childs_v() {
-	local toppid=${1:-} IFS=$' \t\n' ps_output ps_pid children_of pid ppid unproc_idx
-	if [[ -z "$toppid" ]]; then
-		L_bashpid_to toppid
+	local _L_toppid=${1:-} IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx
+	if [[ -z "$_L_toppid" ]]; then
+		L_bashpid_to _L_toppid
 	fi
 	#
-	L_hash ps && ps_output=$(
-			L_bashpid_to pid
-			echo "$pid"
+	L_hash ps && _L_ps_output=$(
+			L_bashpid_to _L_pid
+			echo "$_L_pid"
 			exec ps -e -o pid= -o ppid=
 	) && {
-		# Extract ps pid that we conveniently put as the first item.
-		read -r ps_pid <<<"$ps_output"
+		# Extract ps _L_pid that we conveniently put as the first item.
+		read -r _L_ps_pid <<<"$_L_ps_output"
 		# Populate a sparse array mapping pids to (string) lists of child pids.
-		children_of=()
-		while read -r pid ppid; do
-			if [[ -n "$pid" && -n "$ppid" && pid -ne ppid && pid -ne ps_pid && ppid -ne ps_pid ]]; then
-				children_of[ppid]+=" $pid"
+		_L_children_of=()
+		while read -r _L_pid _L_ppid; do
+			if [[ -n "$_L_pid" && -n "$_L_ppid" && _L_pid -ne _L_ppid && _L_pid -ne _L_ps_pid && _L_ppid -ne _L_ps_pid ]]; then
+				_L_children_of[_L_ppid]+=" $_L_pid"
 			fi
-		done <<<"$ps_output"
+		done <<<"$_L_ps_output"
 		# Add children to the list of pids until all descendants are found
-		L_v=("$toppid")
-		unproc_idx=0    # Index of first process whose children have not been added
-		while (( ${L_v[@]+${#L_v[@]}}+0 > unproc_idx )) ; do
-			pid=${L_v[unproc_idx++]}     # Get first unprocessed, and advance
+		L_v=("$_L_toppid")
+		_L_unproc_idx=0    # Index of first process whose children have not been added
+		while (( ${L_v[@]+${#L_v[@]}}+0 > _L_unproc_idx )) ; do
+			_L_pid=${L_v[_L_unproc_idx++]}     # Get first unprocessed, and advance
 			# shellcheck disable=SC2206
- 			L_v+=(${children_of[pid]-})  # Add child pids (ignore ShellCheck)
+ 			L_v+=(${_L_children_of[_L_pid]-})  # Add child pids (ignore ShellCheck)
 		done
-		# ( echo "${L_v[@]}"; pstree -p "$toppid" ) | sed 's/^/init /' >&100
-		# I do not want to return toppid of itself.
+		# ( echo "${L_v[@]}"; pstree -p "$_L_toppid" ) | sed 's/^/init /' >&100
+		# I do not want to return _L_toppid of itself.
 		unset -v 'L_v[0]'
 	}
 }
@@ -8695,20 +8604,23 @@ L_pipe() {
 }
 
 _L_proc_init_setup_redir() {
-	local redir="$1" mode="$2" val="${!3}" ret="" fd=()
+	local arg="$1" redir="$2" mode="$3" val="${!4}" ret="" fd=()
 	if [[ -n "$mode" ]]; then
 		L_printf_append _L_cmd " %s" "$redir"
 		case "$mode" in
 		null) L_printf_append _L_cmd "/dev/null" ;;
 		close) L_printf_append _L_cmd "%s" "&-" ;;
 		input)
-			L_assert 'you can only input string to stdin' test "$redir" = "<"
-			L_printf_append _L_cmd " <(printf %s %q)" "$val"
+			if [[ "$redir" != *"<" ]]; then
+				L_func_error "invalid argument $arg: not possible to input string to output" 1
+				return 2
+			fi
+			L_printf_append _L_cmd " <(printf %%s %q)" "$val"
 			;;
 		stdout) L_printf_append _L_cmd "&1" ;;
 		stderr) L_printf_append _L_cmd "&2" ;;
 		pipe)
-			L_pipe fd "${TMPDIR:-/tmp}/L_proc_${val}_XXXXXXXX"
+			L_pipe fd "${TMPDIR:-/tmp}/L_proc_${val}_XXXXXXXX" || return "$?"
 			# Pipe file descriptors are inverted depending on the direction.
 			if [[ "$redir" == "0<" ]]; then
 				fd=("${fd[1]}" "${fd[0]}")
@@ -8722,14 +8634,14 @@ _L_proc_init_setup_redir() {
 			fi
 			;;
 		file)
-			L_assert "file does not exists: $val" test -e "$val"
+			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exists: $val" 1; return 2; fi
 			L_printf_append _L_cmd "%q" "$val"
 			;;
 		fd) L_printf_append _L_cmd "&%d" "$val" ;;
-		*) L_assert "Invalid argument for $redir: $mode" false ;;
+		*) L_func_error "Invalid argument $arg $mode" 1; return 2; ;;
 		esac
+		printf -v "$4" "%s" "$ret" || return 2
 	fi
-	printf -v "$3" "%s" "$ret"
 }
 
 # @description
@@ -8754,27 +8666,24 @@ _L_proc_init_setup_redir() {
 #   - file - connect file descriptor to file specified by -i -o or -e option
 #   - fd - connect file descriptor to another file descriptor specified by -i -o or -e option
 #
-# There first argument specifies an output variable that will be assigned string with content:
-# `<exitcode> pid<pid> 0fd<stdin> 1fd<stdout> 2fd<stderr>\t<cmd...>`.
+# There first argument specifies an output variable that will be assigned the PID.
 #
-# The outputs variable contains elements:
+# Several global array variables hold additional information about the process:
 #
-#   - `<exitcode>` - Exitcode or empty if not yet finished.
-#   - `<pid>` - Pid.
-#   - `<stdin>` - If -Ipipe the file descriptor connected to stdin of the program, otherwise empty.
-#   - `<stdout>` - If -Opipe the file descriptor connected to stdout of the program, otherwise empty.
-#   - `<stderr>` - If -Epipe the file descriptor connected to stderr of the program, otherwise empty.
-#   - `<cmd...>` - The %q escaped command that was executed.
+#   - `_L_PROC_EXIT[PID]` - Exitcode or empty if not yet finished.
+#   - `_L_PROC_FD0[PID]` - If -Ipipe the file descriptor connected to stdin of the program, otherwise empty.
+#   - `_L_PROC_FD1[PID]` - If -Opipe the file descriptor connected to stdout of the program, otherwise empty.
+#   - `_L_PROC_FD2[PID]` - If -Epipe the file descriptor connected to stderr of the program, otherwise empty.
+#   - `_L_PROC_CMD[PID]` - The %q escaped command that was executed.
 #
-# You should use getters `L_proc_get_*` to extract the data from proc variable.
-# The proc variable is _not_ an array, so it can be used in an array to run many processes.
+# You should use getters `L_proc_get_*` to extract the data from them variable.
 #
-# @option -I <str> stdin mode
-# @option -i <str> string for -Iinput, file for -Ifile, fd for -Ifd
-# @option -O <str> stdout mode
-# @option -o <str> file for -Ifile, fd for -Ifd
-# @option -E <str> stderr mode
-# @option -e <str> file for -Efile, fd for -Efd
+# @option -I <mode> stdin mode
+# @option -i <param> string for -Iinput, file for -Ifile, fd for -Ifd
+# @option -O <mode> stdout mode
+# @option -o <param> file for -Ifile, fd for -Ifd
+# @option -E <mode> stderr mode
+# @option -e <param> file for -Efile, fd for -Efd
 # @option -n Dryrun mode. Do not execute the generated command. Instead print it to stdout.
 # @option -W <int> Register with L_finally a return trap on stacklevel <int> that will wait for the popen to finish. Typically -W 0
 # @option -h Print this help and return 0.
@@ -8789,7 +8698,7 @@ _L_proc_init_setup_redir() {
 #   echo "$exitcode"
 L_proc_popen() {
 	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v \
-		OPTIND OPTARG OPTERR _L_cmd="" _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=() _L_cleanup=""
+		OPTIND OPTARG OPTERR _L_cmd _L_cmd1 _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=() _L_cleanup=""
 	# Parse arguments.
 	while getopts i:I:o:O:e:E:nW:h _L_opt; do
 		case "$_L_opt" in
@@ -8807,24 +8716,21 @@ L_proc_popen() {
 	done
 	shift "$((OPTIND-1))"
 	_L_v="$1"
-	if ! printf -v "$_L_v" "%s" ""; then
-		L_func_usage_error "first argument is not a valid printf -v destination : $_L_v"
-		return 2
-	fi
 	shift
-	if [[ "$#" -eq 0 ]]; then
+	if ((!$#)); then
 		L_func_usage_error "no command to execute"
 		return 2
 	fi
-	printf -v _L_cmd "%q " "$@"
-	_L_cmd=${_L_cmd%% }
+	printf -v _L_cmd1 "%q " "$@" || return "$?"
+	_L_cmd1=${_L_cmd1%% }
+	_L_cmd=$_L_cmd1
 	# Setup redirections.
-	_L_proc_init_setup_redir "0<" "$_L_inmode" "_L_in"
-	_L_proc_init_setup_redir "1>" "$_L_outmode" "_L_out"
-	_L_proc_init_setup_redir "2>" "$_L_errmode" "_L_err"
+	_L_proc_init_setup_redir -I "0<" "$_L_inmode" "_L_in" || return "$?"
+	_L_proc_init_setup_redir -O "1>" "$_L_outmode" "_L_out" || return "$?"
+	_L_proc_init_setup_redir -E "2>" "$_L_errmode" "_L_err" || return "$?"
 	# Execute command.
 	if (( _L_dryrun )); then
-		bash -n -c "$_L_cmd"
+		# bash -n -c "$_L_cmd"
 		echo "$_L_cmd"
 	else
 		eval "$_L_cmd &"
@@ -8832,61 +8738,66 @@ L_proc_popen() {
 	# Cleanup.
 	eval "${_L_toclose:+exec ${_L_toclose}}"
 	# Assign result.
-	printf -v "$_L_v" "%s" " pid$! 0fd$_L_in 1fd$_L_out 2fd$_L_err "$'\t'"$_L_cmd"
+	printf -v "$_L_v" "$!"
+	_L_PROC_EXIT[$!]=
+	_L_PROC_FD0[$!]=$_L_in
+	_L_PROC_FD1[$!]=$_L_out
+	_L_PROC_FD2[$!]=$_L_err
+	_L_PROC_CMD[$!]=$_L_cmd1
 	# Register finally trap if requested.
 	if [[ -n "$_L_cleanup" ]]; then
-		L_finally -r -s "$((_L_cleanup + 1))" L_eval 'L_proc_popen_finally "${!1}"' "$_L_v"
+		L_finally -r -s "$((_L_cleanup + 1))" L_proc_popen_finally "$!"
 	fi
 }
 
 # @description Get exitcode of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_get_exitcode() { L_handle_v_scalar "$@"; }
-L_proc_get_exitcode_v() { L_v=${!1%% *}; }
+L_proc_get_exitcode_v() { L_v=${_L_PROC_EXIT[$1]}; }
 
-# @description Get PID of L_proc.
+# @description Get PID from L_proc_popen of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_get_pid() { L_handle_v_scalar "$@"; }
-L_proc_get_pid_v() { L_v=${!1#* pid}; L_v=${L_v%% *}; }
+L_proc_get_pid_v() { L_v=$1; }
 
 # @description Get file descriptor for stdin of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_get_stdin() { L_handle_v_scalar "$@"; }
-L_proc_get_stdin_v() { L_v=${!1#* 0fd}; L_v=${L_v%% *}; }
+L_proc_get_stdin_v() { L_v=${_L_PROC_FD0[$1]}; }
 
 # @description Get file descriptor for stdout of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_get_stdout() { L_handle_v_scalar "$@"; }
-L_proc_get_stdout_v() { L_v=${!1#* 1fd} L_v=${L_v%% *}; }
+L_proc_get_stdout_v() { L_v=${_L_PROC_FD1[$1]}; }
 
 # @description Get file descriptor for stderr of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_get_stderr() { L_handle_v_scalar "$@"; }
-L_proc_get_stderr_v() { L_v=${!1#* 2fd} L_v=${L_v%% *}; }
+L_proc_get_stderr_v() { L_v=${_L_PROC_FD2[$1]}; }
 
 # @description Get command of L_proc.
-# @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 L_proc variable
-L_proc_get_cmd() { L_handle_v_scalar "$@"; }
-L_proc_get_cmd_v() { L_v=${!1#*$'\t'}; }
+# @option -v <var> Store the output in the array variable instead of printing it.
+# @arg $1 PID from L_proc_popen
+L_proc_get_cmd() { L_handle_v_array "$@"; }
+L_proc_get_cmd_v() { eval "L_v=(${_L_PROC_CMD[$1]})"; }
 
 _L_proc_get_fd_v() {
-	L_v=${!1#* "$2"fd}
-	if [[ "$L_v" == "${!1}" ]]; then
-		L_func_error "invalid file descriptor $2" 1
-		return 2
-	fi
-	L_v=${L_v%% *}
+	L_v="_L_PROC_FD$2[$1]"
+	L_v=${!L_v}
 }
 
-_L_proc_rm_fd() { printf -v "$1" "%s" "${!1%% "$2"fd*} $2fd ${!1#* "$2"fd}"; }
+_L_proc_rm_fd() { eval "_L_PROC_FD$2[$1]="; }
 
-_L_proc_set_exitcode() { printf -v "$1" "%s" "$2 ${!1%* }"; }
+_L_proc_set_exitcode() { _L_PROC_EXIT[$1]=$2; }
+
+L_proc_free() {
+	unset "_L_PROC_EXIT[$1]" "_L_PROC_FD0[$1]" "_L_PROC_FD1[$1]" "_L_PROC_FD2[$1]" "_L_PROC_CMD[$1]"
+}
 
 # @description Handler that can be closed from L_finally or a signal handler.
 # Closes file descriptors. If L_SIGNAL is a signal, forwards it to the process.
@@ -8914,7 +8825,7 @@ L_proc_popen_finally() {
 }
 
 # @description Write printf formatted string to coproc.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @arg $@ any printf arguments
 L_proc_printf() {
 	local L_v
@@ -8924,7 +8835,7 @@ L_proc_printf() {
 }
 
 # @description Exec read bultin with -u file descriptor of stdout of coproc.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @arg $@ any builtin read options
 L_proc_read() {
 	local L_v
@@ -8933,7 +8844,7 @@ L_proc_read() {
 }
 
 # @description Exec read bultin with -u file descriptor of stderr of coproc.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @arg $@ any builtin read options
 # @see L_proc_read
 L_proc_read_stderr() {
@@ -8943,7 +8854,7 @@ L_proc_read_stderr() {
 }
 
 # @description Close stdin, stdout and stderr of L_proc
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_close() {
 	_L_proc_close_fd "$1" 0
 	_L_proc_close_fd "$1" 1
@@ -8952,27 +8863,27 @@ L_proc_close() {
 
 # @description Close stdin of L_proc.
 # Does nothing if already closed or not started with -Opipe.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_close_stdin() {
 	_L_proc_close_fd "$1" 0
 }
 
 # @description Close stdout of L_proc.
 # Does nothing if already closed or not started with -Opipe
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_close_stdout() {
 	_L_proc_close_fd "$1" 1
 }
 
 # @description Close stderr of L_proc.
 # Does nothing if already closed or not started with -Epipe.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 L_proc_close_stderr() {
 	_L_proc_close_fd "$1" 2
 }
 
 # @description Close file descriptor of L_proc.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @arg $2 file descriptor index
 _L_proc_close_fd() {
 	local L_v
@@ -8988,7 +8899,7 @@ _L_proc_close_fd() {
 }
 
 # @description Check if L_proc is finished.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @exitcode 0 if L_proc is running, 1 otherwise
 L_proc_poll() {
 	local L_v
@@ -9242,7 +9153,7 @@ L_wait() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -c Close L_proc file descriptors before waiting.
 # @option -h Print this help and return 0.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @exitcode 0 if L_proc has finished, 1 if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
@@ -9407,7 +9318,7 @@ L_read_fds() {
 # @option -k Kill L_proc after communication.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @exitcode
 #   0 on success.
 #   2 on invalid options.
@@ -9461,7 +9372,7 @@ L_proc_communicate() {
 }
 
 # @description Send signal to L_proc.
-# @arg $1 L_proc variable
+# @arg $1 PID from L_proc_popen
 # @arg $2 signal to send
 L_proc_send_signal() {
 	local L_v
@@ -9470,16 +9381,12 @@ L_proc_send_signal() {
 }
 
 # @description Terminate L_proc.
-# @arg $1 L_proc variable
-L_proc_terminate() {
-	L_proc_send_signal "$1" SIGTERM
-}
+# @arg $1 PID from L_proc_popen
+L_proc_terminate() { L_proc_send_signal "$1" SIGTERM; }
 
 # @description Kill L_proc.
-# @arg $1 L_proc variable
-L_proc_kill() {
-	L_proc_send_signal "$1" SIGKILL
-}
+# @arg $1 PID from L_proc_popen
+L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 
 # ]]]
 # lib [[[
