@@ -2963,10 +2963,10 @@ L_string_count_lines_v() {
 # @option -q Without -v, instead of printing one word per line, output words quoted with `printf %q`.
 # shellcheck disable=SC1003
 # @example
-#   $ L_string_split -v cmd "ls -l 'somefile; rm -rf ~'"
+#   $ L_string_unquote -v cmd "ls -l 'somefile; rm -rf ~'"
 #   $ declare -p cmd
 #   declare -a cmd=([0]="ls" [1]="-l" [2]="somefile; rm -rf ~")
-L_string_split() {
+L_string_unquote() {
 	# local -;set -x
 	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_comments=0 _L_ansic1='$' _L_ansic2="[$]'|" _L_q=0
 	while getopts v:cAqh _L_i; do
