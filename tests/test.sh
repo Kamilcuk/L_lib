@@ -12,7 +12,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177']}
@@ -2928,12 +2928,20 @@ _L_test_L_proc() {
 _L_test_proc_array() {
 	{
 		local procs=() i proc
-		for ((i=0;i<5;++i)); do
-			L_proc_popen -Ipipe -Opipe -Epipe proc sleep 0.0$((RANDOM%10))
+		for ((i=0;i<20;++i)); do
+			L_proc_popen -Ipipe -Opipe -Estdout proc eval "sleep 0.0$((RANDOM%10)) ; echo $i"
 			procs+=("$proc")
 		done
-		for 
-
+		for i in "${!procs[@]}"; do
+			proc="${procs[i]}"
+			local output="" exitcode=-1
+			L_proc_communicate -o output -v exitcode "$proc"
+			L_strip -v output "$output"
+			L_unittest_vareq output "$i"
+			L_unittest_vareq exitcode 0
+		done
+	}
+}
 
 _L_test_all_getopts_have_local_OPTIND_OPTARG_OPTERR() {
 	declare funcs1 funcs2 func tmp

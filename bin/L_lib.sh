@@ -8604,22 +8604,22 @@ L_pipe() {
 	return 1
 }
 
-_L_proc_init_setup_redir() {
+_L_proc_init_setup_redirs() {
 	local arg="$1" redir="$2" mode="$3" val="${!4}" ret="" fd=()
 	if [[ -n "$mode" ]]; then
-		L_printf_append _L_cmd " %s" "$redir"
+		L_printf_append _L_redirs " %s" "$redir"
 		case "$mode" in
-		null) L_printf_append _L_cmd "/dev/null" ;;
-		close) L_printf_append _L_cmd "%s" "&-" ;;
+		null) L_printf_append _L_redirs "/dev/null" ;;
+		close) L_printf_append _L_redirs "%s" "&-" ;;
 		input)
 			if [[ "$redir" != *"<" ]]; then
 				L_func_error "invalid argument $arg: not possible to input string to output" 1
 				return 2
 			fi
-			L_printf_append _L_cmd " <(printf %%s %q)" "$val"
+			L_printf_append _L_redirs " <(printf %%s %q)" "$val"
 			;;
-		stdout) L_printf_append _L_cmd "&1" ;;
-		stderr) L_printf_append _L_cmd "&2" ;;
+		stdout) L_printf_append _L_redirs "&1" ;;
+		stderr) L_printf_append _L_redirs "&2" ;;
 		pipe)
 			L_pipe fd "${TMPDIR:-/tmp}/L_proc_${val}_XXXXXXXX" || return "$?"
 			# Pipe file descriptors are inverted depending on the direction.
@@ -8629,16 +8629,16 @@ _L_proc_init_setup_redir() {
 			_L_toclose+=" ${fd[1]}>&-"
 			ret="${fd[0]}"
 			# Pipe file descriptors have to be closed so that EOF is properly propagated.
-			L_printf_append _L_cmd "&%d %d>&- %d>&-" "${fd[1]}" "${fd[0]}" "${fd[1]}"
+			L_printf_append _L_redirs "&%d %d>&- %d>&-" "${fd[1]}" "${fd[0]}" "${fd[1]}"
 			if ((_L_dryrun)); then
 				_L_toclose+=" $ret>&-"
 			fi
 			;;
 		file)
 			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exists: $val" 1; return 2; fi
-			L_printf_append _L_cmd "%q" "$val"
+			L_printf_append _L_redirs "%q" "$val"
 			;;
-		fd) L_printf_append _L_cmd "&%d" "$val" ;;
+		fd) L_printf_append _L_redirs "&%d" "$val" ;;
 		*) L_func_error "Invalid argument $arg $mode" 1; return 2; ;;
 		esac
 		printf -v "$4" "%s" "$ret" || return 2
@@ -8691,7 +8691,7 @@ _L_proc_init_setup_redir() {
 # @arg $1 variable name to store the result to.
 # @arg $@ command to execute.
 # @example
-#   L_proc_popen -Ipipe -Opipe proc sed 's/w/W/g'
+#   L_proc_popen -Ipipe -Opipe -Estdout proc sed 's/w/W/g'
 #   L_proc_printf proc "%s\n" "Hello world"
 #   L_proc_read proc line
 #   L_proc_wait -c -v exitcode proc
@@ -8699,7 +8699,7 @@ _L_proc_init_setup_redir() {
 #   echo "$exitcode"
 L_proc_popen() {
 	local _L_inmode="" _L_in="" _L_outmode="" _L_out="" _L_errmode="" _L_err="" _L_opt="" _L_v \
-		OPTIND OPTARG OPTERR _L_cmd _L_cmd1 _L_toclose="" _L_dryrun=0 _L_i _L_addpipe=() _L_cleanup=""
+		OPTIND OPTARG OPTERR _L_cmd _L_redirs="" _L_toclose="" _L_dryrun=0 _L_i _L_cleanup=""
 	# Parse arguments.
 	while getopts i:I:o:O:e:E:nW:h _L_opt; do
 		case "$_L_opt" in
@@ -8722,19 +8722,18 @@ L_proc_popen() {
 		L_func_usage_error "no command to execute"
 		return 2
 	fi
-	printf -v _L_cmd1 "%q " "$@" || return "$?"
-	_L_cmd1=${_L_cmd1%% }
-	_L_cmd=$_L_cmd1
+	printf -v _L_cmd "%q " "$@" || return "$?"
+	_L_cmd=${_L_cmd%% }
 	# Setup redirections.
-	_L_proc_init_setup_redir -I "0<" "$_L_inmode" "_L_in" || return "$?"
-	_L_proc_init_setup_redir -O "1>" "$_L_outmode" "_L_out" || return "$?"
-	_L_proc_init_setup_redir -E "2>" "$_L_errmode" "_L_err" || return "$?"
+	_L_proc_init_setup_redirs -I "0<" "$_L_inmode" "_L_in" || return "$?"
+	_L_proc_init_setup_redirs -O "1>" "$_L_outmode" "_L_out" || return "$?"
+	_L_proc_init_setup_redirs -E "2>" "$_L_errmode" "_L_err" || return "$?"
 	# Execute command.
 	if (( _L_dryrun )); then
 		# bash -n -c "$_L_cmd"
-		echo "$_L_cmd"
+		echo "$_L_cmd $_L_redirs"
 	else
-		eval "$_L_cmd &"
+		eval "$_L_cmd $_L_redirs &"
 	fi
 	# Cleanup.
 	eval "${_L_toclose:+exec ${_L_toclose}}"
@@ -8744,7 +8743,7 @@ L_proc_popen() {
 	_L_PROC_FD0[$!]=$_L_in
 	_L_PROC_FD1[$!]=$_L_out
 	_L_PROC_FD2[$!]=$_L_err
-	_L_PROC_CMD[$!]=$_L_cmd1
+	_L_PROC_CMD[$!]=$_L_cmd
 	# Register finally trap if requested.
 	if [[ -n "$_L_cleanup" ]]; then
 		L_finally -r -s "$((_L_cleanup + 1))" L_proc_popen_finally "$!"
@@ -9151,11 +9150,12 @@ L_wait() {
 # @description Wait for L_proc to finish.
 # If L_proc has already finished execution, will only evaluate -v option.
 # @option -t <int> Timeout in seconds. Will try to use waitpid, tail --pid or busy loop with sleep.
-# @option -v <var> Store the output in variable instead of printing it.
+# @option -v <var> Store the L_proc exit code in the variable.
 # @option -c Close L_proc file descriptors before waiting.
 # @option -h Print this help and return 0.
 # @arg $1 PID from L_proc_popen
-# @exitcode 0 if L_proc has finished, 1 if timeout expired
+# @exitcode 0 if L_proc has finished
+#           124 if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
 	while getopts t:v:ch _L_opt; do
@@ -9312,9 +9312,17 @@ L_read_fds() {
 }
 
 # @description Communicate with L_proc.
+#
+# Interact with process: Send data to stdin.
+# Read data from stdout and stderr, until end-of-file is reached.
+# Wait for process to terminate.
+#
 # @option -i <str> Send string to stdin.
-# @option -o <var> Assign stdout to this variable.
-# @option -e <var> Assign stderr to this variable.
+#                  Note that if you want to send data to the process’s stdin, you need to create the L_proc object with -I PIPE.
+# @option -o <var> Append stdout data to this variable. Variable is not cleared.
+#                  To get anything, you need to create L_proc object with -O PIPE.
+# @option -e <var> Append stderr to this variable. Variable is not cleared.
+#                  To get anything, you need to create L_proc object with -E PIPE.
 # @option -t <int> Timeout in seconds.
 # @option -k Kill L_proc after communication.
 # @option -v <var> Store the output in variable instead of printing it.
@@ -9322,7 +9330,7 @@ L_read_fds() {
 # @arg $1 PID from L_proc_popen
 # @exitcode
 #   0 on success.
-#   2 on invalid options.
+#   2 on usage error.
 #   124 on timeout.
 L_proc_communicate() {
 	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
