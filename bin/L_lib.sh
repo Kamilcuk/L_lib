@@ -2935,11 +2935,12 @@ L_string_count_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 # @arg $1 String.
+# @arg [$2] Line characters. Default: newline.
 L_string_count_lines() { L_handle_v_scalar "$@"; }
 L_string_count_lines_v() {
-	L_string_count_v "$1" $'\n'
+	L_string_count_v "$1" "${2:-$'\n'}"
 	# If there is anything after the last newline.
-	if [[ -n "$1" && "${1: -1}" != $'\n' ]]; then
+	if [[ -n "$1" && "${1: -1}" != "${2:-$'\n'}" ]]; then
 		L_v=$((L_v+1))
 	fi
 }
