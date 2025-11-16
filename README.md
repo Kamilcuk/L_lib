@@ -135,6 +135,7 @@ Report bugs using [GitHub issue](https://github.com/Kamilcuk/L_lib/issues).
     - This follows the convention of `printf -v <var>`.
     - Without the `-v` option, the function outputs the elements on lines to standard output.
     - Associated function with `_v` suffix store the result in a hardcoded scratch variable `L_v`.
+- return 2 on usage error, return 124 on timeout
 
 # License
 
