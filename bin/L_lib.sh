@@ -3320,7 +3320,8 @@ L_array_reverse() {
 	fi
 }
 
-# @description Wrapper for readarray for bash versions that do not have it.
+# @description Wrapper for readarray/mapfile for bash versions that do not have it.
+# @option -t Ignored, does nothing.
 # @option -d <delim> separator to use, default: newline
 # @option -u <fd> file descriptor to read from
 # @option -s <count> skip first n lines
@@ -3328,9 +3329,10 @@ L_array_reverse() {
 # @arg $1 <var> array nameref
 # @example L_readarray arr <file
 L_readarray() {
-	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
-	while getopts d:u:sh _L_c; do
+	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_t=0 _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
+	while getopts td:u:sh _L_c; do
 		case $_L_c in
+		t) _L_t=1 ;;
 		d) _L_d=$OPTARG ;;
 		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
 		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
