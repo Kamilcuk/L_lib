@@ -8740,7 +8740,7 @@ L_proc_popen() {
 	# Cleanup.
 	eval "${_L_toclose:+exec ${_L_toclose}}"
 	# Assign result.
-	printf -v "$_L_v" "$!"
+	printf -v "$_L_v" "%s" "$!"
 	_L_PROC_EXIT[$!]=
 	_L_PROC_FD0[$!]=$_L_in
 	_L_PROC_FD1[$!]=$_L_out
