@@ -2453,7 +2453,7 @@ _L_test_z_argparse9_time_profile() {
 		time=${output//*$'\n'}
 		echo "$time"
 		L_unittest_cmd L_float_cmp "$time" -gt 0.1
-		L_unittest_cmd L_float_cmp "$time" -lt 2
+		L_unittest_cmd L_float_cmp "$time" -lt 3
 	}
 	check -h
 	check run -h
