@@ -24,7 +24,7 @@
 # @description some global variables
 
 # @description Version of the library
-L_LIB_VERSION=1.0.3
+L_LIB_VERSION=1.0.4
 # @description The location of L_lib.sh file
 L_LIB_SCRIPT=${BASH_SOURCE[0]}
 # @description The basename part of $0.
