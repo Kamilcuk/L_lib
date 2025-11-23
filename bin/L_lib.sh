@@ -1836,6 +1836,22 @@ L_var_to_string_v() {
 
 fi
 
+# @description Get the namereference variable name that the variable references to.
+# If the variable is not a namereference, return 1
+# @option -v <var> Variable to assign. If not given, print to stdout.
+# @arg $1 variable nameref
+# @see L_var_is_nameref
+L_var_get_nameref() { L_handle_v_scalar "$@"; }
+L_var_get_nameref_v() {
+	[[ "$(LC_ALL=C declare -p "$1")" =~ ^declare\ -n\ [^=]+=\"?([^=\"]+)\"?$ ]] &&
+		L_v=${BASH_REMATCH[1]}
+}
+
+# @description Return 0 if the variable is a namereference.
+# @arg $1 variable nameref
+# @see L_var_get_nameref
+L_var_is_nameref() { local L_v; L_var_get_nameref_v -- "$@"; }
+
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # shellcheck disable=SC2059
 # @description Append to the first argument if first argument is not null.
