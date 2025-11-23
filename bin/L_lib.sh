@@ -469,10 +469,12 @@ L_panic() {
 L_assert() {
 	if ! "${@:2}"; then
 		set +x
+		local L_v
+		L_quote_printf_v "${@:2}"
 		if [[ "${1:-}" =~ ^(-[0-9]+)$' \t\r\n'*(.*)$ ]]; then
-			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
+			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$L_v] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
 		else
-			L_panic -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${1:+: $1}"
+			L_panic -- "$L_NAME: ERROR: assertion [$L_v] failed${1:+: $1}"
 		fi
 	fi
 }
