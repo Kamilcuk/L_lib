@@ -4583,35 +4583,35 @@ L_shuf() {
 # shellcheck disable=SC2030,SC2031,SC2035
 # @see L_sort_bash
 _L_sort_bash_in() {
-	local _L_start="$1" _L_end="$2" _L_left _L_right _L_pivot _L_tmp
-	if (( _L_start < _L_end )); then
-		_L_left=$((_L_start + 1))
-		_L_right=$_L_end
-		_L_pivot=${_L_array[_L_start]}
-		while (( _L_left < _L_right )); do
-			if ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
-				(( ++_L_left, 1 ))
-			elif ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "${_L_array[_L_right]}" "$_L_pivot"; then
-				(( --_L_right, 1 ))
+	local _L_sort_start="$1" _L_sort_end="$2" _L_sort_left _L_sort_right _L_sort_pivot _L_sort_tmp
+	if (( _L_sort_start < _L_sort_end )); then
+		_L_sort_left=$((_L_sort_start + 1))
+		_L_sort_right=$_L_sort_end
+		_L_sort_pivot=${_L_array[_L_sort_start]}
+		while (( _L_sort_left < _L_sort_right )); do
+			if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
+				(( ++_L_sort_left, 1 ))
+			elif "${_L_sort_compare[@]}" "${_L_array[_L_sort_right]}" "$_L_sort_pivot"; then
+				(( --_L_sort_right, 1 ))
 			else
-				_L_tmp=${_L_array[_L_left]}
-				_L_array[_L_left]=${_L_array[_L_right]}
-				_L_array[_L_right]=$_L_tmp
+				_L_sort_tmp=${_L_array[_L_sort_left]}
+				_L_array[_L_sort_left]=${_L_array[_L_sort_right]}
+				_L_array[_L_sort_right]=$_L_sort_tmp
 			fi
 		done
-		if ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
-			_L_tmp=${_L_array[_L_left]}
-			_L_array[_L_left]=${_L_array[_L_start]}
-			_L_array[_L_start]=$_L_tmp
-			(( --_L_left, 1 ))
+		if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
+			_L_sort_tmp=${_L_array[_L_sort_left]}
+			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
+			_L_array[_L_sort_start]=$_L_sort_tmp
+			(( --_L_sort_left, 1 ))
 		else
-			(( --_L_left, 1 ))
-			_L_tmp=${_L_array[_L_left]}
-			_L_array[_L_left]=${_L_array[_L_start]}
-			_L_array[_L_start]=$_L_tmp
+			(( --_L_sort_left, 1 ))
+			_L_sort_tmp=${_L_array[_L_sort_left]}
+			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
+			_L_array[_L_sort_start]=$_L_sort_tmp
 		fi
-		_L_sort_bash_in "$_L_start" "$_L_left"
-		_L_sort_bash_in "$_L_right" "$_L_end"
+		_L_sort_bash_in "$_L_sort_start" "$_L_sort_left"
+		_L_sort_bash_in "$_L_sort_right" "$_L_sort_end"
 	fi
 }
 
@@ -4622,26 +4622,44 @@ _L_sort_compare_numeric() { (( $1 > $2 )); }
 
 # @description Quicksort an array in place in pure bash.
 # @see L_sort
-# @option -z ignored. Always zero sorting
-# @option -n numeric sort, otherwise lexical
-# @option -r reverse sort
-# @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
+# @option -z ignored. Always zero sorting.
+# @option -n Numeric sort, otherwise lexical.
+# @option -r Reverse sort.
+# @option -c <compare> Custom compare function that returns 0 when $1 > $2 and 1 otherwise.
+# @option -E <eval> Custom expression to evaluate just like -c option.
 # @option -h Print this help and return 0.
 # @arg $1 array nameref
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare="_L_sort_compare" _L_sort_reverse=()
-	while getopts znrc:h _L_c; do
+	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare=() _L_sort_reverse=0
+	while getopts znrc:E:h _L_c; do
 		case $_L_c in
 			z) ;;
-			n) _L_sort_compare="_L_sort_compare_numeric" ;;
-			r) _L_sort_reverse=("L_not") ;;
-			c) _L_sort_compare="$OPTARG" ;;
+			n) _L_sort_numeric=1 ;;
+			r) _L_sort_reverse=1 ;;
+			c) _L_sort_compare+=("$OPTARG") ;;
+			E) eval "_L_sort_temp() { $OPTARG; }"; _L_sort_compare=_L_sort_temp ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_usage_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_func_assert "wrong number of arguments" test "$#" = 1 || return 2
+	if (($# != 1)); then
+		L_func_usage_error "wrong number of positional arguments: array name expected"
+		return 2
+	fi
+	if (( _L_sort_numeric )); then
+		if (( ${#_L_sort_compare[*]} != 0 )); then
+			L_func_usage_error "-c option conflicts with -n option"
+			return 2
+		fi
+		_L_sort_compare=(_L_sort_compare_numeric)
+	elif (( ${#_L_sort_compare[*]} == 0 )); then
+		_L_sort_compare=(_L_sort_compare)
+	fi
+	if (( _L_sort_reverse )); then
+		_L_sort_compare=(L_not "${_L_sort_compare[@]}")
+	fi
+	#
 	if ((!L_HAS_NAMEREF)); then
 		_L_c="$1[@]"
 		_L_array=(${!_L_c+"${!_L_c}"})
