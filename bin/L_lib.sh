@@ -3280,6 +3280,14 @@ L_array_is_dense() {
 	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
 }
 
+# @description Copy an array.
+# @arg $1 Source array.
+# @arg $2 Destination array.
+L_array_copy() {
+	local -n _L_arr1=$1 _L_arr2=$2
+	_L_arr2=("${_L_arr1[@]}")
+}
+
 else  # L_HAS_NAMEREF
 	L_array_len_v() { L_is_valid_variable_name "$1" && eval "L_v=\${#$1[@]}"; }
 	L_array_assign() { L_is_valid_variable_name "$1" && eval "$1=(\"\${@:2}\")"; }
@@ -3297,6 +3305,12 @@ else  # L_HAS_NAMEREF
 	L_array_is_dense() {
 		L_is_valid_variable_name "$1" &&
 		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
+	}
+
+	L_array_copy() {
+		L_is_valid_variable_name "$1" &&
+			L_is_valid_variable_name "$2" &&
+			eval "$1=(\"\${$2[@]}\")"
 	}
 fi  # L_HAS_NAMEREF
 
