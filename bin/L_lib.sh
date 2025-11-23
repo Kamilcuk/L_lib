@@ -1752,6 +1752,10 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # Bash<4.4 prepends byte 0x01 in front of bytes 0x01 and 0x7f.
 # Single 0x01 in declare -p output results in double 0x01,0x01.
 #
+# Namerefences variables are not resolved and instead result in an empty string.
+# This is by design - checking if variable is a string, requires a call to declare, which is costly.
+# If you know a way to check if nameref without calling declare, let me know, I would want to add.
+#
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <var> variable name
 # @example
