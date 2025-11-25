@@ -1820,7 +1820,9 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
-L_var_to_string_v() {
+fi
+
+_L_var_to_string_v_declare() {
 	L_v=$(LC_ALL=C declare -p "$1") || return 2
 	# If it is an array or associative array.
 	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
@@ -1834,7 +1836,6 @@ L_var_to_string_v() {
   fi
 }
 
-fi
 
 # @description Get the namereference variable name that the variable references to.
 # If the variable is not a namereference, return 1
@@ -3334,10 +3335,10 @@ L_array_clear() { L_array_assign "$1"; }
 #   echo "$var1"  # prints Hello
 #   echo "$var2"  # prints World
 L_array_extract() {
-	local _L_v _L_i=0 _L_r
-	for _L_v in "${@:2}"; do
-		_L_r="$1[$((_L_i++))]"
-		printf -v "$_L_v" "%s" "${!_L_r}"
+	local _L_array_v _L_array_i=0 _L_array_r
+	for _L_array_v in "${@:2}"; do
+		_L_array_r="$1[$((_L_array_i++))]"
+		printf -v "$_L_array_v" "%s" "${!_L_array_r}"
 	done
 }
 
