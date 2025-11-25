@@ -1968,7 +1968,9 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
-L_var_to_string_v() {
+fi
+
+_L_var_to_string_v_declare() {
 	L_v=$(LC_ALL=C declare -p "$1") || return 2
 	# If it is an array or associative array.
 	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
@@ -1982,7 +1984,6 @@ L_var_to_string_v() {
   fi
 }
 
-fi
 
 # @description Get the namereference variable name that the variable references to.
 # If the variable is not a namereference, return 1
