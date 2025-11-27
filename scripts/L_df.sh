@@ -5,105 +5,23 @@ set -euo pipefail
 
 ###############################################################################
 
-# @description Wrapper around getopts.
-# @option -p <str> Add prefix to assigned variables.
-# @option -n <str> Check positional arguments count. Can be a number or one of "*", "+", "?". Default: "*".
-# @option -s <num> Print messages for function number stack up. Default: 1, calling function.
-# @option -e <letter=action> Evaluate this string when letter is used in getopts.
-# @option -g Declare variables globally
-# @option -E eval the command.
-# @option -h Show this help and exit.
-# @arg $1 The getopts spec. Additionally '@' sequence can be used instead of ':' to mean to accumulate the result into an array.
-# @arg $2 Command to call.
-# @arg $@ Arguments to parse.
-L_getopts_in() {
-  local _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local="local" _L_eval=0
-  local OPTIND OPTERR OPTARG
-  while getopts p:n:s:ge:Eh _L_opt; do
-    case "$_L_opt" in
-      p) _L_prefix=$OPTARG ;;
-      n) _L_nargs=$OPTARG ;;
-      s) _L_up=$OPTARG ;;
-      g) _L_local="declare -g" ;;
-      e)
-        printf -v _L_tmp "%d" "'${OPTARG%%=*}"
-        _L_es[_L_tmp]="${OPTARG#*=}"
-        ;;
-      E) _L_eval=1 ;;
-      h) L_func_help; return ;;
-      *) L_func_usage_error; return 3 ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-  local _L_spec=$1 _L_cmd=$2
-  shift 2
-  # Make all variables with local.
-  _L_tmp=${_L_spec//["]@:?*["]}
-	if ((L_HAS_PATSUB_REPLACEMENT)); then
-		shopt -s patsub_replacement
-    $_L_local ${_L_tmp//?/${_L_prefix}&= }
-  else
-    L_panic 'todo'
-	fi
-  #
-  local OPTIND=0 OPTERR OPTARG
-  while getopts "${_L_spec//@/:}h" _L_opt; do
-    # Execute action given by -e
-    # ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
-    # ${_L_es[@]:+eval} ${_L_es[@]:+"${_L_es[_L_tmp]}"}
-    # Parse the command.
-    if [[ "$_L_spec" == *"$_L_opt@"* ]]; then
-      L_array_append "$_L_prefix$_L_opt" "$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt:"* ]]; then
-      printf -v "$_L_prefix$_L_opt" "%s" "$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt"* ]]; then
-       printf -v "$_L_prefix$_L_opt" 1
-    elif [[ "$_L_spec" == h ]]; then
-      L_func_usage "$_L_up"
-      return 0
-    else
-      L_func_usage_error "$_L_up"
-      return 2
-    fi
-  done
-  shift "$((OPTIND-1))"
-  #
-  case "$_L_nargs" in
-    '*') ;;
-    '?')
-      if (($# > 1)); then
-        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
-        return 2
-      fi
-      ;;
-    '+')
-      if (($# == 0)); then
-        L_func_usage_error "Missing positional argument" "$_L_up"
-        return 2
-      fi
-      ;;
-    [0-9]*)
-      if (($# != _L_nargs)); then
-        L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
-        return 2
-      fi
-      ;;
-    *) L_func_usage_error 0 "Invalid nargs=$_L_nargs"; return 3 ;;
-  esac
-  #
-  # L_array_assign "${_L_prefix}args" "$@"
-  if ((_L_eval)); then
-    eval "$_L_cmd \"\$@\""
-  else
-    "$_L_cmd" "$@"
-  fi
-}
+# @description Appends to a variable using ASCII group separator character as separator.
+# @arg $1 variable namereference
+# @arg $2 Value to append.
+L_list_append() { printf -v "$1" "%s" "${!1:+${!1}$L_GS}${!2:-}"; }
 
+# @description Checks if a list containing ASCII group separator character separated elements
+# contains an element.
+# @arg $1 string with values separated by L_GS
+# @arg $2 needle to search for
+# @arg [$3] optionally different separator then L_GS, for example a space.
+L_list_contains() { [[ "${3:-$L_GS}$1${3:-$L_GS}" == *"${3:-$L_GS}$2${3:-$L_GS}"* ]]; }
 
-###############################################################################
-
-L_list_append() { local -n _L_list=$1; _L_list+=${_L_list:+$L_GS}$1; }
-L_list_contains() { [[ "$L_GS$1$L_GS" == *"$L_GS$2$L_GS"* ]]; }
+# @description Convert L_GS separated elements to an array.
+# @arg $1 destination array variable namereference
+# @arg $2 string with values separated by L_GS
+# @arg [$3] optionally different separator then L_GS, for example a space.
+L_list_to_array_to() { IFS="${3:-$L_GS}" read -r -a "$2" <<<"$1"; }
 
 ###############################################################################
 
