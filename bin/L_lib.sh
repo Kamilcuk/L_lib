@@ -469,10 +469,12 @@ L_panic() {
 L_assert() {
 	if ! "${@:2}"; then
 		set +x
+		local L_v
+		L_quote_printf_v "${@:2}"
 		if [[ "${1:-}" =~ ^(-[0-9]+)$' \t\r\n'*(.*)$ ]]; then
-			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
+			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$L_v] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
 		else
-			L_panic -- "$L_NAME: ERROR: assertion [$(L_quote_printf "${@:2}")] failed${1:+: $1}"
+			L_panic -- "$L_NAME: ERROR: assertion [$L_v] failed${1:+: $1}"
 		fi
 	fi
 }
@@ -738,7 +740,7 @@ L_func_error() {
 # @arg [$2] How many stack frames up.
 # @see L_func_help for example
 L_func_usage_error() {
-	L_func_error "$1" "$((${2:-0}+1))"
+	L_func_error "${1:-}" "$((${2:-0}+1))"
 	L_func_usage "$((${2:-0}+1))"
 }
 
@@ -879,6 +881,138 @@ L_duration_to_usec_v() {
       * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[16] ))" "${BASH_REMATCH[18]:-0}" &&
     # Remove leading zeros.
     L_v=$(( 10#$L_v ))
+}
+
+
+_L_getopts_in_initer() {
+	if [[ "$1" == -a ]]; then
+		L_array_assign "${2%%=*}"
+	else
+		printf -v "${1%%=*}" "%s" "${1#*=}"
+	fi
+}
+
+# @description Wrapper around getopts that executes subcommand with local-ed variables.
+#
+# The frist argument defines a getopts specification, which is like getopts with modifications.
+# Sequence of character followed by : represents an option with required argument, just like in getopts.
+# Sequence of a character followed by :: represents an option that arguments are collected into an array.
+# Otherwise, the characters represent short options on the command line.
+#
+# Each option in getopts specification translated to a variable named like the option.
+# The set variables are optionally prefixed with -p argument.
+#
+# Options variables are initalized with 0, and are incremented each time encountered.
+# Array options variables are initialized with empty array.
+# Argument options variables are unset if not specified by the user!
+#
+# Option -h is always added and calls L_func_help function and returns 0.
+#
+# Invalid option triggers L_func_usage_error and returns 2.
+#
+# @option -p <str> Add prefix to assigned variables.
+# @option -n <str> Check positional arguments count. Can be a number or one of "*", "+", "?". Default: "*".
+# @option -s <num> Call L_func_help and L_func_usage_error for function number stack up. Default: 1, the calling function.
+# @option -e <letter=action> Evaluate this string when specified letter option is encountered.
+# @option -g Declare variables globally with `declare -g`.
+# @option -w Just set variables, without `local` or `declare -g`.
+# @option -E eval the command.
+# @option -h Show this help and return 0.
+# @arg $1 The getopts spec.
+# @arg $2 Function to call.
+# @arg $@ Arguments to parse.
+# @return Sub-function return status,
+#         3 on itself usage error,
+#         0 if -h option was given,
+#         2 on child usage error.
+# @example
+#
+#    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+#    myfunc_in() {
+#      echo "
+#    }
+#
+L_getopts_in() {
+  local _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
+  local OPTIND OPTERR OPTARG
+  while getopts p:n:s:e:wEh _L_opt; do
+    case "$_L_opt" in
+      p) _L_prefix=$OPTARG ;;
+      n) _L_nargs=$OPTARG ;;
+      s) _L_up=$OPTARG ;;
+      e) printf -v _L_tmp "%d" "'${OPTARG%%=*}"; _L_es[_L_tmp]="${OPTARG#*=}" ;;
+      g) _L_local=(declare -g) ;;
+      w) _L_local=(_L_getopts_in_initer) ;;
+      E) _L_eval=1 ;;
+      h) L_func_help; return ;;
+      *) L_func_usage_error; return 3 ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+  local _L_spec=$1 _L_cmd=$2
+  shift 2
+  # Initialize variables.
+  _L_tmp=$_L_spec
+  while [[ -n "$_L_tmp" ]]; do
+    case "$_L_tmp" in
+      [^:]::*) "${_L_local[@]}" -a "${_L_prefix}${_L_tmp::1}=()" || return 3; _L_tmp=${_L_tmp:3} ;;
+      [^:]:*) _L_tmp=${_L_tmp:2} ;;
+      [^:]*) "${_L_local[@]}" "${_L_prefix}${_L_tmp::1}=0" || return 3; _L_tmp=${_L_tmp:1} ;;
+      *) _L_tmp=${_L_tmp:1} ;;
+    esac
+  done
+  #
+  local OPTIND=0 OPTERR OPTARG
+  while getopts "${_L_spec//::/:}h" _L_opt; do
+    # Execute action given by -e. Some optimization.
+    ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
+    ${_L_es[@]:+${_L_es[_L_tmp]:+eval}} ${_L_es[@]:+${_L_es[_L_tmp]:+"${_L_es[_L_tmp]}"}}
+    # Parse the command.
+    if [[ "$_L_spec" == *"$_L_opt::"* ]]; then
+      L_array_append "$_L_prefix$_L_opt" "$OPTARG"
+    elif [[ "$_L_spec" == *"$_L_opt:"* ]]; then
+      "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG"
+    elif [[ "$_L_spec" == *"$_L_opt"* ]]; then
+      printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))"
+    elif [[ "$_L_spec" == h ]]; then
+      L_func_usage "$_L_up"
+      return 0
+    else
+      L_func_usage_error "$_L_up"
+      return 2
+    fi
+  done
+  shift "$((OPTIND-1))"
+  #
+  case "$_L_nargs" in
+    '*') ;;
+    '?')
+      if (($# > 1)); then
+        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
+        return 2
+      fi
+      ;;
+    '+')
+      if (($# == 0)); then
+        L_func_usage_error "Missing positional argument" "$_L_up"
+        return 2
+      fi
+      ;;
+    [0-9]*)
+      if (($# != _L_nargs)); then
+        L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
+        return 2
+      fi
+      ;;
+    *) L_func_usage_error 0 "Invalid nargs=$_L_nargs"; return 3 ;;
+  esac
+  #
+  # L_array_assign "${_L_prefix}args" "$@"
+  if ((_L_eval)); then
+    eval "$_L_cmd \"\$@\""
+  else
+    "$_L_cmd" "$@"
+  fi
 }
 
 _L_cache_remove_append() {
@@ -1750,6 +1884,10 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # Bash<4.4 prepends byte 0x01 in front of bytes 0x01 and 0x7f.
 # Single 0x01 in declare -p output results in double 0x01,0x01.
 #
+# Namerefences variables are not resolved and instead result in an empty string.
+# This is by design - checking if variable is a string, requires a call to declare, which is costly.
+# If you know a way to check if nameref without calling declare, let me know, I would want to add.
+#
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 <var> variable name
 # @example
@@ -1814,7 +1952,9 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
-L_var_to_string_v() {
+fi
+
+_L_var_to_string_v_declare() {
 	L_v=$(LC_ALL=C declare -p "$1") || return 2
 	# If it is an array or associative array.
 	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
@@ -1828,7 +1968,22 @@ L_var_to_string_v() {
   fi
 }
 
-fi
+
+# @description Get the namereference variable name that the variable references to.
+# If the variable is not a namereference, return 1
+# @option -v <var> Variable to assign. If not given, print to stdout.
+# @arg $1 variable nameref
+# @see L_var_is_nameref
+L_var_get_nameref() { L_handle_v_scalar "$@"; }
+L_var_get_nameref_v() {
+	[[ "$(LC_ALL=C declare -p "$1")" =~ ^declare\ -n\ [^=]+=\"?([^=\"]+)\"?$ ]] &&
+		L_v=${BASH_REMATCH[1]}
+}
+
+# @description Return 0 if the variable is a namereference.
+# @arg $1 variable nameref
+# @see L_var_get_nameref
+L_var_is_nameref() { local L_v; L_var_get_nameref_v -- "$@"; }
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # shellcheck disable=SC2059
@@ -3258,6 +3413,14 @@ L_array_is_dense() {
 	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
 }
 
+# @description Copy an array.
+# @arg $1 Source array.
+# @arg $2 Destination array.
+L_array_copy() {
+	local -n _L_arr1=$1 _L_arr2=$2
+	_L_arr2=("${_L_arr1[@]}")
+}
+
 else  # L_HAS_NAMEREF
 	L_array_len_v() { L_is_valid_variable_name "$1" && eval "L_v=\${#$1[@]}"; }
 	L_array_assign() { L_is_valid_variable_name "$1" && eval "$1=(\"\${@:2}\")"; }
@@ -3275,6 +3438,12 @@ else  # L_HAS_NAMEREF
 	L_array_is_dense() {
 		L_is_valid_variable_name "$1" &&
 		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
+	}
+
+	L_array_copy() {
+		L_is_valid_variable_name "$1" &&
+			L_is_valid_variable_name "$2" &&
+			eval "$1=(\"\${$2[@]}\")"
 	}
 fi  # L_HAS_NAMEREF
 
@@ -3298,10 +3467,10 @@ L_array_clear() { L_array_assign "$1"; }
 #   echo "$var1"  # prints Hello
 #   echo "$var2"  # prints World
 L_array_extract() {
-	local _L_v _L_i=0 _L_r
-	for _L_v in "${@:2}"; do
-		_L_r="$1[$((_L_i++))]"
-		printf -v "$_L_v" "%s" "${!_L_r}"
+	local _L_array_v _L_array_i=0 _L_array_r
+	for _L_array_v in "${@:2}"; do
+		_L_array_r="$1[$((_L_array_i++))]"
+		printf -v "$_L_array_v" "%s" "${!_L_array_r}"
 	done
 }
 
@@ -4547,35 +4716,35 @@ L_shuf() {
 # shellcheck disable=SC2030,SC2031,SC2035
 # @see L_sort_bash
 _L_sort_bash_in() {
-	local _L_start="$1" _L_end="$2" _L_left _L_right _L_pivot _L_tmp
-	if (( _L_start < _L_end )); then
-		_L_left=$((_L_start + 1))
-		_L_right=$_L_end
-		_L_pivot=${_L_array[_L_start]}
-		while (( _L_left < _L_right )); do
-			if ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
-				(( ++_L_left, 1 ))
-			elif ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "${_L_array[_L_right]}" "$_L_pivot"; then
-				(( --_L_right, 1 ))
+	local _L_sort_start="$1" _L_sort_end="$2" _L_sort_left _L_sort_right _L_sort_pivot _L_sort_tmp
+	if (( _L_sort_start < _L_sort_end )); then
+		_L_sort_left=$((_L_sort_start + 1))
+		_L_sort_right=$_L_sort_end
+		_L_sort_pivot=${_L_array[_L_sort_start]}
+		while (( _L_sort_left < _L_sort_right )); do
+			if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
+				(( ++_L_sort_left, 1 ))
+			elif "${_L_sort_compare[@]}" "${_L_array[_L_sort_right]}" "$_L_sort_pivot"; then
+				(( --_L_sort_right, 1 ))
 			else
-				_L_tmp=${_L_array[_L_left]}
-				_L_array[_L_left]=${_L_array[_L_right]}
-				_L_array[_L_right]=$_L_tmp
+				_L_sort_tmp=${_L_array[_L_sort_left]}
+				_L_array[_L_sort_left]=${_L_array[_L_sort_right]}
+				_L_array[_L_sort_right]=$_L_sort_tmp
 			fi
 		done
-		if ${_L_sort_reverse[@]+"${_L_sort_reverse[@]}"} "$_L_sort_compare" "$_L_pivot" "${_L_array[_L_left]}"; then
-			_L_tmp=${_L_array[_L_left]}
-			_L_array[_L_left]=${_L_array[_L_start]}
-			_L_array[_L_start]=$_L_tmp
-			(( --_L_left, 1 ))
+		if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
+			_L_sort_tmp=${_L_array[_L_sort_left]}
+			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
+			_L_array[_L_sort_start]=$_L_sort_tmp
+			(( --_L_sort_left, 1 ))
 		else
-			(( --_L_left, 1 ))
-			_L_tmp=${_L_array[_L_left]}
-			_L_array[_L_left]=${_L_array[_L_start]}
-			_L_array[_L_start]=$_L_tmp
+			(( --_L_sort_left, 1 ))
+			_L_sort_tmp=${_L_array[_L_sort_left]}
+			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
+			_L_array[_L_sort_start]=$_L_sort_tmp
 		fi
-		_L_sort_bash_in "$_L_start" "$_L_left"
-		_L_sort_bash_in "$_L_right" "$_L_end"
+		_L_sort_bash_in "$_L_sort_start" "$_L_sort_left"
+		_L_sort_bash_in "$_L_sort_right" "$_L_sort_end"
 	fi
 }
 
@@ -4586,26 +4755,44 @@ _L_sort_compare_numeric() { (( $1 > $2 )); }
 
 # @description Quicksort an array in place in pure bash.
 # @see L_sort
-# @option -z ignored. Always zero sorting
-# @option -n numeric sort, otherwise lexical
-# @option -r reverse sort
-# @option -c <compare> custom compare function that returns 0 when $1 > $2 and 1 otherwise
+# @option -z ignored. Always zero sorting.
+# @option -n Numeric sort, otherwise lexical.
+# @option -r Reverse sort.
+# @option -c <compare> Custom compare function that returns 0 when $1 > $2 and 1 otherwise.
+# @option -E <eval> Custom expression to evaluate just like -c option.
 # @option -h Print this help and return 0.
 # @arg $1 array nameref
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare="_L_sort_compare" _L_sort_reverse=()
-	while getopts znrc:h _L_c; do
+	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare=() _L_sort_reverse=0
+	while getopts znrc:E:h _L_c; do
 		case $_L_c in
 			z) ;;
-			n) _L_sort_compare="_L_sort_compare_numeric" ;;
-			r) _L_sort_reverse=("L_not") ;;
-			c) _L_sort_compare="$OPTARG" ;;
+			n) _L_sort_numeric=1 ;;
+			r) _L_sort_reverse=1 ;;
+			c) _L_sort_compare+=("$OPTARG") ;;
+			E) eval "_L_sort_temp() { $OPTARG; }"; _L_sort_compare=_L_sort_temp ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_usage_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_func_assert "wrong number of arguments" test "$#" = 1 || return 2
+	if (($# != 1)); then
+		L_func_usage_error "wrong number of positional arguments: array name expected"
+		return 2
+	fi
+	if (( _L_sort_numeric )); then
+		if (( ${#_L_sort_compare[*]} != 0 )); then
+			L_func_usage_error "-c option conflicts with -n option"
+			return 2
+		fi
+		_L_sort_compare=(_L_sort_compare_numeric)
+	elif (( ${#_L_sort_compare[*]} == 0 )); then
+		_L_sort_compare=(_L_sort_compare)
+	fi
+	if (( _L_sort_reverse )); then
+		_L_sort_compare=(L_not "${_L_sort_compare[@]}")
+	fi
+	#
 	if ((!L_HAS_NAMEREF)); then
 		_L_c="$1[@]"
 		_L_array=(${!_L_c+"${!_L_c}"})
