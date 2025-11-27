@@ -883,6 +883,138 @@ L_duration_to_usec_v() {
     L_v=$(( 10#$L_v ))
 }
 
+
+_L_getopts_in_initer() {
+	if [[ "$1" == -a ]]; then
+		L_array_assign "${2%%=*}"
+	else
+		printf -v "${1%%=*}" "%s" "${1#*=}"
+	fi
+}
+
+# @description Wrapper around getopts that executes subcommand with local-ed variables.
+#
+# The frist argument defines a getopts specification, which is like getopts with modifications.
+# Sequence of character followed by : represents an option with required argument, just like in getopts.
+# Sequence of a character followed by :: represents an option that arguments are collected into an array.
+# Otherwise, the characters represent short options on the command line.
+#
+# Each option in getopts specification translated to a variable named like the option.
+# The set variables are optionally prefixed with -p argument.
+#
+# Options variables are initalized with 0, and are incremented each time encountered.
+# Array options variables are initialized with empty array.
+# Argument options variables are unset if not specified by the user!
+#
+# Option -h is always added and calls L_func_help function and returns 0.
+#
+# Invalid option triggers L_func_usage_error and returns 2.
+#
+# @option -p <str> Add prefix to assigned variables.
+# @option -n <str> Check positional arguments count. Can be a number or one of "*", "+", "?". Default: "*".
+# @option -s <num> Call L_func_help and L_func_usage_error for function number stack up. Default: 1, the calling function.
+# @option -e <letter=action> Evaluate this string when specified letter option is encountered.
+# @option -g Declare variables globally with `declare -g`.
+# @option -w Just set variables, without `local` or `declare -g`.
+# @option -E eval the command.
+# @option -h Show this help and return 0.
+# @arg $1 The getopts spec.
+# @arg $2 Function to call.
+# @arg $@ Arguments to parse.
+# @return Sub-function return status,
+#         3 on itself usage error,
+#         0 if -h option was given,
+#         2 on child usage error.
+# @example
+#
+#    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+#    myfunc_in() {
+#      echo "
+#    }
+#
+L_getopts_in() {
+  local _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
+  local OPTIND OPTERR OPTARG
+  while getopts p:n:s:e:wEh _L_opt; do
+    case "$_L_opt" in
+      p) _L_prefix=$OPTARG ;;
+      n) _L_nargs=$OPTARG ;;
+      s) _L_up=$OPTARG ;;
+      e) printf -v _L_tmp "%d" "'${OPTARG%%=*}"; _L_es[_L_tmp]="${OPTARG#*=}" ;;
+      g) _L_local=(declare -g) ;;
+      w) _L_local=(_L_getopts_in_initer) ;;
+      E) _L_eval=1 ;;
+      h) L_func_help; return ;;
+      *) L_func_usage_error; return 3 ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+  local _L_spec=$1 _L_cmd=$2
+  shift 2
+  # Initialize variables.
+  _L_tmp=$_L_spec
+  while [[ -n "$_L_tmp" ]]; do
+    case "$_L_tmp" in
+      [^:]::*) "${_L_local[@]}" -a "${_L_prefix}${_L_tmp::1}=()" || return 3; _L_tmp=${_L_tmp:3} ;;
+      [^:]:*) _L_tmp=${_L_tmp:2} ;;
+      [^:]*) "${_L_local[@]}" "${_L_prefix}${_L_tmp::1}=0" || return 3; _L_tmp=${_L_tmp:1} ;;
+      *) _L_tmp=${_L_tmp:1} ;;
+    esac
+  done
+  #
+  local OPTIND=0 OPTERR OPTARG
+  while getopts "${_L_spec//::/:}h" _L_opt; do
+    # Execute action given by -e. Some optimization.
+    ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
+    ${_L_es[@]:+${_L_es[_L_tmp]:+eval}} ${_L_es[@]:+${_L_es[_L_tmp]:+"${_L_es[_L_tmp]}"}}
+    # Parse the command.
+    if [[ "$_L_spec" == *"$_L_opt::"* ]]; then
+      L_array_append "$_L_prefix$_L_opt" "$OPTARG"
+    elif [[ "$_L_spec" == *"$_L_opt:"* ]]; then
+      "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG"
+    elif [[ "$_L_spec" == *"$_L_opt"* ]]; then
+      printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))"
+    elif [[ "$_L_spec" == h ]]; then
+      L_func_usage "$_L_up"
+      return 0
+    else
+      L_func_usage_error "$_L_up"
+      return 2
+    fi
+  done
+  shift "$((OPTIND-1))"
+  #
+  case "$_L_nargs" in
+    '*') ;;
+    '?')
+      if (($# > 1)); then
+        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
+        return 2
+      fi
+      ;;
+    '+')
+      if (($# == 0)); then
+        L_func_usage_error "Missing positional argument" "$_L_up"
+        return 2
+      fi
+      ;;
+    [0-9]*)
+      if (($# != _L_nargs)); then
+        L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
+        return 2
+      fi
+      ;;
+    *) L_func_usage_error 0 "Invalid nargs=$_L_nargs"; return 3 ;;
+  esac
+  #
+  # L_array_assign "${_L_prefix}args" "$@"
+  if ((_L_eval)); then
+    eval "$_L_cmd \"\$@\""
+  else
+    "$_L_cmd" "$@"
+  fi
+}
+
 _L_cache_remove_append() {
   # Remove the key from cache.
   for ((_L_i = 0; _L_i < ${_L_cache[@]:+${#_L_cache[@]}}+0; _L_i += 3)); do
