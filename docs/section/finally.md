@@ -1,7 +1,30 @@
-When discovering Bash one of the missing features is _not_ try catch block, but try finally block.
+# L_finally - Cleanup Actions and Defer Pattern
 
-See also [with](https://kamilcuk.github.io/L_lib/section/with/) section of documentation.
-It has some function build on top of `L_finally`.
+One of the most frustrating missing features in Bash is not try-catch blocks, but **try-finally blocks** - the ability to guarantee cleanup code runs no matter how your script exits.
+
+`L_finally` brings Python's `finally`, Go's `defer`, and similar patterns to Bash, ensuring your cleanup code **always** runs - whether your script exits normally, returns from a function, receives a signal, or encounters an error.
+
+## Quick Start
+
+```bash
+#!/bin/bash
+. L_lib.sh
+
+# Example 1: Clean up temporary file on script exit
+tmpfile=$(mktemp)
+L_finally rm -rf "$tmpfile"
+# Now work with tmpfile - it will be automatically removed on any exit
+
+# Example 2: Clean up on function return
+process_data() {
+    local tmpdir=$(mktemp -d)
+    L_finally -r rm -rf "$tmpdir"  # -r means "on RETURN"
+    # Work with tmpdir - cleaned up when function returns, exits, or receives signal
+    echo "Processing..." > "$tmpdir/data.txt"
+}
+```
+
+See also the [with](https://kamilcuk.github.io/L_lib/section/with/) section for higher-level functions built on top of `L_finally`.
 
 ## The issues with raw `trap`:
 
@@ -58,54 +81,142 @@ It has some function build on top of `L_finally`.
 
 ## Examples
 
-```
+### Basic Cleanup on Exit
+
+```bash
+#!/bin/bash
+. L_lib.sh
+
+# Create a temporary file and ensure it's cleaned up
 tmpf=$(mktemp)
 L_finally rm -rf "$tmpf"
-: do something to tmpf >"$tmpf"
+
+# Do your work
+echo "important data" > "$tmpf"
+cat "$tmpf" | process_data
+
+# tmpf will be automatically removed when script exits (normally or abnormally)
+```
+
+### Multiple Cleanup Actions (Stack-Based)
+
+```bash
+tmpf=$(mktemp)
+L_finally rm -rf "$tmpf"
 
 if [[ -n "$option" ]]; then
   tmpf2=$(mktemp)
   L_finally rm -rf "$tmpf2"
-  : we need another tmpf2 >"$tmpf2"
-  : it is ok, we can remove it now
-  L_finally_pop
-if
 
-# tmp will be removed on the end of the script.
+  # Process something with tmpf2
+  echo "optional data" > "$tmpf2"
+
+  # We're done with tmpf2, remove it now
+  L_finally_pop  # Executes and removes the last registered action
+fi
+
+# Both tmpf and tmpf2 (if created) will be cleaned up
+# Actions execute in reverse order (LIFO/stack)
 ```
 
-Function return example:
+### Function-Scoped Cleanup with `-r`
 
-```
-option_func() {
-  local tmpf=$(mktemp)
-  L_finally -r rm -rf "$tmpf"
-  echo Do something with temporary file >"$tmpf"
+The `-r` option makes cleanup happen when the function returns, not when the script exits:
 
-  # exit 1         # this will remove the tempfile
-  # return 1       # this will also remove the tempfile
-  # kill $BASHPID  # this will also remove the tempfile
-  # the tempfile is automatically removed on the end of function
+```bash
+process_file() {
+  local tmpdir=$(mktemp -d)
+  L_finally -r rm -rf "$tmpdir"  # -r = cleanup on RETURN
+
+  # Work with temporary directory
+  cp "$1" "$tmpdir/"
+  cd "$tmpdir" && process_data
+
+  # Cleanup happens automatically when function returns via:
+  # - normal return
+  # - explicit 'return' statement
+  # - 'exit' command
+  # - received signal (SIGINT, SIGTERM, etc.)
+  # - unhandled error with 'set -e'
 }
 
 main() {
-  tmpf=$(mktemp)
-  L_finally -r rm -rf "$tmpf"
-  if [[ -n "$option" ]]; then
-    option_func
-  fi
+  process_file "/path/to/input"
+  # tmpdir is already cleaned up here
+  echo "Processing complete"
 }
 ```
 
-Custom action on signal:
+### Real-World Example: Database Connection Cleanup
 
+```bash
+query_database() {
+  local connection_id
+  connection_id=$(db_connect "$DB_URL")
+  L_finally -r db_disconnect "$connection_id"
+
+  # Run queries - connection guaranteed to close
+  db_query "$connection_id" "SELECT * FROM users"
+
+  # Connection closes automatically on return/exit/signal
+}
 ```
-increase_volume() { : your function to increase volume; }
 
-L_finally                    # with no arguments, just registers the action on all traps for this BASHPID.
-# kill -USR1 $BASHPID        # would terminate the process executing L_finally_run
+### Real-World Example: Lock File Management
+
+```bash
+critical_operation() {
+  local lockfile="/var/lock/myapp.lock"
+
+  # Acquire lock
+  exec 200>"$lockfile"
+  flock -n 200 || { echo "Already running"; return 1; }
+  L_finally -r flock -u 200
+
+  # Do critical work - lock released automatically
+  modify_shared_resource
+}
+```
+
+### Custom Signal Handlers
+
+You can register custom signal handlers while still using `L_finally` for cleanup:
+
+```bash
+#!/bin/bash
+. L_lib.sh
+
+increase_volume() {
+  echo "Volume increased"
+}
+
+# Register L_finally signal handlers first
+L_finally
+
+# Now override USR1 with custom handler
+# USR1 will execute custom action and continue (not terminate)
 trap 'increase_volume' USR1
-kill -USR1 $BASHPID          # will increase volume and continue execution
+
+# Send signal - will increase volume and continue
+kill -USR1 $BASHPID
+
+echo "Script continues..."
+```
+
+### Accessing Signal Information in Handlers
+
+Inside `L_finally` handlers, special variables are available:
+
+```bash
+cleanup() {
+  echo "Cleanup called by: $L_SIGNAL"  # Signal name (e.g., "SIGTERM", "EXIT", "POP")
+  echo "Signal number: $L_SIGNUM"       # Signal number
+  echo "Exit status was: $L_SIGRET"     # Exit status when trap fired
+}
+
+L_finally cleanup
+
+# When script exits or receives signal, cleanup knows how it was called
 ```
 
 ## Implementation notes
