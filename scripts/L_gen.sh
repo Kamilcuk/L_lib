@@ -34,63 +34,50 @@ set -euo pipefail
 # - L_gen[2]+L_gen[1]+L_gen[0] = restore context of current generator
 # - #L_gen[@] - L_gen[2]+L_gen[1]*2 = length of current iterator vlaue
 
-# @description Creates and runs a generator chain.
-#
-# A generator chain is a sequence of functions (source, pipe, or sink generators)
-# that process data iteratively. The chain is defined by a sequence of arguments
-# starting with `+`, where each subsequent argument is a function name or argument
-# for the current function.
-#
-# The generator state is stored in the `L_gen` array variable.
-#
-# @option -v <var> Store the generator state in this variable instead of running the chain.
-# @option -s <gen> Start the new chain by copying the state from an existing generator variable.
-# @option -R <var> Run the generator chain as an iterator. The variable stores the state
-#                  and should be passed to a `while` loop condition, e.g., `while L_gen -R it ...`.
-# @option -h Print this help and return 0.
-# @arg <+ gens...> Sequence of generator function calls prefixed with `+` to execute in the chain.
-#                  The first element must be a source generator.
-# @example
-#   L_gen \
-#     + L_sourcegen_range 5 \
-#     + L_pipegen_enumerate \
-#     + L_sinkgen_printf "%s: %s\n"
-L_gen() {
-  local OPTIND OPTERR OPTARG _L_v="" _L_v=0 _L_f=0 _L_gen_run=0
-  while getopts v:s:R:h _L_i; do
-    case "$_L_i" in
-      R)
-        _L_gen_run=1
-        if [[ "$OPTARG" != - ]]; then
-          _L_v=1
-          local -n L_gen=$OPTARG || return 2
-          # Otherwise L_gen should be already defined globally.
-        fi
-        ;;
-      v)
-        if [[ "$OPTARG" != - ]]; then
-          _L_v=1
-          local -n L_gen=$OPTARG || return 2
-          # Otherwise L_gen should be already defined globally.
-        fi
-        ;;
-      s)
-        _L_s=1
-        if [[ "$OPTARG" != - ]]; then
-          local -n _L_gen_start=$OPTARG || return 2
-        else
-          # Otherwise we have to copy from L_gen, which should be already defined.
-          local _L_gen_start
-          L_array_copy L_gen _L_gen_start
-        fi
-        ;;
-      h) L_func_help; return ;;
-      *) L_func_usage_error; return 2 ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-  L_assert "First positional argument must be a +" test "${1:-}" = "+"
-  L_assert "There must be more than 1 positinal arguments" test "$#" -gt 1
+L_gen_new() {
+  if [[ "$1" != "L_gen" ]]; then local -n L_gen=$OPTARG || return 2; fi
+  shift
+  # Create context.
+  L_gen=(
+    -1         # [0] - depth
+    "$#"       # [1] - number    of generators in chain
+    7          # [2] - offset
+    0          # [3] - finished?
+    ""         # [4] - yielded?
+    0          # [5] - paused?
+    "L_GEN"    # [6] - mark
+    "${@%% }"  # generators
+    "${@//*}"  # generators state
+  )
+}
+
+L_gen_append() {
+  if [[ "$1" != "L_gen" ]]; then local -n L_gen=$OPTARG || return 2; fi
+  shift
+  # Merge context if -f option is given.
+  L_assert "not possible to merge already started generator context" \
+    test "${L_gen[0]}" -eq -1 -a "${_L_gen_start[1]}" -gt 0
+  L_assert "merging context not possible, invalid context" \
+    test "${L_gen[2]}" -eq 4
+  L_assert "not possible to merge already finished generator" \
+    test "${L_gen[3]}" -eq 0
+  # L_var_get_nameref_v L_gen
+  # L_var_to_string "$L_v"
+  # printf "%q\n" "${L_gen[@]:2:_L_gen_start[2]-2}"
+  L_gen=(
+    "${L_gen[0]}"
+    "$(( L_gen[1] + $# ))"
+    "${L_gen[@]:2:L_gen[2]-2}"
+    "${@%% }"  # generators
+    "${L_gen[@]:( L_gen[2]           ):( L_gen[1] )}"
+    "${@//*}"  # generators state
+    "${L_gen[@]:( L_gen[2]+L_gen[1] ):( L_gen[1] )}"
+  )
+}
+
+L_gen_build() {
+  L_assert "There must be more than 3 positional arguments" test "$#" -gt 3
+  L_assert "Second positional argument must be a +" test "${1:-}" = "+"
   # Read arguments.
   local _L_gen_funcs=()
   for _L_i; do
@@ -101,52 +88,18 @@ L_gen() {
     fi
   done
   #
-  if (( !_L_v )); then
-    # If -v is not given, make L_gen is local.
-    local L_gen
-  fi
-  if (( _L_f )); then
-    if (( $# )); then
-      # Merge context if -f option is given.
-      L_assert "not possible to merge already started generator context" \
-        test "${_L_gen_start[0]}" -eq -1 -a "${_L_gen_start[1]}" -gt 0
-      L_assert "merging context not possible, invalid context" \
-        test "${_L_gen_start[2]}" -eq 4
-      L_assert "not possible to merge already finished generator" \
-        test "${_L_gen_start[3]}" -eq 0
-      # L_var_get_nameref_v _L_gen_start
-      # L_var_to_string "$L_v"
-      # printf "%q\n" "${_L_gen_start[@]:2:_L_gen_start[2]-2}"
-      L_gen=(
-        "${_L_gen_start[0]}"
-        "$(( _L_gen_start[1] + ${#_L_gen_funcs[*]} ))"
-        "${_L_gen_start[@]:2:_L_gen_start[2]-2}"
-        "${_L_gen_funcs[@]%% }"  # generators
-        "${_L_gen_start[@]:( _L_gen_start[2]           ):( _L_gen_start[1] )}"
-        "${_L_gen_funcs[@]//*}"  # generators state
-        "${_L_gen_start[@]:( _L_gen_start[2]+_L_gen_start[1] ):( _L_gen_start[1] )}"
-      )
-    fi
-    # When $# == 0, then just use nameference for L_gen.
-  elif (( _L_gen_run == 0 || ${L_gen[@]:+${#L_gen[*]}}+0 == 0 )); then
-    # Create context.
-    L_gen=(
-      0  # [0] - depth
-      "${#_L_gen_funcs[*]}"  # [1] - number of generators in chain
-      7  # [2] - offset
-      0  # [3] - finished?
-      ""  # [4] - yielded?
-      0  # [5] - paused?
-      "L_GEN" # [6] - mark
-      "${_L_gen_funcs[@]%% }"  # generators
-      "${_L_gen_funcs[@]//*}"  # generators state
-    )
-  fi
-  # If v is not given, execute the chain.
-  if ((!_L_v || _L_gen_run)); then
-    local _L_gen_cmd=${L_gen[L_gen[2]+L_gen[0]]}
-    eval "${_L_gen_cmd}"
-  fi
+  L_gen_new "$1" "${_L_gen_funcs[@]}"
+}
+
+L_gen_run() {
+  if [[ "$1" != "L_gen" ]]; then local -n L_gen="$1" || return 2; fi
+  L_sinkgen_consume
+}
+
+L_gen_build_run() {
+  local L_gen=()
+  L_gen_build L_gen "$@"
+  L_gen_run L_gen
 }
 
 # @description Execute a command with a generator variable bound to `L_gen`.
@@ -157,10 +110,10 @@ L_gen() {
 # @arg $1 <var> The generator state variable name. Use `-` to use the current `L_gen`.
 # @arg $@ Command to execute.
 # @example
-#   L_gen -v my_gen + L_sourcegen_range 5
 #   L_gen_with my_gen L_sinkgen_printf
 L_gen_with() {
-  L_gen -s "$1" -- + "${@:2}"
+  if [[ "$1" != "L_gen" ]]; then local -n L_gen="$1" || return 2; fi
+  "${@:2}"
 }
 
 # @description Pauses the current generator execution.
@@ -256,7 +209,7 @@ L_gen_next() {
   }
   local _L_gen_res=("${L_gen[@]:(L_gen[2]+L_gen[1]*2)}")
   L_debug "Returned [$_L_gen_cmd] at depth=${L_gen[0]} yielded#${#_L_gen_res[*]}={${_L_gen_res[*]}}"
-  if false && (( L_gen[0] )) && [[ -z "${L_gen[4]}" ]]; then
+  if (( L_gen[0] )) && [[ -z "${L_gen[4]}" ]]; then
     L_panic "The generator did not yield a value. Check the [$_L_gen_cmd] call and make sure it call L_gen_yield before retuning, or it returns 1.$L_NL$(L_gen_print_context)"
   fi
   L_assert "internal error: depth is lower then 0 after call [$_L_gen_cmd]" test "${L_gen[0]}" -ge 0
@@ -1392,7 +1345,7 @@ L_pipegen_zip_arrays() {
 
 # @description Join current generator with another one.
 # @arg $@ L_sourcegen generator to join with.
-L_pipegen_zip_with() {
+L_pipegen_zip() {
   local _L_gen=() _L_a _L_b
   L_gen_restore _L_gen
   if (( ${_L_gen[*]} == 0 )); then
@@ -1549,8 +1502,8 @@ Eve,250
   #   L_unittest_cmd -o '0 1 4 9 ' \
   #     L_gen \
   #     + L_sourcegen_range 4 \
-  #     + L_pipegen_zip_with L_sourcegen_repeat 2 \
-  #     + L_pipegen_map 
+  #     + L_pipegen_zip ${ L_gen_build_temp + L_sourcegen_repeat 2; } \
+  #     + L_pipegen_map
   # }
   {
     local gen1=() res=()
