@@ -114,6 +114,24 @@ $ ./mygit.sh init --bare
 $ ./mygit.sh clone https://github.com/user/repo
 ```
 
+### Complex Example (Podman-like)
+
+```bash
+#!/usr/bin/env bash
+source bin/L_lib.sh
+
+L_argparse \
+    description="Set default trust policy or a new trust policy for a registry" \
+    epilog="god" \
+    -- -f --pubkeysfile dest=stringArray action=append help="Path of installed public key(s) to trust for TARGET. Absolute path to keys is added to policy.json. May used multiple times to define multiple public keys. File(s) must exist before using this command" \
+    -- -t --type dest=type metavar=string help="Trust type, accept values: signedBy(default), accept, reject" default="signedBy" show_default=1 choices='signedBy accept reject' \
+    -- -o --option \
+    -- REGISTRY dest=registry \
+    ---- -f "key1.pub" -f "key2.pub" -t "accept" "my-registry"
+
+echo "pubkeysfile=${stringArray[@]} type=$type registry=$registry"
+```
+
 ## Key Features
 
 - No code generation required - pure runtime parsing
@@ -231,15 +249,15 @@ It defines how a single command-line argument should be parsed.
 - `type=` - The type to which the command-line argument should be converted.
     - `type=int` - set `validate='L_is_integer "$1"'`
     - `type=float` - set `validate='L_is_float "$1"'`
-    - `type=nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
-    - `type=positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
+    - `type=nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'
+    - `type=positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'
     - `type=file` - set `validate='[[ -f "$1" ]]' complete=filenames`
     - `type=file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
     - `type=file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
     - `type=dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
     - `type=dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
     - `type=dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
-- `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_opt_choices[_L_opti]})"`. Example: `choices="a b c 'with space'"`
+- `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_opt_choices[_L_opti]})". Example: `choices="a b c 'with space'"
 - `required=` - Whether or not the command-line option may be omitted (options arguments only). Example `required=1`.
 - `help=` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar=` - A name for the argument in usage messages.
@@ -270,9 +288,9 @@ It defines how a single command-line argument should be parsed.
 	       If you need comma, delegate completion to a function.
 - `validate=` - The expression that evaluates if the value is valid.
      - The variable `$1` is exposed with the value of the argument
-     - Example: `validate='[[ "$1" =~ (a|b) ]]'`
-     - Example: `validate='L_regex_match "$1" "(a|b)"'`
-     - Example: `validate='grep -q "(a|b)" <<<"$1"'`
+     - Example: `validate='[[ "$1" =~ (a|b) ]]'
+     - Example: `validate='L_regex_match "$1" "(a|b)"'
+     - Example: `validate='grep -q "(a|b)" <<<"$1"'
      - Example:
 
             validate_my_arg() {
