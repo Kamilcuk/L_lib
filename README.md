@@ -17,6 +17,27 @@ Labrador Bash library. Collection of functions and libraries that I deem useful 
 
 # Installation
 
+## Package Managers
+
+Install L_lib using your preferred Bash package manager:
+
+### Basher
+```bash
+basher install Kamilcuk/L_lib
+```
+
+### bpkg
+```bash
+bpkg install Kamilcuk/L_lib
+```
+
+### Shpkg
+```bash
+shpkg install Kamilcuk/L_lib
+```
+
+## Manual Installation
+
 The library is one file. Download the latest release from GitHub and put in your PATH:
 
 ```bash
