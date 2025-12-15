@@ -62,7 +62,7 @@ id,customer,product,quantity,price,total,date
 33,Gina,Monitor,1,179.99,179.99,2025-02-03
 34,Henry,Laptop,1,849.99,849.99,2025-02-04
 35,Irene,USB Cable,3,7.49,22.47,2025-02-05
-36,Jack,Webcam,1,65.99,65.99,2025-02-06
+36,Jack,Webcam,1,65.99,65.99,2025-02-06 q
 37,Karen,Headphones,2,85.99,171.98,2025-02-07
 38,Luke,Microphone,1,159.99,159.99,2025-02-08
 39,Maya,Desk Lamp,1,16.99,16.99,2025-02-09
@@ -84,10 +84,13 @@ id,customer,product,quantity,price,total,date
 #
 # Dataframe:
 # - [0] - The number of columns
-# - [1] - Constant 4 + groups.
+# - [1] - Constant 10 + groups + attrs.
 # - [2] - Space separated list of groupby column indexes.
 # - [3] - The string DF.
-# - [4 + groups] - Groups
+# - [4] - Count of groups.
+# - [5] - Count of indexes.
+# - [10 + groups] - Groups
+#
 # - [df[1]        +i] - header of column i
 # - [df[1]+df[0]  +i] - type of column i
 # - [df[1]+df[0]*3+df[0]*j+i] - value at row j column i
