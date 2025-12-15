@@ -92,7 +92,7 @@ L_it_make() {
 }
 
 L_it_run() {
-  if [[ "$1" != "_L_IT" ]]; then local -n _L_IT="$1" || return 2; fi
+  if [[ "$1" != "_L_IT" && "$1" != "-" ]]; then local -n _L_IT="$1" || return 2; fi
   L_assert 'depth at run stage should be -1. Are you trying to run a running generator?' test "${_L_IT[0]}" -eq -1
   _L_IT[0]=0
   eval "${_L_IT[@]:(_L_IT[2]):1}"
