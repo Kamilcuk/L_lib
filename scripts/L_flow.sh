@@ -34,6 +34,23 @@ set -euo pipefail
 # - _L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0] = restore context of current generator
 # - #_L_FLOW[@] - _L_FLOW[2]+_L_FLOW[1]*2 = length of current iterator vlaue
 
+# @description Initialize a new generator pipeline with a chain of source/pipe/sink functions.
+#
+# Creates and initializes the internal generator context array that manages the execution state
+# of a generator pipeline. Each generator in the chain is stored with its execution context,
+# allowing for lazy evaluation and state preservation between yields.
+#
+# The generator pipeline uses a push-down automaton pattern where each level in the pipeline
+# can yield values upward and request values downward. This enables composition of arbitrary
+# generator chains.
+#
+# @arg $1 <var> Variable name to store generator context (typically `_L_FLOW`). If omitted, uses `_L_FLOW`.
+# @arg $@ Generator function scripts to chain together. Functions are evaluated in order from
+#          left to right during pipeline execution.
+# @return 0 on success, 2 if variable binding fails
+# @example
+#   local gen
+#   L_flow_new gen 'L_flow_source_range 5' 'L_flow_pipe_head 3' L_flow_sink_printf
 L_flow_new() {
   if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
   shift
@@ -55,12 +72,15 @@ L_flow_append() {
   if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
   shift
   # Merge context if -f option is given.
-  L_assert "not possible to merge already started generator context" \
-    test "${_L_FLOW[0]}" -eq -1 -a "${_L_flow_start[1]}" -gt 0
-  L_assert "merging context not possible, invalid context" \
-    test "${_L_FLOW[2]}" -eq 4
-  L_assert "not possible to merge already finished generator" \
-    test "${_L_FLOW[3]}" -eq 0
+  if ! (( _L_FLOW[0] == -1 && _L_flow_start[1] > 0 )); then
+    L_panic "not possible to merge already started generator context"
+  fi
+  if (( _L_FLOW[2] != 4 )); then
+    L_panic "merging context not possible, invalid context"
+  fi
+  if (( _L_FLOW[3] != 0 )); then
+    L_panic "not possible to merge already finished generator"
+  fi
   # L_var_get_nameref_v _L_FLOW
   # L_var_to_string "$L_v"
   # printf "%q\n" "${_L_FLOW[@]:2:_L_flow_start[2]-2}"
@@ -75,9 +95,26 @@ L_flow_append() {
   )
 }
 
+# @description Build a generator pipeline using the pipeline DSL syntax.
+#
+# Parses pipeline syntax where source, pipe, and sink functions are separated by `+` tokens.
+# The `+` token acts as a stage separator and appears before the first generator and between stages.
+# This syntactic sugar simplifies the visual composition of generator chains.
+#
+# @arg $1 <var> Variable name to store generator context (typically `_L_FLOW`).
+# @arg $2 Single `+` token required as separator before first function.
+# @arg $@ Alternating function names and `+` separators (e.g., func1 + func2 + func3).
+# @return 0 on success, 2 on argument error
+# @example
+#   local gen
+#   L_flow_make gen + L_flow_source_range 5 + L_flow_pipe_head 3 + L_flow_sink_printf
 L_flow_make() {
-  L_assert "There must be more than 3 positional arguments" test "$#" -gt 3
-  L_assert "Second positional argument must be a +" test "${2:-}" = "+"
+  if (( $# <= 3 )); then
+    L_panic "There must be more than 3 positional arguments"
+  fi
+  if [[ "${2:-}" != "+" ]]; then
+    L_panic "Second positional argument must be a +"
+  fi
   # Read arguments.
   local _L_flow_funcs=() _L_i
   for _L_i in "${@:2}"; do
@@ -91,9 +128,24 @@ L_flow_make() {
   L_flow_new "$1" "${_L_flow_funcs[@]}"
 }
 
+# @description Start execution of a generator pipeline.
+#
+# Begins pipeline execution by setting the execution depth to 0 and invoking the first
+# stage generator. This must be called once before making any calls to L_flow_next.
+# A pipeline can only be run once; attempting to run an already-running or exhausted
+# generator will result in an error.
+#
+# @arg $1 <var> Generator context variable (or `-` to use `_L_FLOW`). If omitted, uses `_L_FLOW`.
+# @return 0 on success, non-zero if generator is not in initial state
+# @example
+#   local gen
+#   L_flow_make gen + L_flow_source_range 5 + L_flow_sink_printf
+#   L_flow_run gen
 L_flow_run() {
   if [[ "$1" != "_L_FLOW" && "$1" != "-" ]]; then local -n _L_FLOW="$1" || return 2; fi
-  L_assert 'depth at run stage should be -1. Are you trying to run a running generator?' test "${_L_FLOW[0]}" -eq -1
+  if (( _L_FLOW[0] != -1 )); then
+    L_panic 'depth at run stage should be -1. Are you trying to run a running generator?'
+  fi
   _L_FLOW[0]=0
   eval "${_L_FLOW[@]:(_L_FLOW[2]):1}"
 }
@@ -151,40 +203,74 @@ L_flow_print_context() {
   echo ")"
 }
 
+# @description Internal function to request the next element while storing success status.
+#
+# This is the low-level implementation of generator advancement. It handles the
+# push-down automaton depth tracking, generator invocation, and value extraction.
+# Unlike L_flow_next, this function stores the success/failure status in a variable
+# instead of using return code, allowing for complex control flow patterns.
+#
+# On success (when a value is yielded), stores 1 in the status variable.
+# On failure (when generator is exhausted), stores 0 and returns success (0).
+#
+# @arg $1 <var> Variable to store success status (1 = yielded, 0 = exhausted).
+# @arg $2 <var> Generator context variable (or `-` to use `_L_FLOW`). If omitted, uses `_L_FLOW`.
+# @arg $@ <var>... Variables to assign the yielded tuple elements to.
+# @return 0 always on normal operation
+# @see L_flow_next
+# @example
+#   local ok value
+#   L_flow_next_ok ok - value
+#   if (( ok )); then
+#     echo "Got: $value"
+#   fi
+L_flow_next_ok() { L_flow_use "$2" _L_flow_next_ok "$1" "${@:3}"; }
+
 _L_flow_next_ok() {
   # Call generate at next depth to get the value.
-  L_assert "invalid input variable is not a generator" test "${_L_FLOW[6]}" = "_L_FLOW"
-  L_assert "internal error: depth is lower then -1" test "${_L_FLOW[0]}" -ge -1
+  if [[ "${_L_FLOW[6]}" != "_L_FLOW" ]]; then
+    L_panic "invalid input variable is not a generator"
+  fi
+  if (( _L_FLOW[0] < -1 )); then
+    L_panic "internal error: depth is lower then -1"
+  fi
   # Increase depth.
-  _L_FLOW[0]=$(( _L_FLOW[0]+1 ))
-  L_assert "internal error: depth is greater then the number of generators" test "${_L_FLOW[0]}" -lt "${_L_FLOW[1]}"
+  (( _L_FLOW[0]++ ))
+  if (( _L_FLOW[0] >= _L_FLOW[1] )); then
+    L_panic "internal error: depth is greater then the number of generators"
+  fi
   local _L_flow_cmd=${_L_FLOW[_L_FLOW[2]+_L_FLOW[0]]}
-  L_assert "internal error: generator ${_L_FLOW[0]} is empty?" test -n "$_L_flow_cmd"
-  local _L_flow_yield=${_L_FLOW[4]}
+  if [[ -z "$_L_flow_cmd" ]]; then
+    L_panic "internal error: generator ${_L_FLOW[0]} is empty?"
+  fi
+  # Clear yield flag.
   _L_FLOW[4]=""
   L_debug "Calling function [$_L_flow_cmd] at depth=${_L_FLOW[0]}"
-  eval "$_L_flow_cmd" || return "$?"
-  # did the command call L_flow_yield?
+  eval "$_L_flow_cmd" || L_panic "$?"
+  # Store the result in ok variable if the function yielded a value or finished?
   if [[ -n "${_L_FLOW[4]}" ]]; then
-    local _L_flow_i=$?
-    L_debug "Function [$_L_flow_cmd] did not yield and finished"
-    _L_FLOW[3]=$_L_flow_i
-    # Reduce depth
-    _L_FLOW[0]=$(( _L_FLOW[0]-1 ))
-    # Store the result in ok variable.
-    printf -v "$1" 0
+    printf -v "$1" "$?"
+  else
+    printf -v "$1" "$?"
+  fi
+  # Reduce depth
+  if (( _L_FLOW[0] < 0 )); then
+    L_panic "internal error: depth is lower then 0 after call [$_L_flow_cmd]"
+  fi
+  (( _L_FLOW[0]-- ))
+  # If the function did not yield a value?
+  if ((${!1})); then
+    L_debug "Function [$_L_flow_cmd] did not yield so finished"
+    # If depth is 0
+    if (( _L_FLOW[0] == 0 )); then
+      # Mark that the generator is finished.
+      _L_FLOW[3]=1
+    fi
   else
     local _L_flow_res=("${_L_FLOW[@]:(_L_FLOW[2]+_L_FLOW[1]*2)}")
     L_debug "Returned [$_L_flow_cmd] at depth=${_L_FLOW[0]} yielded#${#_L_flow_res[*]}={${_L_flow_res[*]}}"
-    if [[ -z "${_L_FLOW[4]}" ]]; then
-      L_panic "The generator [$_L_flow_cmd] did not yield a value. Make sure it call L_flow_yield before retuning, or it returns non-zero.$L_NL$(L_flow_print_context)"
-    fi
-    L_assert "internal error: depth is lower then 0 after call [$_L_flow_cmd]" test "${_L_FLOW[0]}" -ge 0
-    _L_FLOW[4]=$_L_flow_yield
-    # Reduce depth
-    _L_FLOW[0]=$(( _L_FLOW[0]-1 ))
     # Extract the value from the return value.
-    if (($# == 2)); then
+    if (( $# == 2 )); then
       L_array_assign "$2" "${_L_flow_res[@]}"
     else
       if (( ${#_L_flow_res[*]} != $# - 1 )); then
@@ -192,31 +278,36 @@ _L_flow_next_ok() {
       fi
       L_array_extract _L_flow_res "${@:2}"
     fi
-    # Store the result in ok variable.
-    printf -v "$1" 1
   fi
-  #
-  # L_flow_print_context
-  # declare -p _L_FLOW
-  # "")
 }
-
 
 # @description Requests the next element from the upstream generator.
 #
-# This is the core mechanism for consuming elements in a generator chain.
-# It increments the execution depth, calls the next generator function,
-# and handles the return value or exit status.
+# This is the primary user-facing function for consuming elements in a generator chain.
+# It advances the generator pipeline, requesting values from the upstream stages and
+# ultimately consuming them at the sink stage. Returns 0 if a value was successfully
+# yielded, non-zero if the generator is exhausted.
 #
-# @arg $1 <var> Variable to assign the yielded element to (as a scalar or array).
-# @arg $@ <var>... Multiple variables to assign the yielded tuple elements to.
-# @return 0 on successful yield, non-zero on generator exhaustion or error.
+# This function is designed to be used directly in while loops for convenient iteration.
+# The generator context must be explicitly provided (use `-` to refer to the current `_L_FLOW`).
+#
+# @arg $1 <var> Generator context variable (or `-` to use current `_L_FLOW`).
+# @arg $@ <var>... Variables to assign the yielded tuple elements to.
+# @return 0 on successful yield, 1 when generator is exhausted
+# @see L_flow_next_ok For explicit status checking in complex control flow
 # @example
+#   # Simple iteration pattern
 #   local element
-#   while L_flow_next f1 element; do
+#   while L_flow_next - element; do
 #     echo "Got: $element"
 #   done
-L_flow_next() { local _L_ok; L_flow_ok _L_ok "$@" || return "$_L_ok"; }
+#
+#   # Tuple unpacking
+#   local key value
+#   while L_flow_next - key value; do
+#     echo "$key => $value"
+#   done
+L_flow_next() { local _L_ok; L_flow_next_ok _L_ok "$@" || return "$_L_ok"; }
 
 # @description Internal helper to save local variables to the generator context.
 #
@@ -258,10 +349,11 @@ _L_flow_store() {
 L_flow_restore() {
   # L_log "$@ ${!1} ${FUNCNAME[1]}"
   local _L_flow
-  if (($#)); then
+  if (( $# )); then
     for _L_flow; do
-      L_assert "Variable $_L_flow from ${FUNCNAME[1]} is not set" \
-        L_eval 'L_var_is_set "$1" || L_var_is_array "$1" || L_var_is_associative "$1"' "$_L_flow"
+      if ! L_eval 'L_var_is_set "$1" || L_var_is_array "$1" || L_var_is_associative "$1"' "$_L_flow"; then
+        L_panic "Variable $_L_flow from ${FUNCNAME[1]} is not set"
+      fi
     done
     L_finally -r -s 1 _L_flow_store "$@"
     L_debug "Load state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[1]} variables=$* eval=${_L_FLOW[ (_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]) ]}"
@@ -310,7 +402,9 @@ L_flow_source_args() {
 #   local arr=(a b c)
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_printf
 L_flow_source_array() {
-  L_assert '' test "$#" -eq 1
+  if (( $# != 1 )); then
+    L_panic ''
+  fi
   local _L_i=0 _L_len=""
   L_flow_restore _L_i _L_len
   if [[ -z "$_L_len" ]]; then
@@ -447,7 +541,7 @@ _L_flow_pipe_accumulate_in() {
     fi
     L_flow_yield "${_L_total[@]}"
   else
-    L_flow_next_ok ok - L_v
+    L_flow_next_ok ok - L_v || L_panic "err"
     if ((ok)); then
       "${@:-_L_flow_pipe_accumulate_add}" "${_L_total[@]}" "${L_v[@]}"
       _L_total=("${L_v[@]}")
@@ -499,15 +593,18 @@ L_flow_pipe_chain() {
 L_flow_pipe_chain_gen() {
   local _L_flow=() _L_done=0 _L_r
   L_flow_restore _L_flow _L_done
-  if (( _L_done == 0 )) && L_flow_next - _L_r; then
+  local _L_ok
+  if (( _L_done == 0 )) && L_flow_next_ok _L_ok - _L_r && (( _L_ok )); then
     L_flow_yield "${_L_r[@]}"
   else
     _L_done=1
     if (( ${#_L_flow[*]} == 0 )); then
       L_flow_make _L_flow + "$@" || return "$?"
     fi
-    L_flow_use _L_flow L_flow_next - _L_r || return "$?"
-    L_flow_yield "${_L_r[@]}"
+    L_flow_next_ok _L_ok _L_flow _L_r
+    if (( _L_ok )); then
+      L_flow_yield "${_L_r[@]}"
+    fi
   fi
 }
 
@@ -518,14 +615,17 @@ L_flow_pipe_chain_gen() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_pipe_enumerate + L_flow_sink_printf "%s: %s\n"
 L_flow_pipe_enumerate() {
-  L_assert '' test "$#" -eq 0
-  local _L_i=0 _L_r
+  if (( $# != 0 )); then
+    L_panic ''
+  fi
+  local _L_i=0 _L_r _L_ok
   L_flow_restore _L_i
-  L_flow_next - _L_r && {
+  L_flow_next_ok _L_ok - _L_r
+  if (( _L_ok )); then
     if (( ++_L_i )); then
       L_flow_yield "$_L_i" "${_L_r[@]}"
     fi
-  }
+  fi
 }
 
 # @description Sink generator that executes a command for each element.
@@ -535,7 +635,9 @@ L_flow_pipe_enumerate() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_map echo "Element:"
 L_flow_sink_map() {
-  L_assert '' test "$#" -ge 1
+  if (( $# < 1 )); then
+    L_panic ''
+  fi
   local L_v
   while L_flow_next - L_v; do
     "$@" "${L_v[@]}"
@@ -548,9 +650,14 @@ L_flow_sink_map() {
 # @arg $@ Command to execute for each element.
 #   _L_FLOW + L_flow_source_array arr + L_pipgen_map L_eval 'L_v=$((L_v+1))' + L_flow_sink_map echo "Element:"
 L_flow_pipe_map() {
-  L_assert '' test "$#" -ge 1
-  local L_v
-  L_flow_next - L_v || return "$?"
+  if (( $# < 1 )); then
+    L_panic ''
+  fi
+  local L_v _L_ok
+  L_flow_next_ok _L_ok - L_v
+  if (( !_L_ok )); then
+    return 1
+  fi
   "$@" "${L_v[@]}"
   L_flow_yield "${L_v[@]}"
 }
@@ -566,7 +673,7 @@ L_flow_pipe_map() {
 L_flow_sink_printf() {
   local L_v
   while L_flow_next - L_v; do
-    if (($# == 0)); then
+    if (( $# == 0 )); then
       L_array_join_v L_v " "
       printf "%s\n" "$L_v"
     else
@@ -586,9 +693,12 @@ L_flow_sink_printf() {
 # @example
 #   _L_FLOW + L_flow_source_range 5 + L_flow_pipe_printf "DEBUG: %s\n" + L_flow_sink_consume
 L_flow_pipe_printf() {
-  local L_v _L_r
-  L_flow_next - _L_r || return $?
-  if (($# == 0)); then
+  local L_v _L_r _L_ok
+  L_flow_next_ok _L_ok - _L_r
+  if (( !_L_ok )); then
+    return 1
+  fi
+  if (( $# == 0 )); then
     L_array_join_v _L_r " "
     printf "%s\n" "$L_v"
   else
@@ -601,9 +711,9 @@ L_flow_pipe_printf() {
 # @description Advance the iterator n-steps ahead. If n is None, consume entirely
 # @arg [$1]
 L_flow_sink_consume() {
-  if (($#)); then
+  if (( $# )); then
     local _L_i=$1
-    while ((_L_i-- > 0)); do
+    while (( _L_i-- > 0 )); do
       L_flow_next - _ || return 0
     done
   else
@@ -636,7 +746,9 @@ L_flow_sink_quantify_v() {
 #   _L_FLOW + L_flow_source_range 5 + L_flow_sink_assign results
 #   # results now contains (0 1 2 3 4)
 L_flow_sink_assign() {
-  L_assert '' test "$#" -eq 1
+  if (( $# != 1 )); then
+    L_panic ''
+  fi
   local L_v
   while L_flow_next - L_v; do
     L_var_to_string_v L_v
@@ -658,13 +770,21 @@ L_flow_sink_assign() {
 #     + L_flow_pipe_filter L_is_true \
 #     + L_flow_sink_printf
 L_flow_pipe_filter() {
-  L_assert '' test "$#" -ge 1
-  local _L_e
-  L_flow_next - _L_e || return "$?"
+  if (( $# < 1 )); then
+    L_panic ''
+  fi
+  local _L_e _L_ok
+  L_flow_next_ok _L_ok - _L_e
+  if (( !_L_ok )); then
+    return 1
+  fi
   while
     ! "$@" "${_L_e[@]}"
   do
-    L_flow_next - _L_e || return "$?"
+    L_flow_next_ok _L_ok - _L_e
+    if (( !_L_ok )); then
+      return 1
+    fi
   done
   L_flow_yield "${_L_e[@]}"
 }
@@ -678,11 +798,16 @@ L_flow_pipe_filter() {
 # @example
 #   _L_FLOW + L_flow_source_range + L_flow_pipe_head 3 + L_flow_sink_printf
 L_flow_pipe_head() {
-  L_assert '' test "$#" -eq 1
-  local _L_i=0 _L_e
+  if (( $# != 1 )); then
+    L_panic ''
+  fi
+  local _L_i=0 _L_e _L_ok
   L_flow_restore _L_i
   (( _L_i++ < $1 )) && {
-    L_flow_next - _L_e || return "$?"
+    L_flow_next_ok _L_ok - _L_e
+    if (( !_L_ok )); then
+      return 1
+    fi
     L_flow_yield "${_L_e[@]}"
   }
 }
@@ -696,10 +821,12 @@ L_flow_pipe_head() {
 # @example
 #   _L_FLOW + L_flow_source_range 5 + L_flow_pipe_tail 2 + L_flow_sink_printf
 L_flow_pipe_tail() {
-  L_assert '' test "$#" -eq 1
+  if (( $# != 1 )); then
+    L_panic ''
+  fi
   local _L_i=0 _L_e _L_buf=() L_v _L_send=-1
   L_flow_restore _L_buf _L_send
-  if ((_L_send == -1)); then
+  if (( _L_send == -1 )); then
     while L_flow_next - _L_e; do
       L_var_to_string_v _L_e
       _L_buf=("${_L_buf[@]::$1-1}" "$L_v")
@@ -722,11 +849,17 @@ L_flow_pipe_tail() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_nth 2 + L_flow_sink_printf
 L_flow_sink_nth() {
-  L_assert '' test "$#" -eq 1
-  local _L_i=0 _L_e
+  if (( $# != 1 )); then
+    L_panic ''
+  fi
+  local _L_i=0 _L_e _L_ok
   L_flow_restore _L_i
   while (( _L_i < $1 )); do
-    L_flow_next - _L_e || return "$?"
+    L_flow_next_ok _L_ok - _L_e
+    if (( !_L_ok )); then
+      return 1
+    fi
+    (( ++_L_i ))
   done
   L_flow_yield "${_L_e[@]}"
 }
@@ -742,8 +875,9 @@ L_flow_sink_nth() {
 # @example
 #   _L_FLOW + L_flow_source_range 0 + L_flow_pipe_padnone + L_flow_sink_printf
 L_flow_pipe_padnone() {
-  local _L_e
-  if L_flow_next - _L_e; then
+  local _L_e _L_ok
+  L_flow_next_ok _L_ok - _L_e
+  if (( _L_ok )); then
     L_flow_yield "${_L_e[@]}"
   else
     L_flow_yield
@@ -761,9 +895,12 @@ L_flow_pipe_padnone() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_pipe_pairwise + L_flow_sink_printf "%s %s\n"
 L_flow_pipe_pairwise() {
-  local _L_a _L_b=()
-  L_flow_next - _L_a || return $?
-  L_flow_next - _L_b || :
+  local _L_a _L_b=() _L_ok
+  L_flow_next_ok _L_ok - _L_a
+  if (( !_L_ok )); then
+    return 1
+  fi
+  L_flow_next_ok _L_ok - _L_b
   L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
 }
 
@@ -783,18 +920,23 @@ L_flow_pipe_pairwise() {
 #   L_flow_sink_dotproduct -v res gen1 gen2
 L_flow_sink_dotproduct() { L_handle_v_scalar "$@"; }
 L_flow_sink_dotproduct_v() {
-  L_assert "Wrong number of positional arguments. Expected 1 or 2 2 but received $#" test "$#" -eq 2 -o "$#" -eq 1
-  local a b
+  if (( $# != 2 && $# != 1 )); then
+    L_panic "Wrong number of positional arguments. Expected 1 or 2 2 but received $#"
+  fi
+  local a b _L_ok1 _L_ok2
   L_v=0
   while
-    if L_flow_use "$1" L_flow_next - a; then
-      if L_flow_use "${2:--}" L_flow_next - b; then
+    L_flow_next_ok _L_ok1 "$1" a
+    if (( _L_ok1 )); then
+      L_flow_next_ok _L_ok2 "${2:--}" b
+      if (( _L_ok2 )); then
         :
       else
         L_panic "Generator $1 is longer than generator ${2:--}. Generators have different length!"
       fi
     else
-      if L_flow_use "${2:--}" L_flow_next - b; then
+      L_flow_next_ok _L_ok2 "${2:--}" b
+      if (( _L_ok2 )); then
         L_panic "Generator $1 is shorter then generator ${2:--}. Generators have different length!"
       else
         return 0
@@ -860,17 +1002,18 @@ L_flow_tee() {
 # @example
 #   _L_FLOW + L_flow_source_range 10 + L_flow_pipe_stride 3 + L_flow_sink_printf # 0 3 6 9
 L_flow_pipe_stride() {
-  L_assert '' test "$1" -gt 0
-  local _L_cnt="$1" _L_r _L_exit=0
+  if (( $1 <= 0 )); then
+    L_panic ''
+  fi
+  local _L_cnt="$1" _L_r _L_exit=0 _L_ok
   L_flow_restore _L_exit
   if (( _L_exit )); then
     return "$_L_exit"
   fi
   while (( --_L_cnt )); do
-    if L_flow_next - _L_r; then
-      :
-    else
-      _L_exit="$?"
+    L_flow_next_ok _L_ok - _L_r
+    if (( !_L_ok )); then
+      _L_exit=1
       break
     fi
   done
@@ -1015,7 +1158,7 @@ _L_flow_sink_first_true_in() {
       break
     fi
   done
-  if ((!_L_found)); then
+  if (( !_L_found )); then
     if L_var_is_set _L_d; then
       L_v=("${_L_d[@]}")
     else
@@ -1067,13 +1210,16 @@ L_flow_source_string_chars() {
 # @example
 #   _L_FLOW + L_flow_source_string_chars 'AAAABBB' + L_flow_pipe_unique_justseen + L_flow_sink_printf # A B
 L_flow_pipe_unique_justseen() {
-  local _L_last _L_new
+  local _L_last _L_new _L_ok
   L_flow_restore _L_last
-  L_flow_next - _L_new || return "$?"
+  L_flow_next_ok _L_ok - _L_new
+  if (( !_L_ok )); then
+    return 1
+  fi
   if [[ -z "${_L_last}" ]]; then
     L_flow_yield "$_L_new"
   elif
-    if (($#)); then
+    if (( $# )); then
       "$@" "$_L_last" "$_L_new"
     else
       [[ "$_L_last" == "$_L_new" ]]
@@ -1090,12 +1236,16 @@ L_flow_pipe_unique_justseen() {
 #   _L_FLOW + L_flow_source_string_chars 'AAAABBBCCDAABBB' + L_flow_pipe_unique_everseen + L_flow_sink_printf -> A B C D
 #   _L_FLOW + L_flow_source_string_chars 'ABBcCAD' + L_flow_pipe_unique_everseen L_eval 'L_v=${@,,}' + L_flow_sink_printf -> A B c D
 L_flow_pipe_unique_everseen() {
-  local _L_seen=() _L_new L_v
+  local _L_seen=() _L_new L_v _L_ok
   L_flow_restore _L_seen
   while
-    L_flow_next - _L_new || return "$?"
-    "${@:-L_quote_printf_v}" "${_L_new[@]}" || return "$?"
-    L_set_has _L_seen "$L_v"
+    L_flow_next_ok _L_ok - _L_new
+    if (( _L_ok )); then
+      "${@:-L_quote_printf_v}" "${_L_new[@]}" || return "$?"
+      L_set_has _L_seen "$L_v"
+    else
+      false
+    fi
   do
     :
   done
@@ -1125,13 +1275,23 @@ L_flow_pipe_islice() {
     L_panic "invalid values: start=$_L_start stop=$_L_stop step=$_L_step"
   fi
   L_flow_restore _L_start _L_stop
+  local _L_ok
   while (( _L_start > 0 ? (_L_stop > 0 ? _L_stop-- : 0), _L_start-- : 0 )); do
-    L_flow_next - _L_r || return "$?"
+    L_flow_next_ok _L_ok - _L_r
+    if (( !_L_ok )); then
+      return 1
+    fi
   done
   (( _L_stop == -1 || (_L_stop > 0 ? _L_stop-- : 0) )) && {
-    L_flow_next - _L_r || return "$?"
+    L_flow_next_ok _L_ok - _L_r
+    if (( !_L_ok )); then
+      return 1
+    fi
     while (( --_L_step > 0 )); do
-      L_flow_next - _ || break
+      L_flow_next_ok _L_ok - _
+      if (( !_L_ok )); then
+        break
+      fi
     done
     L_flow_yield "${_L_r[@]}"
   }
@@ -1152,10 +1312,11 @@ _L_flow_source_repeat_in() {
 
 # @arg $1 size
 L_flow_pipe_sliding_window() {
-  local _L_window=() _L_lens=() _L_r
+  local _L_window=() _L_lens=() _L_r _L_ok
   L_flow_restore _L_window _L_lens
   while (( ${#_L_lens[*]} < $1 )); do
-    if ! L_flow_next - _L_r; then
+    L_flow_next_ok _L_ok - _L_r
+    if (( !_L_ok )); then
       if (( ${#_L_lens[*]} )); then
         L_flow_yield "${_L_window[@]}"
         _L_lens=()
@@ -1181,12 +1342,23 @@ L_flow_pipe_sliding_window() {
 # @arg $1 <array> The name of the associative array variable to assign the element to.
 # @return 0 on successful assignment, non-zero on generator exhaustion or error.
 L_flow_next_dict() {
-  L_assert '' L_var_is_associative "$1"
-  local m v
-  L_flow_next - m v || return "$?"
-  L_assert '' test "$m" == "DICT"
-  L_assert '' test "${v::1}" == "("
-  L_assert '' test "${v:${#v}-1}" == ")"
+  if ! L_var_is_associative "$1"; then
+    L_panic ''
+  fi
+  local m v _L_ok
+  L_flow_next_ok _L_ok - m v
+  if (( !_L_ok )); then
+    return 1
+  fi
+  if [[ "$m" != "DICT" ]]; then
+    L_panic ''
+  fi
+  if [[ "${v::1}" != "(" ]]; then
+    L_panic ''
+  fi
+  if [[ "${v:${#v}-1}" != ")" ]]; then
+    L_panic ''
+  fi
   eval "$1=$v"
 }
 
@@ -1198,11 +1370,17 @@ L_flow_next_dict() {
 #
 # @arg $1 <array> The name of the associative array variable to yield.
 L_flow_yield_dict() {
-  L_assert '' L_var_is_associative "$1"
+  if ! L_var_is_associative "$1"; then
+    L_panic ''
+  fi
   local L_v
   L_var_to_string_v "$1" || L_panic
-  L_assert '' test "${L_v::1}" == "("
-  L_assert '' test "${L_v:${#L_v}-1}" == ")"
+  if [[ "${L_v::1}" != "(" ]]; then
+    L_panic ''
+  fi
+  if [[ "${L_v:${#L_v}-1}" != ")" ]]; then
+    L_panic ''
+  fi
   L_flow_yield DICT "$L_v"
 }
 
@@ -1242,7 +1420,9 @@ L_flow_source_read_csv() {
 L_flow_pipe_dropna() {
   local subset
   L_argskeywords / subset -- "$@" || return $?
-  L_assert '' test -n "$subset"
+  if [[ -z "$subset" ]]; then
+    L_panic ''
+  fi
   local -A asa=()
   while L_flow_next_dict asa; do
     if [[ -n "${asa[$subset]}" ]]; then
@@ -1287,8 +1467,11 @@ L_set_has() { L_array_contains "$1" "$2"; }
 # @noargs
 # @return 0 on successful yield, non-zero on upstream generator exhaustion or error.
 L_flow_pipe_none() {
-  local _L_r
-  L_flow_next - _L_r || return "$?"
+  local _L_r _L_ok
+  L_flow_next_ok _L_ok - _L_r
+  if (( !_L_ok )); then
+    return 1
+  fi
   L_flow_yield "${_L_r[@]}"
 }
 
@@ -1305,14 +1488,18 @@ L_flow_pipe_none() {
 #     echo "Current: $i"
 #   done
 L_flow_sink_iterate() {
-  local _L_r
-  L_flow_next - _L_r || return "$?"
+  local _L_r _L_ok
+  L_flow_next_ok _L_ok - _L_r
+  if (( !_L_ok )); then
+    return 1
+  fi
   # Extract the value from the return value.
-  if (($# == 1)); then
+  if (( $# == 1 )); then
     L_array_assign "$1" "${_L_r[@]}"
   else
-    L_assert "number of arguments $# is not equal to the number of tuple elements in the generator element ${#_L_r[*]}" \
-      test "${#_L_r[*]}" -eq "$#"
+    if (( ${#_L_r[*]} != $# )); then
+      L_panic "number of arguments $# is not equal to the number of tuple elements in the generator element ${#_L_r[*]}"
+    fi
     L_array_extract _L_r "$@"
   fi
   L_flow_pause
@@ -1329,25 +1516,32 @@ L_flow_sink_iterate() {
 #   local arr=(a b c)
 #   _L_FLOW + L_flow_source_range 3 + L_flow_pipe_zip_arrays arr + L_flow_sink_printf "%s: %s\n"
 L_flow_pipe_zip_arrays() {
-  local _L_r _L_i=0
+  local _L_r _L_i=0 _L_ok
   local -n _L_a=$1
-  L_flow_restore _L_i || return "$?"
+  L_flow_restore _L_i
   (( _L_i++ < ${#_L_a[*]} )) && {
-    L_flow_next - _L_r || return "$?"
-    L_flow_yield "${_L_r[@]}" "${_L_a[_L_i-1]}"
+    L_flow_next_ok _L_ok - _L_r
+    if (( _L_ok )); then
+      L_flow_yield "${_L_r[@]}" "${_L_a[_L_i-1]}"
+    else
+      return 1
+    fi
   }
 }
 
 # @description Join current generator with another one.
 # @arg $@ L_flow_source generator to join with.
 L_flow_pipe_zip() {
-  local _L_flow=() _L_a _L_b
+  local _L_flow=() _L_a _L_b _L_ok
   L_flow_restore _L_flow
   if (( ${_L_flow[*]} == 0 )); then
     _L_FLOW -v _L_flow + "$@"
   fi
-  L_flow_next - _L_a || return "$?"
-  L_flow_use _L_flow L_flow_next - _L_b || return "$?"
+  L_flow_next_ok _L_ok - _L_a
+  if (( !_L_ok )); then
+    return 1
+  fi
+  L_flow_next_ok _L_ok _L_flow _L_b
   L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
 }
 
