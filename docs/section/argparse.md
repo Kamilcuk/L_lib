@@ -118,7 +118,7 @@ It defines how a single command-line argument should be parsed.
       Additionally, an error message will be generated if there was not at least one command-line argument present.
     - `nargs=remainder` - equal to `nargs=*` and setting `remainder=true` parser setting
 - `const=` - The constant value to store into `dest` depending on `action`.
-- `eval=` - The Bash script to evaluate when option is used. Implies `action=eval`. Note: the command is evaluated upon parsing options. Multiple repeated options like `-a -a -a` will execute the script multiple times. The script should be stateless. Example: `-- -v --verbose eval='((verbose_level++))'`.
+- `eval=` - The Bash script to evaluate when option is used. Implies `nargs=0 action=eval`. Note: the command is evaluated upon parsing options. Multiple repeated options like `-a -a -a` will execute the script multiple times. The script should be stateless. Example: `-- -v --verbose eval='((verbose_level++))'`.
 - `flag=` - Shorthand for `action=store_*`.
     - `flag=0` - equal to `action=store_0`
     - `flag=1` - equal to `action=store_1`

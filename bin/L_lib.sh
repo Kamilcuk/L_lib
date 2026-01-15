@@ -7425,7 +7425,7 @@ _L_argparse_optspec_execute_action() {
 	append_const) _L_argparse_optspec_dest_arr_append "${_L_opt_const[_L_opti]}" ;;
 	count) printf -v "${_L_opt_dest[_L_opti]}" "%s" "$(( ${!_L_opt_dest[_L_opti]:-0} + 1 ))" ;;
 	help) if ((!_L_comp_enabled)); then L_argparse_print_help; exit 0; fi ;;
-	eval) if ((!_L_comp_enabled)); then eval "${_L_opt_eval[_L_opti]}" || exit "$?"; fi ;;
+	eval) if ((!_L_comp_enabled)); then eval "${_L_opt_eval[_L_opti]}"; fi ;;
 	*) _L_argparse_spec_fatal "internal error: invalid action=${_L_opt_action[_L_opti]}. This value should have been sanitized when parsing options and not now. This is an internal error in the library of how it validates the input. Either way, action=${_L_opt_action[_L_opti]} is an invalid action in the L_argparse specification." ;;
 	esac
 }

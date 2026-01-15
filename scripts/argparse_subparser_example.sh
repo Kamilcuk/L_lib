@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 . L_lib.sh -s
 L_argparse help="docker subparser example" \
+  -- -f --flag flag=1 \
+  -- -v --verbose nargs=0 eval='(( verbose=1 ))' \
   -- --config help="Location of client config files" \
   -- call=subparser dest=cmd \
   { \
