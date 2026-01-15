@@ -6307,6 +6307,9 @@ _L_argparse_optspec_get_metavar() {
 			L_v="{${_L_choices[*]}}"
 		else
 			L_v=${_L_opt_dest[_L_opti]}
+			# Remove _L_parser_dest_dict and _L_parser_dest_prefix if any from dest variable.
+			L_v=${L_v##"${_L_parser_dest_dict[_L_parseri]:+${_L_parser_dest_dict[_L_parseri]}[}${_L_parser_dest_prefix[_L_parseri]:-}"}
+			L_v=${L_v%%]}
 		fi
 		if [[ -n "${_L_opt__options[_L_opti]:-}" ]]; then
 			L_strupper_v "$L_v"
