@@ -934,7 +934,7 @@ _L_getopts_in_initer() {
 #
 L_getopts_in() {
   local OPTIND OPTARG OPTERR _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
-  while getopts p:n:s:e:wEh _L_opt; do
+  while getopts p:n:s:e:gwEh _L_opt; do
     case "$_L_opt" in
       p) _L_prefix=$OPTARG ;;
       n) _L_nargs=$OPTARG ;;
