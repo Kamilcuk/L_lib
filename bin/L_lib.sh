@@ -3465,10 +3465,10 @@ L_array_clear() { L_array_assign "$1"; }
 #   echo "$var1"  # prints Hello
 #   echo "$var2"  # prints World
 L_array_extract() {
-	local _L_v _L_i=0 _L_r
-	for _L_v in "${@:2}"; do
-		_L_r="$1[$((_L_i++))]"
-		printf -v "$_L_v" "%s" "${!_L_r}"
+	local _L_array_v _L_array_i=0 _L_array_r
+	for _L_array_v in "${@:2}"; do
+		_L_array_r="$1[$((_L_array_i++))]"
+		printf -v "$_L_array_v" "%s" "${!_L_array_r}"
 	done
 }
 
