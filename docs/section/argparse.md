@@ -70,12 +70,14 @@ The parser takes the following chain options:
 - `description=` - Text to display before the argument help (by default, no text).
 - `epilog=` - Text to display after the argument help (by default, no text).
 - `add_help=` (bool) - Add `-h --help` options to the parser (default: 1).
-- `allow_abbrev=` (bool) - Allows long options to be abbreviated if the abbreviation is unambiguous. (default: 0)
-- `allow_subparser_abbrev=` - Allows sub-parser command names to be abbreviated if the abbreviation is unambiguous. (default: 0)
-- `Adest=` - Store all values as keys into a variable that is an associated dictionary.
-  If the result is an array, it is properly quoted and appended. Array can be extracted with `declare -a var="(${Adest[key]})"`.
-- `show_default=` (bool) - Default value of `show_default` property of all options. Example `show_default=1`. (default: 0).
-- `prefix_chars=` - The set of characters that prefix optional arguments (default: '-')
+- `allow_abbrev=` (bool) - Allows long options to be abbreviated if the abbreviation is unambiguous. Inherited by subparsers.(default: 0)
+- `allow_subparser_abbrev=` (bool) - Allows sub-parser command names to be abbreviated if the abbreviation is unambiguous. Inherited by subparsers. (default: 0)
+- `dest_map=` (string) - Store all values as keys into a variable that is an associated dictionary (Bash 4+).
+    If the result is an array, it is properly quoted and appended and can be extracted with `declare -a var="(${dest_map[key]})"`.
+- `dest_prefix=` (string) - Add a prefix to all dest= variables.
+    This value is prepended to the `dest=` values of arguments and options.
+- `show_default=` (bool) - Default value of `show_default` property of all options. Example `show_default=1`. Inherited by subparsers. (default: 0).
+- `prefix_chars=` (string) - The set of characters that prefix optional arguments. Parsed with `case` statement, `-` means range of characters, so it has be either first or last to parse properly. Example: `prefix_chars=+-`. (default: '-')
 - `color=` (bool) - Allow colors (default: 1)
 - `fromfile_prefix_chars=` - The set of characters that prefix files from which additional arguments should be read (by default, no prefix is special)
     - The arguments are read from the file split by lines.

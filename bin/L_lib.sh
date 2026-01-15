@@ -1459,7 +1459,7 @@ L_return() { return "$1"; }
 L_shopt_extglob() {
 	if shopt -p extglob >/dev/null; then "$@"
 	else
-		shopt -s exglob; if "$@"; then shopt -u extglob
+		shopt -s extglob; if "$@"; then shopt -u extglob
 		else eval "shopt -u extglob;return \"$?\""; fi
 	fi
 }
@@ -6959,7 +6959,7 @@ _L_argparse_spec_call_parameter() {
 		if ! L_is_valid_variable_name "${_L_opt_dest[_L_opti]}"; then
 			_L_argparse_spec_fatal "dest=${_L_opt_dest[_L_opti]} is invalid"
 		fi
-		_L_opt_dest[_L_opti]="${_L_parser_Adest[_L_parseri]:+${_L_parser_Adest[_L_parseri]}[}""${_L_opt_dest[_L_opti]}""${_L_parser_Adest[_L_parseri]:+]}"
+		_L_opt_dest[_L_opti]="${_L_parser_dest_dict[_L_parseri]:+${_L_parser_dest_dict[_L_parseri]}[}""${_L_parser_dest_prefix[_L_parseri]:-}""${_L_opt_dest[_L_opti]}""${_L_parser_dest_dict[_L_parseri]:+]}"
 	}
 	{
 		# handle type
@@ -7186,7 +7186,7 @@ _L_argparse_optspec_dest_arr_clear() {
 		eval "${_L_opt_dest[_L_opti]}="
 	else
 		eval "${_L_opt_dest[_L_opti]}=()"
-	fi
+	fi || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
 }
 
 # @description store $1 in variable
@@ -7194,7 +7194,8 @@ _L_argparse_optspec_dest_arr_clear() {
 # @env _L_optspec
 # @set ${_L_opt_dest[_L_opti]}
 _L_argparse_optspec_dest_store() {
-	eval "${_L_opt_dest[_L_opti]}=\$1"
+	eval "${_L_opt_dest[_L_opti]}=\$1" || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
+
 }
 
 # @description append $@ to the variable
@@ -7208,7 +7209,7 @@ _L_argparse_optspec_dest_arr_append() {
 		eval "${_L_opt_dest[_L_opti]}+=\$_L_tmp"
 	else
 		eval "${_L_opt_dest[_L_opti]}+=(\"\$@\")"
-	fi
+	fi || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
 }
 
 # @description assign value to _L_opt_dest[_L_opti] or execute the action specified by _L_optspec
@@ -8042,10 +8043,11 @@ _L_argparse_spec_call() {
  # This is called when subparser is instantiated.
  # So in the case call=subparser { here }
  # But also in the call=function case.
- # The function does not inherit Adest, that would be confusing.
+ # The function does not inherit dest_dict, that would be confusing.
  # Each function is separate scope.
  # @arg $1 The parser id, usually _L_parseri. _L_parser_parent[$1] must be set.
 _L_argparse_spec_subparser_inherit_from_parent() {
+	# inherit show_default, allow abbrev and allow_subparser_abbrev
 	: "${_L_parser_show_default[_L_parser__parent[$1]]+
 		${_L_parser_show_default[$1]:="${_L_parser_show_default[_L_parser__parent[$1]]}"}}"
 	: "${_L_parser_allow_abbrev[_L_parser__parent[$1]]+
@@ -8067,7 +8069,8 @@ _L_argparse_spec_parse_args() {
 			case "${_L_args[_L_argsi]}" in
 			# {
 			--|----|'}') break ;;
-			Adest=?*) _L_parser_Adest[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			dest_dict=?*) _L_parser_dest_dict[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			dest_prefix=?*) _L_parser_dest_prefix[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			add_help=?*) _L_parser_add_help[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			aliases=*) _L_parser_aliases[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			allow_abbrev=?*) _L_parser_allow_abbrev[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
@@ -8108,14 +8111,18 @@ _L_argparse_spec_parse_args() {
 			_L_argparse_spec_fatal "internal error: circular loop detected in subparsers" || return 2
 		fi
 		_L_argparse_spec_subparser_inherit_from_parent "$_L_parseri"
-		: "${_L_parser_Adest[_L_parser__parent[_L_parseri]]+
-			${_L_parser_Adest[_L_parseri]:="${_L_parser_Adest[_L_parser__parent[_L_parseri]]}"}}"
 	fi
 	{
-		# validate Adest
-		if [[ -n "${_L_parser_Adest[_L_parseri]:-}" ]]; then
-			if ! L_is_valid_variable_name "${_L_parser_Adest[_L_parseri]}"; then
-				_L_argparse_spec_fatal "not a valid variable name: Adest=${_L_parser_Adest[_L_parseri]}" || return 2
+		# validate dest_dict
+		if [[ -n "${_L_parser_dest_dict[_L_parseri]:-}" ]]; then
+			if ! L_is_valid_variable_name "${_L_parser_dest_dict[_L_parseri]}"; then
+				_L_argparse_spec_fatal "not a valid variable name: dest_dict=${_L_parser_dest_dict[_L_parseri]}" || return 2
+			fi
+		fi
+		# validate dest_prefix
+		if [[ -n "${_L_parser_dest_prefix[_L_parseri]:-}" ]]; then
+			if ! L_is_valid_variable_name "${_L_parser_dest_prefix[_L_parseri]}"; then
+				_L_argparse_spec_fatal "not a valid variable name: dest_prefix=${_L_parser_dest_prefix[_L_parseri]}" || return 2
 			fi
 		fi
 	}
@@ -8255,7 +8262,8 @@ L_argparse() {
 			_L_parseri=0 \
 			_L_parsercnt=0 \
 			_L_parser_prog=() \
-			_L_parser_Adest \
+			_L_parser_dest_dict \
+			_L_parser_dest_prefix \
 			_L_parser_add_help \
 			_L_parser_aliases \
 			_L_parser_allow_abbrev \
