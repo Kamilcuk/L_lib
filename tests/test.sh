@@ -2138,21 +2138,46 @@ Options:
 if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 _L_test_z_argparse_A() {
 	{
-		declare -A Adest=()
+		declare -A dest_dict=()
 		L_unittest_cmd -c \
-				L_argparse prog=python.py Adest=Adest \
+				L_argparse prog=python.py dest_dict=dest_dict \
 				-- --asome \
 				-- -a action=append \
 				-- dest nargs=3 \
 				---- 1 1 123 --asome 1123 -a 1 -a 2 -a 3
-		local -a arr="(${Adest[dest]})"
+		local -a arr="(${dest_dict[dest]})"
 		L_unittest_arreq arr 1 1 123
-		local -a arr="(${Adest[a]})"
+		local -a arr="(${dest_dict[a]})"
 		L_unittest_arreq arr 1 2 3
-		L_unittest_eq "${Adest[asome]}" 1123
+		L_unittest_eq "${dest_dict[asome]}" 1123
+	}
+	{
+		declare -A dest_dict=()
+		L_unittest_cmd -c \
+				L_argparse prog=python.py dest_dict=dest_dict dest_prefix=prefix_ \
+				-- --asome \
+				-- -a action=append \
+				-- dest nargs=3 \
+				---- 1 1 123 --asome 1123 -a 1 -a 2 -a 3
+		local -a arr="(${dest_dict[prefix_dest]})"
+		L_unittest_arreq arr 1 1 123
+		local -a arr="(${dest_dict[prefix_a]})"
+		L_unittest_arreq arr 1 2 3
+		L_unittest_eq "${dest_dict[prefix_asome]}" 1123
 	}
 }
 fi
+
+_L_test_z_argparse_dest_prefix() {
+	{
+		local config_a config_var
+		L_unittest_cmd -c L_argparse dest_prefix=config_ -- -a flag=1 -- --var ---- -a
+		L_unittest_vareq config_a 1
+		L_unittest_cmd -c L_argparse dest_prefix=config_ -- -a flag=1 -- --var ---- --var abc
+		L_unittest_vareq config_a 0
+		L_unittest_vareq config_var abc
+	}
+}
 
 _L_test_z_argparse4() {
 	local foo arg

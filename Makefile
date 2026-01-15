@@ -17,7 +17,7 @@ endef
 NPROC = $(shell nproc)
 BASHES = 5.2 3.2 4.4 5.0 4.3 4.2 4.1 5.1 5.0 5.3
 
-all: test doc
+all: test
 	@echo SUCCESS all
 
 TESTS = \
@@ -45,10 +45,9 @@ test: $(TESTS)
 	@echo 'make test finished with SUCCESS'
 test_local:
 	./tests/test.sh $(ARGS)
-IMAGE = $$(docker build -q --target tester --build-arg VERSION=$* .)
+IMAGE = $(shell docker build -q --target tester --build-arg VERSION=$* .)
+.PHONY: test_bash%
 test_bash%:
-	docker build -q --target tester --build-arg VERSION=$* . || \
-			docker build --target tester --build-arg VERSION=$* .
 	docker run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		$(DOCKERNICE) $(IMAGE) $(NICE) ./tests/test.sh $(ARGS)

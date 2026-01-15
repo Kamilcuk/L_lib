@@ -45,6 +45,7 @@ nav:
   - Miscellaneous:
     - Bash expansions: expansions.md
     - Bash bugs: bash_bugs.md
+    - Measurements: measurements.md
 
 theme:
   name: material
