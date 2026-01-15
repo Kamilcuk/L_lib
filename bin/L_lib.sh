@@ -933,8 +933,7 @@ _L_getopts_in_initer() {
 #    }
 #
 L_getopts_in() {
-  local _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
-  local OPTIND OPTERR OPTARG
+  local OPTIND OPTARG OPTERR _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
   while getopts p:n:s:e:wEh _L_opt; do
     case "$_L_opt" in
       p) _L_prefix=$OPTARG ;;
@@ -962,7 +961,7 @@ L_getopts_in() {
     esac
   done
   #
-  local OPTIND=0 OPTERR OPTARG
+  OPTIND=0
   while getopts "${_L_spec//::/:}h" _L_opt; do
     # Execute action given by -e. Some optimization.
     ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
