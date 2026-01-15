@@ -740,7 +740,7 @@ L_func_error() {
 # @arg [$2] How many stack frames up.
 # @see L_func_help for example
 L_func_usage_error() {
-	L_func_error "${1:-}" "$((${2:-0}+1))"
+	L_func_error "${1:-}" "$((${2:-0}+1))" # ; return 0
 	L_func_usage "$((${2:-0}+1))"
 }
 

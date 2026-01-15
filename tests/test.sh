@@ -4016,13 +4016,40 @@ _L_test_self_contained() {
 	"$(dirname "$0")"/./self_contained.sh
 }
 
+test_followed() {
+	awk '
+/^[[:space:]]*#/{ next }
+/'"$1"'.*; return /{
+	print NR, $0
+	next
+}
+/^[[:space:]]*'"$1"' / {
+	print NR, $0
+	pending = NR
+	next
+}
+pending && /^[[:space:]]*return /{
+	print NR, $0
+	pending = 0
+}
+pending { exit -1 }
+END {
+    if (pending) {
+        print NR, $0
+        printf "ERROR: '"$1"' without following return at %s:%d\n", FILENAME, pending
+        exit -1
+    }
+}
+' bin/L_lib.sh
+}
+
 _L_test_func_usage() {
 	L_log "Check that every L_func_assert is followed by return"
 	! grep 'L_func_assert ' bin/L_lib.sh | grep -v '|| return'
 	L_log "Check every L_func_error is followed by return"
-	! grep '^[[:space:]]*L_func_error ' bin/L_lib.sh | grep -v '|| return'
+	test_followed L_func_error
 	L_log "Check every L_func_help is followed by return"
-	! grep 'L_func_help[; ]' bin/L_lib.sh | grep -v "^#" | grep -v '; return 0'
+	test_followed L_func_help
 }
 
 _L_test_getopts_documented() {
