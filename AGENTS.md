@@ -11,6 +11,10 @@ This document provides a comprehensive overview of the `L_lib.sh` project, desig
 **Architecture:**
 The library consists of a single file, `L_lib.sh`, which is designed to be sourced into other Bash scripts. This self-contained architecture ensures ease of deployment and usage.
 
+## Agent Interaction
+
+When I type stuff, first create a todo list and then execute it.
+
 ## Building and Running
 
 
