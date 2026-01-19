@@ -130,13 +130,13 @@ runall: $(addprefix run-, $(BASHES))
 
 .PHONY: docs_build docs_serve
 _docs:
-	uvx --with-requirements=./docs/requirements.txt mkdocs $(WHAT)
+	uvx --with-requirements=./docs/requirements.txt mkdocs $(WHAT) $(ARGS)
 docs_build: WHAT = build
 docs_build: _docs
 docs_serve: WHAT = serve
 docs_serve: _docs
 docs_serve2:
-	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve
+	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve $(ARGS)
 docs_docker:
 	docker build --target doc --output type=local,dest=./public .
 

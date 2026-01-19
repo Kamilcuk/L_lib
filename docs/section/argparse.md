@@ -1,33 +1,152 @@
-## L_argparse
+# L_argparse - Python-Style Argument Parsing for Bash
 
-The utility for command line argument parsing.
+Finally, proper argument parsing for Bash scripts! `L_argparse` brings Python's `argparse` functionality to Bash, making it easy to handle complex command-line arguments without writing tedious `getopts` loops or generating code.
 
-## Example
+## Why L_argparse?
 
-```
-set -- -c 5 -v ./file1
+Traditional Bash argument parsing is painful:
+- `getopts` doesn't support long options natively
+- No automatic help generation
+- No validation or type checking
+- Complex patterns require lots of boilerplate code
+- No shell completion support
+
+`L_argparse` solves all of this with a clean, declarative syntax inspired by Python's `argparse`.
+
+## Quick Start
+
+```bash
+#!/bin/bash
+. L_lib.sh
+
+# Simple example with options and positional arguments
 L_argparse \
-  prog=ProgramName \
-  description="What the program does" \
-  epilog="Text at the bottom of help" \
-  -- filename help="this is a filename" \
-  -- -c --count \
-  -- -v --verbose action=store_1 \
-  ---- "$@"
-echo "$count $verbose $filename"  # outputs: 5 1 ./file1
+	prog="myapp" \
+	description="Process some files" \
+	-- filename help="Input file to process" \
+	-- -c --count type=int default=1 help="Number of times to process" \
+	-- -v --verbose action=store_true help="Enable verbose output" \
+	---- "$@"
+
+echo "Processing '$filename' $count times"
+if $verbose; then
+	echo "Verbose mode enabled"
+fi
 ```
 
-## Features
+**Usage:**
+```bash
+$ ./myapp.sh --help
+$ ./myapp.sh input.txt
+$ ./myapp.sh -v --count 5 input.txt
+$ ./myapp.sh input.txt -c 3 --verbose
+```
 
-- no code generation or similar
-- supports Bash 3.2+
-- Sets Bash variable values inline in the script
-- help generation
-- optional arguments to options
-- support Bash, Zsh and Fish shell completion
-- `-one_dash_long_options`
-- custom option prefix
-- colors
+## Simple Examples
+
+### Flags and Options
+
+```bash
+# Parse some common options
+L_argparse \
+	-- -v --verbose action=store_true help="Verbose output" \
+	-- -q --quiet action=store_true help="Quiet mode" \
+	-- -o --output required=1 help="Output file" \
+	-- -c --count type=int default=1 help="Count" \
+	---- "$@"
+
+echo "verbose=$verbose quiet=$quiet output=$output count=$count"
+```
+
+### Multiple Values (Arrays)
+
+```bash
+# Accept multiple input files
+L_argparse \
+	-- files nargs=+ help="Files to process" \
+	---- "$@"
+
+for file in "${files[@]}"; do
+	echo "Processing: $file"
+done
+```
+
+### Subcommands (like git/docker)
+
+Create tools with subcommands like `git commit`, `docker run`:
+
+```bash
+#!/bin/bash
+. L_lib.sh
+
+# Define subcommands
+cmd_init() {
+	L_argparse \
+		description="Initialize a new repository" \
+		-- --bare action=store_true help="Create bare repository" \
+		---- "$@"
+
+	echo "Initializing repository (bare=$bare)"
+}
+
+cmd_clone() {
+	L_argparse \
+		description="Clone a repository" \
+		-- url help="Repository URL" \
+		-- directory nargs='?' help="Destination directory" \
+		---- "$@"
+
+	echo "Cloning $url to ${directory:-./}"
+}
+
+# Main parser with subcommands
+L_argparse \
+	prog="mygit" \
+	description="A git-like tool" \
+	-- call=function prefix=cmd_ subcall=detect \
+	---- "$@"
+```
+
+**Usage:**
+```bash
+$ ./mygit.sh --help
+$ ./mygit.sh init --bare
+$ ./mygit.sh clone https://github.com/user/repo
+```
+
+### Complex Example (Podman-like)
+
+```bash
+#!/usr/bin/env bash
+source bin/L_lib.sh
+
+L_argparse \
+    description="Set default trust policy or a new trust policy for a registry" \
+    epilog="god" \
+    -- -f --pubkeysfile dest=stringArray action=append help="Path of installed public key(s) to trust for TARGET. Absolute path to keys is added to policy.json. May used multiple times to define multiple public keys. File(s) must exist before using this command" \
+    -- -t --type dest=type metavar=string help="Trust type, accept values: signedBy(default), accept, reject" default="signedBy" show_default=1 choices='signedBy accept reject' \
+    -- -o --option \
+    -- REGISTRY dest=registry \
+    ---- -f "key1.pub" -f "key2.pub" -t "accept" "my-registry"
+
+echo "pubkeysfile=${stringArray[@]} type=$type registry=$registry"
+```
+
+## Key Features
+
+- No code generation required - pure runtime parsing
+- Supports Bash 3.2+ (including old macOS bash)
+- Sets Bash variables directly in your script
+- Automatic help generation with colors
+- Built-in validation (types, choices, custom validators)
+- Shell completion support (Bash, Zsh, Fish)
+- Subparsers for complex CLI tools
+- Long options, short options, and single-dash long options (`-one_dash`)
+- Custom option prefixes (use `+` instead of `-` if you want!)
+- File-based argument loading (`@file.txt`)
+- Positional and optional arguments
+- Array arguments (`nargs=+`, `nargs=*`)
+- Default values with optional display in help
 
 ## Specification
 
@@ -130,15 +249,15 @@ It defines how a single command-line argument should be parsed.
 - `type=` - The type to which the command-line argument should be converted.
     - `type=int` - set `validate='L_is_integer "$1"'`
     - `type=float` - set `validate='L_is_float "$1"'`
-    - `type=nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'`
-    - `type=positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'`
+    - `type=nonnegative` - set `validate='L_is_integer "$1" && [[ "$1" > 0 ]]'
+    - `type=positive` - set `validate'L_is_integer "$1" && [[ "$1" >= 0 ]]'
     - `type=file` - set `validate='[[ -f "$1" ]]' complete=filenames`
     - `type=file_r` - set `validate=[[ -f "$1" && -r "$1" ]]' complete=filenames`
     - `type=file_w` - set `validate'[[ -f "$1" && -w "$1" ]]' complete=filenames`
     - `type=dir` - set `validate='[[ -d "$1" ]]' complete=dirnames`
     - `type=dir_r` - set `validate='[[ -d "$1" && -x "$1" && -r "$1" ]]' complete=dirnames`
     - `type=dir_w` - set `validate='[[ -d "$1" && -x "$1" && -w "$1" ]]' complete=dirnames`
-- `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_opt_choices[_L_opti]})"`. Example: `choices="a b c 'with space'"`
+- `choices=` - A sequence of the allowable values for the argument. Deserialized with `declare -a choices="(${_L_opt_choices[_L_opti]})". Example: `choices="a b c 'with space'"
 - `required=` - Whether or not the command-line option may be omitted (options arguments only). Example `required=1`.
 - `help=` - Brief description of what the argument does. `%(prog)s` is not replaced. If `help=SUPPRESS` then the option is completely hidden from help.
 - `metavar=` - A name for the argument in usage messages.
@@ -169,9 +288,9 @@ It defines how a single command-line argument should be parsed.
 	       If you need comma, delegate completion to a function.
 - `validate=` - The expression that evaluates if the value is valid.
      - The variable `$1` is exposed with the value of the argument
-     - Example: `validate='[[ "$1" =~ (a|b) ]]'`
-     - Example: `validate='L_regex_match "$1" "(a|b)"'`
-     - Example: `validate='grep -q "(a|b)" <<<"$1"'`
+     - Example: `validate='[[ "$1" =~ (a|b) ]]'
+     - Example: `validate='L_regex_match "$1" "(a|b)"'
+     - Example: `validate='grep -q "(a|b)" <<<"$1"'
      - Example:
 
             validate_my_arg() {
