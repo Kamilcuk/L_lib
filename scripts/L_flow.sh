@@ -18,6 +18,7 @@ set -euo pipefail
 # - [4] - Has yielded a value?
 # - [5] - Is paused?
 # - [6] - '_L_FLOW' constant string
+# - [7] - The variable name storing the flow state.
 # - [_L_FLOW[2] ... _L_FLOW[2]+_L_FLOW[1]-1] - generators to eval in the chain
 # - [_L_FLOW[2]+_L_FLOW[1] ... _L_FLOW[2]+_L_FLOW[1]*2-1] - restore context of generators in the chain
 # - [_L_FLOW[2]+_L_FLOW[1]*2 ... ?] - current iterator value of generators
@@ -33,6 +34,11 @@ set -euo pipefail
 # - _L_FLOW[2]+_L_FLOW[0] = current generator to execute
 # - _L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0] = restore context of current generator
 # - #_L_FLOW[@] - _L_FLOW[2]+_L_FLOW[1]*2 = length of current iterator vlaue
+
+L_flow_is_finished() {
+  if [[ $# && "$1" != "-" && "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  (( _L_FLOW[3] ))
+}
 
 # @description Initialize a new generator pipeline with a chain of source/pipe/sink functions.
 #
@@ -58,11 +64,12 @@ L_flow_new() {
   _L_FLOW=(
     -1         # [0] - depth
     "$#"       # [1] - number    of generators in chain
-    7          # [2] - offset
+    8          # [2] - offset
     0          # [3] - finished?
     ""         # [4] - yielded?
     0          # [5] - paused?
-    "_L_FLOW"    # [6] - mark
+    "_L_FLOW"  # [6] - mark
+    "$1"       # [7] - name
     "${@%% }"  # generators
     "${@//*}"  # generators state
   )
@@ -109,10 +116,10 @@ L_flow_append() {
 #   local gen
 #   L_flow_make gen + L_flow_source_range 5 + L_flow_pipe_head 3 + L_flow_sink_printf
 L_flow_make() {
-  if (( $# <= 3 )); then
-    L_panic "There must be more than 3 positional arguments"
+  if (( $# < 3 )); then
+    L_panic "There must be more than 3 positional arguments: $#"
   fi
-  if [[ "${2:-}" != "+" ]]; then
+  if [[ "$2" != "+" ]]; then
     L_panic "Second positional argument must be a +"
   fi
   # Read arguments.
@@ -121,6 +128,11 @@ L_flow_make() {
     if [[ "$_L_i" == "+" ]]; then
       _L_flow_funcs=("" "${_L_flow_funcs[@]}")
     else
+      if [[ -z "${_L_flow_funcs[0]:-}" ]]; then
+        if [[ "$(type -t "$_L_i")" != "function" ]]; then
+          L_panic "Not a function: $_L_i"
+        fi
+      fi
       L_printf_append _L_flow_funcs[0] "%q " "$_L_i"
     fi
   done
@@ -147,7 +159,12 @@ L_flow_run() {
     L_panic 'depth at run stage should be -1. Are you trying to run a running generator?'
   fi
   _L_FLOW[0]=0
-  eval "${_L_FLOW[@]:(_L_FLOW[2]):1}"
+  local _L_flow_cmd=${_L_FLOW[_L_FLOW[2]+_L_FLOW[0]]}
+  if [[ -z "$_L_flow_cmd" ]]; then
+    L_panic "internal error: generator ${_L_FLOW[0]} is empty?"
+  fi
+  L_debug "Calling function [$_L_flow_cmd] at depth=${_L_FLOW[0]}"
+  eval "$_L_flow_cmd" || L_panic "Function [$_L_flow_cmd] exited with $?"
 }
 
 L_flow_make_run() {
@@ -214,13 +231,13 @@ L_flow_print_context() {
 # On failure (when generator is exhausted), stores 0 and returns success (0).
 #
 # @arg $1 <var> Variable to store success status (1 = yielded, 0 = exhausted).
-# @arg $2 <var> Generator context variable (or `-` to use `_L_FLOW`). If omitted, uses `_L_FLOW`.
+# @arg $2 <var> Generator context variable (or `-` to use `_L_FLOW`).
 # @arg $@ <var>... Variables to assign the yielded tuple elements to.
 # @return 0 always on normal operation
 # @see L_flow_next
 # @example
 #   local ok value
-#   L_flow_next_ok ok - value
+#   L_flow_next_ok ok - value || return $?
 #   if (( ok )); then
 #     echo "Got: $value"
 #   fi
@@ -243,30 +260,21 @@ _L_flow_next_ok() {
   if [[ -z "$_L_flow_cmd" ]]; then
     L_panic "internal error: generator ${_L_FLOW[0]} is empty?"
   fi
-  # Clear yield flag.
-  _L_FLOW[4]=""
   L_debug "Calling function [$_L_flow_cmd] at depth=${_L_FLOW[0]}"
-  eval "$_L_flow_cmd" || L_panic "$?"
+  eval "$_L_flow_cmd" || L_panic "Function [$_L_flow_cmd] exited with $?"
   # Store the result in ok variable if the function yielded a value or finished?
-  if [[ -n "${_L_FLOW[4]}" ]]; then
-    printf -v "$1" "$?"
+  if [[ -z "${_L_FLOW[4]}" ]]; then
+    printf -v "$1" "0"
   else
-    printf -v "$1" "$?"
+    printf -v "$1" "1"
   fi
   # Reduce depth
   if (( _L_FLOW[0] < 0 )); then
     L_panic "internal error: depth is lower then 0 after call [$_L_flow_cmd]"
   fi
   (( _L_FLOW[0]-- ))
-  # If the function did not yield a value?
   if ((${!1})); then
-    L_debug "Function [$_L_flow_cmd] did not yield so finished"
-    # If depth is 0
-    if (( _L_FLOW[0] == 0 )); then
-      # Mark that the generator is finished.
-      _L_FLOW[3]=1
-    fi
-  else
+    # If the function did yield a value.
     local _L_flow_res=("${_L_FLOW[@]:(_L_FLOW[2]+_L_FLOW[1]*2)}")
     L_debug "Returned [$_L_flow_cmd] at depth=${_L_FLOW[0]} yielded#${#_L_flow_res[*]}={${_L_flow_res[*]}}"
     # Extract the value from the return value.
@@ -278,7 +286,17 @@ _L_flow_next_ok() {
       fi
       L_array_extract _L_flow_res "${@:2}"
     fi
+  else
+    # If the function is finished.
+    L_debug "Function [$_L_flow_cmd] did not yield so finished"
+    # If depth is 0
+    if (( _L_FLOW[0] == 0 )); then
+      # Mark that the generator is finished.
+      _L_FLOW[3]=1
+    fi
   fi
+  # Clear yield flag.
+  _L_FLOW[4]=""
 }
 
 # @description Requests the next element from the upstream generator.
@@ -307,7 +325,11 @@ _L_flow_next_ok() {
 #   while L_flow_next - key value; do
 #     echo "$key => $value"
 #   done
-L_flow_next() { local _L_ok; L_flow_next_ok _L_ok "$@" || return "$_L_ok"; }
+L_flow_next() {
+  local _L_ok
+  L_flow_next_ok _L_ok "$@" || L_panic "L_flow_next_ok exited with $?"
+  return "$(( !_L_ok ))"
+}
 
 # @description Internal helper to save local variables to the generator context.
 #
@@ -330,7 +352,7 @@ _L_flow_store() {
     _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]+="$_L_flow_i=$L_v;"
   done
   _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]+="#${FUNCNAME[2]}"
-  L_debug "Save state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[2]} variables=$* eval=${_L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]}"
+  L_debug "${_L_FLOW[7]}: Save state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[2]} variables=$* eval=${_L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]}"
 }
 
 # @description Restores the local state of a generator function.
@@ -348,15 +370,19 @@ _L_flow_store() {
 #   }
 L_flow_restore() {
   # L_log "$@ ${!1} ${FUNCNAME[1]}"
-  local _L_flow
   if (( $# )); then
-    for _L_flow; do
-      if ! L_eval 'L_var_is_set "$1" || L_var_is_array "$1" || L_var_is_associative "$1"' "$_L_flow"; then
-        L_panic "Variable $_L_flow from ${FUNCNAME[1]} is not set"
+    local _L_flow_restore_iterator
+    for _L_flow_restore_iterator; do
+      if
+        ! L_var_is_set "$_L_flow_restore_iterator" &&
+        ! L_var_is_array "$_L_flow_restore_iterator" &&
+        ! L_var_is_associative "$_L_flow_restore_iterator"
+      then
+        L_panic "Variable $_L_flow_restore_iterator from ${FUNCNAME[1]} is not set, not an array and not an associative array"
       fi
     done
     L_finally -r -s 1 _L_flow_store "$@"
-    L_debug "Load state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[1]} variables=$* eval=${_L_FLOW[ (_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]) ]}"
+    L_debug "${_L_FLOW[7]}: Load state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[1]} variables=$* eval=${_L_FLOW[ (_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]) ]}"
     eval "${_L_FLOW[ (_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]) ]}"
   fi
 }
@@ -410,9 +436,9 @@ L_flow_source_array() {
   if [[ -z "$_L_len" ]]; then
     L_array_len -v _L_len "$1"
   fi
-  if (( _L_i < _L_len ? ++_L_i : 0 )); then
+  if (( _L_i < _L_len )); then
     local -n arr=$1
-    L_flow_yield "${arr[_L_i]}"
+    L_flow_yield "${arr[_L_i++]}"
   fi
 }
 
@@ -433,24 +459,24 @@ L_flow_source_range() {
   case "$#" in
     0)
       L_flow_yield "$i"
-      i=$((i+1))
+      i=$(( i + 1 ))
       ;;
     1)
-      if ((i >= $1)); then
+      if (( i < $1 )); then
         L_flow_yield "$i"
-        i=$((i+1))
+        i=$(( i + 1 ))
       fi
       ;;
     2)
-      if ((i >= $2 - $1)); then
-        L_flow_yield "$((i+$1))"
-        i=$((i+1))
+      if (( i < $2 - $1 )); then
+        L_flow_yield "$(( i + $1 ))"
+        i=$(( i + 1 ))
       fi
       ;;
     3)
-      if ((i >= $3 - $1)); then
-        L_flow_yield "$((i+$1))"
-        i=$((i+$2))
+      if (( i < $3 - $1 )); then
+        L_flow_yield "$(( i + $1 ))"
+        i=$(( i + $2 ))
       fi
       ;;
     *) L_func_usage_error; return 2 ;;
@@ -541,7 +567,7 @@ _L_flow_pipe_accumulate_in() {
     fi
     L_flow_yield "${_L_total[@]}"
   else
-    L_flow_next_ok ok - L_v || L_panic "err"
+    L_flow_next_ok ok - L_v
     if ((ok)); then
       "${@:-_L_flow_pipe_accumulate_add}" "${_L_total[@]}" "${L_v[@]}"
       _L_total=("${L_v[@]}")
@@ -555,37 +581,40 @@ _L_flow_pipe_accumulate_in() {
 # @arg $1 count
 L_flow_pipe_batch() { L_getopts_in -p _L_ -n '?' -- 's' _L_flow_pipe_batch_in "$@"; }
 _L_flow_pipe_batch_in() {
-  local _L_count=$1 _L_batch=() L_v ok
+  local _L_count=$1 _L_batch=() L_v _L_ok
   while (( _L_count-- > 0 )); do
-    L_flow_next_ok ok - L_v
-    if (( ok )); then
+    L_flow_next_ok _L_ok - L_v
+    if (( _L_ok )); then
+      _L_batch+=("${L_v[@]}")
+    else
       if (( _L_s )); then
         L_func_error "incomplete batch"
         return 2
       fi
-      if (( _L_count + 1 == $1 )); then
-        return 0
-      fi
       break
     fi
-    _L_batch+=("${L_v[@]}")
   done
-  L_flow_yield "${_L_batch[@]}"
+  if ((${#_L_batch[@]})); then
+    L_flow_yield "${_L_batch[@]}"
+  fi
 }
 
 # @description Chain current iterator with other iterators.
 # @arg $@ other iterators
 L_flow_pipe_chain() {
-  local _L_i=-1 _L_r _L_flow ok=0
+  local _L_i=1 _L_r _L_flow _L_ok
   L_flow_restore _L_i
-  if (( _L_i == -1 )); then
-    L_flow_next_ok ok - _L_r
-  elif (( _L_i < $# )); then
-    L_flow_next_ok ok "${*:_L_i + 1:1}" _L_r
-  fi
-  if ((ok)); then
-    L_flow_yield "${_L_r[@]}"
-  fi
+  set -- - "$@"
+  while (( _L_i <= $# )); do
+    echo "${*:_L_i:1}" >&2
+    L_flow_next_ok _L_ok "${*:_L_i:1}" _L_r
+    if (( _L_ok )); then
+      L_flow_yield "${_L_r[@]}"
+      return 0
+    else
+      _L_i=$(( _L_i + 1 ))
+    fi
+  done
 }
 
 # @description Chain current iterator with other single command sourcegen iterator.
@@ -620,11 +649,10 @@ L_flow_pipe_enumerate() {
   fi
   local _L_i=0 _L_r _L_ok
   L_flow_restore _L_i
-  L_flow_next_ok _L_ok - _L_r
+  L_flow_next_ok _L_ok - _L_r || return $?
   if (( _L_ok )); then
-    if (( ++_L_i )); then
-      L_flow_yield "$_L_i" "${_L_r[@]}"
-    fi
+    L_flow_yield "$_L_i" "${_L_r[@]}"
+    _L_i=$(( _L_i + 1 ))
   fi
 }
 
@@ -638,9 +666,12 @@ L_flow_sink_map() {
   if (( $# < 1 )); then
     L_panic ''
   fi
-  local L_v
-  while L_flow_next - L_v; do
-    "$@" "${L_v[@]}"
+  local L_v _L_ok
+  while
+    L_flow_next_ok _L_ok - L_v || return $?
+    (( _L_ok ))
+  do
+    "$@" "${L_v[@]}" || return $?
   done
 }
 
@@ -654,12 +685,11 @@ L_flow_pipe_map() {
     L_panic ''
   fi
   local L_v _L_ok
-  L_flow_next_ok _L_ok - L_v
-  if (( !_L_ok )); then
-    return 1
+  L_flow_next_ok _L_ok - L_v || return $?
+  if (( _L_ok )); then
+    "$@" "${L_v[@]}" || return $?
+    L_flow_yield "${L_v[@]}"
   fi
-  "$@" "${L_v[@]}"
-  L_flow_yield "${L_v[@]}"
 }
 
 # @description Sink generator that prints elements using `printf`.
@@ -671,11 +701,13 @@ L_flow_pipe_map() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_printf "Item: %s\n"
 L_flow_sink_printf() {
-  local L_v
-  while L_flow_next - L_v; do
+  local L_v _L_ok
+  while
+    L_flow_next_ok _L_ok - L_v || return $?
+    (( _L_ok ))
+  do
     if (( $# == 0 )); then
-      L_array_join_v L_v " "
-      printf "%s\n" "$L_v"
+      printf "%s\n" "${L_v[*]}"
     else
       printf "$1" "${L_v[@]}"
     fi
@@ -694,17 +726,15 @@ L_flow_sink_printf() {
 #   _L_FLOW + L_flow_source_range 5 + L_flow_pipe_printf "DEBUG: %s\n" + L_flow_sink_consume
 L_flow_pipe_printf() {
   local L_v _L_r _L_ok
-  L_flow_next_ok _L_ok - _L_r
-  if (( !_L_ok )); then
-    return 1
+  L_flow_next_ok _L_ok - _L_r || return $?
+  if (( _L_ok )); then
+    if (( $# == 0 )); then
+      printf "%s\n" "${L_v[*]}"
+    else
+      printf "$1" "${_L_r[@]}"
+    fi
+    L_flow_yield "${_L_r[@]}"
   fi
-  if (( $# == 0 )); then
-    L_array_join_v _L_r " "
-    printf "%s\n" "$L_v"
-  else
-    printf "$1" "${_L_r[@]}"
-  fi
-  L_flow_yield "${_L_r[@]}"
 }
 
 
@@ -773,20 +803,16 @@ L_flow_pipe_filter() {
   if (( $# < 1 )); then
     L_panic ''
   fi
-  local _L_e _L_ok
-  L_flow_next_ok _L_ok - _L_e
-  if (( !_L_ok )); then
-    return 1
-  fi
+  local L_v _L_ok
   while
-    ! "$@" "${_L_e[@]}"
+    L_flow_next_ok _L_ok - L_v || return $?
+    (( _L_ok ))
   do
-    L_flow_next_ok _L_ok - _L_e
-    if (( !_L_ok )); then
-      return 1
+    if "$@" "${L_v[@]}"; then
+      L_flow_yield "${L_v[@]}"
+      break
     fi
   done
-  L_flow_yield "${_L_e[@]}"
 }
 
 # @description Pipe generator that yields the first N elements.
@@ -803,13 +829,12 @@ L_flow_pipe_head() {
   fi
   local _L_i=0 _L_e _L_ok
   L_flow_restore _L_i
-  (( _L_i++ < $1 )) && {
-    L_flow_next_ok _L_ok - _L_e
-    if (( !_L_ok )); then
-      return 1
+  if (( _L_i++ < $1 )); then
+    L_flow_next_ok _L_ok - _L_e || return $?
+    if (( _L_ok )); then
+      L_flow_yield "${_L_e[@]}"
     fi
-    L_flow_yield "${_L_e[@]}"
-  }
+  fi
 }
 
 # @description Pipe generator that yields the last N elements.
@@ -896,12 +921,15 @@ L_flow_pipe_padnone() {
 #   _L_FLOW + L_flow_source_array arr + L_flow_pipe_pairwise + L_flow_sink_printf "%s %s\n"
 L_flow_pipe_pairwise() {
   local _L_a _L_b=() _L_ok
-  L_flow_next_ok _L_ok - _L_a
-  if (( !_L_ok )); then
-    return 1
+  L_flow_next_ok _L_ok - _L_a || return $?
+  if (( _L_ok )); then
+    L_flow_next_ok _L_ok - _L_b || return $?
+    if (( _L_ok )); then
+      L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
+    else
+      L_flow_yield "${_L_a[@]}"
+    fi
   fi
-  L_flow_next_ok _L_ok - _L_b
-  L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
 }
 
 # @description Sink generator that calculates the dot product of two generators.
@@ -1031,9 +1059,13 @@ L_flow_pipe_stride() {
 #   local results=()
 #   _L_FLOW + L_flow_source_range 5 + L_flow_sink_to_array results
 L_flow_sink_to_array() {
-  local -n _L_to="$1" _L_r
+  local _L_r _L_ok
+  local -n _L_to="$1"
   _L_to=()
-  while L_flow_next - _L_r; do
+  while
+    L_flow_next_ok _L_ok - _L_r || return $?
+    (( _L_ok ))
+  do
     _L_to+=("$_L_r")
   done
 }
@@ -1052,57 +1084,60 @@ L_flow_sink_to_array() {
 #   _L_FLOW + L_flow_source_array numbers + L_flow_pipe_sort -n + L_flow_sink_printf
 L_flow_pipe_sort() { L_getopts_in -p _L_opt_ Ank: _L_flow_pipe_sort "$@"; }
 _L_flow_pipe_sort() {
-  local _L_vals=() _L_idxs=() _L_poss=() _L_lens=() _L_i=0 _L_r _L_pos=0 _L_alllen1=1 _L_run=0
-  L_flow_restore _L_vals _L_idxs _L_poss _L_lens _L_i _L_alllen1 _L_run
-  if (( !_L_run )); then
-    # accumulate
-    while L_flow_next - _L_r; do
-      _L_idxs+=($_L_i)
-      _L_poss+=($_L_pos)
-      _L_lens+=(${#_L_r[*]})
+  local _L_vals=() _L_idxs=() _L_poss=() _L_lens=() _L_i=-1 _L_r _L_pos=0 _L_alllen1=1
+  L_flow_restore _L_vals _L_idxs _L_poss _L_lens _L_i _L_alllen1
+  if (( _L_i == -1 )); then
+    _L_i=0
+    # On first run, accumulate and sort.
+    while
+      L_flow_next_ok _L_ok - _L_r || return $?
+      (( _L_ok ))
+    do
+      _L_idxs+=("$_L_i")
+      _L_poss+=("$_L_pos")
+      _L_lens+=("${#_L_r[*]}")
       _L_vals+=("${_L_r[@]}")
-      (( ++_L_i ))
+      _L_i=$(( _L_i + 1 ))
       _L_pos=$(( _L_pos + ${#_L_r[*]} ))
       _L_alllen1=$(( _L_alllen1 && ${#_L_r[*]} == 1 ))
     done
     if (( _L_alllen1 )); then
+      # If all elements are length 1.
       L_sort _L_vals
     else
-      declare -p _L_idxs
+      # If all elements are not lenght 1, we have to sort indirectly on indexes.
       L_sort_bash -c _L_flow_pipe_sort_all _L_idxs
-      declare -p _L_idxs
     fi
-    #
-    _L_run=1
+    # _L_i was used above.
     _L_i=0
   fi
-  (( _L_i < ${#_L_idxs[*]} )) && {
-    if (( _L_alllen1 )); then
-      L_flow_yield "${_L_vals[_L_i]}"
-    else
-      L_flow_yield "${_L_vals[@]:(_L_poss[_L_i]):(_L_lens[_L_i])}"
-    fi
-    (( ++_L_i ))
-  }
+  # echo "$_L_i"
+  if (( _L_i++ < ${#_L_idxs[*]} )); then
+    L_flow_yield "${_L_vals[@]:(_L_poss[_L_idxs[_L_i-1]]):(_L_lens[_L_idxs[_L_i-1]])}"
+  fi
 }
 
 # @description Internal comparison function for L_flow_pipe_sort.
-#
 # Compares two values based on the sort options (`-n` for numeric).
-#
 # @arg $1 <value> First value.
 # @arg $2 <value> Second value.
-# @return 0 if $1 <= $2, 1 if $1 > $2, 2 on internal error.
+# @return 1 when $1 > $2 and 2 otherwise.
 _L_flow_pipe_sort_cmp() {
   if (( _L_opt_n )) && L_is_integer "$1" && L_is_integer "$2"; then
     if (( $1 != $2 )); then
-      (( $1 > $2 )) || return 2
-      return 1
+      if (( $1 > $2 )); then
+        return 1
+      else
+        return 2
+      fi
     fi
   else
     if [[ "$1" != "$2" ]]; then
-      [[ "$1" > "$2" ]] || return 2
-      return 1
+      if [[ "$1" > "$2" ]]; then
+        return 1
+      else
+        return 2
+      fi
     fi
   fi
 }
@@ -1116,7 +1151,7 @@ _L_flow_pipe_sort_cmp() {
 # @arg $2 <index2> Index of the second element in the internal index array.
 # @return 0 if element1 <= element2, 1 if element1 > element2, 2 on internal error.
 _L_flow_pipe_sort_all() {
-  local -;set -x
+  # local -;set -x
   # Sort with specific field.
   if [[ -v _L_opt_k ]]; then
     if (( _L_opt_A )); then
@@ -1125,6 +1160,7 @@ _L_flow_pipe_sort_all() {
       local a=${ma["$_L_opt_k"]} b=${mb["$_L_opt_k"]}
       _L_flow_pipe_sort_cmp "$a" "$b" || return "$(($?-1))"
     else
+      # L_unsetx L_error "$_L_opt_k ${_L_lens[$1]} ${_L_lens[$1]} (${_L_vals[*]:_L_poss[$1]:_L_lens[$1]}) (${_L_vals[*]:_L_poss[$2]:_L_lens[$2]})"
       if (( _L_opt_k < _L_lens[$1] && _L_opt_k < _L_lens[$2] )); then
         local a="${_L_vals[_L_poss[$1]+_L_opt_k]}" b="${_L_vals[_L_poss[$2]+_L_opt_k]}"
         _L_flow_pipe_sort_cmp "$a" "$b" || return "$(($?-1))"
@@ -1194,9 +1230,9 @@ L_flow_sink_all_equal() {
 L_flow_source_string_chars() {
   local _L_idx=0
   L_flow_restore _L_idx
-  (( _L_idx < ${#1} ? ++_L_idx : 0 )) && {
+  if (( _L_idx < ${#1} ? ++_L_idx : 0 )); then
     L_flow_yield "${1:_L_idx-1:1}"
-  }
+  fi
 }
 
 # @description Pipe generator that yields unique, consecutive elements.
@@ -1239,18 +1275,16 @@ L_flow_pipe_unique_everseen() {
   local _L_seen=() _L_new L_v _L_ok
   L_flow_restore _L_seen
   while
-    L_flow_next_ok _L_ok - _L_new
-    if (( _L_ok )); then
-      "${@:-L_quote_printf_v}" "${_L_new[@]}" || return "$?"
-      L_set_has _L_seen "$L_v"
-    else
-      false
-    fi
+    L_flow_next_ok _L_ok - _L_new || return $?
+    (( _L_ok ))
   do
-    :
+    "${@:-L_quote_printf_v}" "${_L_new[@]}" || return "$?"
+    if ! L_set_has _L_seen "$L_v"; then
+      L_flow_yield "${_L_new[@]}"
+      L_set_add _L_seen "$L_v"
+      break
+    fi
   done
-  L_flow_yield "${_L_new[@]}"
-  L_set_add _L_seen "$L_v"
 }
 
 # @arg $@ compare function
@@ -1266,35 +1300,45 @@ L_flow_pipe_unique() {
 # @arg $2
 # @arg $3
 L_flow_pipe_islice() {
+  # Parse arguments
   case "$#" in
-    0) L_func_usage_error "missing positional argument"; return 2 ;;
-    1) local _L_start=0 _L_stop=$1 _L_step=1 _L_r ;;
-    *) local _L_start=$1 _L_stop=$2 _L_step=${3:-1} _L_r ;;
+    1) local _L_start=0 _L_stop=$1 _L_step=1 ;;
+    2|3) local _L_start=$1 _L_stop=$2 _L_step=${3:-1} ;;
+    *) L_func_usage_error "wrong number of positional arguments: $#"; return 2 ;;
   esac
-  if (( _L_start < 0 && (_L_stop != -1 && _L_stop < 0) && _L_step <= 0 )); then
-    L_panic "invalid values: start=$_L_start stop=$_L_stop step=$_L_step"
+  if (( _L_start < 0 )); then
+    L_panic "invalid value: start=$_L_start"
   fi
-  L_flow_restore _L_start _L_stop
-  local _L_ok
-  while (( _L_start > 0 ? (_L_stop > 0 ? _L_stop-- : 0), _L_start-- : 0 )); do
-    L_flow_next_ok _L_ok - _L_r
-    if (( !_L_ok )); then
-      return 1
-    fi
-  done
-  (( _L_stop == -1 || (_L_stop > 0 ? _L_stop-- : 0) )) && {
-    L_flow_next_ok _L_ok - _L_r
-    if (( !_L_ok )); then
-      return 1
-    fi
-    while (( --_L_step > 0 )); do
-      L_flow_next_ok _L_ok - _
+  if (( _L_stop != -1 && _L_stop < 0 )); then
+    L_panic "invalid value: stop=$_L_stop"
+  fi
+  if (( _L_step <= 0 )); then
+    L_panic "invalid values: step=$_L_step"
+  fi
+  #
+  local _L_idx=0 _L_ok _L_r
+  L_flow_restore _L_idx
+  if (( _L_idx == 0 )); then
+    while (( _L_start-- > -1 )); do
+      L_flow_next_ok _L_ok - _L_r || return $?
       if (( !_L_ok )); then
-        break
+        return 1
       fi
     done
     L_flow_yield "${_L_r[@]}"
-  }
+    _L_idx=1
+  else
+    # L_error "idx=$_L_idx start=$_L_start stop=$_L_stop step=$_L_step" >&2
+    if (( _L_stop == -1 || _L_idx++ < _L_stop - _L_start )); then
+      while (( --_L_step > -1 )); do
+        L_flow_next_ok _L_ok - _L_r || return $?
+        if (( !_L_ok )); then
+          return 0
+        fi
+      done
+      L_flow_yield "${_L_r[@]}"
+    fi
+  fi
 }
 
 # @description Make an iterator that returns object over and over again. Runs indefinitely unless the times argument is specified.
@@ -1310,18 +1354,20 @@ _L_flow_source_repeat_in() {
   fi
 }
 
+# Collect data into overlapping fixed-length chunks or blocks."
+# sliding_window('ABCDEFG', 3) → ABC BCD CDE DEF EFG
 # @arg $1 size
 L_flow_pipe_sliding_window() {
   local _L_window=() _L_lens=() _L_r _L_ok
   L_flow_restore _L_window _L_lens
   while (( ${#_L_lens[*]} < $1 )); do
-    L_flow_next_ok _L_ok - _L_r
+    L_flow_next_ok _L_ok - _L_r || return $?
     if (( !_L_ok )); then
-      if (( ${#_L_lens[*]} )); then
-        L_flow_yield "${_L_window[@]}"
-        _L_lens=()
-        _L_window=()
-      fi
+      # if (( ${#_L_lens[*]} )); then
+      #   L_flow_yield "${_L_window[@]}"
+      #   _L_lens=()
+      #   _L_window=()
+      # fi
       return 0
     fi
     _L_window+=("${_L_r[@]}")
@@ -1490,19 +1536,18 @@ L_flow_pipe_none() {
 L_flow_sink_iterate() {
   local _L_r _L_ok
   L_flow_next_ok _L_ok - _L_r
-  if (( !_L_ok )); then
-    return 1
-  fi
-  # Extract the value from the return value.
-  if (( $# == 1 )); then
-    L_array_assign "$1" "${_L_r[@]}"
-  else
-    if (( ${#_L_r[*]} != $# )); then
-      L_panic "number of arguments $# is not equal to the number of tuple elements in the generator element ${#_L_r[*]}"
+  if (( _L_ok )); then
+    # Extract the value from the return value.
+    if (( $# == 1 )); then
+      L_array_assign "$1" "${_L_r[@]}"
+    else
+      if (( ${#_L_r[*]} != $# )); then
+        L_panic "number of arguments $# is not equal to the number of tuple elements in the generator element ${#_L_r[*]}"
+      fi
+      L_array_extract _L_r "$@"
     fi
-    L_array_extract _L_r "$@"
+    L_flow_pause
   fi
-  L_flow_pause
 }
 
 # @description Pipe generator that zips elements with an array.
@@ -1514,44 +1559,84 @@ L_flow_sink_iterate() {
 # @return 0 on successful yield, non-zero when either the generator or the array is exhausted.
 # @example
 #   local arr=(a b c)
-#   _L_FLOW + L_flow_source_range 3 + L_flow_pipe_zip_arrays arr + L_flow_sink_printf "%s: %s\n"
-L_flow_pipe_zip_arrays() {
+#   _L_FLOW + L_flow_source_range 3 + L_flow_pipe_zip_array arr + L_flow_sink_printf "%s: %s\n"
+L_flow_pipe_zip_array() {
   local _L_r _L_i=0 _L_ok
   local -n _L_a=$1
   L_flow_restore _L_i
-  (( _L_i++ < ${#_L_a[*]} )) && {
+  if (( _L_i++ < ${#_L_a[*]} )); then
     L_flow_next_ok _L_ok - _L_r
     if (( _L_ok )); then
       L_flow_yield "${_L_r[@]}" "${_L_a[_L_i-1]}"
-    else
-      return 1
     fi
-  }
+  fi
 }
 
 # @description Join current generator with another one.
-# @arg $@ L_flow_source generator to join with.
+# @arg $1 Flow variable to join with or ++
+# @arg $@ Flow build separated with double ++ instead of +.
 L_flow_pipe_zip() {
-  local _L_flow=() _L_a _L_b _L_ok
-  L_flow_restore _L_flow
-  if (( ${_L_flow[*]} == 0 )); then
-    _L_FLOW -v _L_flow + "$@"
+  local _L_zip_flow=() _L_a _L_b _L_ok
+  if [[ "$1" == "++" ]]; then
+    L_flow_restore _L_zip_flow
+    if (( ${#_L_zip_flow[*]} == 0 )); then
+      L_flow_make _L_zip_flow "${@//++/+}"
+    fi
+  else
+    local -n _L_zip_flow=$1
   fi
-  L_flow_next_ok _L_ok - _L_a
-  if (( !_L_ok )); then
-    return 1
+  L_flow_next_ok _L_ok - _L_a || return $?
+  if (( _L_ok )); then
+    L_flow_next_ok _L_ok _L_zip_flow _L_b || return $?
+    if (( _L_ok )); then
+      L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
+    fi
   fi
-  L_flow_next_ok _L_ok _L_flow _L_b
-  L_flow_yield "${_L_a[@]}" "${_L_b[@]}"
 }
 
 # ]]]
 # [[[ test
 
+# An array variable that stores the context information of calls to L_flow_iterate without -n option.
+# The index of the context maps to _L_FLOW_$NUM variable that is used for iterating.
+# _L_FLOW_ITERATE=()
+
+
+L_flow_iterate() { L_getopts_in -p _L_ -n 2+ s:n: _L_flow_iterate "$@"; }
+_L_flow_iterate() {
+  # Extract the position of the first +
+  local _L_first_plus=-1 _L_i
+  for (( _L_i = 0; _L_i < $#; ++_L_i )); do
+    if [[ "${@:_L_i+1:1}" == "+" ]]; then
+      _L_first_plus=$_L_i
+      break
+    fi
+  done
+  if [[ "$_L_first_plus" -le 0 ]]; then
+    L_panic "no variables"
+  fi
+  # Calculate the name of temporary variable name if not specified.
+  if ! L_var_is_set _L_n; then
+    local _L_idx=$((${_L_s:-0}+3))
+    local _L_context="${BASH_SOURCE[*]:_L_idx}:${BASH_LINENO[*]:_L_idx}:${FUNCNAME[*]:_L_idx}"
+    if ! L_array_index -v _L_idx _L_FLOW_ITERATE "$_L_context"; then
+      _L_idx=$(( ${_L_FLOW_ITERATE[*]:+${#_L_FLOW_ITERATE[*]}}+0 ))
+      _L_FLOW_ITERATE[_L_idx]=$_L_context
+    fi
+    _L_n=_L_FLOW_$_L_idx
+  fi
+  # Constuct the flow if does not exists.
+  if [[ ! -v "$_L_n" ]] || L_flow_is_finished "$_L_n"; then
+    L_flow_make "$_L_n" "${@:_L_first_plus+1}" || L_panic "Could not construct flow"
+  fi
+  # Execute.
+  L_flow_next "$_L_n" "${@:1:$_L_first_plus}"
+}
+
 # @description Internal unit tests for the generator library.
 # @description Internal unit tests for the generator library.
 _L_flow_test_1() {
-  local sales array numbers a
+  local sales array a
   sales="\
 customer,amount
 Alice,120
@@ -1564,28 +1649,34 @@ Dave,300
 Eve,250
 "
   array=(a b c d e f)
-  numbers=(2 0 4 4)
   L_finally
   {
-    local out=() it=()
-    while _L_FLOW -R it + L_flow_source_array array + L_flow_sink_iterate a; do
+    local out=() it=() a
+    while L_flow_iterate -n it a + L_flow_source_array array; do
       out+=("$a")
     done
     L_unittest_arreq out "${array[@]}"
   }
   {
-    local out=() it=()
-    while _L_FLOW -R it + L_flow_source_array array + L_flow_sink_iterate a; do
+    local out=() it=() a
+    declare -p BASH_LINENO BASH_SOURCE FUNCNAME
+    while L_flow_iterate a + L_flow_source_array array; do
+      out+=("$a")
+    done
+    L_unittest_arreq out "${array[@]}"
+  }
+  {
+    local out=() it=() a
+    while L_flow_iterate -n it a + L_flow_source_array array; do
       out+=("$a")
     done
     L_unittest_arreq out "${array[@]}"
   }
   {
     local out1=() it=() out2=()
-    while _L_FLOW -R it \
+    while L_flow_iterate -n it a b \
         + L_flow_source_array array \
-        + L_flow_pipe_pairwise \
-        + L_flow_sink_iterate a b
+        + L_flow_pipe_pairwise
     do
       out1+=("$a")
       out2+=("$b")
@@ -1595,11 +1686,10 @@ Eve,250
   }
   {
     local out1=() it=() out2=() idx=() i a b
-    while _L_FLOW -R it \
+    while L_flow_iterate -n it i a b \
         + L_flow_source_array array \
         + L_flow_pipe_pairwise \
-        + L_flow_pipe_enumerate \
-        + L_flow_sink_iterate i a b
+        + L_flow_pipe_enumerate
     do
       idx+=("$i")
       out1+=("$a")
@@ -1611,32 +1701,35 @@ Eve,250
   }
   {
     L_unittest_cmd -o 'a b c d e f ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_array array \
       + L_flow_sink_map printf "%s "
   }
+}
+
+_L_flow_test_2() {
   {
     L_unittest_cmd -o '0 1 2 3 4 ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_range \
       + L_flow_pipe_head 5 \
       + L_flow_sink_map printf "%s "
     L_unittest_cmd -o '0 1 2 3 4 ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_range 5 \
       + L_flow_sink_map printf "%s "
     L_unittest_cmd -o '3 4 5 6 7 8 ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_range 3 9 \
       + L_flow_sink_map printf "%s "
     L_unittest_cmd -o '3 5 7 ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_range 3 2 9 \
       + L_flow_sink_map printf "%s "
   }
   {
     local L_v gen=() res
-    _L_FLOW -v gen \
+    L_flow_make gen \
       + L_flow_source_range 5 \
       + L_flow_pipe_head 5
     L_flow_use gen L_flow_sink_fold_left -i 0 -v res -- L_eval 'L_v=$(($1+$2))'
@@ -1644,64 +1737,68 @@ Eve,250
   }
   {
     L_unittest_cmd -o 'A B C D ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCD' \
       + L_flow_sink_printf "%s "
     L_unittest_cmd -o 'A B C D ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'AAAABBBCCDAABBB' \
       + L_flow_pipe_unique_everseen \
       + L_flow_sink_printf "%s "
     L_unittest_cmd -o 'A B c D ' \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABBcCAD' \
       + L_flow_pipe_unique_everseen L_eval 'L_v=${*,,}' \
       + L_flow_sink_printf "%s "
   }
   {
     L_unittest_cmd -o "A B " \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCDEFG' \
       + L_flow_pipe_islice 2 \
       + L_flow_sink_printf "%s "
     L_unittest_cmd -o "C D " \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCDEFG' \
       + L_flow_pipe_islice 2 4 \
       + L_flow_sink_printf "%s "
     L_unittest_cmd -o "C D E F G " \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCDEFG' \
       + L_flow_pipe_islice 2 -1 \
       + L_flow_sink_printf "%s "
     L_unittest_cmd -o "A C E G " \
-      _L_FLOW \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCDEFG' \
       + L_flow_pipe_islice 0 -1 2 \
       + L_flow_sink_printf "%s "
   }
   {
-    L_unittest_cmd -o 'ABCD BDCE CDEF DEFG ' \
-      _L_FLOW \
+    L_unittest_cmd -o 'ABCD BCDE CDEF DEFG ' \
+      L_flow_make_run \
       + L_flow_source_string_chars 'ABCDEFG' \
       + L_flow_pipe_sliding_window 4 \
       + L_flow_sink_printf "%s%s%s%s "
   }
-  # {
-  #   L_unittest_cmd -o '0 1 4 9 ' \
-  #     _L_FLOW \
-  #     + L_flow_source_range 4 \
-  #     + L_flow_pipe_zip ${ L_flow_build_temp + L_flow_source_repeat 2; } \
-  #     + L_flow_pipe_map
-  # }
   {
-    local gen1=() res=()
-    _L_FLOW -v gen1 \
+    L_log "test zip"
+    local a=("John" "Charles" "Mike")
+    local b=("Jenny" "Christy" "Monica")
+    L_unittest_cmd -o 'John+Jenny Charles+Christy Mike+Monica ' \
+      L_flow_make_run \
+      + L_flow_source_array a \
+      + L_flow_pipe_zip ++ L_flow_source_array b \
+      + L_flow_sink_printf "%s+%s "
+  }
+  {
+    L_log "test L_flow_sink_dotproduct"
+    local numbers=(2 0 4 4) gen1=() res=() tmp=()
+    L_flow_make gen1 \
       + L_flow_source_range \
       + L_flow_pipe_head 4
-    L_flow_use gen1 L_flow_sink_printf "%s\n"
-    echo
-    _L_FLOW \
+    L_flow_copy gen1 tmp
+    L_flow_use tmp L_flow_sink_printf "%s\n"
+    L_flow_make_run \
       + L_flow_source_array numbers \
       + L_flow_pipe_head 4 \
       + L_flow_sink_dotproduct -v res -- gen1
@@ -1709,7 +1806,13 @@ Eve,250
   }
 }
 
-_L_flow_test_2() {
+_L_flow_test_3() {
+  {
+    L_unittest_cmd -o "1 2 3 " \
+      L_flow_make_run \
+      + L_flow_source_string_chars 123 \
+      + L_flow_sink_printf "%s "
+  }
   {
     L_unittest_cmd -o "1 3 6 10 15 " \
       L_flow_make_run \
@@ -1739,8 +1842,181 @@ _L_flow_test_2() {
       + L_flow_sink_printf "%s "
   }
 }
+
+L_flow_source_read_fd() {
+  local _L_r
+  if read -u "${1:-0}" -a _L_r; then
+    L_flow_yield "${_L_r[@]}"
+  fi
+}
+
+_L_flow_test_4_read() {
+  {
+    local lines
+    L_log 'test read_fd with filtering and acumlating and sorting'
+    L_flow_make_run \
+      + L_flow_source_read_fd \
+      + L_flow_pipe_map L_strip_v \
+      + L_flow_pipe_filter L_eval '(( ${#1} > 1 ))' \
+      + L_flow_sink_to_array lines <<EOF
+    a
+  bb
+      ccc
+EOF
+    L_sort_bash -E '(( ${#1} > ${#2} ))' lines
+    L_unittest_arreq lines "bb" "ccc"
+  }
+  {
+    L_log 'test longest'
+    local array
+    L_flow_make_run \
+      + L_flow_source_read_fd \
+      + L_flow_pipe_map L_eval 'L_regex_replace -n _ -v L_v "${1:-}" '$'\x1b''"\\[[0-9;]*m" ""' \
+      + L_flow_pipe_filter L_eval '(( ${#1} != 0 ))' \
+      + L_flow_pipe_map L_eval 'L_v=("${#1}" "$1")' \
+      + L_flow_pipe_sort -n -k 0 \
+      + L_flow_pipe_map L_eval 'L_v="$2"' \
+      + L_flow_sink_to_array array <<EOF
+
+  b
+  ccc
+  aa
+EOF
+    L_unittest_arreq array "b" "aa" "ccc"
+  }
+}
+
 # ]]]
 
+###############################################################################
+# [[[
+
+# @description
+# @option -s output in sorted keys
+# @option -r output in reverse sorted keys
+# @option -i <var> store output index in this variable
+# @option -k store keys with variables
+# @example
+#   local -A dict=([a]=1 [b]=2)
+#   while L_flow_foreach -k k v : dict; do
+#     echo "dict[$k]=$v"
+#   done
+# @example
+#   local -A dict=([a]=1 [b]=2)
+#   while L_flow_foreach -s -k k1 v1 k2 v2 : dict; do
+#     echo "dict[$k1]=$v1"
+#     echo "dict[$k2]=$v2"
+#   done
+# @example
+#   local array=(a b c d e f)
+#   while L_flow_foreach -i i a : array; do
+#     echo "array[$i]=$a"
+#   done
+# @example
+#   local array=(a b c d e f)
+#   while L_flow_foreach -i i a b : array; do
+#     echo "array[$i]=$a array[$((i+1))]=$b"
+#   done
+L_foreach() { L_getopts_in -p _L_ -n 2+ n:sri:k _L_foreach "$@"; }
+# _L_FOREACH
+_L_foreach() {
+  # Pick variable name to store state in.
+  if ! L_var_is_set _L_n; then
+    local _L_tmp=2
+    local _L_context="${BASH_SOURCE[*]:_L_tmp}:${BASH_LINENO[*]:_L_tmp}:${FUNCNAME[*]:_L_tmp}"
+    if ! L_array_index -v _L_tmp _L_FOREACH "$_L_context"; then
+      _L_tmp=$(( ${_L_FOREACH[*]:+${#_L_FOREACH[*]}}+0 ))
+      _L_FOREACH[_L_tmp]=$_L_context
+    fi
+    local _L_n=_L_FOREACH_$_L_tmp
+  fi
+  # Restore variables state.
+  local _L_keys=() _L_arridx=-1 _L_idx=0
+  eval "${!_L_n:-}"
+  if (( _L_arridx == -1 )); then
+    # First run.
+    # Parse arguments. Find position of :.
+    for (( _L_arridx = $#; _L_arridx > 0; --_L_arridx )); do
+      if [[ "${@:_L_arridx:1}" == ":" ]]; then
+        break
+      fi
+    done
+    if (( _L_arridx == 0 )); then
+      L_panic "Doublepoint ':' not found in the arguments: $*"
+    fi
+    #
+
+    local -n _L_arr=${@:$#:1}
+    # Compute keys in the output order. Sort them when requested.
+    _L_keys=("${!_L_arr[@]}")
+    if L_var_is_associative _L_arr; then
+      if (( _L_s || _L_r )); then
+        if (( _L_r )); then
+          L_sort_bash -r _L_keys
+        else
+          L_sort_bash _L_keys
+        fi
+      fi
+    else
+      if (( _L_r )); then
+        L_array_reverse _L_keys
+      fi
+    fi
+    # Store keys for later.
+    printf -v _L_tmp " %q" "${_L_keys[@]}"
+    printf -v "$_L_n" "local _L_keys=(%s) _" "${_L_tmp## }"
+  fi
+  # Output
+  if (( _L_idx >= ${#_L_arr[@]} )); then
+    return 1
+  fi
+  if L_var_is_set _L_i; then
+    printf -v "$_L_i" "%d" "$_L_idx"
+  fi
+  while (($#)) && [[ "$1" != ":" ]]; do
+    if (( _L_k )); then
+      printf -v "$1" "%s" "${_L_keys[_L_idx]}"
+      shift
+    fi
+    printf -v "$1" "%s" "${_L_arr[${_L_keys[_L_idx]}]}"
+    _L_idx=$(( _L_idx + 1 ))
+    shift
+  done
+  # Store index.
+  printf -v "$_L_n" "%s _L_idx=%d" "${!_L_n%% *}" "$_L_idx"
+}
+
+_L_test_foreach_1() {
+  {
+    L_log "test sorted array L_foreach"
+    local arr=(a b c d e) i a k acc=()
+    while L_foreach -i i -k k a : arr; do
+      acc+=("$i" "$k" "$a")
+    done
+    L_unittest_arreq acc 0 0 a 1 1 b 2 2 c 3 3 d 4 4 e
+  }
+  {
+    L_log "test dict L_foreach"
+    local -A dict=(a b c d e)
+    local i k a acc=() j=0
+    while L_foreach -i i -k k a : dict; do
+      L_unittest_eq "${dict[$k]}" "$a"
+      L_unittest_vareq j "$i"
+      j=$(( j + 1 ))
+    done
+  }
+  {
+    L_log "test sorted dict L_foreach"
+    local -A dict=(a b c d e)
+    local i k a acc=()
+    while L_foreach -s -i i -k j a : dict; do
+      acc+=("$i" "$j" "$a")
+    done
+    L_unittest_arreq acc 0 a b 1 c d 2 e ''
+  }
+}
+
+# ]]]
 ###############################################################################
 
 # @description Main entry point for the _L_FLOW.sh script.
@@ -1757,59 +2033,16 @@ _L_flow_main() {
   if ((x)); then
     set -x
   fi
-  _L_flow_test_2
   case "$mode" in
   while3)
     ;;
   1|'')
+    _L_flow_test_1
+    _L_flow_test_2
+    _L_flow_test_3
+    _L_flow_test_4_read
     ;;
-  2)
-    ;;
-  3)
-    ;;
-  4)
-    ;;
-  5)
-    _L_FLOW -v gen1 \
-      + L_flow_source_range \
-      + L_flow_pipe_head 4
-    L_flow_copy gen1 gen2
-    L_flow_use gen1 L_flow_sink_printf
-    L_flow_use gen2 L_flow_sink_printf
-    ( L_flow_use gen2 L_flow_sink_printf )
-    ;;
-  6)
-    _L_FLOW -v gen1 + L_flow_source_range
-    _L_FLOW -v gen2 -s gen1 + L_flow_pipe_head 5
-    # L_flow_print_context -f gen1
-    # L_flow_print_context -f gen2
-    L_flow_use gen2 L_flow_sink_printf
-    ;;
-  readfile)
-    _L_FLOW \
-      + L_flow_source_read file \
-      + L_flow_pipe_transform L_strip -v L_v \
-      + L_flow_pipe_filter L_eval '(( ${#1} != 0 ))' \
-      + L_flow_sink_to_array lines <<EOF
-    a
-  bb
-      ccc
-EOF
-    L_sort_bash -E '(( ${#1} > ${#2} ))' -c compage_length lines
-    declare -p lines
-    ;;
-  longest5)
-    _L_FLOW \
-      + L_flow_source_read file \
-      + L_flow_pipe_transform L_eval 'L_regex_replace_v "$1" '$'\x1b''"\\[[0-9;]*m" ""' \
-      + L_flow_pipe_filter L_eval '(( ${#1} != 0 ))' \
-      + L_flow_pipe_transform L_eval 'L_v=("${#1}" "$1")' \
-      + L_flow_pipe_sort -n -k 1 \
-      + L_flow_pipe_transform L_eval 'L_v="$1"' \
-      + L_flow_sink_to_array array
-    declare -p array
-    ;;
-  L_*)
+  L_*|_L_*)
     "${mode[@]}"
     ;;
   esac
