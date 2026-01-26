@@ -986,19 +986,25 @@ L_getopts_in() {
   case "$_L_nargs" in
     '*') ;;
     '?')
-      if (($# > 1)); then
+      if (( $# > 1 )); then
         L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
         return 2
       fi
       ;;
     '+')
-      if (($# == 0)); then
+      if (( $# == 0 )); then
         L_func_usage_error "Missing positional argument" "$_L_up"
         return 2
       fi
       ;;
+    [0-9]*'+')
+      if (( $# < ${_L_nargs%%+} )); then
+        L_func_usage_error "Wrong number of arguments. Expected at least ${_L_nargs%%+} but received $#" "$_L_up"
+        return 2
+      fi
+      ;;
     [0-9]*)
-      if (($# != _L_nargs)); then
+      if (( $# != _L_nargs )); then
         L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
         return 2
       fi
@@ -3612,17 +3618,16 @@ L_array_filter_eval() {
 # @arg $2 element to find
 L_array_index() { L_handle_v_scalar "$@"; }
 L_array_index_v() {
-	local _L_i="$1[@]"
-	(( ${!_L_i:+1}+0 )) && {
-		eval "local _L_i=(\"\${!$1[@]}\")"
-		for L_v in "${_L_i[@]}"; do
-			_L_i="$1[$L_v]"
-			if [[ "$2" == "${!_L_i}" ]]; then
-				return 0
-			fi
-		done
-		return 1
-	}
+	local _L_array_index_tmp="$1[@]" _L_array_index_i
+	eval ${_L_array_index_tmp:+"local _L_array_index_tmp=(\"\${!$1[@]}\")"}
+	for _L_array_index_i in ${_L_array_index_tmp:+"${_L_array_index_tmp[@]}"}; do
+		_L_array_index_tmp="$1[$_L_array_index_i]"
+		if [[ "$2" == "${!_L_array_index_tmp}" ]]; then
+			L_v=$_L_array_index_i
+			return 0
+		fi
+	done
+	return 1
 }
 
 # @description Join array elements separated with the second argument.
