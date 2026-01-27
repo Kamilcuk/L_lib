@@ -1931,65 +1931,111 @@ _L_foreach() {
     local _L_n=_L_FOREACH_$_L_tmp
   fi
   # Restore variables state.
-  local _L_keys=() _L_arridx=-1 _L_idx=0
+  local _L_arridx=-1 _L_keys=() _L_idx=-1
   eval "${!_L_n:-}"
+  # First run.
   if (( _L_arridx == -1 )); then
-    # First run.
     # Parse arguments. Find position of :.
     for (( _L_arridx = $#; _L_arridx > 0; --_L_arridx )); do
-      if [[ "${@:_L_arridx:1}" == ":" ]]; then
+      if [[ "${@:_L_arridx-1:1}" == ":" ]]; then
         break
       fi
     done
     if (( _L_arridx == 0 )); then
       L_panic "Doublepoint ':' not found in the arguments: $*"
     fi
-    #
-
-    local -n _L_arr=${@:$#:1}
-    # Compute keys in the output order. Sort them when requested.
-    _L_keys=("${!_L_arr[@]}")
-    if L_var_is_associative _L_arr; then
-      if (( _L_s || _L_r )); then
-        if (( _L_r )); then
-          L_sort_bash -r _L_keys
+  fi
+  while (( _L_arridx <= $# )); do
+    local -n _L_arr=${@:_L_arridx:1}
+    # Sorted array keys are cached. Unsorted are not.
+    if (( _L_s || _L_r )); then
+      if (( _L_idx == -1 )); then
+        _L_idx=0
+        # Compute keys in the sorted order if requested.
+        _L_keys=("${!_L_arr[@]}")
+        if L_var_is_associative _L_arr; then
+          if (( _L_r )); then
+            L_sort_bash -r _L_keys
+          else
+            L_sort_bash _L_keys
+          fi
         else
-          L_sort_bash _L_keys
+          if (( _L_r )); then
+            L_array_reverse _L_keys
+          fi
         fi
+        # Store keys for later.
+        printf -v _L_tmp " %q" "${_L_keys[@]}"
+        printf -v "$_L_n" "local _L_keys=(%s) _ _" "${_L_tmp## }"
       fi
     else
-      if (( _L_r )); then
-        L_array_reverse _L_keys
+      if (( _L_idx == -1 )); then
+        _L_idx=0
+        printf -v "$_L_n" "local _ _"
       fi
+      _L_keys=("${!_L_arr[@]}")
     fi
-    # Store keys for later.
-    printf -v _L_tmp " %q" "${_L_keys[@]}"
-    printf -v "$_L_n" "local _L_keys=(%s) _" "${_L_tmp## }"
-  fi
-  # Output
-  if (( _L_idx >= ${#_L_arr[@]} )); then
-    return 1
-  fi
-  if L_var_is_set _L_i; then
-    printf -v "$_L_i" "%d" "$_L_idx"
-  fi
-  while (($#)) && [[ "$1" != ":" ]]; do
-    if (( _L_k )); then
-      printf -v "$1" "%s" "${_L_keys[_L_idx]}"
+    # If current _L_idx reached max of an array, increment the arrays index.
+    if (( _L_idx >= ${#_L_arr[@]} )); then
+      _L_arridx=$(( _L_arridx + 1 ))
+      _L_idx=-1
+      continue
+    fi
+    # Output.
+    if L_var_is_set _L_i; then
+      printf -v "$_L_i" "%d" "$_L_idx"
+    fi
+    while (( $# )) && [[ "$1" != ":" ]]; do
+      if (( _L_k )); then
+        printf -v "$1" "%s" "${_L_keys[_L_idx]}"
+        shift
+      fi
+      printf -v "$1" "%s" "${_L_arr[${_L_keys[_L_idx]}]}"
+      _L_idx=$(( _L_idx + 1 ))
       shift
-    fi
-    printf -v "$1" "%s" "${_L_arr[${_L_keys[_L_idx]}]}"
-    _L_idx=$(( _L_idx + 1 ))
-    shift
+    done
+    # Store index.
+    printf -v "$_L_n" "%s _L_arridx=%d _L_idx=%d" "${!_L_n% * *}" "$_L_arridx" "$_L_idx"
+    # Yield
+    return 0
   done
-  # Store index.
-  printf -v "$_L_n" "%s _L_idx=%d" "${!_L_n%% *}" "$_L_idx"
+  # The end - we iterated over all arrays in the list.
+  return 4
 }
 
 _L_test_foreach_1() {
   {
     L_log "test sorted array L_foreach"
     local arr=(a b c d e) i a k acc=()
+    while L_foreach -i i -k k a : arr; do
+      acc+=("$i" "$k" "$a")
+    done
+    L_unittest_arreq acc 0 0 a 1 1 b 2 2 c 3 3 d 4 4 e
+  }
+  {
+    L_log "test dict L_foreach"
+    local -A dict=(a b c d e)
+    local i k a acc=() j=0
+    while L_foreach -i i -k k a : dict; do
+      L_unittest_eq "${dict[$k]}" "$a"
+      L_unittest_vareq j "$i"
+      j=$(( j + 1 ))
+    done
+  }
+  {
+    L_log "test sorted dict L_foreach"
+    local -A dict=(a b c d e)
+    local i k a acc=()
+    while L_foreach -s -i i -k j a : dict; do
+      acc+=("$i" "$j" "$a")
+    done
+    L_unittest_arreq acc 0 a b 1 c d 2 e ''
+  }
+}
+
+_L_test_foreach_2() {
+  {
+    local arr=(a b c d e) other=(1 2 3 4) i a k acc=()
     while L_foreach -i i -k k a : arr; do
       acc+=("$i" "$k" "$a")
     done
