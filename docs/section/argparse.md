@@ -215,6 +215,34 @@ L_argparse \
 # If --name secret is used, my_custom_validator will be called and fail.
 ```
 
+#### 4. Handling Remaining and Unknown Arguments
+
+**Collecting All Remaining Arguments (`nargs=remainder`):**
+This is useful when your script acts as a wrapper for another command and needs to pass all subsequent arguments through.
+
+```bash
+L_argparse \
+  -- -v --verbose action=store_true \
+  -- cmd_args nargs=remainder \
+  ---- "$@"
+# Usage: ./script.sh -v -- some_other_command -a -b
+# $verbose will be "true"
+# $cmd_args will be an array: ("some_other_command" "-a" "-b")
+```
+
+**Handling Unrecognized Arguments (`unknown_args=`):**
+By default, `L_argparse` fails if it encounters an argument it doesn't recognize. You can use `unknown_args=` to collect these instead of failing.
+
+```bash
+L_argparse \
+  unknown_args=my_extra_stuff \
+  -- -v --verbose action=store_true \
+  ---- "$@"
+# Usage: ./script.sh -v --custom-option value positional
+# $verbose will be "true"
+# $my_extra_stuff will be an array: ("--custom-option" "value" "positional")
+```
+
 
 ## Features
 
@@ -228,6 +256,7 @@ L_argparse \
 - **Customizable Option Prefix:** Enables definition of custom characters to prefix optional arguments.
 - **Colorized Help Output:** Enhances readability of help messages with color support.
 - **Argument Type Checking:** Automatically validates argument types (e.g., `int`, `file`, `dir`).
+- **Collecting Remaining Arguments:** Easily gather all arguments after a certain point using `nargs=remainder` or handle unrecognized arguments with `unknown_args=`.
 
 ## Specification
 
