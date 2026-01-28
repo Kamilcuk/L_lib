@@ -1,123 +1,127 @@
-The `L_finally` library provides a robust "try-finally" mechanism for Bash scripting, addressing the limitations of raw `trap` commands. It ensures that cleanup actions are reliably executed, whether a script exits normally, a function returns, or a signal is received.
+# L_finally: Robust Cleanup & Signal Handling
 
-For advanced usage, also see the [with](https://kamilcuk.github.io/L_lib/section/with/) section of the documentation, which details functions built on top of `L_finally`.
+The `L_finally` library provides a robust "try-finally" mechanism for Bash scripting, addressing the limitations and complexities of raw `trap` commands. It ensures that cleanup actions are reliably executed, whether a script exits normally, a function returns, or a signal is received.
 
-## The issues with raw `trap`:
+For advanced usage involving resource management contexts, see the [with](https://kamilcuk.github.io/L_lib/section/with/) section.
 
-  - Not easy to append actions to trap.
-    - (This is something I crudely wanted to solve with `L_trap_push` and `L_trap_pop` with unmanageable results)
-  - On which signals you want to execute? EXIT? INT? TERM? HUP?
-  - EXIT trap signal is not executed always and is not executed in command substitutions. Or it is? It depends.
-  - If you register action on EXIT and INT trap, it might execute twice, or not.
-    - Trapped SIGINT does not exit. Calling `exit` inside SIGINT trap changes exit status.
-  - The signal exit status is hard to preserve.
-    - The proper way is to `trap - SIGINT; kill -SIGINT $BASHPID` to have the Bash process properly exit with the signal cause.
-    - The trap and kill is different between signals.
-  - There is one RETURN trap shared across all functions. Inner functions overwrite outer functions RETURN trap.
+## Why not just use `trap`?
 
-## Features:
+Using the native `trap` builtin correctly in complex scripts is notoriously difficult:
 
-  - **Guaranteed Exit Execution:** Ensures a command executes reliably when Bash exits, regardless of how the script terminates.
-    - Usage: `L_finally <command>`
-  - **Function Return Cleanup:** Executes a command when the current function returns or Bash exits, whichever occurs first, ideal for local resource cleanup.
-    - Usage: `func() { L_finally -r <command>; }`
-  - **Signal Handling & Continued Execution:** Allows execution of a command upon receiving a specific signal, then continues script execution.
-    - Usage: `L_finally; trap 'your_handler' <SIGNAL>`
-  - **Graceful Termination on Multiple Signals:** Prevents unintended behavior by terminating execution with a friendly message if multiple signals are received during a trap handler's execution.
-  - **Reverse Order Execution:** Registered cleanup actions are executed in the reverse order of their registration, ensuring proper dependency unwinding.
-  - **Non-Executing Action Removal:** Removes the last registered action from the stack without executing it.
-    - Usage: `L_finally_pop -n`
-  - **Executing Action Removal:** Removes and executes the last registered action.
-    - Usage: `L_finally_pop`
-  - **Critical Sections:** Delays the execution of signal handlers during critical operations to prevent interruptions.
-    - Usage: `L_finally_critical_section <func_or_command>`
-  - **Preserved Signal Exit Status:** Ensures the script's exit status correctly reflects whether it was terminated by a signal, as reported by `WIFSIGNALED`.
+*   **Stacking is hard:** Appending multiple actions to a trap without overwriting existing ones is clumsy.
+*   **Signal Complexity:** Deciding which signals to trap (EXIT, INT, TERM, HUP) and handling their differences is error-prone.
+*   **EXIT vs. Signals:** The `EXIT` trap behavior varies (e.g., inside command substitutions) and doesn't always catch termination signals.
+*   **Double Execution:** Registering for both `EXIT` and specific signals can lead to actions running twice (or not at all).
+*   **Exit Status:** Preserving the correct exit code (especially `128 + SIGNUM` for signals) requires boilerplate code (`trap - SIG; kill -SIG $$`).
+*   **Function Scope:** There is only one global `RETURN` trap. Inner functions overwriting it break the outer function's cleanup logic.
 
-## How `L_finally` works?
+`L_finally` abstracts these problems away, giving you a clean, stack-based API.
 
-  - Registers trap on all signals that result in process termination.
-  - Keeps a list of actions to execute on exit.
-  - When receiving a signal, all exit actions are executed.
-  - When receiving a RETURN trap:
-     - Execute the RETURN traps for the function that is returning.
-     - The traps are removed the exit traps.
+## Key Features
 
-## Usage notes:
+*   **Guaranteed Execution:** Actions registered with `L_finally` run when the script exits, no matter the cause (success, error, or signal).
+*   **Function-Scoped Cleanup:** Use `L_finally -r` to bind cleanup to the *current function's return*.
+*   **Stack-Based Order:** Actions execute in **reverse order** of registration (LIFO), ensuring dependencies are cleaned up correctly (e.g., delete file before removing directory).
+*   **Manual Control:**
+    *   `L_finally_pop`: Remove and run the most recent action immediately.
+    *   `L_finally_pop -n`: Remove the most recent action *without* running it (useful for "commit" logic).
+*   **Correct Exit Codes:** Preserves the exit status as `WIFSIGNALED` reports, ensuring parent processes know why the script died.
+*   **Safety:** Detects double-signal loops (e.g., spamming Ctrl+C) and terminates gracefully.
 
-  - Inside the `L_finally` handler:
-     - Variable `L_SIGNAL` is set to the received signal name.
-     - Variable `L_SIGNUM` is set to the received signal number.
-     - Variable `L_SIGRET` is set to the value of `$?` when trap is expanded.
-     - It is not allowed to call `return` on top level. This would just return from the `L_finally` handler.
-  - If you want to provide your own signal handlers, it is important to first call `L_finally` without or with arguments.
-    The first call to `L_finally` will register the signal handlers _for this BASHPID_!
-    They will not be re-registered later, so they allow to overwrite the handler.
-  - Consider using `L_eval` to properly escape arguments when evaluating them.
+## Usage Guide
 
+### 1. Basic Script Cleanup
+Register commands to run when the script exits.
 
-## Examples
-
-```
+```bash
+# Create a temporary file
 tmpf=$(mktemp)
-L_finally rm -rf "$tmpf"
-: do something to tmpf >"$tmpf"
 
-if [[ -n "$option" ]]; then
-  tmpf2=$(mktemp)
-  L_finally rm -rf "$tmpf2"
-  : we need another tmpf2 >"$tmpf2"
-  : it is ok, we can remove it now
-  L_finally_pop
-if
+# Register cleanup immediately
+L_finally rm -f "$tmpf"
 
-# tmp will be removed on the end of the script.
+# Use the file
+echo "data" > "$tmpf"
+# ... script continues ...
+
+# When the script ends (or is killed), 'rm -f' runs automatically.
 ```
 
-Function return example:
+### 2. Function-Scoped Cleanup (`-r`)
+Use the `-r` flag to execute the action when the *function returns*.
 
-```
-option_func() {
-  local tmpf=$(mktemp)
-  L_finally -r rm -rf "$tmpf"
-  echo Do something with temporary file >"$tmpf"
+```bash
+process_data() {
+  local work_dir=$(mktemp -d)
+  # Cleanup work_dir when this function returns
+  L_finally -r rm -rf "$work_dir"
 
-  # exit 1         # this will remove the tempfile
-  # return 1       # this will also remove the tempfile
-  # kill $BASHPID  # this will also remove the tempfile
-  # the tempfile is automatically removed on the end of function
-}
-
-main() {
-  tmpf=$(mktemp)
-  L_finally -r rm -rf "$tmpf"
-  if [[ -n "$option" ]]; then
-    option_func
+  # Do work...
+  if [[ -f "$work_dir/error" ]]; then
+    return 1 # Cleanup runs here
   fi
+  
+  # ...
+  # Cleanup runs here automatically at end of function
 }
 ```
 
-Custom action on signal:
+### 3. Conditional Cleanup (Pop)
+Sometimes you only want to cleanup on failure, or you want to "commit" a result.
 
+```bash
+prepare_file() {
+  local tmpf=$(mktemp)
+  L_finally rm -f "$tmpf" # Remove if we fail early
+
+  generate_data > "$tmpf" || return 1 # 'rm' runs if this returns
+
+  # Success! Move the file to its final location.
+  mv "$tmpf" "./final_output.txt"
+  
+  # We don't need the cleanup anymore, and we don't want to run it.
+  L_finally_pop -n
+}
 ```
-increase_volume() { : your function to increase volume; }
 
-L_finally                    # with no arguments, just registers the action on all traps for this BASHPID.
-# kill -USR1 $BASHPID        # would terminate the process executing L_finally_run
+### 4. Custom Signal Handlers
+You can still use custom traps while `L_finally` manages the rest. Call `L_finally` (no args) first to initialize the unified handler.
+
+```bash
+# Initialize L_finally logic for this process
+L_finally
+
+increase_volume() { echo "Volume up!"; }
+
+# Register custom handler for specific signal
 trap 'increase_volume' USR1
-kill -USR1 $BASHPID          # will increase volume and continue execution
+
+# Usage:
+# kill -USR1 $$  -> Prints "Volume up!", script continues.
+# kill -TERM $$  -> L_finally cleanup runs, script exits.
 ```
 
-## Implementation notes
+## Internal Variables
+Inside an `L_finally` handler (the command you registered), you can access:
 
-There have been multiple iterations of the design with multiple arrays.
-Bottom line, the idea was that "choosing" which traps to execute should be as fast as possible.
+*   `L_SIGNAL`: Name of the received signal (e.g., `SIGINT`), or `EXIT`.
+*   `L_SIGNUM`: Number of the received signal.
+*   `L_SIGRET`: The exit code (`$?`) at the moment the trap was triggered.
 
-The simplest design with just two array of commands to execute turned out to be most effective and efficient and easy.
-Each element has an index, can be easily removed and navigate.
+> **Note:** Do not use `return` in a top-level `L_finally` action; it only returns from the handler, not the script.
 
-The only downside is that during `L_finally_pop` the code needs to find the index of RETURN array element connected to the EXIT array element. This is a simple loop. It is still faster than any `${//} ${##}` parsing I have come up with before this design.
+## API Reference
 
-Users do not need an array on custom signals. I decided there is little need for "expanding" the features of this library into a ultra-signal-manager. 99.9% of the time I require a simple "try finally" block, nothing more, nothing less, and this covers most usages.
+### `L_finally [-r] <command> [args...]`
+Registers a command to be executed upon exit (or function return).
+*   `-r`: Register for the current function's return instead of process exit.
+
+### `L_finally_pop [-n]`
+Removes the last registered action.
+*   (default): Executes the action immediately.
+*   `-n`: Discards the action without executing it.
+
+---
 
 # Generated documentation from source:
 
