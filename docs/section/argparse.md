@@ -257,6 +257,53 @@ L_argparse \
 # $my_extra_stuff will be an array: ("--custom-option" "value" "positional")
 ```
 
+#### 5. Sub-commands (Sub-parsers)
+
+Use `call=subparser` to define sub-commands with their own arguments. This is ideal for complex CLI tools with multiple modes of operation (like `git` or `docker`).
+
+```bash
+L_argparse \
+  -- call=subparser dest=cmd \
+  { \
+    name=run help="Run an image" \
+    -- image help="The image name" \
+  } \
+  { \
+    name=exec help="Execute into container" \
+    -- container help="The container ID" \
+    -- command help="The command to run" nargs=remainder \
+  } \
+  ---- "$@"
+
+case "$cmd" in
+  run) echo "Running $image" ;;
+  exec) echo "Exec into $container: ${command[*]}" ;;
+esac
+```
+
+#### 6. Dynamic Sub-commands from Functions
+
+Use `call=function` to automatically generate sub-commands from Bash functions that share a specific prefix. This is a clean way to organize large scripts.
+
+```bash
+# Define functions with a common prefix
+CMD_run() {
+  L_argparse -- image ---- "$@"
+  echo "Running $image"
+}
+
+CMD_ps() {
+  echo "Listing containers..."
+}
+
+# Automatically discover all functions starting with "CMD_"
+L_argparse \
+  -- call=function prefix=CMD_ dest=cmd \
+  ---- "$@"
+
+# The chosen command is stored in $cmd
+```
+
 
 ## Specification
 
