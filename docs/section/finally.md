@@ -1,7 +1,6 @@
-When discovering Bash one of the missing features is _not_ try catch block, but try finally block.
+The `L_finally` library provides a robust "try-finally" mechanism for Bash scripting, addressing the limitations of raw `trap` commands. It ensures that cleanup actions are reliably executed, whether a script exits normally, a function returns, or a signal is received.
 
-See also [with](https://kamilcuk.github.io/L_lib/section/with/) section of documentation.
-It has some function build on top of `L_finally`.
+For advanced usage, also see the [with](https://kamilcuk.github.io/L_lib/section/with/) section of the documentation, which details functions built on top of `L_finally`.
 
 ## The issues with raw `trap`:
 
@@ -18,21 +17,21 @@ It has some function build on top of `L_finally`.
 
 ## Features:
 
-  - Execute something when Bash exits. Always.
-    - `L_finally something`
-  - Execute something when a function returns or Bash exits, whichever comes first.
-    - `func() { L_finally -r something; }`
-  - Execute something on signal and continue execution after it.
-    - `L_finally; trap 'something' USR1`
-  - If 2 signals are received during trap handler execution, terminate execution with a friendly message.
-  - Registered actions execute in reverse order.
-  - Remove the last registered action without execution.
-    - `L_finally_pop -n`
-  - Remove and execute the last registered action.
-    - `L_finally_pop`
-  - Critical section delays the execution of signal handlers.
-    - `L_finally_critical_section func`
-  - The signal exit status as reported by `WIFSIGNALED` should be preserved.
+  - **Guaranteed Exit Execution:** Ensures a command executes reliably when Bash exits, regardless of how the script terminates.
+    - Usage: `L_finally <command>`
+  - **Function Return Cleanup:** Executes a command when the current function returns or Bash exits, whichever occurs first, ideal for local resource cleanup.
+    - Usage: `func() { L_finally -r <command>; }`
+  - **Signal Handling & Continued Execution:** Allows execution of a command upon receiving a specific signal, then continues script execution.
+    - Usage: `L_finally; trap 'your_handler' <SIGNAL>`
+  - **Graceful Termination on Multiple Signals:** Prevents unintended behavior by terminating execution with a friendly message if multiple signals are received during a trap handler's execution.
+  - **Reverse Order Execution:** Registered cleanup actions are executed in the reverse order of their registration, ensuring proper dependency unwinding.
+  - **Non-Executing Action Removal:** Removes the last registered action from the stack without executing it.
+    - Usage: `L_finally_pop -n`
+  - **Executing Action Removal:** Removes and executes the last registered action.
+    - Usage: `L_finally_pop`
+  - **Critical Sections:** Delays the execution of signal handlers during critical operations to prevent interruptions.
+    - Usage: `L_finally_critical_section <func_or_command>`
+  - **Preserved Signal Exit Status:** Ensures the script's exit status correctly reflects whether it was terminated by a signal, as reported by `WIFSIGNALED`.
 
 ## How `L_finally` works?
 
