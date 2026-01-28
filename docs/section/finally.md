@@ -110,17 +110,6 @@ Inside an `L_finally` handler (the command you registered), you can access:
 
 > **Note:** Do not use `return` in a top-level `L_finally` action; it only returns from the handler, not the script.
 
-## API Reference
-
-### `L_finally [-r] <command> [args...]`
-Registers a command to be executed upon exit (or function return).
-*   `-r`: Register for the current function's return instead of process exit.
-
-### `L_finally_pop [-n]`
-Removes the last registered action.
-*   (default): Executes the action immediately.
-*   `-n`: Discards the action without executing it.
-
 ---
 
 # Generated documentation from source:
