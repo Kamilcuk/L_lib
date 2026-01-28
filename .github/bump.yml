@@ -16,3 +16,5 @@ categories:
 files:
   - file-path: 'bin/L_lib.sh'
     line: 27
+  - file-path: 'bash.yml'
+    line: 18

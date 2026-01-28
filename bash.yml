@@ -1,0 +1,93 @@
+# bash.yml - Basher package configuration
+#
+# This file configures L_lib for installation and management via Basher
+# (https://github.com/basherpm/basher), a package manager for Bash scripts.
+#
+# Basher uses this configuration to:
+# - Resolve package metadata and dependencies
+# - Download and install the package
+# - Understand versioning and compatibility requirements
+# - Display package information in the package registry
+#
+# Users can install this package with:
+#   basher install Kamilcuk/L_lib
+
+---
+# Package identity and metadata
+name: L_lib
+version: 1.0.4
+author: Kamil Cukrowski
+license: LGPL-3.0
+description: Collection of Bash useful functions and utilities for shell scripting
+
+# Links and information
+homepage: https://kamilcuk.github.io/L_lib/
+repository: https://github.com/Kamilcuk/L_lib.git
+documentation: https://kamilcuk.github.io/L_lib/
+
+# Tags for package discovery and categorization
+tags:
+  - bash
+  - library
+  - utilities
+  - scripting
+  - argument-parsing
+  - logging
+  - process-management
+  - functional-programming
+
+# Binaries/executables to be installed
+# These are the scripts that will be copied to the user's bin directory
+bin:
+  - bin/L_lib.sh
+
+# Explicit list of executable files (what gets symlinked/installed to PATH)
+executables:
+  - L_lib.sh
+
+# Runtime requirements - minimum Bash version needed
+# Supports Bash 3.2 through 5.3
+engines:
+  bash: ">=3.2"
+
+# Installation instructions - executed after package is cloned
+# This tells Basher how to set up the package for use
+install: |
+  mkdir -vp ~/.local/bin/
+  cp bin/L_lib.sh ~/.local/bin/
+  export PATH=~/.local/bin:$PATH
+
+# Usage documentation - displayed to users after installation
+# Shows how to use the package and its key features
+usage: |
+  # L_lib - Bash Library
+
+  ## Installation
+  basher install Kamilcuk/L_lib
+
+  ## Usage in scripts
+  . L_lib.sh -s
+
+  ## Features
+  - Argument parsing with sub-parsers and completion
+  - Multi-level logging system
+  - Process management (popen, pipes)
+  - Iterator and generator utilities
+  - String and array manipulation
+  - Path operations
+  - Comprehensive error handling
+  - Support for Bash 3.2 through 5.3
+
+  ## Documentation
+  Visit: https://kamilcuk.github.io/L_lib/
+
+# Test command - how to verify the package works
+# Basher can run this to validate installation
+test: |
+  ./tests/test.sh
+
+# Maintainer information - for package registry and support
+maintainer:
+  name: Kamil Cukrowski
+  email: kamil@cukrowski.net
+  github: kamilcuk

@@ -30,3 +30,14 @@ COPY --from=doc1 /app/site /
 
 FROM bash:${VERSION} AS tester
 RUN apk add --no-cache jq
+
+FROM alpine:3.20 AS basher
+RUN apk add --no-cache bash curl git coreutils
+RUN touch /root/.profile
+RUN curl -sSL https://raw.githubusercontent.com/basherpm/basher/master/install.sh | bash
+ENV PATH=/root/.basher/bin:/root/.basher/cellar/bin:$PATH
+COPY ./bash.yml /app/
+COPY ./bin/ /app/bin/
+RUN basher link /app kamilcuk/L_lib
+RUN basher list -v
+RUN L_lib.sh --help
