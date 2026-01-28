@@ -3580,9 +3580,20 @@ L_array_pipe() {
 #   arr=("Hello" "World")
 #   L_array_contains arr "Hello"
 #   echo $?  # prints 0
+# @see L_args_contain
 L_array_contains() {
-	local _L_arr="$1[@]"
-	L_args_contain "$2" ${!_L_arr:+"${!_L_arr}"}
+	local _L_arr="$1[*]" IFS=$'\x1D'
+	if [[ "${!_L_arr:+${!_L_arr//"$IFS"}}" == "${!_L_arr:+${!_L_arr}}" ]]; then
+		[[ "$IFS${!_L_arr:+${!_L_arr}}$IFS" == *"$IFS$2$IFS"* ]]
+	else
+		local _L_arr="$1[@]" i
+		for i in "${!_L_arr}"; do
+			if [[ "$i" == "$2" ]]; then
+				return 0
+			fi
+		done
+		return 1
+	fi
 }
 
 # @description Remove elements from array for which expression evaluates to failure.
