@@ -298,10 +298,8 @@ CMD_ps() {
 
 # Automatically discover all functions starting with "CMD_"
 L_argparse \
-  -- call=function prefix=CMD_ dest=cmd \
+  -- call=function prefix=CMD_ \
   ---- "$@"
-
-# The chosen command is stored in $cmd
 ```
 
 
