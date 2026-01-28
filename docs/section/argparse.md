@@ -6,6 +6,20 @@ The utility for command line argument parsing.
 
 `L_argparse` is a powerful utility for parsing command-line arguments in Bash scripts. It helps you define expected arguments, generate help messages, and handle input gracefully.
 
+## Features
+
+- **No Code Generation:** Operates as a pure Bash library, eliminating the need for build steps or generated code.
+- **Bash 3.2+ Compatibility:** Supports a wide range of Bash versions, ensuring broad compatibility.
+- **Inline Variable Assignment:** Directly sets Bash variable values within your script for seamless integration.
+- **Automatic Help Generation:** Generates comprehensive and user-friendly help messages based on argument definitions.
+- **Flexible Option Handling:** Supports optional arguments for options, enhancing command flexibility.
+- **Shell Completion Support:** Provides robust command-line completion for Bash, Zsh, and Fish shells.
+- **Single-Dash Long Options:** Allows for long options to be specified with a single dash (e.g., `-longoption`).
+- **Customizable Option Prefix:** Enables definition of custom characters to prefix optional arguments.
+- **Colorized Help Output:** Enhances readability of help messages with color support.
+- **Argument Type Checking:** Automatically validates argument types (e.g., `int`, `file`, `dir`).
+- **Collecting Remaining Arguments:** Easily gather all arguments after a certain point using `nargs=remainder` or handle unrecognized arguments with `unknown_args=`.
+
 ### Basic Usage Example
 
 Let's start with a simple script that demonstrates how to define program information, optional flags, and a positional argument.
@@ -243,20 +257,6 @@ L_argparse \
 # $my_extra_stuff will be an array: ("--custom-option" "value" "positional")
 ```
 
-
-## Features
-
-- **No Code Generation:** Operates as a pure Bash library, eliminating the need for build steps or generated code.
-- **Bash 3.2+ Compatibility:** Supports a wide range of Bash versions, ensuring broad compatibility.
-- **Inline Variable Assignment:** Directly sets Bash variable values within your script for seamless integration.
-- **Automatic Help Generation:** Generates comprehensive and user-friendly help messages based on argument definitions.
-- **Flexible Option Handling:** Supports optional arguments for options, enhancing command flexibility.
-- **Shell Completion Support:** Provides robust command-line completion for Bash, Zsh, and Fish shells.
-- **Single-Dash Long Options:** Allows for long options to be specified with a single dash (e.g., `-longoption`).
-- **Customizable Option Prefix:** Enables definition of custom characters to prefix optional arguments.
-- **Colorized Help Output:** Enhances readability of help messages with color support.
-- **Argument Type Checking:** Automatically validates argument types (e.g., `int`, `file`, `dir`).
-- **Collecting Remaining Arguments:** Easily gather all arguments after a certain point using `nargs=remainder` or handle unrecognized arguments with `unknown_args=`.
 
 ## Specification
 
