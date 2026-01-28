@@ -104,7 +104,7 @@ trap 'increase_volume' USR1
 ## Internal Variables
 Inside an `L_finally` handler (the command you registered), you can access:
 
-*   `L_SIGNAL`: Name of the received signal (e.g., `SIGINT`), or `EXIT`.
+*   `L_SIGNAL`: Name of the received signal (e.g., `SIGINT`), `EXIT`, or `RETURN`.
 *   `L_SIGNUM`: Number of the received signal.
 *   `L_SIGRET`: The exit code (`$?`) at the moment the trap was triggered.
 
