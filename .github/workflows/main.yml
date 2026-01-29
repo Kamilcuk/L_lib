@@ -87,7 +87,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: prefix=bashercache_
+          tags: type=ref,event=branch,prefix=bashercache_
       - uses: docker/build-push-action@v6
         with:
           context: .
