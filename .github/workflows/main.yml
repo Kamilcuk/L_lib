@@ -82,6 +82,12 @@ jobs:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: prefix=bashercache_
       - uses: docker/build-push-action@v6
         with:
           context: .
@@ -91,7 +97,8 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:basher
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   deploy_docker:
     runs-on: ubuntu-latest
@@ -104,9 +111,6 @@ jobs:
       packages: write
       attestations: write
       id-token: write
-    env:
-      REGISTRY: ghcr.io
-      IMAGE_NAME: ${{ github.repository }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -127,11 +131,11 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: app
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: true
           push: true
-          target: app
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
       - name: Generate artifact attestation
