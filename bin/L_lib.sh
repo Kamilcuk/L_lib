@@ -967,38 +967,38 @@ L_getopts_in() {
     ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
     ${_L_es[@]:+${_L_es[_L_tmp]:+eval}} ${_L_es[@]:+${_L_es[_L_tmp]:+"${_L_es[_L_tmp]}"}}
     # Parse the command.
-    if [[ "$_L_spec" == *"$_L_opt::"* ]]; then
-      L_array_append "$_L_prefix$_L_opt" "$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt:"* ]]; then
-      "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt"* ]]; then
-      printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))"
-    elif [[ "$_L_spec" == h ]]; then
-      L_func_usage "$_L_up"
-      return 0
-    else
-      L_func_usage_error "$_L_up"
-      return 2
-    fi
+    case "$_L_spec" in
+    	*"$_L_opt::"*) L_array_append "$_L_prefix$_L_opt" "$OPTARG" ;;
+    	*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
+    	*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
+    	h) L_func_usage "$_L_up"; return 0 ;;
+    	*) L_func_usage_error "$_L_up"; return 2 ;;
+    esac
   done
   shift "$((OPTIND-1))"
   #
   case "$_L_nargs" in
     '*') ;;
     '?')
-      if (($# > 1)); then
+      if (( $# > 1 )); then
         L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
         return 2
       fi
       ;;
     '+')
-      if (($# == 0)); then
+      if (( $# == 0 )); then
         L_func_usage_error "Missing positional argument" "$_L_up"
         return 2
       fi
       ;;
+    [0-9]*'+')
+      if (( $# < ${_L_nargs%%+} )); then
+        L_func_usage_error "Wrong number of arguments. Expected at least ${_L_nargs%%+} but received $#" "$_L_up"
+        return 2
+      fi
+      ;;
     [0-9]*)
-      if (($# != _L_nargs)); then
+      if (( $# != _L_nargs )); then
         L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
         return 2
       fi
@@ -1007,7 +1007,7 @@ L_getopts_in() {
   esac
   #
   # L_array_assign "${_L_prefix}args" "$@"
-  if ((_L_eval)); then
+  if (( _L_eval )); then
     eval "$_L_cmd \"\$@\""
   else
     "$_L_cmd" "$@"
@@ -1951,7 +1951,9 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
-L_var_to_string_v() {
+fi
+
+_L_var_to_string_v_declare() {
 	L_v=$(LC_ALL=C declare -p "$1") || return 2
 	# If it is an array or associative array.
 	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
@@ -1965,7 +1967,6 @@ L_var_to_string_v() {
   fi
 }
 
-fi
 
 # @description Get the namereference variable name that the variable references to.
 # If the variable is not a namereference, return 1
@@ -3579,9 +3580,20 @@ L_array_pipe() {
 #   arr=("Hello" "World")
 #   L_array_contains arr "Hello"
 #   echo $?  # prints 0
+# @see L_args_contain
 L_array_contains() {
-	local _L_arr="$1[@]"
-	L_args_contain "$2" ${!_L_arr:+"${!_L_arr}"}
+	local _L_arr="$1[*]" IFS=$'\x1D'
+	if [[ "${!_L_arr:+${!_L_arr//"$IFS"}}" == "${!_L_arr:+${!_L_arr}}" ]]; then
+		[[ "$IFS${!_L_arr:+${!_L_arr}}$IFS" == *"$IFS$2$IFS"* ]]
+	else
+		local _L_arr="$1[@]" i
+		for i in "${!_L_arr}"; do
+			if [[ "$i" == "$2" ]]; then
+				return 0
+			fi
+		done
+		return 1
+	fi
 }
 
 # @description Remove elements from array for which expression evaluates to failure.
@@ -3611,17 +3623,16 @@ L_array_filter_eval() {
 # @arg $2 element to find
 L_array_index() { L_handle_v_scalar "$@"; }
 L_array_index_v() {
-	local _L_i="$1[@]"
-	(( ${!_L_i:+1}+0 )) && {
-		eval "local _L_i=(\"\${!$1[@]}\")"
-		for L_v in "${_L_i[@]}"; do
-			_L_i="$1[$L_v]"
-			if [[ "$2" == "${!_L_i}" ]]; then
-				return 0
-			fi
-		done
-		return 1
-	}
+	local _L_array_index_tmp="$1[@]" _L_array_index_i
+	eval ${_L_array_index_tmp:+"local _L_array_index_tmp=(\"\${!$1[@]}\")"}
+	for _L_array_index_i in ${_L_array_index_tmp:+"${_L_array_index_tmp[@]}"}; do
+		_L_array_index_tmp="$1[$_L_array_index_i]"
+		if [[ "$2" == "${!_L_array_index_tmp}" ]]; then
+			L_v=$_L_array_index_i
+			return 0
+		fi
+	done
+	return 1
 }
 
 # @description Join array elements separated with the second argument.

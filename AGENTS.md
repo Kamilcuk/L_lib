@@ -65,3 +65,7 @@ The project adheres to strict conventions to maintain consistency and readabilit
     *   `124`: Timeout.
 *   **Shell Options:** Scripts and the library itself operate with `set -euo pipefail` to ensure robust error handling and predictable behavior.
 *   **Testing Practices:** Unit tests are organized into functions prefixed with `_L_test_` within `tests/test.sh` and are executed by `L_unittest_main`.
+
+## Agent Interaction Guidelines
+
+To ensure clear communication and efficient task execution, I will always create a detailed todo list for complex requests before executing any commands. This allows for clear tracking of progress and ensures all steps are considered.
