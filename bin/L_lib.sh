@@ -3381,9 +3381,17 @@ L_json_create_v() {
 # @example L_array_len arr
 L_array_len() { L_handle_v_scalar "$@"; }
 
+# @description Get array keys
+# @option -v <var> Store the output in variable instead of printing it.
+# @option -h Print this help and return 0.
+# @arg $1 <var array nameref
+L_array_keys() { L_handle_v_scalar "$@"; }
+
 if ((L_HAS_NAMEREF)); then
 
 L_array_len_v() { local -n _L_arr="$1" || return 2; L_v=${#_L_arr[@]}; }
+
+L_array_keys_v() { local -n _L_arr="$1" || return 2; L_v=("${!_L_arr[@]}"); }
 
 # @description Set elements of array.
 # @arg $1 <var> array nameref
@@ -3439,6 +3447,7 @@ L_array_copy() {
 
 else  # L_HAS_NAMEREF
 	L_array_len_v() { L_is_valid_variable_name "$1" && eval "L_v=\${#$1[@]}"; }
+	L_array_keys_v() { L_is_valid_variable_anme "$1" && eval "L_v=(\"\${!$1[@]}\")"; }
 	L_array_assign() { L_is_valid_variable_name "$1" && eval "$1=(\"\${@:2}\")"; }
 	L_array_set() { L_is_valid_variable_name "$1" && eval "$1[\"\$2\"]=\"\$3\""; }
 	L_array_append() { L_is_valid_variable_name "$1" && eval "$1+=(\"\${@:2}\")"; }
@@ -3597,9 +3606,20 @@ L_array_pipe() {
 #   arr=("Hello" "World")
 #   L_array_contains arr "Hello"
 #   echo $?  # prints 0
+# @see L_args_contain
 L_array_contains() {
-	local _L_arr="$1[@]"
-	L_args_contain "$2" ${!_L_arr:+"${!_L_arr}"}
+	local _L_arr="$1[*]" IFS=$'\x1D'
+	if [[ "${!_L_arr:+${!_L_arr//"$IFS"}}" == "${!_L_arr:+${!_L_arr}}" ]]; then
+		[[ "$IFS${!_L_arr:+${!_L_arr}}$IFS" == *"$IFS$2$IFS"* ]]
+	else
+		local _L_arr="$1[@]" i
+		for i in "${!_L_arr}"; do
+			if [[ "$i" == "$2" ]]; then
+				return 0
+			fi
+		done
+		return 1
+	fi
 }
 
 # @description Remove elements from array for which expression evaluates to failure.
@@ -3629,17 +3649,16 @@ L_array_filter_eval() {
 # @arg $2 element to find
 L_array_index() { L_handle_v_scalar "$@"; }
 L_array_index_v() {
-	local _L_i="$1[@]"
-	(( ${!_L_i:+1}+0 )) && {
-		eval "local _L_i=(\"\${!$1[@]}\")"
-		for L_v in "${_L_i[@]}"; do
-			_L_i="$1[$L_v]"
-			if [[ "$2" == "${!_L_i}" ]]; then
-				return 0
-			fi
-		done
-		return 1
-	}
+	local _L_i _L_k
+	L_array_keys_v "$1" || return 2
+	for _L_k in ${L_v[@]+"${L_v[@]}"}; do
+		_L_i="$1[$_L_k]"
+		if [[ "$2" == "${!_L_i}" ]]; then
+			L_v=$_L_k
+			return 0
+		fi
+	done
+	return 1
 }
 
 # @description Join array elements separated with the second argument.
