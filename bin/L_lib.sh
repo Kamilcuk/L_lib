@@ -1386,6 +1386,13 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_scalar() {
 		case "${1:-}" in
+		-vL_v)
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
+			else
+				"${FUNCNAME[1]}"_v "${@:2}"
+			fi
+			;;
 		-v?*)
 			local -n L_v="${1##-v}" || return 2
 			if [[ "${2:-}" == -- ]]; then
@@ -1395,7 +1402,9 @@ else  # L_HAS_NAMEREF
 			fi
 			;;
 		-v)
-			local -n L_v="$2" || return 2
+			if [[ "$2" != L_v ]]; then
+				local -n L_v="$2" || return 2
+			fi
 			if [[ "${3:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:4}"
 			else
@@ -1427,6 +1436,13 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_array() {
 		case "${1:-}" in
+		-vL_v)
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_v "${@:3}"
+			else
+				"${FUNCNAME[1]}"_v "${@:2}"
+			fi
+			;;
 		-v?*)
 			local -n L_v="${1##-v}" || return 2
 			if [[ "${2:-}" == -- ]]; then
@@ -1436,7 +1452,9 @@ else  # L_HAS_NAMEREF
 			fi
 			;;
 		-v)
-			local -n L_v="$2" || return 2
+			if [[ "$2" != L_v ]]; then
+				local -n L_v="$2" || return 2
+			fi
 			if [[ "${3:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:4}"
 			else
