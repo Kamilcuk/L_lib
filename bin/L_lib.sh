@@ -967,38 +967,38 @@ L_getopts_in() {
     ${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
     ${_L_es[@]:+${_L_es[_L_tmp]:+eval}} ${_L_es[@]:+${_L_es[_L_tmp]:+"${_L_es[_L_tmp]}"}}
     # Parse the command.
-    if [[ "$_L_spec" == *"$_L_opt::"* ]]; then
-      L_array_append "$_L_prefix$_L_opt" "$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt:"* ]]; then
-      "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG"
-    elif [[ "$_L_spec" == *"$_L_opt"* ]]; then
-      printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))"
-    elif [[ "$_L_spec" == h ]]; then
-      L_func_usage "$_L_up"
-      return 0
-    else
-      L_func_usage_error "$_L_up"
-      return 2
-    fi
+    case "$_L_spec" in
+    	*"$_L_opt::"*) L_array_append "$_L_prefix$_L_opt" "$OPTARG" ;;
+    	*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
+    	*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
+    	h) L_func_usage "$_L_up"; return 0 ;;
+    	*) L_func_usage_error "$_L_up"; return 2 ;;
+    esac
   done
   shift "$((OPTIND-1))"
   #
   case "$_L_nargs" in
     '*') ;;
     '?')
-      if (($# > 1)); then
+      if (( $# > 1 )); then
         L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
         return 2
       fi
       ;;
     '+')
-      if (($# == 0)); then
+      if (( $# == 0 )); then
         L_func_usage_error "Missing positional argument" "$_L_up"
         return 2
       fi
       ;;
+    [0-9]*'+')
+      if (( $# < ${_L_nargs%%+} )); then
+        L_func_usage_error "Wrong number of arguments. Expected at least ${_L_nargs%%+} but received $#" "$_L_up"
+        return 2
+      fi
+      ;;
     [0-9]*)
-      if (($# != _L_nargs)); then
+      if (( $# != _L_nargs )); then
         L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
         return 2
       fi
@@ -1007,7 +1007,7 @@ L_getopts_in() {
   esac
   #
   # L_array_assign "${_L_prefix}args" "$@"
-  if ((_L_eval)); then
+  if (( _L_eval )); then
     eval "$_L_cmd \"\$@\""
   else
     "$_L_cmd" "$@"
