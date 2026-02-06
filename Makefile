@@ -133,10 +133,10 @@ _docs:
 	uvx --with-requirements=./docs/requirements.txt mkdocs $(WHAT)
 docs_build: WHAT = build
 docs_build: _docs
-docs_serve: WHAT = serve
+docs_serve: WHAT = serve --livereload --dirtyreload
 docs_serve: _docs
 docs_serve2:
-	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve
+	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve --livereload --dirtyreload
 docs_docker:
 	docker build --target doc --output type=local,dest=./public .
 
