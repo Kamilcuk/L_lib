@@ -9686,7 +9686,7 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 L_foreach() {
   local OPTIND OPTERR OPTARG \
     _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" _L_opt_l="" \
-    _L_i IFS=' ' \
+    _L_i IFS=' ' _L_vidx="" \
     _L_s_keys _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0
   while getopts srn:i:v:k:f:l:h _L_i; do
     case "$_L_i" in
@@ -9751,6 +9751,8 @@ L_foreach() {
   local _L_varslen=${#_L_vars[*]} _L_arrslen=${#_L_arrs[*]}
   if [[ -n "$_L_opt_k" ]]; then
     if (( _L_s_idx >= ${_L_s_keys[*]:+${#_L_s_keys[*]}}+0 )); then
+    	# Iterated through all the keys.
+      unset -v "$_L_opt_v" ${_L_vidx:+"_L_FOREACH[$_L_vidx]"}
       return 4
     fi
     local _L_key=${_L_s_keys[_L_s_idx++]}
@@ -9826,6 +9828,7 @@ L_foreach() {
     #
     if (( _L_varsidx == 0 )); then
       # Means no variables were assigned -> end the loop.
+      unset -v "$_L_opt_v" ${_L_vidx:+"_L_FOREACH[$_L_vidx]"}
       return 4
     fi
     if [[ -n "$_L_opt_l" ]]; then
