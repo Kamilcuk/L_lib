@@ -2,64 +2,64 @@
 _L_test_foreach_1_all() {
   local array1=(a b c d) array2=(e f g h)
   L_log "Test simple one or two vars in array"
-  L_unittest_cmd -o 'a:b:c:d:' 
+  L_unittest_cmd -o 'a:b:c:d:' \
     eval 'while L_foreach a : array1; do echo -n $a:; done'
-  L_unittest_cmd -o 'a,b:c,d:' 
+  L_unittest_cmd -o 'a,b:c,d:' \
     eval 'while L_foreach a b : array1; do echo -n $a,$b:; done'
-  L_unittest_cmd -o 'a,b:c,d:e,f:g,h:' 
+  L_unittest_cmd -o 'a,b:c,d:e,f:g,h:' \
     eval 'while L_foreach a b : array1 array2; do echo -n $a,$b:; done'
-  L_unittest_cmd -o 'a,b,c:d,e,f:g,h,unset:' 
+  L_unittest_cmd -o 'a,b,c:d,e,f:g,h,unset:' \
     eval 'while L_foreach a b c : array1 array2; do echo -n $a,$b,${c:-unset}:; done'
-  L_unittest_cmd -o '3,a b c:1,d:' 
+  L_unittest_cmd -o '3,a b c:1,d:' \
     eval 'while L_foreach -n 3 a : array1; do echo -n ${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
-  L_unittest_cmd -o 'a,e:b,f:c,g:d,h:' 
+  L_unittest_cmd -o 'a,e:b,f:c,g:d,h:' \
     eval 'while L_foreach -s -k _ a b : array1 array2; do echo -n $a,$b:; done'
-  L_unittest_cmd -o '0,a,e:1,b,f:2,c,g:3,d,h:' 
+  L_unittest_cmd -o '0,a,e:1,b,f:2,c,g:3,d,h:' \
     eval 'while L_foreach -s -k k a b : array1 array2; do echo -n $k,$a,$b:; done'
-  L_unittest_cmd -o '3,d,h:2,c,g:1,b,f:0,a,e:' 
+  L_unittest_cmd -o '3,d,h:2,c,g:1,b,f:0,a,e:' \
     eval 'while L_foreach -r -k k a b : array1 array2; do echo -n $k,$a,$b:; done'
 
   L_log "Test associative arrays"
   local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
-  L_unittest_cmd -o '2,d b:' 
+  L_unittest_cmd -o '2,d b:' \
     eval 'while L_foreach -n 3 a : dict1; do echo -n ${#a[@]},${a[*]}:; done'
-  L_unittest_cmd -o 'a,b,e:c,d,f:' 
+  L_unittest_cmd -o 'a,b,e:c,d,f:' \
     eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
-  L_unittest_cmd -o 'a,b,e:c,d,f:' 
+  L_unittest_cmd -o 'a,b,e:c,d,f:' \
     eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
  }
 
 _L_test_foreach_2_all_index_first_last() {
   local array1=(a b c d) array2=(e f g h)
   L_log "Test simple one or two vars in array"
-  L_unittest_cmd -o '010,a:100,b:200,c:301,d:' 
+  L_unittest_cmd -o '010,a:100,b:200,c:301,d:' \
     eval 'while L_foreach -ii -ff -ll a : array1; do echo -n $i$f$l,$a:; done'
-  L_unittest_cmd -o '010,a,b:101,c,d:' 
+  L_unittest_cmd -o '010,a,b:101,c,d:' \
     eval 'while L_foreach -ii -ff -ll a b : array1; do echo -n $i$f$l,$a,$b:; done'
-  L_unittest_cmd -o '010,a,b:100,c,d:200,e,f:301,g,h:' 
+  L_unittest_cmd -o '010,a,b:100,c,d:200,e,f:301,g,h:' \
     eval 'while L_foreach -ii -ff -ll a b : array1 array2; do echo -n $i$f$l,$a,$b:; done'
-  L_unittest_cmd -o '010,a,b,c:100,d,e,f:201,g,h,unset:' 
+  L_unittest_cmd -o '010,a,b,c:100,d,e,f:201,g,h,unset:' \
     eval 'while L_foreach -ii -ff -ll a b c : array1 array2; do echo -n $i$f$l,$a,$b,${c:-unset}:; done'
-  L_unittest_cmd -o '010,3,a b c:101,1,d:' 
+  L_unittest_cmd -o '010,3,a b c:101,1,d:' \
     eval 'while L_foreach -ii -ff -ll -n 3 a : array1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
-  L_unittest_cmd -o '010,a,e:100,b,f:200,c,g:301,d,h:' 
+  L_unittest_cmd -o '010,a,e:100,b,f:200,c,g:301,d,h:' \
     eval 'while L_foreach -ii -ff -ll -s -k _ a b : array1 array2; do echo -n $i$f$l,$a,$b:; done'
-  L_unittest_cmd -o '010,0,a,e:100,1,b,f:200,2,c,g:301,3,d,h:' 
+  L_unittest_cmd -o '010,0,a,e:100,1,b,f:200,2,c,g:301,3,d,h:' \
     eval 'while L_foreach -ii -ff -ll -s -k k a b : array1 array2; do echo -n $i$f$l,$k,$a,$b:; done'
-  L_unittest_cmd -o '010,3,d,h:100,2,c,g:200,1,b,f:301,0,a,e:' 
+  L_unittest_cmd -o '010,3,d,h:100,2,c,g:200,1,b,f:301,0,a,e:' \
     eval 'while L_foreach -ii -ff -ll -r -k k a b : array1 array2; do echo -n $i$f$l,$k,$a,$b:; done'
 
   L_log "Test associative arrays"
   local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
-  L_unittest_cmd -o '011,2,d b:' 
+  L_unittest_cmd -o '011,2,d b:' \
     eval 'while L_foreach -ii -ff -ll -n 3 a : dict1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
-  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' 
+  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
     eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
-  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' 
+  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
     eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
  }
 
