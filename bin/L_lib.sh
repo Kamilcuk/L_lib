@@ -3385,7 +3385,7 @@ L_array_len() { L_handle_v_scalar "$@"; }
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 # @arg $1 <var array nameref
-L_array_keys() { L_handle_v_scalar "$@"; }
+L_array_keys() { L_handle_v_array "$@"; }
 
 if ((L_HAS_NAMEREF)); then
 
@@ -4670,7 +4670,7 @@ L_ok() {
 	else
 		set -- "$L_GREEN$1$L_RESET" "${@:2}"
 	fi
-	L_log -s 1 -l "$L_LOGLEVEL_INFO" "${a[@]}" "$@"
+	L_log -s 1 -l "$L_LOGLEVEL_INFO" ${a[@]+"${a[@]}"} "$@"
 }
 
 # @description set to 1 if L_run should not execute the function.

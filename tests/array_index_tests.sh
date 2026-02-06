@@ -32,7 +32,7 @@ _L_test_array_keys() {
 	local keys
 
 	# Empty array
-	local -a empty_arr=()
+	local -a empty_arr=() keys=()
 	L_array_keys -v keys empty_arr
 	L_unittest_eq "${#keys[@]}" "0"
 
