@@ -9633,73 +9633,37 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 # @description internal functions and section.
 # Internal functions to handle terminal interaction.
 
-_L_lib_name=${BASH_SOURCE[0]##*/}
 
-_L_lib_error() {
-	echo "$_L_lib_name: ERROR: $*" >&2
+_L_lib_log() {
+	echo "L_lib.sh: $*" >&2
 }
 
 _L_lib_fatal() {
-	_L_lib_error "$@"
+	_L_lib_log "FATAL: $@"
 	exit 3
 }
 
-_L_lib_drop_L_prefix() {
-	for i in run fatal logl log emerg alert crit err warning notice info debug panic error warn; do
-		eval "$i() { L_$i \"\$@\"; }"
-	done
-}
-
-_L_lib_list_prefix_functions() {
-	L_list_functions_with_prefix "$L_prefix" | sed "s/^$L_prefix//"
-}
-
-# shellcheck disable=2046
-_L_lib_their_usage() {
-	if L_function_exists L_cb_usage; then
-		L_cb_usage "$(_L_lib_list_prefix_functions)"
-		return
+_L_lib_selfupdate() {
+	local url="https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh"
+	local dest="${L_LIB_SCRIPT:-$0}"
+	if [[ ! -w "$dest" ]]; then
+		_L_lib_fatal "Script is not writable: $dest"
 	fi
-	local a_usage a_desc a_cmds a_footer
-	a_usage="Usage: $L_NAME <COMMAND> [OPTIONS]"
-	a_cmds=$(
-		{
-			_L_lib_list_prefix_functions
-			echo "-h --help"$'\01'"print this help and exit"
-		} | {
-			if L_command_exists column && column -V 2>/dev/null | grep -q util-linux; then
-				column -t -s $'\01' -o '   '
-			else
-				sed 's/#/    /'
-			fi
-		} | sed 's/^/  /'
-	)
-	cat <<EOF
-$a_usage
-
-Commands:
-$a_cmds
-
-EOF
+	_L_lib_log "Downloading update from $url to $dest..."
+	if command -v curl >/dev/null 2>&1; then
+		curl -fsSL "$url" > "$dest.tmp"
+	elif command -v wget >/dev/null 2>&1; then
+		wget -qO "$dest.tmp" "$url"
+	else
+		_L_lib_fatal "Neither curl nor wget found."
+	fi
+	if [[ ! -s "$dest.tmp" ]]; then
+		rm -f "$dest.tmp"
+		_L_lib_fatal "Download failed or empty file."
+	fi
+	mv "$dest.tmp" "$dest"
+	_L_lib_log "Update successful."
 }
-
-_L_lib_show_best_match() {
-	local tmp
-	if tmp=$(
-		_L_lib_list_prefix_functions |
-			if L_hash fzf; then
-				fzf -0 -1 -f "$1"
-			else
-				grep -F "$1"
-			fi
-	) && [[ -n "$tmp" ]]; then
-		echo
-		echo "The most similar commands are"
-		# shellcheck disable=2001
-		<<<"$tmp" sed 's/^/\t/'
-	fi >&2
-}
-
 
 _L_lib_run_tests() {
 	L_unittest_main -P _L_test_ "$@"
@@ -9707,126 +9671,81 @@ _L_lib_run_tests() {
 
 _L_lib_usage() {
 	cat <<EOF
-Usage: . $_L_lib_name [OPTIONS] COMMAND [ARGS]...
+Usage: . L_lib.sh -s [OPTIONS] [COMMAND [ARGS]...]
 
-Collection of usefull bash functions. See online documentation at
-https://github.com/Kamilcuk/L_lib.sh .
+Library with usefull bash functions.
+See https://github.com/Kamilcuk/L_lib .
 
 Options:
   -s  Notify this script that it is sourced.
+  -n  Do not set extglob, patsub_replacement and don't set ERR trap.
+  -L  Drop the 'L_' prefix from some of the functions.
   -h  Print this help and exit.
-  -l  Drop the L_ prefix from some of the functions.
 
 Commands:
-  cmd PREFIX [ARGS]...  Run subcommands with specified prefix
-  test                  Run internal unit tests
-  eval EXPR             Evaluate expression for testing
-  exec ARGS...          Run command for testing
-  help                  Print this help and exit
+  selfupdate    Update this script from the repository
+  eval EXPR     Evaluate expression for testing
+  exec ARGS...  Run command for testing
+  help          Print this help and exit
+  L_* | _L_*    Execute the function
 
-Usage example of 'cmd' command:
-
-  # script.sh
-  CMD_some_func() { echo 'yay!'; }
-  CMD_some_other_func() { echo 'not yay!'; }
-  .  $_L_lib_name cmd 'CMD_' "\$@"
-
-$_L_lib_name Copyright (C) 2024 Kamil Cukrowski
+L_lib.sh Copyright (C) 2026 Kamil Cukrowski
 $L_FREE_SOFTWARE_NOTICE
 EOF
 }
 
-_L_lib_main_cmd() {
-	if (($# == 0)); then _L_lib_fatal "prefix argument missing"; fi
-	L_prefix=$1
-	case "$L_prefix" in
-	-*) _L_lib_fatal "prefix argument cannot start with -" ;;
-	"") _L_lib_fatal "prefix argument is empty" ;;
-	esac
-	shift
-	if L_function_exists "L_cb_parse_args"; then
-		unset -v L_cb_args
-		L_cb_parse_args "$@"
-		if ! L_var_is_set L_cb_args; then L_error "L_cb_parse_args did not return L_cb_args array"; fi
-		# shellcheck disable=2154
-		set -- "${L_cb_args[@]}"
-	else
-		case "${1:-}" in
-		-h | --help)
-			_L_lib_their_usage "$@"
-			if L_is_main; then
-				exit
-			else
-				return
-			fi
-			;;
-		esac
-	fi
-	if (($# == 0)); then
-		if ! L_function_exists "${L_prefix}DEFAULT"; then
-			_L_lib_their_usage "$@"
-			L_error "Command argument missing."
-			exit 1
-		fi
-	fi
-	L_CMD="${1:-DEFAULT}"
-	shift
-	if ! L_function_exists "$L_prefix$L_CMD"; then
-		_L_lib_error "Unknown command: '$L_CMD'. See '$L_NAME --help'."
-		_L_lib_show_best_match "$L_CMD"
-		exit 1
-	fi
-	"$L_prefix$L_CMD" "$@"
-}
-
 _L_lib_main() {
-	local _L_mode="" _L_sourced=0 OPTIND OPTARG OPTERR _L_opt _L_init=1
-	while getopts nsLh-: _L_opt; do
-		case $_L_opt in
-		n) _L_init=0 ;;
+	local OPTIND OPTARG OPTERR _L_sourced=0 _L_init=1 _L_i
+	while getopts nsLh-: _L_i; do
+		case $_L_i in
 		s) _L_sourced=1 ;;
-		L) _L_lib_drop_L_prefix ;;
-		h) _L_mode=help ;;
-		-) _L_mode=help; break ;;
-		?) exit 1 ;;
-		*) _L_lib_fatal "$_L_lib_name: Internal error when parsing arguments: $_L_opt" ;;
+		n) _L_init=0 ;;
+		L)
+			for _L_i in run panic error warn assert; do
+				eval "$_L_i() { L_$_L_i \"\$@\"; }"
+			done
+			for _L_i in fatal log critical error warning notice info debug ; do
+				eval "$_L_i() { L_$_L_i -s 1 \"\$@\"; }"
+			done
+			;;
+		h) _L_lib_usage; exit 0 ;;
+		-)
+			shift "$((OPTIND-1))"
+			OPTIND=1
+			set -- --help "$@"
+			break
+			;;
+		*) _L_lib_fatal "L_lib.sh: Internal error when parsing arguments: $_L_opt" ;;
 		esac
 	done
-	if ((_L_init)); then
+	if (( _L_init )); then
 		shopt -s extglob
-		if ((L_HAS_PATSUB_REPLACEMENT)); then
+		if (( L_HAS_PATSUB_REPLACEMENT )); then
 			shopt -s patsub_replacement
 		fi
 		L_trap_err_init
 	fi
 	shift "$((OPTIND-1))"
-	if (($#)); then
-		: "${_L_mode:=$1}"
-		shift
-	fi
-	case "$_L_mode" in
-	"")
-		if ((!_L_sourced)) && L_is_main; then
-			_L_lib_usage
-			_L_lib_fatal "missing command, or if sourced, missing -s option"
-		fi
-		;;
-	eval) eval "$*" ;;
-	exec) "$@" ;;
-	L_*|_L_*) "$_L_mode" "$@" ;;
-	--help | help)
+	if (( !$# )); then
 		if L_is_main; then
-			set -euo pipefail
-			L_trap_err_enable
-			trap 'L_trap_err $?' EXIT
+			_L_lib_usage
+			_L_lib_fatal "Script L_lib.sh is inteded to be sourced. Exiting with error."
+		elif (( !_L_sourced )); then
+			_L_lib_fatal "Internal error. This should not happen. Please report to https://github.com/Kamilcuk/L_lib/issues "
 		fi
-		_L_lib_usage
-		exit 0
-		;;
-	cmd) _L_lib_main_cmd "$@" ;;
-	nop) ;;
-	*) _L_lib_fatal "unknown command: $_L_mode" ;;
-	esac
+	else
+		case "$1" in
+			selfupdate) _L_lib_selfupdate "${@:2}" ;;
+			exec) "${@:2}" ;;
+			eval|L_*|_L_*) "$@" ;;
+			--help | help) _L_lib_usage; exit 0 ;;
+			nop) ;;
+			*)
+				L_quote_printf -v _L_i "$1"
+				_L_lib_fatal "unknown command: $_L_i"
+				;;
+		esac
+	fi
 }
 
 # ]]]
