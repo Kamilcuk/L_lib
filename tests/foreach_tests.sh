@@ -1,4 +1,3 @@
-
 _L_test_foreach_1_all() {
   local array1=(a b c d) array2=(e f g h)
   L_log "Test simple one or two vars in array"
@@ -161,4 +160,20 @@ _L_test_foreach_6_last() {
     done
     L_unittest_arreq acc 0 a b 1 c d 2 e ''
   }
+}
+
+_L_test_foreach_7_nested() {
+  local array1=(a b) array2=(1 2)
+  L_log "Test basic nested loops"
+  L_unittest_cmd -o 'a,1:a,2:b,1:b,2:' \
+    eval 'while L_foreach x : array1; do while L_foreach y : array2; do echo -n $x,$y:; done; done'
+
+  L_log "Test nested loops with indices"
+  L_unittest_cmd -o '0,a,0,1:0,a,1,2:1,b,0,1:1,b,1,2:' \
+    eval 'while L_foreach -ii x : array1; do while L_foreach -i j y : array2; do echo -n $i,$x,$j,$y:; done; done'
+
+  L_log "Test nested loops with multiple variables"
+   local array3=(A B C D)
+  L_unittest_cmd -o 'a,A,B:a,C,D:b,A,B:b,C,D:' \
+    eval 'while L_foreach x : array1; do while L_foreach y z : array3; do echo -n $x,$y,$z:; done; done'
 }
