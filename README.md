@@ -16,17 +16,40 @@ Labrador Bash library. Collection of functions and libraries that I deem useful 
 
 # Installation
 
+## Package Managers
+
+Install L_lib using your preferred Bash package manager:
+
+### Basher
+```bash
+basher install Kamilcuk/L_lib
+```
+
+### bpkg
+```bash
+bpkg install Kamilcuk/L_lib
+```
+
+### Shpkg
+```bash
+shpkg install Kamilcuk/L_lib
+```
+
+## Manual Installation
+
 The library is one file. Download the latest release from GitHub and put in your PATH:
 
-```
+```bash
 mkdir -vp ~/.local/bin/
 curl -o ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh
 export PATH=~/.local/bin:$PATH
 ```
 
+## Usage
+
 You can use the library in scripts with:
 
-```
+```bash
 . L_lib.sh -s
 ```
 
@@ -34,7 +57,7 @@ Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement`
 
 You can test the library ad-hoc:
 
-```
+```bash
 bash <(curl -sS https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
