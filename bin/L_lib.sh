@@ -1856,12 +1856,11 @@ L_is_sourced() {
 # @see https://unix.stackexchange.com/questions/568747/bash-builtin-variables-bash-argv-and-bash-argc
 L_has_sourced_arguments() {
 	# Check if we are sourced.
-	local IFS=' '
+	local IFS=' ' i
 	if [[ " ${FUNCNAME[*]} " != *" source "* ]]; then
 		return 2
 	fi
 	# Find the source function position.
-	local i
 	for i in "${!FUNCNAME[@]}"; do
 		if [[ "${FUNCNAME[i]}" == "source" ]]; then
 			break
