@@ -1,102 +1,145 @@
-## L_log
+Log library that provides functions for logging messages, similar to the Python logging module. It supports different log levels, custom formatting, filtering, and output redirection.
 
-Log library that provides functions for logging messages.
+## Usage Guide
 
-## Usage
+### Basic Logging
 
-The `L_log` module is initialized with level INFO on startup.
+The most common way to log is using the level-specific functions. They accept a single string or a `printf` format followed by arguments.
 
-To log a message you can use several functions functions.
-Each of these function takes a message to print.
-
-```
-L_trace "Tracing message"
-L_debug "Debugging message"
-L_info "Informational message"
-L_notice "Notice message"
-L_warning "Warning message"
-L_error "Error message"
-L_critical "Critical message"
+```bash
+L_info "This is an info message"
+L_error "Something went wrong with file: %s" "$filename"
+L_debug "Variable x is: %d" "$x"
 ```
 
-By default, if one argument is given to the function, it is outputted as-is.
-If more arguments are given, they are parsed as a `printf` formatting string.
+Available levels (from highest to lowest severity):
+- `L_critical`
+- `L_error`
+- `L_warning`
+- `L_notice`
+- `L_info`
+- `L_debug`
+- `L_trace`
 
-```
-L_info "hello %s"            # logs 'hello %s'
-L_info "hello %s" "world"    # logs 'hello world'
+### L_run and L_dryrun
+
+`L_run` is a powerful wrapper for executing commands while logging them. It respects the `L_dryrun` variable.
+
+```bash
+L_dryrun=1
+L_run rm -rf /important/dir
+# Outputs: DRYRUN: +rm -rf /important/dir
+# Command is NOT executed.
+
+L_dryrun=0
+L_run touch new_file
+# Outputs: +touch new_file
+# Command is executed.
 ```
 
-The configuration of log module is done with [`L_log_configure`](#L_lib.sh--L_log_configure).
+### Log Configuration
 
-```
-declare info verbose
-L_argparse -- -v --verbose action=store_1 ---- "$@"
-if ((verbose)); then level=debug; else level=info; fi
-L_log_configure -l "$level"
+Use `L_log_configure` to change the behavior of the logging system.
+
+#### The "First Call Wins" Principle
+
+By default, `L_log_configure` follows a "configure-once" design. This means the **first call** to this function sets the global configuration, and all subsequent calls are **ignored**. 
+
+This prevents libraries or sourced scripts from accidentally overriding your application's logging setup (e.g., changing your JSON format back to plain text).
+
+#### Reconfiguring with `-r`
+
+If you need to change the configuration later (for example, after parsing command-line arguments to change the log level), you **must** use the `-r` (reconfigure) flag.
+
+```bash
+# Initial default setup (maybe in a library)
+L_log_configure -l info
+
+# This call will be IGNORED because logging is already configured
+L_log_configure -l debug 
+
+# This call will WORK because -r forces a reconfiguration
+L_log_configure -r -l debug
 ```
 
-The logging functions accept the `-s` option to to increase logging stack information level.
+#### Setting Log Level
 
+```bash
+# Set level via name
+L_log_configure -l debug
+
+# Set level via integer constant
+L_log_configure -l "$L_LOGLEVEL_ERROR"
 ```
-your_logger() {
-  L_info -s 1 -- "$@"
+
+#### Integration with Argparse
+
+A common pattern is to set the verbosity via command-line flags.
+
+```bash
+main() {
+    local verbose=0
+    L_argparse -- \
+        -v --verbose action=count var=verbose help="Increase verbosity" \
+        ---- "$@"
+    
+    local level=INFO
+    if ((verbose >= 2)); then level=TRACE;
+    elif ((verbose >= 1)); then level=DEBUG; fi
+    
+    L_log_configure -r -l "$level"
 }
-somefunc() {
-  L_info hello
-  your_logger world
+```
+
+#### Predefined Formats
+
+The library comes with several built-in formatters:
+- **Default:** `script:LEVEL:line:message`
+- **Long (`-L`):** Includes ISO8601 timestamp, source file, function name, and line number.
+- **JSON (`-J`):** Outputs one JSON object per line, ideal for log aggregators.
+
+```bash
+# Default format
+L_info "hi"
+# Output: my_script:info:10:hi
+
+# Use the long format
+L_log_configure -L
+L_info "hi"
+# Output: 2026-02-06T12:56:25+0100 my_script:main:2 info hi
+
+# Use JSON format for structured logging
+L_log_configure -J
+L_info "hi"
+# Output: {"timestamp":"2026-02-06T12:56:20+0100","funcname":"main","lineno":1,"source":"my_script","level":20,"levelname":"info","message":"hi","script":"my_script","pid":15653,"ppid":1170}
+```
+
+### Customization
+
+You can fully customize how logs are filtered, formatted, and where they are sent.
+
+```bash
+my_formatter() {
+  # The message is in "$@", the result must be put in L_logline
+  printf -v L_logline "[%s] %s" "$L_logline_levelname" "$*"
 }
-```
 
-All these functions forward messages to `L_log` which is main entrypoint for logging.
-`L_log` takes two options, `-s` for stacklevel and `-l` for loglevel.
-The loglevel can be specified as a sting `info` or `INFO` or `L_LOGLEVEL_INFO` or as a number `30` or `$L_LOGLEVEL_INFO`.
-
-```
-L_log -s 1 -l debug -- "This is a debug message"
-```
-
-## Configuration
-
-The logging can be configured with `L_log_configure`.
-It supports custom log line filtering, custom formatting and outputting, independent.
-
-```
-my_log_formatter() {
-  printf -v L_logline "%(%c)T: %s %s" -1 "${L_LOGLEVEL_NAMES[L_logline_loglevel]}" "$*"
+my_outputter() {
+  # Print the formatted L_logline
+  echo "CUSTOM: $L_logline" >&2
 }
-my_log_ouputter() {
-  echo "$L_logline" | logger -t mylogmessage
-  echo "$L_logline" >&2
-}
-my_log_filter() {
-  # output only logs from functions starting with L_
-  [[ $L_logline_funcname == L_* ]]
-}
-L_log_configure -l debug -F my_log_formatter -o my_log_ouputter -s my_log_selector
+
+L_log_configure -F my_formatter -o my_outputter
 ```
 
-There are these formatting functions available:
+#### Available variables in callbacks:
+- `$L_logline`: The variable to be set by the formatter and read by the outputter.
+- `$L_logline_levelno`: Numeric logging level.
+- `$L_logline_levelname`: Text logging level.
+- `$L_logline_funcname`: Function name.
+- `$L_logline_source`: Source file path.
+- `$L_logline_lineno`: Line number.
 
-- `L_log_format_default` - defualt log formatting function.
-- `L_log_format_long` - long formatting with timestamp, source, function, line, level and message.
-- `L_log_format_json` - format log as JSON lines.
-
-### Available variables in filter, outputter and formatter functions:
-
-There are several variables `L_logline_*` available for callback functions:
-
-- `$L_logline` - The variable should be set by the formatting function and printed by the outputting function.
-- `$L_logline_level` - Numeric logging level for the message.
-- `$L_logline_levelname` - Text logging level for the message. Empty if unknown.
-- `$L_logline_funcname` - Name of function containing the logging call.
-- `$L_logline_source` - The BASH_SOURCE where the logging call was made.
-- `$L_logline_lineno` - The line number in the source file where the logging call was made.
-- `$L_logline_stacklevel` - The offset in stack to where the logging call was made.
-- `${L_LOGLEVEL_COLORS[L_logline_levelno]:-}` - The color for the log line.
-- `$L_logline_color` - Set to 1 if line should print color. Set to empty otherwise.
-    - This is used in templating. `${L_logline_color:+${L_LOGLEVEL_COLORS[L_logline_levelno]:-}colored${L_logline_color:+$L_COLORRESET}`
-
-# Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh log
