@@ -9662,7 +9662,7 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 # @option -k <var> Store key of the first element in specified variable.
 # @option -f <var> First loop stores 1 into the variable, otherwise 0 is stored in the variable.
 # @option -l <var> Last loop stores 1 into the variable, otherwise 0 is stored in the variable.
-# @option h Print this help and return 0.
+# @option -h Print this help and return 0.
 # @arg $@ Variable names to assign, followed by : colon character, followed by arrays variables.
 # @env _L_FOREACH
 # @env _L_FOREACH_[0-9]+
@@ -9684,7 +9684,7 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
 L_foreach() {
-  local OPTIND OPTERR OPTARG \
+  local OPTIND OPTARG OPTERR \
     _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" _L_opt_l="" \
     _L_i IFS=' ' _L_vidx="" \
     _L_s_keys _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0
@@ -9705,7 +9705,7 @@ L_foreach() {
   shift "$((OPTIND-1))"
   # Pick variable name to store state in.
   if [[ -z "$_L_opt_v" ]]; then
-    local _L_context="${BASH_SOURCE[*]}:${BASH_LINENO[*]}:${FUNCNAME[*]}"
+    local _L_context="${BASH_SOURCE[*]}:${BASH_LINENO[*]}:${FUNCNAME[*]}:$*"
     # Find the context inside _L_FOREACH array.
     if ! L_array_index -v _L_vidx _L_FOREACH "$_L_context"; then
       # If not found, add it.
