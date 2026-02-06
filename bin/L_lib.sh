@@ -9667,7 +9667,6 @@ _L_lib_their_usage() {
 		{
 			_L_lib_list_prefix_functions
 			echo "-h --help"$'\01'"print this help and exit"
-			echo "--bash-completion"$'\01'"generate bash completion to be eval'ed"
 		} | {
 			if L_command_exists column && column -V 2>/dev/null | grep -q util-linux; then
 				column -t -s $'\01' -o '   '
@@ -9702,38 +9701,6 @@ _L_lib_show_best_match() {
 	fi >&2
 }
 
-# https://stackoverflow.com/questions/14513571/how-to-enable-default-file-completion-in-bash
-# shellcheck disable=2207
-_L_do_bash_completion() {
-	if [[ "$(LC_ALL=C type -t -- "_L_cb_bash_completion_$L_NAME" 2>/dev/null)" = function ]]; then
-		"_L_cb_bash_completion_$L_NAME" "$@"
-		return
-	fi
-	if ((COMP_CWORD == 1)); then
-		COMPREPLY=($(compgen -W "${cmds[*]}" -- "${COMP_WORDS[1]}" || :))
-		# add trailing space to each
-		#COMPREPLY=("${COMPREPLY[@]/%/ }")
-	else
-		COMPREPLY=()
-	fi
-}
-
-# shellcheck disable=2120
-_L_lib_bash_completion() {
-	local tmp cmds
-	tmp=$(_L_lib_list_prefix_functions)
-	mapfile -t cmds <<<"$tmp"
-	local funcname
-	funcname=_L_bash_completion_$L_NAME
-	eval "$funcname() {
-		$(declare -p cmds L_NAME)"'
-		_L_do_bash_completion "$@"
-	}'
-	declare -f _L_do_bash_completion "$funcname"
-	printf "%s" "complete -o bashdefault -o default -F"
-	printf " %q" "$funcname" "$0" "$L_NAME"
-	printf '\n'
-}
 
 _L_lib_run_tests() {
 	L_unittest_main -P _L_test_ "$@"
@@ -9765,10 +9732,6 @@ Usage example of 'cmd' command:
   CMD_some_other_func() { echo 'not yay!'; }
   .  $_L_lib_name cmd 'CMD_' "\$@"
 
-Usage example of 'bash-completion' command:
-
-  eval "\$(script.sh cmd 'CMD_' --bash-completion)"
-
 $_L_lib_name Copyright (C) 2024 Kamil Cukrowski
 $L_FREE_SOFTWARE_NOTICE
 EOF
@@ -9790,14 +9753,6 @@ _L_lib_main_cmd() {
 		set -- "${L_cb_args[@]}"
 	else
 		case "${1:-}" in
-		--bash-completion)
-			_L_lib_bash_completion
-			if L_is_main; then
-				exit 0
-			else
-				return 0
-			fi
-			;;
 		-h | --help)
 			_L_lib_their_usage "$@"
 			if L_is_main; then
