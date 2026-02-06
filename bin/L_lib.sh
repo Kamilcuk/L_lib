@@ -3447,7 +3447,7 @@ L_array_copy() {
 
 else  # L_HAS_NAMEREF
 	L_array_len_v() { L_is_valid_variable_name "$1" && eval "L_v=\${#$1[@]}"; }
-	L_array_keys_v() { L_is_valid_variable_anme "$1" && eval "L_v=(\"\${!$1[@]}\")"; }
+	L_array_keys_v() { L_is_valid_variable_name "$1" && eval "L_v=(\"\${!$1[@]}\")"; }
 	L_array_assign() { L_is_valid_variable_name "$1" && eval "$1=(\"\${@:2}\")"; }
 	L_array_set() { L_is_valid_variable_name "$1" && eval "$1[\"\$2\"]=\"\$3\""; }
 	L_array_append() { L_is_valid_variable_name "$1" && eval "$1+=(\"\${@:2}\")"; }
