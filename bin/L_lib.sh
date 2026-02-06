@@ -720,7 +720,7 @@ L_func_usage() {
 			fi
 		done <<<"$v"
 		if [[ -n "${usage:=${short:+ [-$short]}$long$args}" ]]; then
-			echo "${FUNCNAME[up]}: usage: ${FUNCNAME[up]}$usage" >&2
+			echo "${BASH_SOURCE[up]}: usage: ${FUNCNAME[up]}$usage" >&2
 		fi
 	fi
 }
