@@ -9746,6 +9746,7 @@ L_foreach() {
   if (( _L_opt_n > 1 )); then
     # If -n options is given, repeat each variable with assignment as an array with indexes.
     # _L_vars=(a b) n=3 -> _L_vars=(a[0] a[1] a[2] b[0] b[1] [2])
+    # shellcheck disable=SC2175
     eval eval \''_L_vars=('\' \\\"\\\${_L_vars[{0..$(( ${#_L_vars} - 1))}]}[{0..$(( _L_opt_n - 1 ))}]\\\" \'')'\'
   fi
   local _L_varslen=${#_L_vars[*]} _L_arrslen=${#_L_arrs[*]}
@@ -9861,6 +9862,7 @@ L_foreach() {
     printf -v "$_L_opt_i" "%s" "$_L_s_loopidx"
   fi
   # Serialize and store state.
+  # shellcheck disable=SC2059
   printf -v _L_i "${_L_s_keys[*]:+%q} " "${_L_s_keys[@]}"
   printf -v "$_L_opt_v" "local _L_s_keys=(%s) _L_s_loopidx=%d _L_s_colon=%d _L_s_arridx=%d _L_s_idx=%d" \
     "${_L_i%% }" "$(( _L_s_loopidx + 1 ))" "$_L_s_colon" "$_L_s_arridx" "$_L_s_idx"
