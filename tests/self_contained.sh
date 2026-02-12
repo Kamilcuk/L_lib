@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")"/../bin/L_lib.sh -s
-functions="$(compgen -A function -- _L_)
+functions="\
+$(compgen -A function -- _L_)
 $(compgen -A function -- L_)
 "
-all_functions="$functions
+all_functions="\
+$functions
 L_cb_parse_args
 L_cb_usage
 L_asa_set
 "
 work() {
   func="$1"
+  if [[ "$func" == _L_lib_usage ]]; then
+    # Ignore
+    return
+  fi
   def=$(declare -f "$func") || L_panic "Function does not exists: $func"
   calls=$(sed -n 's/^[ \t\n]*\(_\?L_[^ \t\n;]*\).*/\1/p' <<<"$def" | grep -v '[=+[]' | sort -u)
   for call in $calls; do

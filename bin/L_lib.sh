@@ -9639,7 +9639,7 @@ _L_lib_log() {
 }
 
 _L_lib_fatal() {
-	_L_lib_log "FATAL: $@"
+	_L_lib_log "FATAL: $*"
 	exit 3
 }
 
