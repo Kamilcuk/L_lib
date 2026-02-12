@@ -15,7 +15,7 @@
 ---
 # Package identity and metadata
 name: L_lib
-version: 1.0.4
+version: 1.0.5
 author: Kamil Cukrowski
 license: LGPL-3.0
 description: Collection of Bash useful functions and utilities for shell scripting
