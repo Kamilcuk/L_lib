@@ -9,3 +9,13 @@ perf*
 .venv
 site
 **/.vagrant
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+TODO.md
+

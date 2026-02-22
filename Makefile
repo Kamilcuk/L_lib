@@ -45,6 +45,15 @@ test: $(TESTS)
 	@echo 'make test finished with SUCCESS'
 test_local:
 	./tests/test.sh $(ARGS)
+
+test_pip: venv
+	./venv/bin/pip install .
+	./venv/bin/L_lib.sh -h
+
+venv:
+	python3 -m venv venv
+	./venv/bin/pip install --upgrade pip setuptools
+
 IMAGE = $(shell docker build -q --target tester --build-arg VERSION=$* .)
 .PHONY: test_bash%
 test_bash%:

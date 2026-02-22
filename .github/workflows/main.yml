@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -57,6 +59,16 @@ jobs:
       - uses: actions/checkout@v6
       - run: shellcheck bin/L_lib.sh
 
+  test_pip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: make test_pip
+
   build_pages:
     runs-on: ubuntu-latest
     timeout-minutes: 3
@@ -103,7 +115,7 @@ jobs:
   deploy_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher]
+    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
@@ -148,7 +160,7 @@ jobs:
   deploy_pages:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher]
+    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       pages: write      # to deploy to Pages
@@ -161,3 +173,24 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  pypi-publish:
+    name: Upload release to PyPI
+    needs: [test, test_ubuntu, shellcheck, test_pip]
+    if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: pypi
+      url: https://pypi.org/p/L_lib
+    permissions:
+      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+    steps:
+      - name: checkout
+        uses: actions/checkout@v6
+      - name: install build python package
+        run: pip install --upgrade build
+      - name: build the package
+        run: python -m build
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
