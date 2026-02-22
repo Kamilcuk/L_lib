@@ -1,0 +1,31 @@
+[project]
+version = "1.0.4" # sync version with .github/bump.yml
+name = "L_lib"
+description = "Collection of Bash useful functions and utilities for shell scripting"
+readme = "README.md"
+requires-python = ">=3.6"
+license = {text = "GPL-3.0"}
+authors = [
+    {name = "Kamil Cukrowski", email = "kamil@cukrowski.net"}
+]
+keywords = ["bash", "library", "utilities", "scripting", "argument-parsing", "logging", "process-management", "functional-programming"]
+classifiers = [
+    "Programming Language :: Unix Shell",
+    "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: POSIX :: BSD :: FreeBSD",
+    "Operating System :: MacOS",
+]
+
+[project.urls]
+Homepage = "https://kamilcuk.github.io/L_lib/"
+Documentation = "https://kamilcuk.github.io/L_lib/"
+Repository = "https://github.com/Kamilcuk/L_lib.git"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = []
+script-files = ["bin/L_lib.sh"]

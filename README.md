@@ -18,9 +18,9 @@ Labrador Bash library. Collection of functions and libraries that I deem useful 
 
 The library is one file. Download the latest release from GitHub and put in your PATH:
 
-```
+```bash
 mkdir -vp ~/.local/bin/
-curl -o ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh
+wget -O ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh
 export PATH=~/.local/bin:$PATH
 ```
 
@@ -30,12 +30,12 @@ You can use the library in scripts with:
 . L_lib.sh -s
 ```
 
-Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement` and, if `set -e` is set, register a `ERR` trap that will print a nice traceback on unhandled error.
+Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement` and, if `set -e` is set and there is no `ERR` trap, it will also register a `ERR` trap that will print a nice traceback on unhandled error.
 
 You can test the library ad-hoc:
 
-```
-bash <(curl -sS https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh) L_setx L_log 'Hello world'
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
 # Features

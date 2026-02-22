@@ -18,3 +18,5 @@ files:
     line: 27
   - file-path: 'bash.yml'
     line: 18
+  - file-path: 'pyproject.toml'
+    line: 2
