@@ -139,4 +139,4 @@ Report bugs using [GitHub issue](https://github.com/Kamilcuk/L_lib/issues).
 
 # License
 
-LGPL
+GPL-3.0
