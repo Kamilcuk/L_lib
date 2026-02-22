@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # vim: foldmethod=marker foldmarker=[[[,]]] ft=bash
 # shellcheck disable=SC2034,SC2178,SC2016,SC2128,SC1083,SC1087
-# SPDX-License-Identifier: LGPL-3.0
+# SPDX-License-Identifier: GPL-3.0
 #    L_lib.sh
 #    Copyright (C) 2024 Kamil Cukrowski
 #
