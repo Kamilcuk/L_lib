@@ -8,6 +8,7 @@ Labrador Bash library. Collection of functions and libraries that I deem useful 
 
 * [Documentation](https://kamilcuk.github.io/L_lib/)
 * [Installation](#installation)
+* [Usage](#usage)
 * [Features](#features)
 * [Conventions](#conventions)
 * [License](#license)
@@ -24,13 +25,36 @@ wget -O ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/r
 export PATH=~/.local/bin:$PATH
 ```
 
+### Pip
+
+```bash
+pip install L_lib
+```
+
+### Basher
+
+```bash
+basher install Kamilcuk/L_lib
+```
+
+# Usage
+
 You can use the library in scripts with:
 
-```
+```bash
 . L_lib.sh -s
 ```
 
 Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement` and, if `set -e` is set and there is no `ERR` trap, it will also register a `ERR` trap that will print a nice traceback on unhandled error.
+
+For example, a simple script using the library could look like:
+
+```bash
+#!/bin/bash
+. L_lib.sh -s
+L_log "Starting script"
+L_info "This is an info message"
+```
 
 You can test the library ad-hoc:
 
@@ -40,7 +64,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/
 
 # Features
 
-Below is some list with some of the library features. The library contains much more.
+Below is a selection of the library's features. The library contains much more.
 
 - Argument parsing in Bash with short, long options, sub-parsers, sub-functions support and shell completion
     [`L_argparse`](https://kamilcuk.github.io/L_lib/section/argparse/)
@@ -68,7 +92,7 @@ Below is some list with some of the library features. The library contains much 
     [`L_extglob`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_extglob)
 - Easily sort a Bash arrays containing any characters
     [`L_sort`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_sort)
-- failure handling utilities
+- Failure handling utilities
     [`L_assert`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_assert)
     [`L_die`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_die)
     [`L_check`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_check)
@@ -77,7 +101,7 @@ Below is some list with some of the library features. The library contains much 
     [`L_color_detect`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_color_detect)
     [`$L_RED`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--$L_RED)
     [`$L_BLUE`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--$L_BLUE)
-- checking Bash features and version
+- Checking Bash features and version
     [`$L_BASH_VERSION`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_BASH_VERSION)
     [`$L_HAS_BASH4_0`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_BASH4_0)
     [`$L_HAS_COMPGEN_V`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_COMPGEN_V)
@@ -87,12 +111,12 @@ Below is some list with some of the library features. The library contains much 
 - Simplify storing exit status of a command into a variable
     [`L_exit_to`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to)
     [`L_exit_to_10`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to_10)
-- help with path operations, with `PATH` or `PYTHONPATH` manipulation
+- Help with path operations, with `PATH` or `PYTHONPATH` manipulation
     [`L_path_stem`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_stem)
     [`L_dir_is_empty`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_dir_is_empty)
     [`L_path_append`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_append)
     [`L_path_relative_to`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_relative_to)
-- string utilities
+- String utilities
     [`L_strip`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strip)
     [`L_strupper`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strupper)
     [`L_strstr`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strstr)
@@ -124,19 +148,23 @@ Kindly feel free to have conversations and ask questions on [GitHub discussion](
 
 Report bugs using [GitHub issue](https://github.com/Kamilcuk/L_lib/issues).
 
+# Contributing
+
+Contributions are welcome! You can run the tests locally with `make test` or check static analysis with `make shellcheck`. Please submit pull requests to the main repository.
+
 # Conventions
 
 - `L_*` prefix for public symbols.
 - `_L_*` prefix for private symbols, including local variables in functions taking a name-reference.
 - Upper case used for global scope read-only variables.
-- Lower case used for functions and user mutable variables
+- Lower case used for functions and user mutable variables.
 - Snake case for everything.
 - The option `-v <var>` is used to store the result in a variable instead of printing it.
     - This follows the convention of `printf -v <var>`.
     - Without the `-v` option, the function outputs the elements on lines to standard output.
     - Associated function with `_v` suffix store the result in a hardcoded scratch variable `L_v`.
-- return 2 on usage error, return 124 on timeout
+- Return 2 on usage error, return 124 on timeout.
 
 # License
 
-GPL-3.0
+[GPL-3.0](LICENSE)
