@@ -4784,10 +4784,24 @@ _L_sort_bash_in() {
 	fi
 }
 
-# @description default nonnumeric compare function
+# @description Default nonnumeric compare function.
 _L_sort_compare() { [[ "$1" > "$2" ]]; }
-# @description default numeric compare function
-_L_sort_compare_numeric() { (( $1 > $2 )); }
+# @description Default numeric compare function.
+_L_sort_compare_numeric() {
+	if L_is_integer "$1"; then
+		if L_is_integer "$2"; then
+			(( $1 > $2 ))
+		else
+			(( $1 > 0 ))
+		fi
+	else
+		if L_is_integer "$2"; then
+			(( 0 > $2 ))
+		else
+			(( 0 > 0 ))
+		fi
+	fi
+}
 
 # @description Quicksort an array in place in pure bash.
 # @see L_sort
@@ -9664,15 +9678,15 @@ L_printf_v() {
 # @set _L_opt_e
 # @set _L_count
 _L_foreach_assign_result() {
-  L_printf_v "${_L_vars[$1]}" "%s" "${!2:-}"
+  L_printf_v "${_L_vars[$1]}" "%s" "${!2:-}" || L_panic "Could not assign to variable ${_L_vars[$1]}"
   if L_var_is_set "$2"; then
   	if [[ -n "$_L_opt_e" ]]; then
-      L_printf_v "$_L_opt_e[$1]" "%s" "1"
+      L_printf_v "$_L_opt_e[$1]" "%s" "1" || L_panic "Could not assign to variable $_L_opt_e[$1]"
     fi
   	_L_count=$(( _L_count + 1 ))
   else
   	if [[ -n "$_L_opt_e" ]]; then
-    	L_printf_v "$_L_opt_e[$1]" "%s" ""
+    	L_printf_v "$_L_opt_e[$1]" "%s" "" || L_panic "Could not assign to variable $_L_opt_e[$1]"
     fi
   fi
 }
@@ -9683,7 +9697,7 @@ _L_foreach_assign_result() {
 _L_foreach_sort_indirect_array() {
 	local _L_a="$1[$2]" _L_b="$1[$3]"
 	if (( _L_opt_n )); then
-		[[ "${!_L_a:-}" -gt "${!_L_b:-}" ]] || return "$?"
+		_L_sort_compare_numeric "${!_L_a:-}" "${!_L_b:-}"
 	else
 		[[ "${!_L_a:-}" > "${!_L_b:-}" ]] || return "$?"
 	fi
@@ -9751,10 +9765,10 @@ _L_foreach_sort_indirect_L_arrs() {
 #    while L_foreach a b : array1; do echo $a,$b; done  # a,b c,d
 #    while L_foreach a b : array1 array2; do echo $a,$b; done  # a,d b,e c,f g,d
 #    while L_foreach a b c : array1 array2; do echo $a,$b; done  # a,d,b e,c,f g,d,<unset>
-#    while L_foreach -n 3 a : array1; do echo ${#a[@]},${a[*]},; done  # 3,a b c, 1,d,
+#    while L_foreach -R 3 a : array1; do echo ${#a[@]},${a[*]},; done  # 3,a b c, 1,d,
 #
 #    local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
-#    while L_foreach -n 3 a : dict1; do echo ${#a[@]},${a[*]},; done  # 2,b d or 2,d b
+#    while L_foreach -R 3 a : dict1; do echo ${#a[@]},${a[*]},; done  # 2,b d or 2,d b
 #                            # the order of elements is unknown in associative arrays
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
@@ -9874,11 +9888,9 @@ L_foreach() {
       	elif (( _L_opt_s )); then
         	# Compute keys in the sorted order of keys if requested.
           if L_var_is_associative "$_L_arr"; then
-            if (( _L_opt_s )); then
-              L_sort_bash ${_L_opt_r:+-r} ${_L_opt_n:+-n} _L_s_keys
-            fi
+            L_sort_bash ${_L_opt_r:+-r} ${_L_opt_n:+-n} _L_s_keys
           else
-          	# No reason to sort normal array keys - they are sorted anyway.
+          	# No reason to sort normal array keys - they are sorted anyway. Always numeric sort.
             if (( _L_opt_r )); then
               L_array_reverse _L_s_keys
             fi
