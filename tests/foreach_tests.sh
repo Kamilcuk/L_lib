@@ -191,7 +191,7 @@ _L_test_foreach_7_nested() {
 }
 
 _L_test_foreach_8_sparse_array() {
-  local array1=([2]=a [8]=b) array2=([4]=c [6]=d) i k a b acc=() l f c m acc2=()
+  local array1=([2]=a [8]=b) array2=([4]=c [6]=d) i k a b acc=() l f c e acc2=()
   {
     L_log "test sparse array iteration key is ok"
     while L_foreach -i i -k k a : array1; do
@@ -204,10 +204,10 @@ _L_test_foreach_8_sparse_array() {
   {
     L_log "test sparse two arrays iteration in order"
     acc=()
-    while L_foreach -c c -m m -l l -f f -i i -k k a b : array1 array2; do
+    while L_foreach -c c -e e -l l -f f -i i -k k a b : array1 array2; do
       # echo "$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}"
-      declare -p m
-      acc+=("$i" "$f" "$l" "$k" "$c" "${m[0]:-0}" "${m[1]:-0}" "${a:-X}" "${b:-X}")
+      declare -p e
+      acc+=("$i" "$f" "$l" "$k" "$c" "${e[0]:-0}" "${e[1]:-0}" "${a:-X}" "${b:-X}")
     done
     L_unittest_arreq acc \
       0 1 0 2 1 1 0 a X \
@@ -219,10 +219,10 @@ _L_test_foreach_8_sparse_array() {
   {
     L_log "test sparse two arrays iteration in sorted keys order"
     acc=() acc2=()
-    while L_foreach -c c -m m -s -l l -f f -i i -k k a b : array1 array2; do
+    while L_foreach -c c -e e -s -l l -f f -i i -k k a b : array1 array2; do
       # echo "$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}"
       acc+=("$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}")
-      acc2+=("$c" "${m[0]:-0}" "${m[1]:-0}")
+      acc2+=("$c" "${e[0]:-0}" "${e[1]:-0}")
     done
     L_unittest_arreq acc \
       0 1 0 2 a X \
@@ -247,10 +247,36 @@ _L_test_foreach_9_empty() {
     L_log "test two empty arrays"
     L_unittest_cmd -e 4 L_foreach a : array1 array2
   }
-  local arr1=(a b c) arr2=(d) m c acc=()
+  local arr1=(a b c) arr2=(d) e c acc=()
   {
     L_log "diff len"
     L_unittest_cmd -o "0,2,1,1,a d|1,1,1,,b |2,1,1,,c |" \
-      eval 'while L_foreach -s -k k -c c -m m -- a : arr1 arr2; do echo -n "$k,$c,${m[0]},${m[1]},${a[@]}|" ; done'
+      eval 'while L_foreach -s -k k -c c -e e -- a : arr1 arr2; do echo -n "$k,$c,${e[0]},${e[1]},${a[@]}|" ; done'
   }
 }
+
+_L_test_foreach_10_exists() {
+  local arr1=([0]=a [1]=b) arr2=([0]=c [2]=d)
+  L_unittest_cmd -o "\
+arr1[0]=a,arr2[0]=c|\
+arr1[1]=b,arr2[1]=NO|\
+arr1[2]=NO,arr2[2]=d|\
+" -- \
+    eval '
+      while L_foreach -k k -e e -- a b : arr1 arr2; do
+        if ((e[0])); then
+          echo -n "arr1[$k]=$a"
+        else
+          echo -n "arr1[$k]=NO"
+        fi
+        echo -n ","
+        if ((e[1])); then
+          echo -n "arr2[$k]=$b"
+        else
+          echo -n "arr2[$k]=NO"
+        fi
+        echo -n "|"
+      done
+    '
+}
+
