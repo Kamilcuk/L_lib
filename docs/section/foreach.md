@@ -89,24 +89,48 @@ Service: smtp (Port: 25)
 Service: ssh (Port: 22)
 ```
 
-### Sorted Iteration by Value (-V)
+### Sorted Iteration by Value (-V) and Numeric Sort (-n)
 
-If you want to sort by the values instead of the keys, use the `-V` flag. This is particularly useful for associative arrays.
+If you want to sort by the values instead of the keys, use the `-V` flag. By default, the values are compared lexicographically. To compare them numerically, combine it with the `-n` flag. This is essential when dealing with port numbers, sizes, or other numeric data.
 
 ```bash
-declare -A services=([http]=80 [ssh]=22 [smtp]=25)
+declare -A services=([http]=80 [ssh]=22 [https]=443 [smtp]=25 [myapp]=110)
 
-echo "--- Services sorted by port number ---"
-while L_foreach -V -k name port : services; do
+echo "--- Services sorted by port number (numeric) ---"
+while L_foreach -V -n -k name port : services; do
   echo "Service: $name (Port: $port)"
 done
 ```
 **Output:**
 ```
---- Services sorted by port number ---
+--- Services sorted by port number (numeric) ---
 Service: ssh (Port: 22)
 Service: smtp (Port: 25)
 Service: http (Port: 80)
+Service: myapp (Port: 110)
+Service: https (Port: 443)
+```
+
+Without the `-n` flag, `110` would appear before `22` because it starts with the character `1`.
+
+### Sorted Iteration by Keys (-s -n -r)
+
+You can also sort keys numerically using `-n` or in reverse order using `-r`.
+
+```bash
+declare -A data=([2]=alpha [10]=beta [1]=gamma)
+
+echo "--- Keys sorted numerically ---"
+while L_foreach -s -n -k key val : data; do
+  echo "Key $key: $val"
+done
+```
+**Output:**
+```
+--- Keys sorted numerically ---
+Key 1: gamma
+Key 2: alpha
+Key 10: beta
 ```
 
 ## Combining Multiple Arrays
