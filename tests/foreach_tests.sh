@@ -58,7 +58,7 @@ _L_test_foreach_02_all_index_first_last() {
     L_log "Test associative arrays"
     local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
     L_unittest_cmd -r '011,3,[bd] [bd] :' \
-      eval 'while L_foreach -ii -ff -ll -n 3 a : dict1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
+      eval 'while L_foreach -ii -ff -ll -R 3 a : dict1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
     L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
       eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
     L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
@@ -286,7 +286,7 @@ _L_test_foreach_11_v_sort_values() {
     L_log "Test sorting by values"
     L_unittest_cmd -o 'c,x:b,y:a,z:' \
       eval 'while L_foreach -V -k k v : dict; do echo -n $k,$v:; done'
-    
+
     local -A dict2=([a]=10 [b]=2 [c]=1)
     L_log "Test sorting by values numerically"
     # Note: L_sort (which I assume L_foreach -V uses) might not do numeric sort by default.
