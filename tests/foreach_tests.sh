@@ -1,4 +1,4 @@
-_L_test_foreach_1_all() {
+_L_test_foreach_01_all() {
   local array1=(a b c d) array2=(e f g h)
   L_log "Test simple one or two vars in array"
   L_unittest_cmd -o 'a:b:c:d:' \
@@ -10,7 +10,7 @@ _L_test_foreach_1_all() {
   L_unittest_cmd -o 'a,b,c:d,e,f:g,h,unset:' \
     eval 'while L_foreach a b c : array1 array2; do echo -n $a,$b,${c:-unset}:; done'
   L_unittest_cmd -o '3,a b c:3,d :' \
-    eval 'while L_foreach -n 3 a : array1; do echo -n ${#a[@]},${a[*]}:; done'
+    eval 'while L_foreach -R 3 a : array1; do echo -n ${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
   L_unittest_cmd -o 'a,e:b,f:c,g:d,h:' \
@@ -24,7 +24,7 @@ _L_test_foreach_1_all() {
     L_log "Test associative arrays"
     local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
     L_unittest_cmd -r '3,[bd] [bd] :' \
-      eval 'while L_foreach -n 3 a : dict1; do echo -n ${#a[@]},${a[*]}:; done'
+      eval 'while L_foreach -R 3 a : dict1; do echo -n ${#a[@]},${a[*]}:; done'
     L_unittest_cmd -o 'a,b,e:c,d,f:' \
       eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
     L_unittest_cmd -o 'a,b,e:c,d,f:' \
@@ -32,7 +32,7 @@ _L_test_foreach_1_all() {
   fi
 }
 
-_L_test_foreach_2_all_index_first_last() {
+_L_test_foreach_02_all_index_first_last() {
   local array1=(a b c d) array2=(e f g h)
   L_log "Test simple one or two vars in array"
   L_unittest_cmd -o '010,a:100,b:200,c:301,d:' \
@@ -44,7 +44,7 @@ _L_test_foreach_2_all_index_first_last() {
   L_unittest_cmd -o '010,a,b,c:100,d,e,f:201,g,h,unset:' \
     eval 'while L_foreach -ii -ff -ll a b c : array1 array2; do echo -n $i$f$l,$a,$b,${c:-unset}:; done'
   L_unittest_cmd -o '010,3,a b c:101,3,d :' \
-    eval 'while L_foreach -ii -ff -ll -n 3 a : array1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
+    eval 'while L_foreach -ii -ff -ll -R 3 a : array1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
   L_unittest_cmd -o '010,a,e:100,b,f:200,c,g:301,d,h:' \
@@ -69,7 +69,7 @@ _L_test_foreach_2_all_index_first_last() {
 }
 
 
-_L_test_foreach_3_normal() {
+_L_test_foreach_03_normal() {
   local arr=(a b c d e) i a b k acc=() acc1=() acc2=()
   {
     L_log "test simple"
@@ -89,7 +89,7 @@ _L_test_foreach_3_normal() {
   }
 }
 
-_L_test_foreach_4_k_normal() {
+_L_test_foreach_04_k_normal() {
   local arr=(a b c d e) i a b k acc=() acc1=() acc2=()
   {
     L_log "test simple"
@@ -109,7 +109,7 @@ _L_test_foreach_4_k_normal() {
   }
 }
 
-_L_test_foreach_5_first() {
+_L_test_foreach_05_first() {
   {
     L_log "test sorted array L_foreach"
     local arr=(a b c d e) i a k acc=() b
@@ -143,7 +143,7 @@ _L_test_foreach_5_first() {
   fi
 }
 
-_L_test_foreach_6_last() {
+_L_test_foreach_06_last() {
   local arr=(a b c d e) other=(1 2 3 4) i a b k acc=()
   {
     while L_foreach -i i -k k a : arr; do
@@ -174,7 +174,7 @@ _L_test_foreach_6_last() {
   fi
 }
 
-_L_test_foreach_7_nested() {
+_L_test_foreach_07_nested() {
   local array1=(a b) array2=(1 2)
   L_log "Test basic nested loops"
   L_unittest_cmd -o 'a,1:a,2:b,1:b,2:' \
@@ -190,7 +190,7 @@ _L_test_foreach_7_nested() {
     eval 'while L_foreach x : array1; do while L_foreach y z : array3; do echo -n $x,$y,$z:; done; done'
 }
 
-_L_test_foreach_8_sparse_array() {
+_L_test_foreach_08_sparse_array() {
   local array1=([2]=a [8]=b) array2=([4]=c [6]=d) i k a b acc=() l f c e acc2=()
   {
     L_log "test sparse array iteration key is ok"
@@ -237,7 +237,7 @@ _L_test_foreach_8_sparse_array() {
   }
 }
 
-_L_test_foreach_9_empty() {
+_L_test_foreach_09_empty() {
   local array1=() array2=() i k a b acc=() l f e
   {
     L_log "test empty array"
@@ -280,3 +280,25 @@ arr1[2]=NO,arr2[2]=d|\
     '
 }
 
+_L_test_foreach_11_v_sort_values() {
+  if (( L_HAS_ASSOCIATIVE_ARRAY )); then
+    local -A dict=([a]=z [b]=y [c]=x)
+    L_log "Test sorting by values"
+    L_unittest_cmd -o 'c,x:b,y:a,z:' \
+      eval 'while L_foreach -V -k k v : dict; do echo -n $k,$v:; done'
+    
+    local -A dict2=([a]=10 [b]=2 [c]=1)
+    L_log "Test sorting by values numerically"
+    # Note: L_sort (which I assume L_foreach -V uses) might not do numeric sort by default.
+    # Let's see what it does.
+    L_unittest_cmd -o 'c,1:a,10:b,2:' \
+      eval 'while L_foreach -V -k k v : dict2; do echo -n $k,$v:; done'
+    L_unittest_cmd -o 'c,1:b,2:a,10:' \
+      eval 'while L_foreach -V -n -k k v : dict2; do echo -n $k,$v:; done'
+  fi
+
+  local array=(z y x)
+  L_log "Test sorting indexed array by values"
+  L_unittest_cmd -o '2,x:1,y:0,z:' \
+    eval 'while L_foreach -V -k k v : array; do echo -n $k,$v:; done'
+}

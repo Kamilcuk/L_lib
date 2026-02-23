@@ -4646,7 +4646,9 @@ L_fatal() {
 # Is not affected by L_dryrun variable.
 # @arg $@ command to execute
 L_logrun() {
-	L_log -s 1 "+ $*"
+	local _L_logrun_tmp
+	printf -v _L_logrun_tmp "%q " "$@"
+	L_log -s 1 "+ ${_L_logrun_tmp%% }"
 	"$@"
 }
 
@@ -9636,8 +9638,8 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 # That properly sets the -v variable when it is an array.
 # The variables are like printf -v $1 fmt args...
 # @arg $1 variable to set
-# @arg fmt printf format string
-# @arg arg printf arguments....
+# @arg $2 fmt printf format string
+# @arg $@ arg printf arguments....
 L_printf_v() {
 	if (( L_HAS_PRINTF_V_ARRAY )); then
 		L_printf_v() {
@@ -9675,6 +9677,30 @@ _L_foreach_assign_result() {
   fi
 }
 
+# @arg $1 Array name
+# @arg $2 One key value
+# @arg $3 Another key value
+_L_foreach_sort_indirect_array() {
+	local _L_a="$1[$2]" _L_b="$1[$3]"
+	if (( _L_opt_n )); then
+		[[ "${!_L_a:-}" -gt "${!_L_b:-}" ]] || return "$?"
+	else
+		[[ "${!_L_a:-}" > "${!_L_b:-}" ]] || return "$?"
+	fi
+}
+
+# @arg $1 One key value
+# @arg $2 Another key value
+# @env L_arrs
+# @env _L_arr
+# @env _L_opt_n
+_L_foreach_sort_indirect_L_arrs() {
+	for _L_arr in "${_L_arrs[@]}"; do
+		_L_foreach_sort_indirect_array "$_L_arr" "$1" "$2" || return "$?"
+	done
+	return 0
+}
+
 # @description Iterate over elements of an array by assigning it to variables.
 #
 # Each loop the arguments to the function are REQUIRED to be exactly the same.
@@ -9698,8 +9724,10 @@ _L_foreach_assign_result() {
 #
 # @option -s Output in sorted keys order. Does nothing on non-associative arrays.
 # @option -r Output in reverse sorted keys order. Implies -s.
-# @option -n <num> Each variable name is repeated as an array variable with indexes from 0 to num-1.
-#                  For example: '-n 3 a : arr' is equal to 'a[0] a[1] a[2] : arr'.
+# @option -n Output in numeric sorted order. Implies -s.
+# @option -V Output in sorted values order. Implies -s.
+# @option -R <num> Repeat each variable name as an array variable with indexes from 0 to num-1.
+#                  For example: '-R 3 a : arr' is equal to 'a[0] a[1] a[2] : arr'.
 # @option -i <var> Index of the loop is sroted in the specified variable. First loop has index 0.
 # @option -v <var> Store iterator state in the variable, instead of picking unique name starting with _L_FOREACH_*.
 # @option -k <var> Key of the first assigned element is stored in the specified variable. Usefull with -s.
@@ -9732,15 +9760,18 @@ _L_foreach_assign_result() {
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
 L_foreach() {
   local OPTIND OPTARG OPTERR \
-    _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" \
+    _L_opt_v="" _L_opt_s=0 _L_opt_r="" _L_opt_n="" _L_opt_V=0 \
+    _L_opt_R=0 _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" \
     _L_opt_l="" _L_opt_c="" _L_opt_e="" \
     _L_s_keys=() _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0 \
     _L_i IFS=' ' _L_vidx="" L_v _L_arr _L_elem _L_key _L_count=0
-  while getopts srn:i:v:k:f:l:c:e:h _L_i; do
+  while getopts srnVR:i:v:k:f:l:c:e:h _L_i; do
     case "$_L_i" in
       s) _L_opt_s=1 ;;
-      r) _L_opt_r=1 ;;
-      n) _L_opt_n=$OPTARG ;;
+      r) _L_opt_r=1 _L_opt_s=1 ;;
+      n) _L_opt_n=1 _L_opt_s=1 ;;
+      V) _L_opt_V=1 _L_opt_s=1 ;;
+      R) _L_opt_R=$OPTARG ;;
       i) _L_opt_i=$OPTARG ;;
       v) _L_opt_v=$OPTARG ;;
       k) _L_opt_k=$OPTARG ;;
@@ -9775,33 +9806,35 @@ L_foreach() {
     if (( _L_s_colon > $# )); then
       L_panic "Colon ':' not found in the arguments: $*"
     fi
-    # If -k option, accumulate all keys into one set.
-    if [[ -n "$_L_opt_k" ]]; then
-      for _L_arr in "${@:_L_s_colon + 1}"; do
-      	L_array_keys_v "$_L_arr"
-        for _L_key in "${L_v[@]}"; do
-          if ! L_array_contains _L_s_keys "$_L_key"; then
-            _L_s_keys+=("$_L_key")
-          fi
-        done
-      done
-      if (( _L_opt_r )); then
-        L_sort_bash -r _L_s_keys
-      elif (( _L_opt_s )); then
-        L_sort_bash _L_s_keys
-      fi
-    fi
   fi
   local _L_vars=("${@:1:_L_s_colon - 1}") _L_arrs=("${@:_L_s_colon + 1}")
-  if (( _L_opt_n > 1 )); then
+  if (( _L_opt_R > 1 )); then
     # If -n options is given, repeat each variable with assignment as an array with indexes.
     # _L_vars=(a b) n=3 -> _L_vars=(a[0] a[1] a[2] b[0] b[1] [2])
     # shellcheck disable=SC2175
-    eval eval \''_L_vars=('\' \\\"\\\${_L_vars[{0..$(( ${#_L_vars} - 1))}]}[{0..$(( _L_opt_n - 1 ))}]\\\" \'')'\'
+    eval eval \''_L_vars=('\' \\\"\\\${_L_vars[{0..$(( ${#_L_vars} - 1))}]}[{0..$(( _L_opt_R - 1 ))}]\\\" \'')'\'
   fi
   local _L_varslen=${#_L_vars[*]} _L_arrslen=${#_L_arrs[*]}
   if [[ -n "$_L_opt_k" ]]; then
   	# -k option specified
+  	if (( _L_s_loopidx == 0 )); then
+    	# If -k option and this is the first loop, accumulate all keys into one set.
+    	for _L_arr in "${_L_arrs[@]}"; do
+      	L_array_keys_v "$_L_arr"
+      	for _L_key in "${L_v[@]}"; do
+        	if ! L_array_contains _L_s_keys "$_L_key"; then
+          	_L_s_keys+=("$_L_key")
+        	fi
+      	done
+    	done
+    	if (( _L_opt_V )); then
+      	# Sort keys on values of all arrays in order.
+      	L_sort_bash -c _L_foreach_sort_indirect_L_arrs ${_L_opt_r:+-r} _L_s_keys
+    	elif (( _L_opt_s )); then
+      	# Sort keys on keys.
+      	L_sort_bash ${_L_opt_r:+-r} ${_L_opt_n:+-n} _L_s_keys
+    	fi
+  	fi
     if (( _L_s_idx >= ${#_L_s_keys[*]} )); then
     	# Iterated through all the keys.
       unset -v "$_L_opt_v" ${_L_vidx:+"_L_FOREACH[$_L_vidx]"}
@@ -9835,13 +9868,14 @@ L_foreach() {
       if (( _L_s_idx == 0 )); then
       	# Array keys are cached.
         L_array_keys -v _L_s_keys "$_L_arr"
-      	if (( _L_opt_s || _L_opt_r )); then
-        	# Compute keys in the sorted order if requested.
+        if (( _L_opt_V )); then
+        	# Compute keys in the sorted order of values if requested.
+      		L_sort_bash -E '_L_foreach_sort_indirect_array _L_arr "$1" "$2"' ${_L_opt_r:+-r} _L_s_keys
+      	elif (( _L_opt_s )); then
+        	# Compute keys in the sorted order of keys if requested.
           if L_var_is_associative "$_L_arr"; then
-            if (( _L_opt_r )); then
-              L_sort_bash -r _L_s_keys
-            elif (( _L_opt_s )); then
-              L_sort_bash _L_s_keys
+            if (( _L_opt_s )); then
+              L_sort_bash ${_L_opt_r:+-r} ${_L_opt_n:+-n} _L_s_keys
             fi
           else
           	# No reason to sort normal array keys - they are sorted anyway.

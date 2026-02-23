@@ -89,6 +89,26 @@ Service: smtp (Port: 25)
 Service: ssh (Port: 22)
 ```
 
+### Sorted Iteration by Value (-V)
+
+If you want to sort by the values instead of the keys, use the `-V` flag. This is particularly useful for associative arrays.
+
+```bash
+declare -A services=([http]=80 [ssh]=22 [smtp]=25)
+
+echo "--- Services sorted by port number ---"
+while L_foreach -V -k name port : services; do
+  echo "Service: $name (Port: $port)"
+done
+```
+**Output:**
+```
+--- Services sorted by port number ---
+Service: ssh (Port: 22)
+Service: smtp (Port: 25)
+Service: http (Port: 80)
+```
+
 ## Combining Multiple Arrays
 
 `L_foreach` can iterate over multiple arrays in parallel.
@@ -187,8 +207,8 @@ If you want to assign elements into an array instead of separate variables, you 
 ```bash
 data=("apple" "banana" "cherry" "date")
 
-# -n 2 makes it assign to a[0] and a[1]
-while L_foreach -n 2 a : data; do
+# -R 2 makes it assign to a[0] and a[1]
+while L_foreach -R 2 a : data; do
   echo "Pair: ${a[0]} and ${a[1]:-none}"
 done
 ```
