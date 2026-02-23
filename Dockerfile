@@ -1,5 +1,5 @@
 ARG VERSION=latest
-FROM bash:${VERSION} AS app
+FROM docker.io/library/bash:${VERSION} AS app
 COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 
@@ -28,7 +28,7 @@ RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 /app/site /
 
-FROM bash:${VERSION} AS tester
+FROM docker.io/library/bash:${VERSION} AS tester
 RUN apk add --no-cache jq
 
 FROM alpine:3.20 AS basher

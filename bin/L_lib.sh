@@ -9659,18 +9659,18 @@ L_printf_v() {
 
 # @arg $1 The index of variable to assign.
 # @arg $2 The variable name of value to assign of.
-# @set _L_opt_m
+# @set _L_opt_e
 # @set _L_count
 _L_foreach_assign_result() {
-  printf -v "${_L_vars[$1]}" "%s" "${!2:-}"
+  L_printf_v "${_L_vars[$1]}" "%s" "${!2:-}"
   if L_var_is_set "$2"; then
-  	if [[ -n "$_L_opt_m" ]]; then
-      printf -v "$_L_opt_m[$1]" "%s" "1"
+  	if [[ -n "$_L_opt_e" ]]; then
+      L_printf_v "$_L_opt_e[$1]" "%s" "1"
     fi
   	_L_count=$(( _L_count + 1 ))
   else
-  	if [[ -n "$_L_opt_m" ]]; then
-      printf -v "$_L_opt_m[$1]" "%s" ""
+  	if [[ -n "$_L_opt_e" ]]; then
+    	L_printf_v "$_L_opt_e[$1]" "%s" ""
     fi
   fi
 }
@@ -9706,7 +9706,7 @@ _L_foreach_assign_result() {
 # @option -f <var> First loop stores 1 into the variable, otherwise 0 is stored in the variable.
 # @option -l <var> Last loop stores 1 into the variable, otherwise 0 is stored in the variable.
 # @option -c <var> Count of assigned variables is stored in the variable var.
-# @option -m <var> The specified variable is stored an array.
+# @option -e <var> Existing values are assigned 1 in the corresponding indexes of the specified array variable.
 # 								 The indexes of elements with the value 1 are the indexes of assigned variable names.
 # 								 The indexes of empty elements are the indexes of unassigned varaible names.
 # @option -h Print this help and return 0.
@@ -9733,10 +9733,10 @@ _L_foreach_assign_result() {
 L_foreach() {
   local OPTIND OPTARG OPTERR \
     _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" \
-    _L_opt_l="" _L_opt_c="" _L_opt_m="" \
+    _L_opt_l="" _L_opt_c="" _L_opt_e="" \
     _L_s_keys=() _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0 \
     _L_i IFS=' ' _L_vidx="" L_v _L_arr _L_elem _L_key _L_count=0
-  while getopts srn:i:v:k:f:l:c:m:h _L_i; do
+  while getopts srn:i:v:k:f:l:c:e:h _L_i; do
     case "$_L_i" in
       s) _L_opt_s=1 ;;
       r) _L_opt_r=1 ;;
@@ -9747,7 +9747,7 @@ L_foreach() {
       f) _L_opt_f=$OPTARG ;;
       l) _L_opt_l=$OPTARG ;;
       c) _L_opt_c=$OPTARG ;;
-      m) _L_opt_m=$OPTARG; L_array_assign "$_L_opt_m" ;;
+      e) _L_opt_e=$OPTARG; L_array_clear "$_L_opt_e" ;;
       h) L_func_help; return 0 ;;
       *) L_func_error; return 2 ;;
     esac
@@ -9891,7 +9891,7 @@ L_foreach() {
     fi
     # Unset rest of variables that have not been assigned.
     while (( _L_varsidx < ${#_L_vars[*]} )); do
-    	printf -v "${_L_vars[_L_varsidx++]}" "%s" ""
+    	L_printf_v "${_L_vars[_L_varsidx++]}" "%s" ""
     done
   fi
   if [[ -n "$_L_opt_f" ]]; then
