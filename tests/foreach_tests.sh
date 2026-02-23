@@ -9,7 +9,7 @@ _L_test_foreach_1_all() {
     eval 'while L_foreach a b : array1 array2; do echo -n $a,$b:; done'
   L_unittest_cmd -o 'a,b,c:d,e,f:g,h,unset:' \
     eval 'while L_foreach a b c : array1 array2; do echo -n $a,$b,${c:-unset}:; done'
-  L_unittest_cmd -o '3,a b c:1,d:' \
+  L_unittest_cmd -o '3,a b c:3,d :' \
     eval 'while L_foreach -n 3 a : array1; do echo -n ${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
@@ -20,15 +20,17 @@ _L_test_foreach_1_all() {
   L_unittest_cmd -o '3,d,h:2,c,g:1,b,f:0,a,e:' \
     eval 'while L_foreach -r -k k a b : array1 array2; do echo -n $k,$a,$b:; done'
 
-  L_log "Test associative arrays"
-  local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
-  L_unittest_cmd -o '2,d b:' \
-    eval 'while L_foreach -n 3 a : dict1; do echo -n ${#a[@]},${a[*]}:; done'
-  L_unittest_cmd -o 'a,b,e:c,d,f:' \
-    eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
-  L_unittest_cmd -o 'a,b,e:c,d,f:' \
-    eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
- }
+  if (( L_HAS_ASSOCIATIVE_ARRAY )); then
+    L_log "Test associative arrays"
+    local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
+    L_unittest_cmd -r '3,[bd] [bd] :' \
+      eval 'while L_foreach -n 3 a : dict1; do echo -n ${#a[@]},${a[*]}:; done'
+    L_unittest_cmd -o 'a,b,e:c,d,f:' \
+      eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
+    L_unittest_cmd -o 'a,b,e:c,d,f:' \
+      eval 'while L_foreach -s -k k a b : dict1 dict2; do echo -n $k,$a,$b:; done'
+  fi
+}
 
 _L_test_foreach_2_all_index_first_last() {
   local array1=(a b c d) array2=(e f g h)
@@ -41,7 +43,7 @@ _L_test_foreach_2_all_index_first_last() {
     eval 'while L_foreach -ii -ff -ll a b : array1 array2; do echo -n $i$f$l,$a,$b:; done'
   L_unittest_cmd -o '010,a,b,c:100,d,e,f:201,g,h,unset:' \
     eval 'while L_foreach -ii -ff -ll a b c : array1 array2; do echo -n $i$f$l,$a,$b,${c:-unset}:; done'
-  L_unittest_cmd -o '010,3,a b c:101,1,d:' \
+  L_unittest_cmd -o '010,3,a b c:101,3,d :' \
     eval 'while L_foreach -ii -ff -ll -n 3 a : array1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
 
   L_log "Test pairs of arrays"
@@ -52,19 +54,23 @@ _L_test_foreach_2_all_index_first_last() {
   L_unittest_cmd -o '010,3,d,h:100,2,c,g:200,1,b,f:301,0,a,e:' \
     eval 'while L_foreach -ii -ff -ll -r -k k a b : array1 array2; do echo -n $i$f$l,$k,$a,$b:; done'
 
-  L_log "Test associative arrays"
-  local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
-  L_unittest_cmd -o '011,2,d b:' \
-    eval 'while L_foreach -ii -ff -ll -n 3 a : dict1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
-  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
-    eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
-  L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
-    eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
- }
+  if (( L_HAS_ASSOCIATIVE_ARRAY )); then
+    L_log "Test associative arrays"
+    local -A dict1=([a]=b [c]=d) dict2=([a]=e [c]=f)
+    L_unittest_cmd -r '011,3,[bd] [bd] :' \
+      eval 'while L_foreach -ii -ff -ll -n 3 a : dict1; do echo -n $i$f$l,${#a[@]},${a[*]}:; done'
+    L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
+      eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
+    L_unittest_cmd -o '010,a,b,e:101,c,d,f:' \
+      eval 'while L_foreach -ii -ff -ll -s -k k a b : dict1 dict2; do echo -n $i$f$l,$k,$a,$b:; done'
+  else
+    L_log "SKIP: Test associative arrays"
+  fi
+}
 
 
 _L_test_foreach_3_normal() {
-  local arr=(a b c d e) i a k acc=() acc1=() acc2=()
+  local arr=(a b c d e) i a b k acc=() acc1=() acc2=()
   {
     L_log "test simple"
     while L_foreach a : arr; do
@@ -84,7 +90,7 @@ _L_test_foreach_3_normal() {
 }
 
 _L_test_foreach_4_k_normal() {
-  local arr=(a b c d e) i a k acc=() acc1=() acc2=()
+  local arr=(a b c d e) i a b k acc=() acc1=() acc2=()
   {
     L_log "test simple"
     while L_foreach -k k a : arr; do
@@ -106,60 +112,66 @@ _L_test_foreach_4_k_normal() {
 _L_test_foreach_5_first() {
   {
     L_log "test sorted array L_foreach"
-    local arr=(a b c d e) i a k acc=()
+    local arr=(a b c d e) i a k acc=() b
     while L_foreach -i i -k k a : arr; do
       acc+=("$i" "$k" "$a")
     done
     L_unittest_arreq acc 0 0 a 1 1 b 2 2 c 3 3 d 4 4 e
   }
-  {
-    L_log "test dict L_foreach"
-    local -A dict=(a b c d e)
-    local i k a acc=() j=0
-    while L_foreach -i i -k k a : dict; do
-      L_unittest_eq "${dict[$k]}" "$a"
-      L_unittest_vareq j "$i"
-      j=$(( j + 1 ))
-    done
-  }
-  {
-    L_log "test sorted dict L_foreach"
-    local -A dict=(a b c d e)
-    local i k a acc=()
-    while L_foreach -s -i i -k j a : dict; do
-      acc+=("$i" "$j" "$a")
-    done
-    L_unittest_arreq acc 0 a b 1 c d 2 e ''
-  }
+  if (( L_HAS_ASSOCIATIVE_ARRAY )); then
+    {
+      L_log "test dict L_foreach"
+      local -A dict=(a b c d e)
+      local i k a acc=() j=0
+      while L_foreach -i i -k k a : dict; do
+        L_unittest_eq "${dict[$k]}" "$a"
+        L_unittest_vareq j "$i"
+        j=$(( j + 1 ))
+      done
+    }
+    {
+      L_log "test sorted dict L_foreach"
+      local -A dict=(a b c d e)
+      local i k a acc=()
+      while L_foreach -s -i i -k j a : dict; do
+        acc+=("$i" "$j" "$a")
+      done
+      L_unittest_arreq acc 0 a b 1 c d 2 e ''
+    }
+  else
+    L_log "SKIP associative arrays"
+  fi
 }
 
 _L_test_foreach_6_last() {
+  local arr=(a b c d e) other=(1 2 3 4) i a b k acc=()
   {
-    local arr=(a b c d e) other=(1 2 3 4) i a k acc=()
     while L_foreach -i i -k k a : arr; do
       acc+=("$i" "$k" "$a")
     done
     L_unittest_arreq acc 0 0 a 1 1 b 2 2 c 3 3 d 4 4 e
   }
-  {
-    L_log "test dict L_foreach"
-    local -A dict=(a b c d e)
-    local i k a acc=() j=0
-    while L_foreach -i i -k k a : dict; do
-      L_unittest_eq "${dict[$k]}" "$a"
-      L_unittest_vareq j "$i"
-      j=$(( j + 1 ))
-    done
-  }
-  {
-    L_log "test sorted dict L_foreach"
-    local -A dict=(a b c d e)
-    local i k a acc=()
-    while L_foreach -s -i i -k j a : dict; do
-      acc+=("$i" "$j" "$a")
-    done
-    L_unittest_arreq acc 0 a b 1 c d 2 e ''
-  }
+  if (( L_HAS_ASSOCIATIVE_ARRAY )); then
+    {
+      L_log "test dict L_foreach"
+      local -A dict=(a b c d e)
+      local i k a acc=() j=0
+      while L_foreach -i i -k k a : dict; do
+        L_unittest_eq "${dict[$k]}" "$a"
+        L_unittest_vareq j "$i"
+        j=$(( j + 1 ))
+      done
+    }
+    {
+      L_log "test sorted dict L_foreach"
+      local -A dict=(a b c d e)
+      local i k a acc=()
+      while L_foreach -s -i i -k j a : dict; do
+        acc+=("$i" "$j" "$a")
+      done
+      L_unittest_arreq acc 0 a b 1 c d 2 e ''
+    }
+  fi
 }
 
 _L_test_foreach_7_nested() {
@@ -176,4 +188,69 @@ _L_test_foreach_7_nested() {
    local array3=(A B C D)
   L_unittest_cmd -o 'a,A,B:a,C,D:b,A,B:b,C,D:' \
     eval 'while L_foreach x : array1; do while L_foreach y z : array3; do echo -n $x,$y,$z:; done; done'
+}
+
+_L_test_foreach_8_sparse_array() {
+  local array1=([2]=a [8]=b) array2=([4]=c [6]=d) i k a b acc=() l f c m acc2=()
+  {
+    L_log "test sparse array iteration key is ok"
+    while L_foreach -i i -k k a : array1; do
+      acc+=("$i" "$k" "$a")
+    done
+    L_unittest_arreq acc \
+      0 2 a \
+      1 8 b
+  }
+  {
+    L_log "test sparse two arrays iteration in order"
+    acc=()
+    while L_foreach -c c -m m -l l -f f -i i -k k a b : array1 array2; do
+      # echo "$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}"
+      declare -p m
+      acc+=("$i" "$f" "$l" "$k" "$c" "${m[0]:-0}" "${m[1]:-0}" "${a:-X}" "${b:-X}")
+    done
+    L_unittest_arreq acc \
+      0 1 0 2 1 1 0 a X \
+      1 0 0 8 1 1 0 b X \
+      2 0 0 4 1 0 1 X c \
+      3 0 1 6 1 0 1 X d
+    # i f l k c m m a b
+  }
+  {
+    L_log "test sparse two arrays iteration in sorted keys order"
+    acc=() acc2=()
+    while L_foreach -c c -m m -s -l l -f f -i i -k k a b : array1 array2; do
+      # echo "$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}"
+      acc+=("$i" "$f" "$l" "$k" "${a:-X}" "${b:-X}")
+      acc2+=("$c" "${m[0]:-0}" "${m[1]:-0}")
+    done
+    L_unittest_arreq acc \
+      0 1 0 2 a X \
+      1 0 0 4 X c \
+      2 0 0 6 X d \
+      3 0 1 8 b X
+    L_unittest_arreq acc2 \
+      1 1 0 \
+      1 0 1 \
+      1 0 1 \
+      1 1 0
+  }
+}
+
+_L_test_foreach_9_empty() {
+  local array1=() array2=() i k a b acc=() l f e
+  {
+    L_log "test empty array"
+    L_unittest_cmd -e 4 L_foreach a : array1
+  }
+  {
+    L_log "test two empty arrays"
+    L_unittest_cmd -e 4 L_foreach a : array1 array2
+  }
+  local arr1=(a b c) arr2=(d) m c acc=()
+  {
+    L_log "diff len"
+    L_unittest_cmd -o "0,2,1,1,a d|1,1,1,,b |2,1,1,,c |" \
+      eval 'while L_foreach -s -k k -c c -m m -- a : arr1 arr2; do echo -n "$k,$c,${m[0]},${m[1]},${a[@]}|" ; done'
+  }
 }

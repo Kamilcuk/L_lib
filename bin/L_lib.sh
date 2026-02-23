@@ -9631,6 +9631,50 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 # foreach [[[
 # @section foreach
 
+
+# @description Compatibility printf implementation for Bash<4.1
+# That properly sets the -v variable when it is an array.
+# The variables are like printf -v $1 fmt args...
+# @arg $1 variable to set
+# @arg fmt printf format string
+# @arg arg printf arguments....
+L_printf_v() {
+	if (( L_HAS_PRINTF_V_ARRAY )); then
+		L_printf_v() {
+			printf -v "$@"
+		}
+	else
+		L_printf_v() {
+			if [[ "$1" == *"["*"]" ]]; then
+				local _L_printf_v
+				printf -v _L_printf_v "${@:2}"
+				eval "$1=\$_L_printf_v"
+			else
+				printf -v "$@"
+			fi
+		}
+	fi
+	L_printf_v "$@"
+}
+
+# @arg $1 The index of variable to assign.
+# @arg $2 The variable name of value to assign of.
+# @set _L_opt_m
+# @set _L_count
+_L_foreach_assign_result() {
+  printf -v "${_L_vars[$1]}" "%s" "${!2:-}"
+  if L_var_is_set "$2"; then
+  	if [[ -n "$_L_opt_m" ]]; then
+      printf -v "$_L_opt_m[$1]" "%s" "1"
+    fi
+  	_L_count=$(( _L_count + 1 ))
+  else
+  	if [[ -n "$_L_opt_m" ]]; then
+      printf -v "$_L_opt_m[$1]" "%s" ""
+    fi
+  fi
+}
+
 # @description Iterate over elements of an array by assigning it to variables.
 #
 # Each loop the arguments to the function are REQUIRED to be exactly the same.
@@ -9656,11 +9700,15 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 # @option -r Output in reverse sorted keys order. Implies -s.
 # @option -n <num> Each variable name is repeated as an array variable with indexes from 0 to num-1.
 #                  For example: '-n 3 a : arr' is equal to 'a[0] a[1] a[2] : arr'.
-# @option -i <var> Store loop index in specified variable. First loop has index 0.
-# @option -v <var> Store state in the variable, instead of picking unique name starting with _L_FOREACH_*.
-# @option -k <var> Store key of the first element in specified variable.
+# @option -i <var> Index of the loop is sroted in the specified variable. First loop has index 0.
+# @option -v <var> Store iterator state in the variable, instead of picking unique name starting with _L_FOREACH_*.
+# @option -k <var> Key of the first assigned element is stored in the specified variable. Usefull with -s.
 # @option -f <var> First loop stores 1 into the variable, otherwise 0 is stored in the variable.
 # @option -l <var> Last loop stores 1 into the variable, otherwise 0 is stored in the variable.
+# @option -c <var> Count of assigned variables is stored in the variable var.
+# @option -m <var> The specified variable is stored an array.
+# 								 The indexes of elements with the value 1 are the indexes of assigned variable names.
+# 								 The indexes of empty elements are the indexes of unassigned varaible names.
 # @option -h Print this help and return 0.
 # @arg $@ Variable names to assign, followed by : colon character, followed by arrays variables.
 # @env _L_FOREACH
@@ -9684,10 +9732,11 @@ L_proc_kill() { L_proc_send_signal "$1" SIGKILL; }
 #    while L_foreach -s -k k a b : dict1 dict2; do echo $k,$a,$b; done  # a,b,e  c,d,f
 L_foreach() {
   local OPTIND OPTARG OPTERR \
-    _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" _L_opt_l="" \
-    _L_i IFS=' ' _L_vidx="" \
-    _L_s_keys _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0
-  while getopts srn:i:v:k:f:l:h _L_i; do
+    _L_opt_v="" _L_opt_s=0 _L_opt_r=0 _L_opt_n="" _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" \
+    _L_opt_l="" _L_opt_c="" _L_opt_m="" \
+    _L_s_keys=() _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0 \
+    _L_i IFS=' ' _L_vidx="" L_v _L_arr _L_elem _L_key _L_count=0
+  while getopts srn:i:v:k:f:l:c:m:h _L_i; do
     case "$_L_i" in
       s) _L_opt_s=1 ;;
       r) _L_opt_r=1 ;;
@@ -9697,6 +9746,8 @@ L_foreach() {
       k) _L_opt_k=$OPTARG ;;
       f) _L_opt_f=$OPTARG ;;
       l) _L_opt_l=$OPTARG ;;
+      c) _L_opt_c=$OPTARG ;;
+      m) _L_opt_m=$OPTARG; L_array_assign "$_L_opt_m" ;;
       h) L_func_help; return 0 ;;
       *) L_func_error; return 2 ;;
     esac
@@ -9726,11 +9777,11 @@ L_foreach() {
     fi
     # If -k option, accumulate all keys into one set.
     if [[ -n "$_L_opt_k" ]]; then
-      local -n _L_arr
       for _L_arr in "${@:_L_s_colon + 1}"; do
-        for _L_i in "${!_L_arr[@]}"; do
-          if ! L_array_contains _L_s_keys "$_L_i"; then
-            _L_s_keys+=("$_L_i")
+      	L_array_keys_v "$_L_arr"
+        for _L_key in "${L_v[@]}"; do
+          if ! L_array_contains _L_s_keys "$_L_key"; then
+            _L_s_keys+=("$_L_key")
           fi
         done
       done
@@ -9750,31 +9801,25 @@ L_foreach() {
   fi
   local _L_varslen=${#_L_vars[*]} _L_arrslen=${#_L_arrs[*]}
   if [[ -n "$_L_opt_k" ]]; then
-    if (( _L_s_idx >= ${_L_s_keys[*]:+${#_L_s_keys[*]}}+0 )); then
+  	# -k option specified
+    if (( _L_s_idx >= ${#_L_s_keys[*]} )); then
     	# Iterated through all the keys.
       unset -v "$_L_opt_v" ${_L_vidx:+"_L_FOREACH[$_L_vidx]"}
       return 4
     fi
-    local _L_key=${_L_s_keys[_L_s_idx++]}
+    _L_key=${_L_s_keys[_L_s_idx++]}
     printf -v "$_L_opt_k" "%s" "$_L_key"
     # With -k option, stuff is vertical.
     if (( _L_varslen == 1 )); then
       # When there is one variable, it is an array with the results.
+      eval "_L_vars=(" "\"\${_L_vars[0]}[\"{0..$_L_arrslen}\"]\"" ")"
       for (( _L_i = 0; _L_i < _L_arrslen; ++_L_i )); do
-        local -n _L_arr=${_L_arrs[_L_i]}
-        if [[ -v _L_arr[$_L_key] ]]; then
-          printf -v "${_L_vars[_L_i]}" "%s" "${_L_arr[$_L_key]}"
-        fi
+      	_L_foreach_assign_result "$_L_i" "${_L_arrs[$_L_i]}[$_L_key]"
       done
     else
       # Otherwise, extra arrays are just ignored.
-      for (( _L_i = 0; _L_i < _L_varslen && _L_i < _L_arrslen; ++_L_i )); do
-        local -n _L_arr=${_L_arrs[_L_i]}
-        if [[ -v _L_arr[$_L_key] ]]; then
-          printf -v "${_L_vars[_L_i]}" "%s" "${_L_arr[$_L_key]}"
-        else
-          unset -v "${_L_vars[_L_i]}"
-        fi
+      for (( _L_i = 0; _L_i < _L_varslen; ++_L_i )); do
+      	_L_foreach_assign_result "$_L_i" "${_L_arrs[_L_i]:-_L_i}[$_L_key]"
       done
     fi
     if [[ -n "$_L_opt_l" ]]; then
@@ -9785,41 +9830,36 @@ L_foreach() {
     local _L_varsidx=0
     # For each array.
     while (( _L_s_arridx < _L_arrslen )); do
-      local -n _L_arr=${_L_arrs[_L_s_arridx]}
+      _L_arr=${_L_arrs[_L_s_arridx]}
       # L_debug "_L_s_idx=${_L_s_idx} arridx=$_L_s_arridx arrslen=$_L_arrslen arrayvar=${_L_arrs[_L_s_arridx]}"
-      # Sorted array keys are cached. Unsorted are not.
-      if (( _L_opt_s || _L_opt_r )); then
-        if (( _L_s_idx == 0 )); then
-          # Compute keys in the sorted order if requested.
-          _L_s_keys=("${!_L_arr[@]}")
-          if L_var_is_associative _L_arr; then
+      if (( _L_s_idx == 0 )); then
+      	# Array keys are cached.
+        L_array_keys -v _L_s_keys "$_L_arr"
+      	if (( _L_opt_s || _L_opt_r )); then
+        	# Compute keys in the sorted order if requested.
+          if L_var_is_associative "$_L_arr"; then
             if (( _L_opt_r )); then
               L_sort_bash -r _L_s_keys
             elif (( _L_opt_s )); then
               L_sort_bash _L_s_keys
             fi
           else
+          	# No reason to sort normal array keys - they are sorted anyway.
             if (( _L_opt_r )); then
               L_array_reverse _L_s_keys
             fi
           fi
-          local -n _L_keys=_L_s_keys
         fi
-      else
-        local _L_keys=("${!_L_arr[@]}")
       fi
       # For each element in the array.
-      while (( _L_s_idx < ${_L_arr[*]:+${#_L_arr[*]}}+0 )); do
+      while (( _L_s_idx < ${_L_s_keys[*]:+${#_L_s_keys[*]}}+0 )); do
         if (( _L_varsidx >= ${#_L_vars[*]} )); then
           # L_debug "Assigned all variables from the list. ${_L_varsidx} vars=[${#_L_vars[*]}]"
           break 2
         fi
-        # L_debug "Set varsidx=$_L_varsidx var=${_L_vars[_L_varsidx]} val=${_L_arr[${_L_keys[_L_s_idx]}]} key=${_L_keys[_L_s_idx]}"
-        if [[ -v _L_arr[${_L_keys[_L_s_idx]}] ]]; then
-          printf -v "${_L_vars[_L_varsidx++]}" "%s" "${_L_arr[${_L_keys[_L_s_idx]}]}"
-        else
-          unset -v "${_L_vars[_L_varsidx++]}"
-        fi
+        # L_debug "Set varsidx=$_L_varsidx var=${_L_vars[_L_varsidx]} val=${_L_arr[${_L_s_keys[_L_s_idx]}]} key=${_L_s_keys[_L_s_idx]}"
+        _L_foreach_assign_result "$_L_varsidx" "$_L_arr[${_L_s_keys[_L_s_idx]}]"
+        _L_varsidx=$(( _L_varsidx + 1 ))
         _L_s_idx=$(( _L_s_idx + 1 ))
       done
       _L_s_idx=0
@@ -9840,8 +9880,8 @@ L_foreach() {
         # Or when on the next loop we would finish. Which means we have to calculate all remaining elements.
         local _L_todo=-$_L_s_idx  # Substract the count processed in the current array.
         for (( _L_i = _L_s_arridx; _L_i < _L_arrslen; ++_L_i )); do
-          local -n _L_arr=${_L_arrs[_L_i]}
-          if (( ( _L_todo += ${#_L_arr[*]} ) > 0 )); then
+          L_array_len_v "${_L_arrs[_L_i]}"
+          if (( ( _L_todo += L_v ) > 0 )); then
             break
           fi
         done
@@ -9851,7 +9891,7 @@ L_foreach() {
     fi
     # Unset rest of variables that have not been assigned.
     while (( _L_varsidx < ${#_L_vars[*]} )); do
-      unset -v "${_L_vars[_L_varsidx++]}"
+    	printf -v "${_L_vars[_L_varsidx++]}" "%s" ""
     done
   fi
   if [[ -n "$_L_opt_f" ]]; then
@@ -9860,9 +9900,12 @@ L_foreach() {
   if [[ -n "$_L_opt_i" ]]; then
     printf -v "$_L_opt_i" "%s" "$_L_s_loopidx"
   fi
+  if [[ -n "$_L_opt_c" ]]; then
+  	printf -v "$_L_opt_c" "%s" "$_L_count"
+  fi
   # Serialize and store state.
   # shellcheck disable=SC2059
-  printf -v _L_i "${_L_s_keys[*]:+%q} " "${_L_s_keys[@]}"
+  printf -v _L_i "${_L_s_keys[*]:+%q} " ${_L_s_keys[*]:+"${_L_s_keys[@]}"}
   printf -v "$_L_opt_v" "local _L_s_keys=(%s) _L_s_loopidx=%d _L_s_colon=%d _L_s_arridx=%d _L_s_idx=%d" \
     "${_L_i%% }" "$(( _L_s_loopidx + 1 ))" "$_L_s_colon" "$_L_s_arridx" "$_L_s_idx"
   # L_debug "State:${!_L_opt_v}"
