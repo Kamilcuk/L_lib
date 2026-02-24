@@ -121,7 +121,7 @@ _L_test_foreach_05_first() {
   if (( L_HAS_ASSOCIATIVE_ARRAY )); then
     {
       L_log "test dict L_foreach"
-      local -A dict=(a b c d e)
+      local -A dict=([a]=b [c]=d [e]="")
       local i k a acc=() j=0
       while L_foreach -i i -k k a : dict; do
         L_unittest_eq "${dict[$k]}" "$a"
@@ -131,7 +131,7 @@ _L_test_foreach_05_first() {
     }
     {
       L_log "test sorted dict L_foreach"
-      local -A dict=(a b c d e)
+      local -A dict=([a]=b [c]=d [e]="")
       local i k a acc=()
       while L_foreach -s -i i -k j a : dict; do
         acc+=("$i" "$j" "$a")
@@ -154,7 +154,7 @@ _L_test_foreach_06_last() {
   if (( L_HAS_ASSOCIATIVE_ARRAY )); then
     {
       L_log "test dict L_foreach"
-      local -A dict=(a b c d e)
+      local -A dict=([a]=b [c]=d [e]="")
       local i k a acc=() j=0
       while L_foreach -i i -k k a : dict; do
         L_unittest_eq "${dict[$k]}" "$a"
@@ -164,7 +164,7 @@ _L_test_foreach_06_last() {
     }
     {
       L_log "test sorted dict L_foreach"
-      local -A dict=(a b c d e)
+      local -A dict=([a]=b [c]=d [e]="")
       local i k a acc=()
       while L_foreach -s -i i -k j a : dict; do
         acc+=("$i" "$j" "$a")
