@@ -9663,6 +9663,7 @@ L_printf_v() {
 		L_printf_v() {
 			if [[ "$1" == *"["*"]" ]]; then
 				local _L_printf_v
+				# shellcheck disable=SC2059
 				printf -v _L_printf_v "${@:2}"
 				eval "$1=\$_L_printf_v"
 			else
@@ -9699,6 +9700,7 @@ _L_foreach_sort_indirect_array() {
 	if (( _L_opt_n )); then
 		_L_sort_compare_numeric "${!_L_a:-}" "${!_L_b:-}"
 	else
+		# shellcheck disable=SC2319
 		[[ "${!_L_a:-}" > "${!_L_b:-}" ]] || return "$?"
 	fi
 }
@@ -9950,7 +9952,7 @@ L_foreach() {
   	printf -v "$_L_opt_c" "%s" "$_L_count"
   fi
   # Serialize and store state.
-  # shellcheck disable=SC2059
+  # shellcheck disable=SC2048,SC2059
   printf -v _L_i "${_L_s_keys[*]:+%q} " ${_L_s_keys[*]:+"${_L_s_keys[@]}"}
   printf -v "$_L_opt_v" "local _L_s_keys=(%s) _L_s_loopidx=%d _L_s_colon=%d _L_s_arridx=%d _L_s_idx=%d" \
     "${_L_i%% }" "$(( _L_s_loopidx + 1 ))" "$_L_s_colon" "$_L_s_arridx" "$_L_s_idx"
