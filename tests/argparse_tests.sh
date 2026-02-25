@@ -1,7 +1,7 @@
 #!/bin/bash
 # Argparse tests
 
-_L_test_z_argparse1() {
+_L_test_z_argparse01() {
 	local ret tmp option storetrue storefalse store0 store1 storeconst append
 	{
 		L_log "check init"
@@ -132,7 +132,7 @@ _L_test_z_argparse1() {
 	}
 }
 
-_L_test_z_argparse2() {
+_L_test_z_argparse02() {
 	{
 		L_log "two args"
 		local ret out arg1 arg2
@@ -159,7 +159,7 @@ _L_test_z_argparse2() {
 	}
 }
 
-_L_test_z_argparse3() {
+_L_test_z_argparse03() {
 	local foo bar count verbose filename
 	{
 		local count verbose filename
@@ -447,7 +447,7 @@ _L_test_z_argparse_dest_prefix() {
 	}
 }
 
-_L_test_z_argparse4() {
+_L_test_z_argparse04() {
 	local foo arg
 	{
 		local a='' dest=()
@@ -496,7 +496,7 @@ _L_test_z_argparse4() {
 	}
 }
 
-_L_test_z_argparse5() {
+_L_test_z_argparse05() {
 	{
 		local foo bar baz cmd sub
 		cmd=(
@@ -541,7 +541,7 @@ _L_test_z_argparse5() {
 	}
 }
 
-_L_test_z_argparse6_call_function() {
+_L_test_z_argparse06_call_function() {
 	local cmd
 	# "'
 	{
@@ -667,7 +667,7 @@ EOF
 	}
 }
 
-_L_test_z_argparse7_custom_prefix() {
+_L_test_z_argparse07_custom_prefix() {
 	{
 		L_log "check argparse prefix_chars"
 		local o
@@ -706,7 +706,7 @@ _L_test_z_argparse7_custom_prefix() {
 	}
 }
 
-_L_test_z_argparse8_one_dash_long_option() {
+_L_test_z_argparse08_one_dash_long_option() {
 	{
 		local o option
 		L_argparse -- -o -- -option ----
@@ -733,7 +733,7 @@ _L_test_z_argparse8_one_dash_long_option() {
 	}
 }
 
-_L_test_z_argparse9_time_profile() {
+_L_test_z_argparse09_time_profile() {
 	local time uv
 	uv=$L_DIR/argparse_uv.sh
 	check() {
@@ -759,5 +759,105 @@ _L_test_z_argparse10_remainder() {
 		L_argparse -- cmd -- args nargs=remainder ---- a -v -h
 		L_unittest_vareq cmd a
 		L_unittest_arreq args -v -h
+	}
+}
+
+_L_test_z_argparse11_action_store_1null() {
+	{
+		L_log "check action=store_1null"
+		local foo bar
+		L_argparse -- --foo action=store_1null ----
+		L_unittest_vareq foo ""
+		L_argparse -- --foo action=store_1null ---- --foo
+		L_unittest_vareq foo 1
+		#
+		local baz
+		L_argparse -- --baz action=store_1null default=default ----
+		L_unittest_vareq baz default
+	}
+}
+
+_L_test_z_argparse12_action_eval() {
+	{
+		L_log "check action=eval"
+		local foo=0
+		L_argparse -- --foo eval='((foo++))' ---- --foo --foo --foo
+		L_unittest_eq "$foo" 3
+		local bar
+		L_argparse -- --bar eval='bar=${bar:-init}' ---- --bar
+		L_unittest_vareq bar "init"
+	}
+}
+
+_L_test_z_argparse13_validate() {
+	{
+		L_log "check validate"
+		local num
+		L_unittest_failure_capture tmp -- L_argparse -- --num validate='[[ "$1" =~ ^[0-9]+$ ]]' ---- --num abc
+		L_unittest_contains "$tmp" "invalid"
+		L_argparse -- --num validate='[[ "$1" =~ ^[0-9]+$ ]]' ---- --num 123
+		L_unittest_vareq num 123
+	}
+}
+
+_L_test_z_argparse15_float_type() {
+	{
+		L_log "check type=float"
+		local num
+		L_unittest_failure_capture tmp -- L_argparse -- --num type=float ---- --num abc
+		L_unittest_contains "$tmp" "not a float"
+		L_argparse -- --num type=float ---- --num 3.14
+		L_unittest_vareq num 3.14
+		L_argparse -- --num type=float ---- --num -2.5
+		L_unittest_vareq num -2.5
+	}
+}
+
+_L_test_z_argparse16_nonnegative_positive() {
+	{
+		L_log "check type=nonnegative and type=positive"
+		local num
+		L_unittest_failure_capture tmp -- L_argparse -- --num type=nonnegative ---- --num -1
+		L_unittest_contains "$tmp" "lower than 0"
+		L_argparse -- --num type=nonnegative ---- --num 0
+		L_unittest_vareq num 0
+		L_argparse -- --num type=nonnegative ---- --num 5
+		L_unittest_vareq num 5
+		#
+		L_unittest_failure_capture tmp -- L_argparse -- --num type=positive ---- --num 0
+		L_unittest_contains "$tmp" "lower than 0"
+		L_unittest_failure_capture tmp -- L_argparse -- --num type=positive ---- --num -1
+		L_unittest_contains "$tmp" "lower than 0"
+		L_argparse -- --num type=positive ---- --num 1
+		L_unittest_vareq num 1
+	}
+}
+
+_L_test_z_argparse17_metavar() {
+	{
+		L_log "check metavar"
+		local out
+		L_unittest_cmd -r "Usage: prog \[-h\] \[--num NUM\]" -- L_argparse prog=prog -- --num metavar=NUM ---- -h
+	}
+}
+
+_L_test_z_argparse18_color() {
+	{
+		L_log "check color"
+		local out
+		out=$(L_argparse color=0 prog=prog ---- -h 2>&1)
+		L_unittest_cmd ! L_regex_match "$out" $'\033'
+	}
+}
+
+_L_test_z_argparse20_allow_subparser_abbrev() {
+	{
+		L_log "check allow_subparser_abbrev"
+		local cmd
+		L_argparse -- call=subparser dest=cmd \
+			{ name=clone help="Clone" } \
+			{ name=commit help="Commit" } \
+			---- clone
+		L_unittest_vareq cmd clone
 	}
 }
