@@ -5633,49 +5633,88 @@ _L_unittest_internal() {
 	fi
 } >&2
 
+_L_unittest_main_runner() {
+	if (( _L_quiet )); then
+		local _L_i _L_ret=0
+		_L_i=$( "$@" >&2 ) || _L_ret=$?
+		if (( _L_ret )); then
+			printf "%s\n" "$_L_i" >&2
+			exit "$_L_ret"
+		fi
+	else
+		"$@"
+	fi
+}
+
 # @description
-# Get all functions that start with a prefix specified with -P and execute them one by one.
-# @option -h help
-# @option -P <prefix> Get functions with this prefix to test
+# Unittesting suite unner.
+# @option -p <prefix> Get functions with this prefix to test
 # @option -r <regex> filter tests with regex
 # @option -E exit on error
-# @option -p Run in parallel.
+# @option -P <nproc> Run in parallel. -1 means auto number of processors.
+# @option -l Do not run the test. Instead print the tests to exeucte.
+# @option -q Run tests in command substitution. Print only failed tests output.
+#            Great for LLM for reducing context size.
+# @option -h Print this help and return 0.
+# @arg $@ Specify a space, tab or newline separated list of funtions to execute.
+#         For example output of compgen.
 L_unittest_main() {
 	set -euo pipefail
-	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_parallel=0
-	while getopts "hr:EP:p" _L_opt; do
-		case $_L_opt in
-		P)
-			L_log "Getting function with prefix %q" "${OPTARG}"
-			L_list_functions_with_prefix -v _L_tests "$OPTARG"
-			;;
-		r)
-			L_log "filtering tests with %q" "${OPTARG}"
-			L_array_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
-			;;
-		E) L_unittest_exit_on_error=1 ;;
-		p) _L_parallel=1 ;;
-		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_nproc=1 _L_list=0 _L_quiet=0 _L_ret=0
+	while getopts p:r:EP:lqh _L_i; do
+		case $_L_i in
+			p)
+				L_log "Getting function with prefix %q" "${OPTARG}"
+				L_list_functions_with_prefix -v _L_tests "$OPTARG"
+				;;
+			r)
+				L_log "Filtering tests with %q" "${OPTARG}"
+				L_array_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
+				;;
+			E) L_unittest_exit_on_error=1 ;;
+			P)
+				if (( OPTARG <= 0 )); then
+					if L_hash nproc; then
+						_L_nproc=$(nproc)
+					elif [[ -r /proc/cpuinfo ]] && L_hash grep; then
+						_L_nproc=$(grep -c processor /proc/cpuinfo)
+					else
+						_L_nproc=1
+					fi
+				else
+					_L_nproc=$OPTARG
+				fi
+				;;
+			l) _L_list=1 ;;
+			q) _L_quiet=1 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_assert 'too many arguments' test "$#" = 0
+	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }"
+	_L_test+=("${_L_i[@]}")
 	L_assert 'no tests matched' test "${#_L_tests[@]}" '!=' 0
+	#
+	if (( _L_list )); then
+		L_log "Would execute tests:"
+		printf "%s\n" "${_L_tests[@]}"
+		return 0
+	fi
 	{
 		# Run the tests.
 		local _L_test _L_childs=()
 		for _L_test in "${_L_tests[@]}"; do
-			L_log "executing $_L_test"
-			if ((_L_parallel)); then
-				"$_L_test" &
-				_L_childs+=("$!")
+			L_log "Executing $_L_test"
+			if (( _L_nproc == 1 )); then
+				_L_unittest_main_runner "$_L_test"
 			else
-				"$_L_test"
+				_L_unittest_main_runner "$_L_test" &
+				_L_childs+=("$!")
 			fi
 		done
 		# When in parallel, collect exit codes.
-		if ((_L_parallel)); then
+		if (( _L_nproc > 1 )); then
 			local _L_i _L_result=()
 			for _L_i in "${!_L_childs[@]}"; do
 				# Assign array separately for older bash.
@@ -5684,27 +5723,27 @@ L_unittest_main() {
 			done
 		fi
 	}
-	L_log "done testing: ${_L_tests[*]}"
+	L_log "Done testing: ${_L_tests[*]}"
 	{
-		if ((_L_parallel)); then
+		if (( _L_nproc > 1 )); then
 			# Print results separately, to see them last on the output.
 			for _L_i in "${!_L_childs[@]}"; do
-				if ((_L_result[_L_i])); then
+				if (( _L_result[_L_i] )); then
 					L_error "Test ${_L_tests[_L_i]} with pid ${_L_childs[_L_i]} failed with exit status ${_L_result[_L_i]}"
-					((++L_unittest_fails))
+					(( ++L_unittest_fails ))
 				fi
 			done
 		fi
 	}
-	if ((L_unittest_fails)); then
-		L_error "testing failed"
+	if (( L_unittest_fails )); then
+		L_error "Testing failed"
 	else
-		L_ok "testing success"
+		L_ok "Testing success"
 	fi
-	if ((L_unittest_fails)); then
+	if (( L_unittest_fails )); then
 		exit "$L_unittest_fails"
 	fi
-}
+} <&-
 
 # shellcheck disable=SC2035
 # @description Check if command exits with specified exitcode.
