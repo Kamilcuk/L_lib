@@ -281,6 +281,60 @@ case "$cmd" in
 esac
 ```
 
+#### 5.1. Nested Sub-commands
+
+For more complex applications, you can nest `call=subparser` definitions to create a multi-level command structure (e.g., `main-command sub-command sub-sub-command`).
+
+In this example, we define a `git` like tool with a `remote` sub-command, which in turn has its own sub-commands `add` and `remove`.
+
+```bash
+L_argparse \
+    -- call=subparser dest=command \
+    { \
+        name=clone \
+        -- repo_url \
+    } \
+    { \
+        name=remote \
+        description="Manage remote repositories" \
+        -- call=subparser dest=remote_command \
+        { \
+            name=add \
+            -- remote_name \
+            -- url \
+        } \
+        { \
+            name=remove \
+            -- remote_name \
+        } \
+    } \
+    ---- "$@"
+
+case "$command" in
+    clone)
+        echo "Cloning from $repo_url"
+        ;;
+    remote)
+        case "$remote_command" in
+            add)
+                echo "Adding remote '$remote_name' with URL '$url'"
+                ;;
+            remove)
+                echo "Removing remote '$remote_name'"
+                ;;
+        esac
+        ;;
+esac
+```
+**Usage:**
+```bash
+$ ./your_script.sh remote add origin https://github.com/user/repo.git
+Adding remote 'origin' with URL 'https://github.com/user/repo.git'
+
+$ ./your_script.sh remote remove origin
+Removing remote 'origin'
+```
+
 #### 6. Dynamic Sub-commands from Functions
 
 Use `call=function` to automatically generate sub-commands from Bash functions that share a specific prefix. This is a clean way to organize large scripts.
@@ -298,12 +352,65 @@ CMD_ps() {
 
 # Automatically discover all functions starting with "CMD_"
 L_argparse \
-  -- call=function prefix=CMD_ \
-  ---- "$@"
+    -- call=function prefix=CMD_ \
+    ---- "$@"
 ```
 
+#### 6.1. Nested Dynamic Sub-commands
+
+You can also nest `call=function` to create a hierarchical command structure dynamically. This is done by defining a top-level function that itself uses `L_argparse` with a new prefix for its sub-commands.
+
+In this example, the main parser discovers functions prefixed with `CMD_`. The `CMD_remote` function then defines its own sub-parser that discovers functions prefixed with `CMD_REMOTE_`.
+
+```bash
+#!/bin/bash
+. L_lib.sh -s
+
+# Level 2: Sub-commands for 'remote'
+CMDREMOTE_add() {
+    L_argparse -- name -- url ---- "$@"
+    echo "Adding remote '$name' with URL '$url'"
+}
+
+CMDREMOTE_remove() {
+    L_argparse -- name ---- "$@"
+    echo "Removing remote '$name'"
+}
+
+# Level 1: Main commands
+CMD_clone() {
+    L_argparse -- repo_url ---- "$@"
+    echo "Cloning from $repo_url"
+}
+
+CMD_remote() {
+    # This function acts as a sub-parser for remote commands
+    L_argparse \
+        description="Manage remote repositories" \
+        -- call=function prefix=CMDREMOTE_ \
+        ---- "$@"
+}
+
+# Main parser entry point
+L_argparse \
+    prog="git" \
+    -- call=function prefix=CMD_ \
+    ---- "$@"
+```
+
+**Usage:**
+This setup creates a clean, nested command structure.
+
+```bash
+$ ./your_script.sh remote add origin https://github.com/user/repo.git
+Adding remote 'origin' with URL 'https://github.com/user/repo.git'
+
+$ ./your_script.sh clone https://github.com/user/repo.git
+Cloning from https://github.com/user/repo.git
+```
 
 ## Specification
+  
 
 The `L_argparse` function call is structured as follows:
 

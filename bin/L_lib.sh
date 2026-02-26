@@ -6665,7 +6665,7 @@ L_argparse_print_help() {
 			L_color_disable
 		fi
 		# Colors
-		local cred=$'\x11' cgreen=$'\x12' cyellow=$'\x13' cblue=$'\x14' cpurple=$'\x15' ccyan=$'\x16' creset=$'\x1A' cdel=$'[\x11\x12\x13\x14\x15\x16\x10]'
+		local cred=$'\x11' cgreen=$'\x12' cyellow=$'\x13' cblue=$'\x14' cpurple=$'\x15' ccyan=$'\x16' creset=$'\x1A' cdel=$'[\x11\x12\x13\x14\x15\x16\x1A]'
 	}
 	local _L_prog
 	_L_argparse_parser_get_full_program_name _L_prog
@@ -8080,7 +8080,7 @@ _L_argparse_parse_args_short_option() {
 					L_argparse_fatal "unrecognized option $_L_option in ${_L_args[_L_argsi]}" || return "$?"
 			fi
 			# This is special - if _L_comp_enabled, then we should ignore invalid options and carry on
-			((++_L_argsi))
+			(( ++_L_argsi ))
 			return 0
 		fi
 		local _L_nargs=${_L_opt_nargs[_L_opti]:-}
@@ -8158,6 +8158,7 @@ _L_argparse_parse_args() {
 			# Parse options arguments, if enabled.
 			${_L_options_enabled:+_L_argparse_parse_args_parse_options}
 			if (( _L_init_argsi == _L_argsi )); then
+				# If no arguments were parsed, parse positional arguments.
 				# Parse fromfile_prefix_chars.
 				if [[ -n "${_L_parser_fromfile_prefix_chars[_L_parseri]:-}" && "${_L_parser_fromfile_prefix_chars[_L_parseri]:-}" == *"${_L_args[_L_argsi]::1}"* ]]; then
 					if (( _L_comp_enabled && _L_argsi+1 == ${#_L_args[@]} )); then
@@ -8176,7 +8177,6 @@ _L_argparse_parse_args() {
 					(( ++_L_argsi ))
 					continue
 				fi
-				# If no arguments were parsed, parse positional arguments.
 				if (( ${#_L_args_accumulator[@]} == 0 )); then
 					# Get the next positional argument.
 					if (( ++_L_argumentsi >= ${#_L_arguments[@]} )); then
@@ -8586,7 +8586,7 @@ L_argparse() {
 	_L_argparse_parse_args || return "$?"
 	{
 		# Handle subparser
-		while ((_L_subparser_argsi)); do
+		while (( _L_subparser_opti > 0 )); do
 			local _L_argsi=$_L_subparser_argsi _L_opti=$_L_subparser_opti
 			local _L_subparsers=() _L_indexes=() _L_i _L_subparseri=-1 _L_subparser_guesses=() _L_subparseri_abbrev=()
 			# If this is the last argument, complete it with subparsers names.
@@ -8634,7 +8634,7 @@ L_argparse() {
 			# If no subparser is found.
 			if ((_L_subparseri == -1)); then
 				# Colors as used in printing help message, copied.
-				local cred=$'\x11' cgreen=$'\x12' cyellow=$'\x13' cblue=$'\x14' cpurple=$'\x15' ccyan=$'\x16' creset=$'\x1A' cdel=$'[\x11\x12\x13\x14\x15\x16\x10]'
+				local cred=$'\x11' cgreen=$'\x12' cyellow=$'\x13' cblue=$'\x14' cpurple=$'\x15' ccyan=$'\x16' creset=$'\x1A' cdel=$'[\x11\x12\x13\x14\x15\x16\x1A]'
 				if ((_L_comp_enabled)); then
 					# Just complete option in case no subparser. We do not know which subparser to use to complete here.
 					# _L_argparse_gen_option_names_completion "${_L_args[${#_L_args[@]}-1]}"
@@ -8681,7 +8681,6 @@ L_argparse() {
 				# Child function takes parser parent index from this.
 				_L_parseri=${_L_indexes[_L_subparseri]}
 				# Reset sub args so we do not loop forever.
-				_L_subparser_argsi=0
 				_L_subparser_opti=-1
 				_L_args=("${_L_args[@]:_L_argsi+1}")
 				_L_argsi=0
