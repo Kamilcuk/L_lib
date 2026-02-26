@@ -8152,7 +8152,7 @@ _L_argparse_parse_args() {
 		while (( (_L_init_argsi = _L_argsi) < ${#_L_args[@]})); do
 			# Parse options arguments, if enabled.
 			${_L_options_enabled:+_L_argparse_parse_args_parse_options}
-			if ((_L_init_argsi == _L_argsi)); then
+			if (( _L_init_argsi == _L_argsi)); then
 				# If no arguments were parsed, parse positional arguments.
 				if ((${#_L_args_accumulator[@]} == 0)); then
 					# Get the next positional argument.
@@ -8177,8 +8177,7 @@ _L_argparse_parse_args() {
 						;;
 					esac
 				fi
-				if [[ -n "${_L_parser_fromfile_prefix_chars[_L_parseri]:-}" && \
-						"${_L_parser_fromfile_prefix_chars[_L_parseri]}" == *"${_L_args[_L_argsi]::1}"* ]]; then
+				if [[ "${_L_parser_fromfile_prefix_chars[_L_parseri]:-}" == *"${_L_args[_L_argsi]::1}"* ]]; then
 					if [[ ! -e "${_L_args[_L_argsi]:1}" ]]; then
 						L_argparse_fatal "arguments input file ${_L_args[_L_argsi]:1} does not exists" || return "$?"
 					fi
