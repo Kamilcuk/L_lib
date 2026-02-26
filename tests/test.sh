@@ -1737,6 +1737,7 @@ _L_test_asa() {
 fi  # L_HAS_ASSOCIATIVE_ARRAY
 
 . "$(dirname "$0")"/argparse_tests.sh
+. "$(dirname "$0")"/argparse_tests_2.sh
 
 _L_test_path() {
 	local v
