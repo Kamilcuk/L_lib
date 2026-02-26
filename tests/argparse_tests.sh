@@ -15,7 +15,7 @@ _L_test_z_argparse01() {
 			-- -a --append action=append
 			----
 		)
-		L_unittest_cmd -r 'argument' ! L_argparse "${parser[@]}" ----
+		L_unittest_cmd -r 'unrecognized long option' ! L_argparse "${parser[@]}" ----
 		L_unittest_cmd -r 'error' ! L_argparse "${parser[@]}" --- -h
 		L_unittest_cmd L_argparse "${parser[@]}" --
 		L_unittest_cmd L_argparse "${parser[@]}"
@@ -233,7 +233,7 @@ And that's how you'd foo a bar" \
 			---- --foon
 		L_unittest_eq "$out" "\
 Usage: PROG [-h] [--foobar] [--foonley]
-PROG: error: unrecognized arguments: --foon"
+PROG: error: unrecognized long option: --foon"
 	}
 	{
 		local foo='' bar=''
@@ -792,7 +792,7 @@ _L_test_z_argparse12_action_eval() {
 _L_test_z_argparse13_validate() {
 	{
 		L_log "check validate"
-		local num
+		local num tmp
 		L_unittest_failure_capture tmp -- L_argparse -- --num validate='[[ "$1" =~ ^[0-9]+$ ]]' ---- --num abc
 		L_unittest_contains "$tmp" "invalid"
 		L_argparse -- --num validate='[[ "$1" =~ ^[0-9]+$ ]]' ---- --num 123
@@ -803,7 +803,7 @@ _L_test_z_argparse13_validate() {
 _L_test_z_argparse15_float_type() {
 	{
 		L_log "check type=float"
-		local num
+		local num tmp
 		L_unittest_failure_capture tmp -- L_argparse -- --num type=float ---- --num abc
 		L_unittest_contains "$tmp" "not a float"
 		L_argparse -- --num type=float ---- --num 3.14
@@ -816,7 +816,7 @@ _L_test_z_argparse15_float_type() {
 _L_test_z_argparse16_nonnegative_positive() {
 	{
 		L_log "check type=nonnegative and type=positive"
-		local num
+		local num tmp
 		L_unittest_failure_capture tmp -- L_argparse -- --num type=nonnegative ---- --num -1
 		L_unittest_contains "$tmp" "lower than 0"
 		L_argparse -- --num type=nonnegative ---- --num 0
@@ -866,100 +866,82 @@ _L_test_z_argparse21_unknown_args() {
 	{
 		L_log "check unknown_args="
 		local verbose extra=()
-		L_argparse unknown_args=extra -- -v --verbose action=store_true ---- -v --unknown value positional
+		L_unittest_cmd -c L_argparse unknown_args=extra -- -v --verbose action=store_true ---- -v --unknown value positional
 		L_unittest_vareq verbose true
 		L_unittest_arreq extra --unknown value positional
 	}
 	{
 		local foo extra=()
-		L_argparse unknown_args=extra -- --foo ---- --foo bar --unknown1 --unknown2 value
+		L_unittest_cmd -c L_argparse unknown_args=extra -- --foo ---- --foo bar --unknown1 --unknown2 value
 		L_unittest_vareq foo bar
 		L_unittest_arreq extra --unknown1 --unknown2 value
 	}
 	{
-		local extra=()
-		L_argparse unknown_args=extra -- arg ---- knownarg
+		local extra=() arg
+		L_unittest_cmd -c  L_argparse unknown_args=extra -- arg ---- knownarg
 		L_unittest_vareq arg knownarg
 		L_unittest_arreq extra
 	}
 	{
-		local extra=()
+		local extra=() arg tmp
 		L_unittest_failure_capture tmp -- L_argparse -- arg ---- --unknown
-		L_unittest_contains "$tmp" "unrecognized arguments"
+		L_unittest_contains "$tmp" "unrecognized long option"
 	}
 }
 
 _L_test_z_argparse22_fromfile_prefix_chars() {
+	local arg1 arg2 arg3 verbose value args
 	{
 		L_log "check fromfile_prefix_chars="
-		local tmpfile=$(mktemp)
-		echo -e "arg1\narg2\narg3" > "$tmpfile"
-		local arg1 arg2 arg3
-		L_argparse fromfile_prefix_chars=@ -- arg1 -- arg2 -- arg3 ---- "@$tmpfile"
+		L_unittest_cmd -c L_argparse fromfile_prefix_chars=@ -- arg1 -- arg2 -- arg3 ---- @<(printf "%s\n" arg1 arg2 arg3)
 		L_unittest_vareq arg1 arg1
 		L_unittest_vareq arg2 arg2
 		L_unittest_vareq arg3 arg3
-		rm "$tmpfile"
 	}
 	{
-		local tmpfile=$(mktemp)
-		echo "--verbose" > "$tmpfile"
-		echo "value" >> "$tmpfile"
-		local verbose value
-		L_argparse fromfile_prefix_chars=@ -- -v --verbose action=store_true -- --value ---- "@$tmpfile"
+		L_unittest_cmd -c L_argparse fromfile_prefix_chars=@ -- -v --verbose action=store_true -- --value ---- @<(printf "%s\n" --verbose --value value)
 		L_unittest_vareq verbose true
 		L_unittest_vareq value value
-		rm "$tmpfile"
 	}
 	{
-		local tmpfile=$(mktemp)
-		echo "line1" > "$tmpfile"
-		echo "line2 with space" >> "$tmpfile"
-		local args=()
-		L_argparse fromfile_prefix_chars=@ -- args nargs=+ ---- "@$tmpfile"
+		L_unittest_cmd -c L_argparse fromfile_prefix_chars=@ -- args nargs=+ ---- @<(printf "%s\n" line1 'line2 with space')
 		L_unittest_arreq args line1 "line2 with space"
-		rm "$tmpfile"
 	}
 }
 
 _L_test_z_argparse23_shell_completion_scripts() {
+	local out
 	{
 		L_log "check --L_argparse_complete_bash"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_complete_bash 2>&1)
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_complete_bash
 		L_unittest_contains "$out" "complete"
 		L_unittest_contains "$out" "test_sh"
 	}
 	{
 		L_log "check --L_argparse_zsh_completion"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_zsh_completion 2>&1)
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_zsh_completion
 		L_unittest_contains "$out" "#compdef"
 		L_unittest_contains "$out" "test.sh"
 	}
 	{
 		L_log "check --L_argparse_fish_completion"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_fish_completion 2>&1)
-		L_unittest_contains "$out" "testprog"
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_fish_completion
+		L_unittest_contains "$out" "test.sh"
 	}
 	{
 		L_log "check --L_argparse_completion_help"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_completion_help 2>&1)
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_completion_help
 		L_unittest_contains "$out" "bash"
 	}
 	{
 		L_log "check --L_argparse_print_usage"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_usage 2>&1)
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_usage
 		L_unittest_contains "$out" "Usage:"
 		L_unittest_contains "$out" "testprog"
 	}
 	{
 		L_log "check --L_argparse_print_help"
-		local out
-		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_help 2>&1)
+		L_unittest_cmd -v out L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_help
 		L_unittest_contains "$out" "Usage:"
 		L_unittest_contains "$out" "Options:"
 		L_unittest_contains "$out" "testprog"
