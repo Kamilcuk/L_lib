@@ -5624,7 +5624,7 @@ _L_unittest_internal() {
 		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
 		((++L_unittest_fails))
-		echo "command [${*:3}] FAILED!${2:+ }${2:-}${L_COLORRESET}"
+		echo "command [$(L_quote_printf "${@:3}")] FAILED!${2:+ }${2:-}${L_COLORRESET}"
 		if ((L_unittest_exit_on_error)); then
 			exit 17
 		else
@@ -7372,8 +7372,6 @@ _L_argparse_parser_get_long_option() {
 		_L_abbrev_matches=$(compgen -W "$_L_options" -- "$2" || :)
 		if [[ -n "$_L_abbrev_matches" ]]; then
 			if [[ "$_L_abbrev_matches" == *[$' \t\n']* ]]; then
-				# It might be a single dash long option, so return if so.
-				if [[ "${2:1:1}" != ["$_L_pc"] ]]; then return 1; fi
 				L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches//[$' \t\n']/ }" || return "$?"
 			else
 				if ! _L_argparse_parser_find_option "$1" "$_L_abbrev_matches"; then
@@ -8076,7 +8074,7 @@ _L_argparse_parse_args_short_option() {
 		if ! _L_argparse_parser_find_option _L_opti "$_L_option"; then
 			if ((_L_i == 1)); then
 				_L_argparse_add_unknown_args "${_L_args[_L_argsi]}" ||
-					L_argparse_fatal "unrecognized option ${_L_args[_L_argsi]}" || return "$?"
+					L_argparse_fatal "unrecognized option: ${_L_args[_L_argsi]}" || return "$?"
 			else
 				_L_argparse_add_unknown_args "${_L_args[_L_argsi]:0:1}${_L_args[_L_argsi]:_L_i}" ||
 					L_argparse_fatal "unrecognized option $_L_option in ${_L_args[_L_argsi]}" || return "$?"
