@@ -971,3 +971,49 @@ _L_test_z_argparse24_append_const() {
 		L_unittest_arreq types
 	}
 }
+
+_L_test_z_argparse25_one_dash_long_option_ambiguous() {
+	{
+		L_log "check ambiguous one-dash long options"
+		local option optional out
+		local parser=(
+			allow_abbrev=1
+			-- -option default=
+			-- -optional default=
+			----
+		)
+
+		# Non-ambiguous case
+		L_unittest_cmd -c L_argparse "${parser[@]}" -optiona value
+		L_unittest_vareq optional value
+		L_unittest_vareq option ''
+
+		# Ambiguous case
+		L_unittest_failure_capture out -- L_argparse "${parser[@]}" -opt value
+		L_unittest_contains "$out" "ambiguous option: -opt"
+
+		# Exact match is not ambiguous
+		L_unittest_cmd -c L_argparse "${parser[@]}" -option value
+		L_unittest_vareq option value
+		L_unittest_vareq optional ''
+	}
+	{
+		L_log "check one-dash long options without abbrev"
+		local option optional out
+		local parser=(
+			allow_abbrev=0
+			-- -option
+			-- -optional
+			----
+		)
+
+		# Abbreviation should fail
+		L_unittest_failure_capture out -- L_argparse "${parser[@]}" -optiona value
+		L_unittest_contains "$out" "unrecognized option: -optiona"
+
+		# Exact match should work
+		L_unittest_cmd -c L_argparse "${parser[@]}" -option value
+		L_unittest_vareq option value
+		L_unittest_vareq optional ''
+	}
+}
