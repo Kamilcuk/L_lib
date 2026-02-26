@@ -861,3 +861,131 @@ _L_test_z_argparse20_allow_subparser_abbrev() {
 		L_unittest_vareq cmd clone
 	}
 }
+
+_L_test_z_argparse21_unknown_args() {
+	{
+		L_log "check unknown_args="
+		local verbose extra=()
+		L_argparse unknown_args=extra -- -v --verbose action=store_true ---- -v --unknown value positional
+		L_unittest_vareq verbose true
+		L_unittest_arreq extra --unknown value positional
+	}
+	{
+		local foo extra=()
+		L_argparse unknown_args=extra -- --foo ---- --foo bar --unknown1 --unknown2 value
+		L_unittest_vareq foo bar
+		L_unittest_arreq extra --unknown1 --unknown2 value
+	}
+	{
+		local extra=()
+		L_argparse unknown_args=extra -- arg ---- knownarg
+		L_unittest_vareq arg knownarg
+		L_unittest_arreq extra
+	}
+	{
+		local extra=()
+		L_unittest_failure_capture tmp -- L_argparse -- arg ---- --unknown
+		L_unittest_contains "$tmp" "unrecognized arguments"
+	}
+}
+
+_L_test_z_argparse22_fromfile_prefix_chars() {
+	{
+		L_log "check fromfile_prefix_chars="
+		local tmpfile=$(mktemp)
+		echo -e "arg1\narg2\narg3" > "$tmpfile"
+		local arg1 arg2 arg3
+		L_argparse fromfile_prefix_chars=@ -- arg1 -- arg2 -- arg3 ---- "@$tmpfile"
+		L_unittest_vareq arg1 arg1
+		L_unittest_vareq arg2 arg2
+		L_unittest_vareq arg3 arg3
+		rm "$tmpfile"
+	}
+	{
+		local tmpfile=$(mktemp)
+		echo "--verbose" > "$tmpfile"
+		echo "value" >> "$tmpfile"
+		local verbose value
+		L_argparse fromfile_prefix_chars=@ -- -v --verbose action=store_true -- --value ---- "@$tmpfile"
+		L_unittest_vareq verbose true
+		L_unittest_vareq value value
+		rm "$tmpfile"
+	}
+	{
+		local tmpfile=$(mktemp)
+		echo "line1" > "$tmpfile"
+		echo "line2 with space" >> "$tmpfile"
+		local args=()
+		L_argparse fromfile_prefix_chars=@ -- args nargs=+ ---- "@$tmpfile"
+		L_unittest_arreq args line1 "line2 with space"
+		rm "$tmpfile"
+	}
+}
+
+_L_test_z_argparse23_shell_completion_scripts() {
+	{
+		L_log "check --L_argparse_complete_bash"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_complete_bash 2>&1)
+		L_unittest_contains "$out" "complete"
+		L_unittest_contains "$out" "test_sh"
+	}
+	{
+		L_log "check --L_argparse_zsh_completion"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_zsh_completion 2>&1)
+		L_unittest_contains "$out" "#compdef"
+		L_unittest_contains "$out" "test.sh"
+	}
+	{
+		L_log "check --L_argparse_fish_completion"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true -- arg ---- --L_argparse_fish_completion 2>&1)
+		L_unittest_contains "$out" "testprog"
+	}
+	{
+		L_log "check --L_argparse_completion_help"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_completion_help 2>&1)
+		L_unittest_contains "$out" "bash"
+	}
+	{
+		L_log "check --L_argparse_print_usage"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_usage 2>&1)
+		L_unittest_contains "$out" "Usage:"
+		L_unittest_contains "$out" "testprog"
+	}
+	{
+		L_log "check --L_argparse_print_help"
+		local out
+		out=$(L_argparse prog=testprog -- -v --verbose action=store_true ---- --L_argparse_print_help 2>&1)
+		L_unittest_contains "$out" "Usage:"
+		L_unittest_contains "$out" "Options:"
+		L_unittest_contains "$out" "testprog"
+	}
+}
+
+_L_test_z_argparse24_append_const() {
+	{
+		L_log "check action=append_const"
+		local types=()
+		L_argparse -- --str dest=types action=append_const const=str -- --int dest=types action=append_const const=int ---- --str --int
+		L_unittest_arreq types str int
+	}
+	{
+		local types=()
+		L_argparse -- --str dest=types action=append_const const=str -- --int dest=types action=append_const const=int ---- --str --str --int --int
+		L_unittest_arreq types str str int int
+	}
+	{
+		local types=()
+		L_argparse -- --str dest=types action=append_const const=str default='a b' ----
+		L_unittest_arreq types a b
+	}
+	{
+		local types=()
+		L_argparse -- --str dest=types action=append_const const=str ----
+		L_unittest_arreq types
+	}
+}
