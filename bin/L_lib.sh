@@ -5735,7 +5735,7 @@ _L_unittest_main_runner() {
 #         For example output of compgen.
 L_unittest_main() {
 	set -euo pipefail
-	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_nproc=1 _L_list=0 _L_quiet=0 _L_ret=0
+	local OPTIND OPTARG OPTERR _L_opt _L_tests=() _L_nproc=1 _L_list=0 _L_quiet=0 _L_ret=0 _L_i
 	while getopts p:r:EP:lqh _L_i; do
 		case $_L_i in
 			p)
@@ -5768,7 +5768,7 @@ L_unittest_main() {
 	done
 	shift "$((OPTIND-1))"
 	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }"
-	_L_test+=("${_L_i[@]}")
+	_L_tests+=("${_L_i[@]}")
 	L_assert 'no tests matched' test "${#_L_tests[@]}" '!=' 0
 	#
 	if (( _L_list )); then
