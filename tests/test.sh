@@ -27,6 +27,7 @@ USR2_CNT=0
 . "$L_DIR"/array_index_tests.sh
 . "$L_DIR"/foreach_tests.sh
 . "$L_DIR"/test_xargs.sh
+. "$L_DIR"/test_xargs_extended.sh
 
 _L_test_color() {
 	{
