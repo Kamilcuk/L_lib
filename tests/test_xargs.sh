@@ -38,9 +38,9 @@ Processing file2"
     output=$(printf "1
 2
 3" | L_xargs -P 3 -n 1 bash -c 'echo "proc:$BASHPID val:$1"' --)
-    L_unittest_match "$output" "proc:[0-9]+ val:1
-proc:[0-9]+ val:2
-proc:[0-9]+ val:3" "L_xargs -P should run in parallel"
+    L_unittest_match "$output" "proc:[0-9]+ val:[123]
+proc:[0-9]+ val:[123]
+proc:[0-9]+ val:[123]" "L_xargs -P should run in parallel"
 }
 
 _L_test_L_xargs_extended_options() {
@@ -70,9 +70,8 @@ c
 
     # Test -O option (separate output buffering)
     output=$(printf "1
-2" | L_xargs -P 2 -n 1 -O bash -c 'echo $1')
-    L_unittest_eq "$output" "1
-2"
+2" | L_xargs -t -P 2 -n 1 -O bash -c 'echo 1; sleep 0.$(($1-1)); echo 2' --)
+    L_unittest_eq "$output" $'1\n2\n1\n2'
 
     # Test -^ option (prefix)
     output=$(printf "1

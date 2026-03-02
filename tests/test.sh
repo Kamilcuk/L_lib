@@ -3387,7 +3387,7 @@ newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)
 
 L_trap_err_enable
-_L_lib_run_tests "$@"
+L_unittest_main -p _L_test "$@"
 
 # Check for any new variables.
 diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :

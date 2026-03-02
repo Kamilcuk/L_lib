@@ -21,9 +21,9 @@ _L_xargs_handle_return() {
 	*)
 		if ((128 < $1 && $1 <= 128 + 64)); then
 			_L_x_done=1
-			local _L_tmp
-			L_trap_to_name -v _L_tmp "$(($1-128))"
-			printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$_L_tmp" >&2
+			local L_v
+			L_trap_to_name_v "$(($1-128))"
+			printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_v" >&2
 			if ((_L_x_return < 125)); then
 				_L_x_return=125
 			fi
@@ -36,31 +36,31 @@ _L_xargs_handle_return() {
 
 _L_xargs_buf_read() {
 	# Read from file descriptors if created pipes.
-	if (( ${_L_x_buf_fds[*]:+${#_L_x_buf_fds[*]}}+0 )); then
-		local _L_i _L_args _L_fd_idx
+	if (( ${_L_x_buf_fds_set[*]+${#_L_x_buf_fds_set[*]}}+0 )); then
+		local _L_args _L_fd
 		# Prepare arguments for L_read_fds call - fd + buffer variable name.
-		for _L_i in "${!_L_x_buf_fds[@]}"; do
-			_L_args+=( "${_L_x_buf_fds[_L_i]}" "_L_x_buf_output[$_L_i]" )
+		for _L_fd in "${!_L_x_buf_fds_set[@]}"; do
+			_L_args+=( "$_L_fd" "_L_x_buf_output[$_L_fd]" )
 		done
-		# Read from file dscriptors.
-		L_read_fds -i _L_fd_idx "${_L_args[@]}" || return 1
-			printf "%s" "${_L_x_buf_output[_L_fd_idx]}"
-			eval "exec ${_L_x_buf_fds[$_L_fd_idx]}>&-"
-			unset -v "_L_x_buf_fds[$_L_fd_idx]" "_L_x_buf_output[$_L_fd_idx]"
+		# Read from file descriptors.
+		L_read_fds -v _L_fd "${_L_args[@]}" || return 1
+		# _L_fd finished. Close it, print output and remove from the list.
+		eval "exec $_L_fd>&-"
+		printf "%s" "${_L_x_buf_output[$_L_fd]}"
+		unset -v "_L_x_buf_fds_set[$_L_fd]" "_L_x_buf_output[$_L_fd]"
 	fi
 }
 
 _L_xargs_wait() {
 	# If there are no pids, there is nothing to wait for.
-	if (( ${_L_x_pids[*]:+${#_L_x_pids[*]}}+0 )); then
+	if (( ${_L_x_pids_set[*]+${#_L_x_pids_set[*]}}+0 )); then
 		# Read from buffered pipes, if used.
 		_L_xargs_buf_read || return 1
 		# Capture any command exit. Handle exit code.
-		local _L_a_pid_idx _L_a_ret
-		L_wait -v _L_a_ret -i _L_a_pid_idx "${_L_x_pids[@]}" || return 1
-		# declare -p _L_a_ret _L_a_pid _L_x_pids
+		local _L_a_pid _L_a_ret _L_a_idx
+		L_wait -n -v _L_a_ret -p _L_a_pid "${!_L_x_pids_set[@]}" || return 1
 		_L_xargs_handle_return "$_L_a_ret"
-		unset -v "_L_x_pids[$_L_a_pid_idx]"
+		unset -v "_L_x_pids_set[$_L_a_pid]"
 	fi
 }
 
@@ -101,15 +101,15 @@ _L_xargs_run() {
 		fi
 		if (( _L_x_dobuf )); then
 			local _L_pipe _L_cmd
-			L_pipe _L_pipe || return 1
 			printf -v _L_cmd "%q " "${_L_cmdready[@]}"
-			_L_x_buf_fds+=("${_L_pipe[0]}")
+			L_pipe _L_pipe || return 1
 			eval "$_L_cmd ${_L_pipe[0]}>&- 1>&${_L_pipe[1]} & exec ${_L_pipe[1]}>&-"
+			_L_x_buf_fds_set["${_L_pipe[0]}"]=""
 		else
 			"${_L_cmdready[@]}" &
 		fi
-		_L_x_pids+=("$!")
-		if (( _L_x_maxprocs != 0 && ${#_L_x_pids[@]} >= _L_x_maxprocs )); then
+		_L_x_pids_set["$!"]=""
+		if (( _L_x_maxprocs != 0 && ${#_L_x_pids_set[@]} >= _L_x_maxprocs )); then
 			_L_xargs_wait || return 1
 		fi
 	fi
@@ -117,20 +117,20 @@ _L_xargs_run() {
 
 _L_xargs_trap() {
 	# local i
-	# for i in ${_L_x_pids[@]:+"${!_L_x_pids[@]}"}; do
-	# 	if ! kill -0 "${_L_x_pids[$i]}" 2>/dev/null; then
-	# 		unset -v "_L_x_pids[$i]"
+	# for i in ${_L_x_pids_set[@]+"${!_L_x_pids_set[@]}"}; do
+	# 	if ! kill -0 "${_L_x_pids_set[$i]}" 2>/dev/null; then
+	# 		unset -v "_L_x_pids_set[$i]"
 	# 	fi
 	# done
-	if (( ${_L_x_pids[@]:+${#_L_x_pids[@]}}+0 != 0 )); then
+	if (( ${_L_x_pids_set[@]+${#_L_x_pids_set[@]}}+0 != 0 )); then
 		if [[ " SIGINT RETURN EXIT " == *"$L_SIGNAL"* ]]; then
 			# https://stackoverflow.com/a/75385863/9072753
 			# SIGINT is disabled in subshells so do not send it
-			kill "${_L_x_pids[@]}" 2>/dev/null || :
+			kill "${!_L_x_pids_set[@]}" 2>/dev/null || :
 		else
-			kill ${L_SIGNAL:+-"$L_SIGNAL"} "${_L_x_pids[@]}" 2>/dev/null || :
+			kill ${L_SIGNAL+-"$L_SIGNAL"} "${!_L_x_pids_set[@]}" 2>/dev/null || :
 		fi
-		wait "${_L_x_pids[@]}" || :
+		wait "${!_L_x_pids_set[@]}" || :
 	fi
 }
 
@@ -160,8 +160,8 @@ L_nproc_v() {
 	fi
 }
 
-_L_xargs_callback_array() { (( _L_x_a_index < (${_L_x_a[*]:+${#_L_x_a[*]}}+0) )) && L_v=("${_L_x_a[_L_x_a_index++]}"); }
-_L_xargs_callback_read() { IFS= read ${_L_x_fd:+-u "$_L_x_fd"} -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]; }
+_L_xargs_callback_array() { (( _L_x_a_index < (${_L_x_a[*]+${#_L_x_a[*]}}+0) )) && L_v=("${_L_x_a[_L_x_a_index++]}"); }
+_L_xargs_callback_read() { IFS= read ${_L_x_fd+-u "$_L_x_fd"} -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]; }
 
 # @description A high-performance Bash implementation of the `xargs` utility designed for seamless
 # integration with local shell environments. Unlike binary `xargs`, `L_xargs` executes within
@@ -208,7 +208,7 @@ L_xargs() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit=0 _L_i _L_x_maxprocs=1 L_v \
 			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
 			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd _L_x_a _L_x_a_index=0 _L_x_split="" \
-			_L_x_dobuf=0 _L_x_buf_fds _L_x_buf_output
+			_L_x_dobuf=0 _L_x_buf_fds_set _L_x_buf_output
 	while getopts a:0c:d:sSu:I:in:L:rP:tO^h _L_i; do
 		case "$_L_i" in
 			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=("${!_L_i}") _L_x_split=${_L_x_split:-0} ;;
@@ -232,7 +232,7 @@ L_xargs() {
 		esac
 	done
 	shift "$((OPTIND-1))"
-	local _L_cmd=("${@:-L_quote_printf}") _L_x_pids _L_atoms _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
+	local _L_cmd=("${@:-L_quote_printf}") _L_x_pids_set _L_atoms _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
 	while (( !_L_x_done )) && L_v=() && "${_L_x_callback[@]}"; do
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
@@ -254,11 +254,11 @@ L_xargs() {
 		done
 	done
 	# Final EOF Flush
-	if (( ${_L_atoms[*]:+${#_L_atoms[*]}}+0 )); then
+	if (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 )); then
 		_L_xargs_run "${_L_atoms[@]}" || return 1
 	fi
 	# Reaper for parallel mode
-	while (( ${_L_x_pids[*]:+${#_L_x_pids[*]}}+0 )); do
+	while (( ${_L_x_pids_set[*]+${#_L_x_pids_set[*]}}+0 )); do
 		_L_xargs_wait || return 1
 	done
 	return "$_L_x_return"
