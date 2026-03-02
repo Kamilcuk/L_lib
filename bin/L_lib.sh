@@ -45,105 +45,180 @@ fi
 # The `L_color_detect` function can be used to detect if the terminal and user wishes to have output with colors.
 # @example echo "$L_RED""hello world""$L_RESET"
 
-# @description Text to be evaled to enable colors.
-_L_COLOR_SWITCH="
-
-L_BOLD=$'\E[1m'
-L_BRIGHT=$'\E[1m'
-L_DIM=$'\E[2m'
-L_FAINT=$'\E[2m'
-L_ITALIC=$'\E[3m'
-# @description Standaout means italic font.
-L_STANDOUT=$'\E[3m'
-L_UNDERLINE=$'\E[4m'
-L_BLINK=$'\E[5m'
-L_REVERSE=$'\E[7m'
-L_CONCEAL=$'\E[8m'
-L_HIDDEN=$'\E[8m'
-L_CROSSEDOUT=$'\E[9m'
-
-L_FONT0=$'\E[10m'
-L_FONT1=$'\E[11m'
-L_FONT2=$'\E[12m'
-L_FONT3=$'\E[13m'
-L_FONT4=$'\E[14m'
-L_FONT5=$'\E[15m'
-L_FONT6=$'\E[16m'
-L_FONT7=$'\E[17m'
-L_FONT8=$'\E[18m'
-L_FONT9=$'\E[19m'
-
-L_FRAKTUR=$'\E[20m'
-L_DOUBLE_UNDERLINE=$'\E[21m'
-L_NODIM=$'\E[22m'
-L_NOSTANDOUT=$'\E[23m'
-L_NOUNDERLINE=$'\E[24m'
-L_NOBLINK=$'\E[25m'
-L_NOREVERSE=$'\E[27m'
-L_NOHIDDEN=$'\E[28m'
-L_REVEAL=$'\E[28m'
-L_NOCROSSEDOUT=$'\E[29m'
-
-L_BLACK=$'\E[30m'
-L_RED=$'\E[31m'
-L_GREEN=$'\E[32m'
-L_YELLOW=$'\E[33m'
-L_BLUE=$'\E[34m'
-L_MAGENTA=$'\E[35m'
-L_CYAN=$'\E[36m'
-L_LIGHT_GRAY=$'\E[37m'
-L_DEFAULT=$'\E[39m'
-L_FOREGROUND_DEFAULT=$'\E[39m'
-
-L_BG_BLACK=$'\E[40m'
-L_BG_BLUE=$'\E[44m'
-L_BG_CYAN=$'\E[46m'
-L_BG_GREEN=$'\E[42m'
-L_BG_LIGHT_GRAY=$'\E[47m'
-L_BG_MAGENTA=$'\E[45m'
-L_BG_RED=$'\E[41m'
-L_BG_YELLOW=$'\E[43m'
-
-L_FRAMED=$'\E[51m'
-L_ENCIRCLED=$'\E[52m'
-L_OVERLINED=$'\E[53m'
-L_NOENCIRCLED=$'\E[54m'
-L_NOFRAMED=$'\E[54m'
-L_NOOVERLINED=$'\E[55m'
-
-L_DARK_GRAY=$'\E[90m'
-L_LIGHT_RED=$'\E[91m'
-L_LIGHT_GREEN=$'\E[92m'
-L_LIGHT_YELLOW=$'\E[93m'
-L_LIGHT_BLUE=$'\E[94m'
-L_LIGHT_MAGENTA=$'\E[95m'
-L_LIGHT_CYAN=$'\E[96m'
-L_WHITE=$'\E[97m'
-
-L_BG_DARK_GRAY=$'\E[100m'
-L_BG_LIGHT_BLUE=$'\E[104m'
-L_BG_LIGHT_CYAN=$'\E[106m'
-L_BG_LIGHT_GREEN=$'\E[102m'
-L_BG_LIGHT_MAGENTA=$'\E[105m'
-L_BG_LIGHT_RED=$'\E[101m'
-L_BG_LIGHT_YELLOW=$'\E[103m'
-L_BG_WHITE=$'\E[107m'
-
-L_COLORRESET=$'\E[m'
-L_RESET=$'\E[m'
-
-"
-
 # @description The L_ color variables are set to the ANSI escape sequences.
 # @noargs
 L_color_enable() {
-	eval "${_L_COLOR_SWITCH}"
+	L_BOLD=$'\E[1m'
+	L_BRIGHT=$'\E[1m'
+	L_DIM=$'\E[2m'
+	L_FAINT=$'\E[2m'
+	L_ITALIC=$'\E[3m'
+	# @description Standaout means italic font.
+	L_STANDOUT=$'\E[3m'
+	L_UNDERLINE=$'\E[4m'
+	L_BLINK=$'\E[5m'
+	L_REVERSE=$'\E[7m'
+	L_CONCEAL=$'\E[8m'
+	L_HIDDEN=$'\E[8m'
+	L_CROSSEDOUT=$'\E[9m'
+
+	L_FONT0=$'\E[10m'
+	L_FONT1=$'\E[11m'
+	L_FONT2=$'\E[12m'
+	L_FONT3=$'\E[13m'
+	L_FONT4=$'\E[14m'
+	L_FONT5=$'\E[15m'
+	L_FONT6=$'\E[16m'
+	L_FONT7=$'\E[17m'
+	L_FONT8=$'\E[18m'
+	L_FONT9=$'\E[19m'
+
+	L_FRAKTUR=$'\E[20m'
+	L_DOUBLE_UNDERLINE=$'\E[21m'
+	L_NODIM=$'\E[22m'
+	L_NOSTANDOUT=$'\E[23m'
+	L_NOUNDERLINE=$'\E[24m'
+	L_NOBLINK=$'\E[25m'
+	L_NOREVERSE=$'\E[27m'
+	L_NOHIDDEN=$'\E[28m'
+	L_REVEAL=$'\E[28m'
+	L_NOCROSSEDOUT=$'\E[29m'
+
+	L_BLACK=$'\E[30m'
+	L_RED=$'\E[31m'
+	L_GREEN=$'\E[32m'
+	L_YELLOW=$'\E[33m'
+	L_BLUE=$'\E[34m'
+	L_MAGENTA=$'\E[35m'
+	L_CYAN=$'\E[36m'
+	L_LIGHT_GRAY=$'\E[37m'
+	L_DEFAULT=$'\E[39m'
+	L_FOREGROUND_DEFAULT=$'\E[39m'
+
+	L_BG_BLACK=$'\E[40m'
+	L_BG_BLUE=$'\E[44m'
+	L_BG_CYAN=$'\E[46m'
+	L_BG_GREEN=$'\E[42m'
+	L_BG_LIGHT_GRAY=$'\E[47m'
+	L_BG_MAGENTA=$'\E[45m'
+	L_BG_RED=$'\E[41m'
+	L_BG_YELLOW=$'\E[43m'
+
+	L_FRAMED=$'\E[51m'
+	L_ENCIRCLED=$'\E[52m'
+	L_OVERLINED=$'\E[53m'
+	L_NOENCIRCLED=$'\E[54m'
+	L_NOFRAMED=$'\E[54m'
+	L_NOOVERLINED=$'\E[55m'
+
+	L_DARK_GRAY=$'\E[90m'
+	L_LIGHT_RED=$'\E[91m'
+	L_LIGHT_GREEN=$'\E[92m'
+	L_LIGHT_YELLOW=$'\E[93m'
+	L_LIGHT_BLUE=$'\E[94m'
+	L_LIGHT_MAGENTA=$'\E[95m'
+	L_LIGHT_CYAN=$'\E[96m'
+	L_WHITE=$'\E[97m'
+
+	L_BG_DARK_GRAY=$'\E[100m'
+	L_BG_LIGHT_BLUE=$'\E[104m'
+	L_BG_LIGHT_CYAN=$'\E[106m'
+	L_BG_LIGHT_GREEN=$'\E[102m'
+	L_BG_LIGHT_MAGENTA=$'\E[105m'
+	L_BG_LIGHT_RED=$'\E[101m'
+	L_BG_LIGHT_YELLOW=$'\E[103m'
+	L_BG_WHITE=$'\E[107m'
+
+	L_COLORRESET=$'\E[m'
+	L_RESET=$'\E[m'
 }
 
 # @description The L_ color variables are set to empty strings.
 # @noargs
 L_color_disable() {
-	eval "${_L_COLOR_SWITCH//=/= #}"
+	L_BOLD=""
+	L_BRIGHT=""
+	L_DIM=""
+	L_FAINT=""
+	L_ITALIC=""
+	# @description Standaout means italic font.
+	L_STANDOUT=""
+	L_UNDERLINE=""
+	L_BLINK=""
+	L_REVERSE=""
+	L_CONCEAL=""
+	L_HIDDEN=""
+	L_CROSSEDOUT=""
+
+	L_FONT0=""
+	L_FONT1=""
+	L_FONT2=""
+	L_FONT3=""
+	L_FONT4=""
+	L_FONT5=""
+	L_FONT6=""
+	L_FONT7=""
+	L_FONT8=""
+	L_FONT9=""
+
+	L_FRAKTUR=""
+	L_DOUBLE_UNDERLINE=""
+	L_NODIM=""
+	L_NOSTANDOUT=""
+	L_NOUNDERLINE=""
+	L_NOBLINK=""
+	L_NOREVERSE=""
+	L_NOHIDDEN=""
+	L_REVEAL=""
+	L_NOCROSSEDOUT=""
+
+	L_BLACK=""
+	L_RED=""
+	L_GREEN=""
+	L_YELLOW=""
+	L_BLUE=""
+	L_MAGENTA=""
+	L_CYAN=""
+	L_LIGHT_GRAY=""
+	L_DEFAULT=""
+	L_FOREGROUND_DEFAULT=""
+
+	L_BG_BLACK=""
+	L_BG_BLUE=""
+	L_BG_CYAN=""
+	L_BG_GREEN=""
+	L_BG_LIGHT_GRAY=""
+	L_BG_MAGENTA=""
+	L_BG_RED=""
+	L_BG_YELLOW=""
+
+	L_FRAMED=""
+	L_ENCIRCLED=""
+	L_OVERLINED=""
+	L_NOENCIRCLED=""
+	L_NOFRAMED=""
+	L_NOOVERLINED=""
+
+	L_DARK_GRAY=""
+	L_LIGHT_RED=""
+	L_LIGHT_GREEN=""
+	L_LIGHT_YELLOW=""
+	L_LIGHT_BLUE=""
+	L_LIGHT_MAGENTA=""
+	L_LIGHT_CYAN=""
+	L_WHITE=""
+
+	L_BG_DARK_GRAY=""
+	L_BG_LIGHT_BLUE=""
+	L_BG_LIGHT_CYAN=""
+	L_BG_LIGHT_GREEN=""
+	L_BG_LIGHT_MAGENTA=""
+	L_BG_LIGHT_RED=""
+	L_BG_LIGHT_YELLOW=""
+	L_BG_WHITE=""
+
+	L_COLORRESET=""
+	L_RESET=""
 }
 
 # @description Detect if colors should be used on the terminal.
