@@ -9329,12 +9329,6 @@ _L_wait_assign_pids_done_rets() {
 	if [[ -n "$_L_left_var" ]]; then
 		L_array_assign "$_L_left_var" ${_L_pids[@]:+"${_L_pids[@]}"}
 	fi
-	if [[ -n "$_L_idx_var" ]]; then
-		for _L_i in 
-	local _L_indexes
-	declare -p _L_pids
-		L_array_assign "$_L_idx_var" ${_L_indexes[@]:+"${_L_indexes[@]}"}
-	fi
 }
 
 # @arg $1 exit code of previous wait call
@@ -9359,9 +9353,9 @@ _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 	# For wait -p _L_tmp variable to be unset, it _has to_ be local within the same scope.
 	# Otherwise it will unset and fallback to the upper scope _L_tmp,
 	# which might happen to have a value.
-	local _L_tmp
 	for _L_pid in "${_L_pids[@]}"; do
 		if ((L_HAS_WAIT_P)); then
+			local _L_tmp
 			# -p is unset when receiving a signal.
 			while wait -n -p _L_tmp "$_L_pid" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_tmp; do
 				# We have received a signal, wait again.
@@ -9410,7 +9404,6 @@ _L_wait_collect_any_pids() {
 # @option -v <var> Exit code of PIDs will be assigned to <var>. The elements of -v and -p arrays are pairs.
 # @option -p <var> PIDs that exited will be assigned to array variable <var>.
 # @option -l <var> Left running PIDs will be assigned to array variable <var>.
-# @option -i <var> Indexes of PIDs that exited will be assigned to array variable <var>
 # @option -P <polltime> The time to poll processes when not possible to use waitpid or tail. Default: 0.1
 # @option -n Return 0 when at least one of the pids is finished.
 # @option -b Bash only. Do not use waitpid or tail.
@@ -9422,14 +9415,13 @@ _L_wait_collect_any_pids() {
 L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
 		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
-		_L_pids _L_done=() _L_rets=() _L_return=0 _L_idx_var=""
+		_L_pids _L_done=() _L_rets=() _L_return=0
 	while getopts t:v:p:l:i:P:nbh _L_i; do
 		case "$_L_i" in
 			t) _L_timeout=$OPTARG ;;
 			v) _L_rets_var=$OPTARG ;;
 			p) _L_pids_var=$OPTARG ;;
 			l) _L_left_var=$OPTARG ;;
-			i) _L_idx_var=$OPTARG ;;
 			P) _L_polltime=$OPTARG ;;
 			n) _L_all=0 ;;
 			b) _L_bashonly=1 ;;
@@ -10140,10 +10132,6 @@ _L_lib_selfupdate() {
 	fi
 	mv "$dest.tmp" "$dest"
 	_L_lib_log "Update successful."
-}
-
-_L_lib_run_tests() {
-	L_unittest_main -P _L_test_ "$@"
 }
 
 _L_lib_usage() {
