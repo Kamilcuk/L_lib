@@ -6,6 +6,8 @@ export TIMEFORMAT='real=%6lR user=%6lU system=%6lS'
 . "$(dirname "$0")"/../bin/L_lib.sh
 L_log_configure -L
 
+. "$(dirname "$0")"/../scripts/xargs.sh
+
 get_all_variables() {
 	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
 	unset -v L_v IFS LC_ALL _L_TRAPS
@@ -24,6 +26,7 @@ USR2_CNT=0
 
 . "$L_DIR"/array_index_tests.sh
 . "$L_DIR"/foreach_tests.sh
+. "$L_DIR"/test_xargs.sh
 
 _L_test_color() {
 	{

@@ -9254,6 +9254,12 @@ _L_wait_assign_pids_done_rets() {
 	if [[ -n "$_L_left_var" ]]; then
 		L_array_assign "$_L_left_var" ${_L_pids[@]:+"${_L_pids[@]}"}
 	fi
+	if [[ -n "$_L_idx_var" ]]; then
+		for _L_i in 
+	local _L_indexes
+	declare -p _L_pids
+		L_array_assign "$_L_idx_var" ${_L_indexes[@]:+"${_L_indexes[@]}"}
+	fi
 }
 
 # @arg $1 exit code of previous wait call
@@ -9329,6 +9335,7 @@ _L_wait_collect_any_pids() {
 # @option -v <var> Exit code of PIDs will be assigned to <var>. The elements of -v and -p arrays are pairs.
 # @option -p <var> PIDs that exited will be assigned to array variable <var>.
 # @option -l <var> Left running PIDs will be assigned to array variable <var>.
+# @option -i <var> Indexes of PIDs that exited will be assigned to array variable <var>
 # @option -P <polltime> The time to poll processes when not possible to use waitpid or tail. Default: 0.1
 # @option -n Return 0 when at least one of the pids is finished.
 # @option -b Bash only. Do not use waitpid or tail.
@@ -9340,13 +9347,14 @@ _L_wait_collect_any_pids() {
 L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
 		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
-		_L_pids _L_done=() _L_rets=() _L_return=0
-	while getopts t:v:p:l:P:nbh _L_i; do
+		_L_pids _L_done=() _L_rets=() _L_return=0 _L_idx_var=""
+	while getopts t:v:p:l:i:P:nbh _L_i; do
 		case "$_L_i" in
 			t) _L_timeout=$OPTARG ;;
 			v) _L_rets_var=$OPTARG ;;
 			p) _L_pids_var=$OPTARG ;;
 			l) _L_left_var=$OPTARG ;;
+			i) _L_idx_var=$OPTARG ;;
 			P) _L_polltime=$OPTARG ;;
 			n) _L_all=0 ;;
 			b) _L_bashonly=1 ;;
@@ -9487,14 +9495,16 @@ L_proc_wait() {
 # @option -t <timeout> Timeout in seconds.
 # @option -p <timeout> Poll timeout. The read -t argument value. Default: 0.05 or 1 in Bash3.2
 # @option -h Print this help and return 0.
-# @option -n <var> After any fd errors or becomes EOF, assign the fd number to <var> and return 0.
+# @option -v <var> After first fd EOF or error, assign the fd number to <var> and return 0.
+# @option -i <var> After first fd EOF or error, assign the argument fd number to <var> and return 0.
 # @option -C <callback> Each time any chunk of data is read,
 #            evaluate the expression "<callback> <fd> <variable> <line>".
 # @option -d <delim> Read -d argument. Default: ''
-# @option -1 Run the reading loop possible once.
+# @option -n Run the reading loop possible once.
 # @arg $1 <int> File descriptor to read from.
 # @arg $2 <var> Variable to assign the output of $1.
 # @arg $@ Continued pairs of file descriptor and variable names.
+# I do not like this. This should just read from two arrays and return array index.
 # @example
 #   exec 10< <(for ((i=0;i<5;++i)); do echo $i; sleep 1; done)
 #   exec 11< <(for ((i=0;i<5;++i)); do echo $i; sleep 2; done)
@@ -9505,17 +9515,18 @@ L_proc_wait() {
 #         124 on timeout
 L_read_fds() {
 	local _L_vars=() _L_fds=() _L_i _L_ret _L_line OPTIND OPTARG OPTERR \
-		_L_timeout="" _L_poll=0.05 IFS="" _L_cb="" _L_n="" _L_once=0 _L_delim=''
-	while getopts t:p:C:n:d:1h _L_i; do
+		_L_timeout="" _L_poll=0.05 IFS="" _L_cb="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
+	while getopts t:p:C:v:i:d:nh _L_i; do
 		case "$_L_i" in
-		t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
-		p) _L_poll="$OPTARG" ;;
-		C) _L_cb="$OPTARG" ;;
-		n) _L_n="$OPTARG"; printf -v "$_L_n" "%s" "" || return 2 ;;
-		d) _L_delim=$OPTARG ;;
-		1) _L_once=1 ;;
-		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+			t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
+			p) _L_poll="$OPTARG" ;;
+			C) _L_cb="$OPTARG" ;;
+			v) _L_v="$OPTARG"; printf -v "$_L_v" "%s" "" || return 2 ;;
+			i) _L_opt_i=$OPTARG; printf -v "$_L_opt_i" "%s" "" || return 2 ;;
+			d) _L_delim=$OPTARG ;;
+			n) _L_once=1 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -9585,7 +9596,7 @@ L_read_fds() {
 					fi
 				fi
 			else
-				# other error - remove fd
+				# EOF or error - remove fd.
 				if [[ -n "$_L_line" ]]; then
 					if [[ -n "$_L_cb" ]]; then
 						"$_L_cb" "${_L_fds[_L_i]}" "${_L_vars[_L_i]}" "$_L_line"
@@ -9594,11 +9605,17 @@ L_read_fds() {
 						L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
 					fi
 				fi
-				if [[ -n "$_L_n" ]]; then
-					printf -v "$_L_n" "%s" "${_L_fds[$_L_i]}"
+				if [[ -n "$_L_opt_i" ]]; then
+					printf -v "$_L_opt_i" "%s" "$_L_i"
+				fi
+				if [[ -n "$_L_v" ]]; then
+					printf -v "$_L_v" "%s" "${_L_fds[$_L_i]}"
 					return 0
 				fi
-				unset -v "_L_fds[_L_i]" "_L_vars[_L_i]"
+				if [[ -n "$_L_opt_i" ]]; then
+					return 0
+				fi
+				unset -v "_L_fds[$_L_i]" "_L_vars[$_L_i]"
 			fi
 		done
 		# If once mode and all fds have timeouted, return 0

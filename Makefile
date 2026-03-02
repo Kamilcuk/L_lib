@@ -149,3 +149,6 @@ docs_serve2:
 docs_docker:
 	docker build --target doc --output type=local,dest=./public .
 
+K ?= 2
+llm:
+	,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r

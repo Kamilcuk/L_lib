@@ -10,6 +10,7 @@ This document provides a comprehensive overview of the `L_lib.sh` project, desig
 
 **Architecture:**
 The library consists of a single file, `L_lib.sh`, which is designed to be sourced into other Bash scripts. This self-contained architecture ensures ease of deployment and usage.
+L_lib.sh is very big file.
 
 ## Building and Running
 
