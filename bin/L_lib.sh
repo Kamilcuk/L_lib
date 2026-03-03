@@ -9597,8 +9597,6 @@ L_proc_wait() {
 # @option -h Print this help and return 0.
 # @option -v <var> After first fd EOF or error, assign the fd number to <var> and return 0.
 # @option -i <var> After first fd EOF or error, assign the argument fd number to <var> and return 0.
-# @option -C <callback> Each time any chunk of data is read,
-#            evaluate the expression "<callback> <fd> <variable> <line>".
 # @option -d <delim> Read -d argument. Default: ''
 # @option -n Run the reading loop possible once.
 # @arg $1 <int> File descriptor to read from.
@@ -9615,12 +9613,11 @@ L_proc_wait() {
 #         124 on timeout
 L_read_fds() {
 	local _L_vars=() _L_fds=() _L_i _L_ret _L_line OPTIND OPTARG OPTERR \
-		_L_timeout="" _L_poll=0.05 IFS="" _L_cb="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
-	while getopts t:p:C:v:i:d:nh _L_i; do
+		_L_timeout="" _L_poll=0.05 IFS="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
+	while getopts t:p:v:i:d:nh _L_i; do
 		case "$_L_i" in
 			t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
 			p) _L_poll="$OPTARG" ;;
-			C) _L_cb="$OPTARG" ;;
 			v) _L_v="$OPTARG"; printf -v "$_L_v" "%s" "" || return 2 ;;
 			i) _L_opt_i=$OPTARG; printf -v "$_L_opt_i" "%s" "" || return 2 ;;
 			d) _L_delim=$OPTARG ;;
@@ -9676,35 +9673,17 @@ L_read_fds() {
 		local _L_ok=0
 		for _L_i in "${!_L_fds[@]}"; do
 			if read -r -d "$_L_delim" ${_L_poll:+-t"$_L_poll"} -u "${_L_fds[_L_i]}" _L_line; then
-				_L_line+="$_L_delim"
 				# read success
-				if [[ -n "$_L_cb" ]]; then
-					"$_L_cb" "${_L_fds[_L_i]}" "${_L_vars[_L_i]}" "$_L_line"
-				fi
-				if [[ -n "${_L_vars[_L_i]}" ]]; then
-					L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
-				fi
-				_L_ok=$((_L_ok+1))
-			elif (($? > 128)); then
+				_L_line+="$_L_delim"
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
+				_L_ok=$(( _L_ok + 1 ))
+			elif (( $? > 128 )); then
 				# read timeout
-				if [[ -n "$_L_line" ]]; then
-					if [[ -n "$_L_cb" ]]; then
-						"$_L_cb" "${_L_fds[_L_i]}" "${_L_vars[_L_i]}" "$_L_line"
-					fi
-					if [[ -n "${_L_vars[_L_i]}" ]]; then
-						L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
-					fi
-				fi
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
 			else
 				# EOF or error - remove fd.
-				if [[ -n "$_L_line" ]]; then
-					if [[ -n "$_L_cb" ]]; then
-						"$_L_cb" "${_L_fds[_L_i]}" "${_L_vars[_L_i]}" "$_L_line"
-					fi
-					if [[ -n "${_L_vars[_L_i]}" ]]; then
-						L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
-					fi
-				fi
+				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
+				# Assign any -i and -v. Return after that immediately.
 				if [[ -n "$_L_opt_i" ]]; then
 					printf -v "$_L_opt_i" "%s" "$_L_i"
 				fi
@@ -9715,6 +9694,7 @@ L_read_fds() {
 				if [[ -n "$_L_opt_i" ]]; then
 					return 0
 				fi
+				# Cleanup.
 				unset -v "_L_fds[$_L_i]" "_L_vars[$_L_i]"
 			fi
 		done
