@@ -944,20 +944,57 @@ L_time() {
 	time TIMEFORMAT="$_L_time" "$@"
 }
 
-# @description Parse 1w1d1h2m2s into number of microseconds.
+# @description Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
 # @option -v <var>
 # @arg $1 Duration string.
 # @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
 L_duration_to_usec() { L_handle_v_scalar "$@"; }
 L_duration_to_usec_v() {
-  [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?|([0-9]+))([.]([0-9]*))?$ ]] &&
-    #         123          45          67          89          01          23          45            6        7   8
-    printf -v L_v "%s%06d" "$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] )
-      * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[16] ))" "${BASH_REMATCH[18]:-0}" &&
+  [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
+    #         123          45          67          89          01          23          45           67            8        9   0
+    printf -v L_v "%s%06d" "$((
+    	( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18]
+    	+ (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
+      ))" "$((
+    	BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) }
+      ))" &&
     # Remove leading zeros.
     L_v=$(( 10#$L_v ))
 }
 
+# @description Convert microseconds to Prometheus duration string using L_v.
+# @option -v <var>
+# @arg $1 Microseconds (integer).
+L_usec_to_duration() { L_handle_v_scalar "$@"; }
+L_usec_to_duration_v() {
+    # Time unit calculation
+    # Year: 31536000000000 us (365d)
+    # Week: 604800000000 us (7d)
+    # Day: 86400000000 us (24h)
+    # Hour: 3600000000 us (60m)
+    # Minute: 60000000 us (60s)
+    # Second: 1000000 us (1000ms)
+    # Millisecond: 1000 us
+  	local \
+  		y=$((   $1 / 31536000000000 )) \
+  		w=$((  ($1 / 86400000000 % 365) / 7 )) \
+  		d=$((   $1 / 86400000000 % 365 % 7 )) \
+    	h=$((  ($1 / 3600000000) % 24 )) \
+    	m=$((  ($1 / 60000000) % 60 )) \
+    	s=$((  ($1 / 1000000) % 60 )) \
+    	ms=$(( ($1 / 1000) % 1000 )) \
+    	us=$((  $1 % 1000 ))
+    printf -v L_v "%.*s%.*s%.*s%.*s%.*s%.*s%.*s%.*s" \
+    	"$(( y > 0 ? ${#y}+1 : 0 ))" "${y}y" \
+    	"$(( w > 0 ? ${#w}+1 : 0 ))" "${w}w" \
+    	"$(( d > 0 ? ${#d}+1 : 0 ))" "${d}d" \
+    	"$(( h > 0 ? ${#h}+1 : 0 ))" "${h}h" \
+    	"$(( m > 0 ? ${#m}+1 : 0 ))" "${m}m" \
+    	"$(( s > 0 ? ${#s}+1 : 0 ))" "${s}s" \
+    	"$(( ms > 0 ? ${#ms}+2 : 0 ))" "${ms}ms" \
+    	"$(( us > 0 ? ${#us}+2 : 0 ))" "${us}us"
+    L_v="${L_v:-0s}"
+}
 
 _L_getopts_in_initer() {
 	if [[ "$1" == -a ]]; then
