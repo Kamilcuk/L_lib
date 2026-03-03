@@ -5303,6 +5303,10 @@ L_trap() {
 # @description The value of $? as expanded by trap.
 # L_SIGRET=""
 
+_L_finally_debug() {
+	L_critical "pid=$BASHPID signal=$L_SIGNAL exec=[$*]"
+}
+
 # @description L_finally RETURN handler.
 # @arg $1 The value of $?.
 # @arg $2 The value of $BASH_COMMAND.
@@ -5312,53 +5316,79 @@ L_finally_handle_return() {
   if [[ "$_L_BASH_COMMAND" == ". "* || "$_L_BASH_COMMAND" == "source "* ]]; then
   	# https://stackoverflow.com/a/79783255/9072753
   	# Handle it up the stack.
+		# _L_finally_debug "${_L_finally_return[${#BASH_LINENO[*]}]:-}"
 		eval "${_L_finally_return[${#BASH_LINENO[*]}]:-}"
 		unset -v "_L_finally_return[$((${#BASH_LINENO[*]}))]"
 	else
+		# _L_finally_debug "${_L_finally_return[${#BASH_LINENO[*]}-1]}"
 		eval "${_L_finally_return[${#BASH_LINENO[*]}-1]}"
 		unset -v "_L_finally_return[$((${#BASH_LINENO[*]}-1))]"
 	fi
 	#
-	if ((${_L_finally_pending[@]:+1})); then
+	if (( ${_L_finally_pending[@]:+1} )); then
+		# Execute any pending signals.
+		# Unset L_SIGNAL, so that pending signal detection works correctly.
 		unset -v L_SIGNAL
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-		exit "$((128+_L_finally_pending[1]))"
+		exit "$(( 128 + _L_finally_pending[1] ))"
 	fi
 }
 
 # @description L_finally EXIT handler.
 L_finally_handle_exit() {
-  local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}"
-	${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
-	# During handling exit trap we received a signal. Try to preserve the exit code.
-	if ((${_L_finally_pending[@]:+1})); then
-		trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
-		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-		exit "$((128+_L_finally_pending[1]))"
+  local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_pid
+  L_bashpid_to _L_pid
+  if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
+		# _L_finally_debug "${_L_finally_arr[@]}"
+		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
+		# During handling exit trap we received a signal. Try to preserve the exit code.
+		if (( ${_L_finally_pending[@]:+1} )); then
+			# Execute any pending signals.
+			trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
+			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
+			exit "$(( 128 + _L_finally_pending[1] ))"
+		fi
+		# No reason to execute anything more.
+		trap - RETURN EXIT
+	else
+		# Reset trap to default, so we are not called again.
+		trap - EXIT
 	fi
-	trap - RETURN EXIT
 }
 
 # @description L_finally signal handler.
 # @arg $1 The trap signal name to handle.
 # @arg $2 The trap signal number to handle.
 L_finally_handle_signal() {
-	if [[ -n "${L_SIGNAL:-}" ]]; then
-		if ((${_L_finally_pending[@]:+1})); then
-  		trap - "$1" EXIT
-			L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately"
+	local _L_pid
+  L_bashpid_to _L_pid
+  if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
+  	# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
+		if [[ -n "${L_SIGNAL:-}" ]]; then
+			# Is this the first time we are here?
+			if (( ${_L_finally_pending[@]:+1} )); then
+				# Received multiple signals while servicing signal. Exit immidately.
+  			trap - "$1" EXIT
+				L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately" || :
+  			kill -"$1" "$_L_finally_pid"
+  			exit "$(( 128 + $2 ))"
+			else
+				# Signal received during servicing of a signal. Add the signal to pending signals.
+				_L_finally_pending+=("$@")
+			fi
+		else
+  		trap - EXIT  # _L_finally_arr executed below, no need for EXIT trap.
+  		local L_SIGNAL="$1" L_SIGNUM="$2" L_SIGRET="${3:-}"
+			# _L_finally_debug "${_L_finally_arr[@]}"
+			${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
+			# Preserve signal exit status.
+			trap - "$1"
   		kill -"$1" "$_L_finally_pid"
   		exit "$((128+$2))"
-		else
-			_L_finally_pending+=("$@")
-		fi
-	else
-  	trap - EXIT  # _L_finally_arr executed below, no need for EXIT trap.
-  	local L_SIGNAL="$1" L_SIGNUM="$2" L_SIGRET="${3:-}"
-		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
-		trap - "$1"
-  	kill -"$1" "$_L_finally_pid"
-  	exit "$((128+$2))"
+  	fi
+  else
+  	# If finally pid is not BASHPID, reset this trap to default, so we are not called again.
+  	trap - "$1"
   fi
 }
 
