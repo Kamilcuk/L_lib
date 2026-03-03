@@ -9449,7 +9449,7 @@ L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
 		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
 		_L_pids _L_done=() _L_rets=() _L_return=0
-	while getopts t:v:p:l:i:P:nbh _L_i; do
+	while getopts t:v:p:l:P:nbh _L_i; do
 		case "$_L_i" in
 			t) _L_timeout=$OPTARG ;;
 			v) _L_rets_var=$OPTARG ;;
