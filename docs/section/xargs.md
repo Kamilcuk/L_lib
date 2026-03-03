@@ -166,4 +166,4 @@ printf "A\nB" | L_xargs -n 1 -^ -- bash -c 'echo "Line 1"; echo "Line 2"' --
 # B: Line 2
 ```
 
-::: scripts/xargs.sh L_xargs
+:: scripts/xargs.sh L_xargs
