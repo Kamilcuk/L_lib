@@ -117,8 +117,8 @@ paths=(
 )
 #
 bwrapargs=()
-for i in "${binaries[@]}"; do
-  i=$(which -- "$i")
+for n in "${binaries[@]}"; do
+  i=$(which -- "$n") || L_panic "command not found: $n"
   L_assert '' test -e "$i"
   bwrapargs+=(--bind "$i" "$i")
   for i in $(ldd -- "$i" | grep '=>' | awk '{print $3}'); do
