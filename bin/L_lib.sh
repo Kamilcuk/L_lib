@@ -9502,7 +9502,7 @@ L_wait() {
 	# _L_return - the return code
 	_L_pids=("$@")
 	# Return with 0 with no PIDs.
-	if ((!${_L_pids[*]:+1}+0)); then return 0; fi
+	if (( !${_L_pids[*]:+1}+0 )); then return 0; fi
 	if [[ -z "$_L_timeout" ]]; then
 		if ((_L_all || $# == 1)); then
 			# Wait for all pids without a timeout.
@@ -9644,7 +9644,7 @@ L_proc_wait() {
 # @return 0 on success
 #         124 on timeout
 L_read_fds() {
-	local _L_vars=() _L_fds=() _L_i _L_ret _L_line OPTIND OPTARG OPTERR \
+	local _L_vars=() _L_fds=() _L_i _L_ret _L_line="" OPTIND OPTARG OPTERR \
 		_L_timeout="" _L_poll=0.05 IFS="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
 	while getopts t:p:v:i:d:nh _L_i; do
 		case "$_L_i" in
@@ -9659,7 +9659,7 @@ L_read_fds() {
 		esac
 	done
 	shift "$((OPTIND-1))"
-	if ((!$#)); then
+	if (( !$# )); then
 		L_func_usage_error "no file descriptors to read from"
 		return 2
 	fi
@@ -9679,12 +9679,12 @@ L_read_fds() {
 			_L_poll=1
 		fi
 	fi
-	while ((${#_L_fds[@]})); do
+	while (( ${#_L_fds[@]} )); do
 		if [[ -n "$_L_timeout" ]]; then
 			# If this is last file descriptor, the read timeout is equal to global timeout.
 			if ((${#_L_fds[@]} == 1)); then
 				L_timeout_left -v _L_poll "$_L_timeout"
-				if ((!L_HAS_BASH4_0)); then
+				if (( !L_HAS_BASH4_0 )); then
 					_L_poll=${_L_poll%.*}
 					if ((_L_poll <= 0)); then
 						_L_poll=1
@@ -9704,7 +9704,7 @@ L_read_fds() {
 		#
 		local _L_ok=0
 		for _L_i in "${!_L_fds[@]}"; do
-			if read -r -d "$_L_delim" ${_L_poll:+-t"$_L_poll"} -u "${_L_fds[_L_i]}" _L_line; then
+			if read -r -d "$_L_delim" ${_L_poll:+"-t$_L_poll"} -u "${_L_fds[_L_i]}" _L_line; then
 				# read success
 				_L_line+="$_L_delim"
 				L_printf_append "${_L_vars[_L_i]}" "%s" "$_L_line"
@@ -10155,7 +10155,9 @@ _L_xargs_handle_return() {
 		if ((_L_x_return < 124)); then
 			_L_x_return=124
 		fi
-		printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_cmd[0]}" >&2
+		if (( !_L_x_quiet )); then
+			printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_cmd[0]}" >&2
+		fi
 		;;
 	126|127)
 		_L_x_done=1
@@ -10166,9 +10168,11 @@ _L_xargs_handle_return() {
 	*)
 		if ((128 < $1 && $1 <= 128 + 64)); then
 			_L_x_done=1
-			local L_v
-			L_trap_to_name_v "$(($1-128))"
-			printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_v" >&2
+			if (( !_L_x_quiet )); then
+				local L_v
+				L_trap_to_name_v "$(($1-128))"
+				printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_v" >&2
+			fi
 			if ((_L_x_return < 125)); then
 				_L_x_return=125
 			fi
@@ -10182,7 +10186,7 @@ _L_xargs_handle_return() {
 _L_xargs_buf_read() {
 	# Read from file descriptors if created pipes.
 	if (( ${_L_x_buf_fds_set[*]+${#_L_x_buf_fds_set[*]}}+0 )); then
-		local _L_args _L_fd
+		local _L_args=() _L_fd
 		# Prepare arguments for L_read_fds call - fd + buffer variable name.
 		for _L_fd in "${!_L_x_buf_fds_set[@]}"; do
 			_L_args+=( "$_L_fd" "_L_x_buf_output[$_L_fd]" )
@@ -10222,7 +10226,7 @@ _L_xargs_run() {
 	fi
 	if [[ -n "$_L_x_replace" ]]; then
 		# Replace {}.
-		local _L_cmdready=("${_L_cmd[@]//"$_L_x_replace"/"$*"}")
+		local _L_cmdready=("${_L_cmd[@]//"$_L_x_replace"/$*}")
 	else
 		local _L_cmdready=("${_L_cmd[@]}" "$@")
 	fi
@@ -10255,12 +10259,12 @@ _L_xargs_run() {
 		else
 			"${_L_cmdready[@]}" &
 		fi
-		_L_x_pid_to_num["$!"]=$_L_x_num
-		(( ++_L_x_num ))
+		_L_x_pid_to_num["$!"]=$L_XARGS_INDEX
 		if (( _L_x_maxprocs != 0 && ${#_L_x_pid_to_num[@]} >= _L_x_maxprocs )); then
 			_L_xargs_wait || return 1
 		fi
 	fi
+	(( ++L_XARGS_INDEX ))
 }
 
 _L_xargs_trap() {
@@ -10278,7 +10282,7 @@ _L_xargs_trap() {
 		else
 			kill ${L_SIGNAL+-"$L_SIGNAL"} "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
 		fi
-		wait "${!_L_x_pid_to_num[@]}" || :
+		wait "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
 	fi
 }
 
@@ -10312,7 +10316,7 @@ _L_xargs_callback_array() {
 	(( _L_x_a_index < (${_L_x_a[*]+${#_L_x_a[*]}}+0) )) && L_v=("${_L_x_a[_L_x_a_index++]}")
 }
 _L_xargs_callback_read() {
-	IFS= read ${_L_x_fd+-u "$_L_x_fd"} -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]
+	IFS= read -u "$_L_x_fd" -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]
 }
 
 # @description A high-performance Bash implementation of the `xargs` utility designed for seamless
@@ -10346,6 +10350,7 @@ _L_xargs_callback_read() {
 # @option -O Separate output of each command by using pipes.
 # @option -t Verbose: Print each command to STDERR before execution.
 # @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
+# @option -q Be quiet.
 # @option -v <var> Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
 # @option -h Display this help documentation and exit.
 # @arg $@ Command to execute. Default: L_quote_printf.
@@ -10358,15 +10363,21 @@ _L_xargs_callback_read() {
 #         126 if the command cannot be run
 #         127 if the command is not found
 L_xargs() {
-	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit=0 _L_i _L_x_maxprocs=1 L_v \
+	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_v \
 			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
-			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd _L_x_a _L_x_a_index=0 _L_x_split="" \
-			_L_x_dobuf=0 _L_x_buf_fds_set _L_x_buf_output _L_x_v="" _L_x_rets _L_x_num=0
-	while getopts a:0c:d:sSu:I:in:L:rP:tO^v:h _L_i; do
+			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd=0 _L_x_a _L_x_a_index=0 _L_x_split="" \
+			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0
+	while getopts a:0c:d:sSu:I:in:L:rP:tO^qv:h _L_i; do
 		case "$_L_i" in
-			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=("${!_L_i}") _L_x_split=${_L_x_split:-0} ;;
+			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=(${!_L_i+"${!_L_i}"}) _L_x_split=${_L_x_split:-0} _L_records_limit=${_L_records_limit:-1} ;;
 			0) _L_x_callback=(_L_xargs_callback_read) _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
-			c) _L_x_callback=(eval "$OPTARG") ;;
+			c)
+				if (( L_HAS_BASH4_0 )); then
+					_L_x_callback=(eval "$OPTARG")
+				else
+					IFS=$' \t\n' read -ra _L_x_callback <<<"$OPTARG"
+				fi
+				;;
 			d) _L_x_callback=(_L_xargs_callback_read) _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
 			s) _L_x_split=1 ;;
 			S) _L_x_split=0 ;;
@@ -10380,13 +10391,14 @@ L_xargs() {
 			t) _L_x_verbose=1 ;;
 			O) _L_x_dobuf=1 ;;
 			^) _L_x_prefix=1 ;;
+			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error "L_xargs: invalid option: -$_L_i"; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num _L_atoms _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
+	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
 	while (( !_L_x_done )) && L_v=() && "${_L_x_callback[@]}"; do
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
@@ -10412,7 +10424,7 @@ L_xargs() {
 		_L_xargs_run "${_L_atoms[@]}" || return 1
 	fi
 	# Reaper for parallel mode
-	while (( ${_L_x_pid_to_num[*]+${#_L_x_pid_to_num[*]}}+0 )); do
+	while (( ${_L_x_pid_to_num[*]:+${#_L_x_pid_to_num[*]}}+0 )); do
 		_L_xargs_wait || return 1
 	done
 	if [[ -n "$_L_x_v" ]]; then
