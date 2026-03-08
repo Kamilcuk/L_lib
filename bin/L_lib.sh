@@ -2190,20 +2190,8 @@ L_date() { L_handle_v_scalar "$@"; }
 L_date_v() {
 	# Support python %f.
 	L_v=${1//%f/%6N}
-	# If the format string contains %N or the timestamp is not seconds since epoch.
-	if [[ "$L_v" =~ (^|[^%])%[0-9]*N ]]; then
-		if ! _L_has_date_N; then
-			local _L_now
-			L_epochrealtime_usec -v _L_now
-			while [[ "$L_v" =~ (^|(.*[^%]))%([0-9]*)N(.*) ]]; do
-				printf -v L_v "%s%0${BASH_REMATCH[3]:-9}d%s" \
-					"${BASH_REMATCH[2]}" \
-					"$(( 10#${_L_now:${#_L_now}-6}000 / 10**( 9 - ${BASH_REMATCH[3]:-9} ) ))" \
-					"${BASH_REMATCH[4]}"
-			done
-		fi
-		L_v=$(date ${2:+-d"$2"} +"$L_v")
-	elif ((!L_HAS_PRINTF_T)) || [[ "${2:-}" == *[^0-9]* ]]; then
+	if (( !L_HAS_PRINTF_T )) || [[ "$L_v" =~ (^|[^%])%[0-9]*N || "${2:-1}" == *[^0-9]* ]]; then
+		# If printf %T is not suported or the format string contains %N or the timestamp is not in seconds.
 		L_v=$(date ${2:+-d"$2"} +"$L_v")
 	else
 		printf -v L_v "%($L_v)T" "${2:--1}"
@@ -4598,7 +4586,7 @@ L_log_format_default() {
 L_log_format_long() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
 	local L_v
-	L_date_v %Y-%m-%dT%H:%M:%S%z
+	L_date_v %Y-%m-%dT%H:%M:%S.%3N%z
 	printf -v L_logline "%s %q:%s:%d %s $1" \
 		"$L_v" \
 		"$L_NAME" \
