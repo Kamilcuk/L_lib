@@ -625,6 +625,16 @@ _L_func_line_is_function_definition_with_comment() {
 	]] # ))
 }
 
+# @description Get location of where the function was defined.
+# @option -v <var> Variable is assigned an array of two elements: the file path of where the function was defined and line number.
+# @arg $1 Function name to inspect.
+L_func_get_source() { L_handle_v_array "$@"; }
+L_func_get_source_v() {
+	L_v=$(shopt -s extdebug && declare -F "$1") &&
+		L_v=( "${L_v#"$1" [0-9]* }" "${L_v:${#1}+1}" ) &&
+			L_v[1]=${L_v[1]%% *}
+}
+
 # @description Extract the comment above the function.
 # By default, get the comment of the calling function.
 # @option -v <var> Assign result to this variable.
@@ -5753,11 +5763,11 @@ L_with_redirect_stdout_to() {
 #    L_unittest_eq 1 1
 
 # @description Integer that increases with every failed test.
-L_unittest_fails=${L_unittest_fails:-0}
+# L_unittest_fails=${L_unittest_fails:-0}
 # @description Set this variable to 1 to exit immediately when a test fails.
-L_unittest_exit_on_error=${L_unittest_exit_on_error:-0}
+# L_unittest_exit_on_error=${L_unittest_exit_on_error:-1}
 # @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
-L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
+# L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 
 # @description internal unittest function
 # @env L_unittest_fails
@@ -5768,7 +5778,7 @@ L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 _L_unittest_internal() {
 	local _L_ret=0 _L_invert=0 IFS=' ' up=1
 	if [[ "$1" == -s ]]; then
-		up=$(($2+1))
+		up=$(( $2 + 1 ))
 		shift 2
 	fi
 	#
@@ -5778,14 +5788,14 @@ _L_unittest_internal() {
 	fi
 	"${@:3}" || _L_ret=$?
 	if ((_L_invert)); then
-		_L_ret=$((!_L_ret))
+		_L_ret=$(( !_L_ret ))
 	fi
 	L_unittest_fails=${L_unittest_fails:-0}
-	if ((_L_ret)); then
+	if (( _L_ret )); then
 		echo -n "${L_RED}${L_BRIGHT}"
 	fi
 	# Find first function in the stack that does not start with _L_unittest_
-	while ((++up)); do
+	while (( ++up )); do
 		case "${FUNCNAME[up]:-}" in
 		"") break ;;
 		_L_unittest_*|L_unittest_*) ;;
@@ -5794,95 +5804,363 @@ _L_unittest_internal() {
 	done
 	echo -n "${FUNCNAME[up]}:${BASH_LINENO[up-1]}: test: ${1:-}: "
 	#
-	if ((_L_ret == 0)); then
+	if (( _L_ret == 0 )); then
 		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
-		((++L_unittest_fails))
+		(( ++L_unittest_fails ))
 		echo "command [$(L_quote_printf "${@:3}")] FAILED!${2:+ }${2:-}${L_COLORRESET}"
-		if ((L_unittest_exit_on_error)); then
-			exit 17
+		if (( ${L_unittest_exit_on_error:-1} )); then
+			exit 1
 		else
-			return 17
+			return 1
 		fi
 	fi
 } >&2
 
-_L_unittest_main_runner() {
-	if (( _L_u_quiet )); then
-		local _L_i _L_ret=0
-		_L_i=$( "$@" >&2 ) || _L_ret=$?
-		if (( _L_ret )); then
-			printf "%s\n" "$_L_i" >&2
-			return "$_L_ret"
-		fi
+_L_unittest_main_longest_string_to() {
+	local i=$2[@] j=0
+	for i in "${!i}"; do
+		(( j = j < ${#i} ? ${#i} : j ))
+	done
+	printf -v "$1" "%d" "$j"
+}
+
+_L_unittest_init_COLUMNS() {
+	if ! L_var_is_set COLUMNS; then
+		shopt -s checkwinsize
+		( : )
+		shopt -u checkwinsize
+		COLUMNS=${COLUMNS:-80}
+	fi
+}
+
+# @arg $1 separator
+# @arg $2 string to print
+_L_unittest_main_print_line() {
+	if (( ${#2}+2 >= COLUMNS )); then
+		printf "%s\n" "$txt"
 	else
-		"$@"
+		local pre post
+		printf -v pre "%$(( ( COLUMNS - ${#2} - 2) / 2 ))s" ""
+		printf -v post "%$((  COLUMNS - ${#2} - 2 - ${#pre} ))s" ""
+		printf "%s%s %s %s%s\n" "${3:-}" "${pre// /$1}" "$2" "${post// /$1}" "$L_RESET"
 	fi
 }
 
 # @description
-# Unittesting suite unner.
+# Transform input expression in the form of:
+#   '! a || ( b && c )'
+# Into:
+#   '[[ ! "$1" =~ "a" || ( [[ "$1" =~ "b" && "$1" =~ "c" ) ]]'
+# Then filter tests with it.
+# @env _L_u_tests
+_L_unittest_main_handle_k() {
+	local ex=$1 elems v i next
+		# Normalize whitespace and insert spaces around all operators/grouping tokens.
+	ex=${ex//[$'\v\r\t\n']/ }
+	ex=${ex//\!/ \! }
+	ex=${ex//\(/ \( }
+	ex=${ex//\)/ \) }
+	ex=${ex//&&/ \&\& }
+	ex=${ex//||/ \|\| }
+	L_log "Filtering tests with [$ex]"
+	IFS=' ' read -ra elems <<<"$ex"
+	if (( ${#elems[*]} == 1 )); then
+		# One element - no need to be fancy.
+		for i in "${!_L_u_tests[@]}"; do
+			[[ "${_L_u_tests[$i]}" =~ "${elems[0]}" ]] || unset -v "_L_u_tests[$i]"
+		done
+	else
+		# Compile the expression.
+		ex="[[ "
+		for v in "${elems[@]}"; do
+			case "$v" in
+				['!()']|'&&'|'||') ex+=" $v " ;;
+				[$'&|;{}()\n\t']) L_panic "Parsing -k expression in L_unittest_main failed: invalid token: $v" ;;
+				*) printf -v v "%q" "$v"; ex+=' "$v" =~'" $v " ;;
+			esac
+		done
+		ex+=" ]]"
+		# L_debug "-k compiled expression: $ex"
+		# Check for syntax errors.
+		local v="" rc=0
+		eval "$ex" || rc=$?
+		if (( rc > 1 )); then
+			L_panic "Parsing -k expression in L_unittest_main failed: syntax error in expression [$1] (compiled: [$ex]). Most probably the -k expression value is invalid. It might be the compilation process is faulty. If you want to advanced parsing, pass the tests to execute as positional arguments to L_unittest_main function."
+		fi
+		# Do the filtering.
+		for i in "${!_L_u_tests[@]}"; do
+			local v=${_L_u_tests[$i]}
+			eval "$ex" || unset -v "_L_u_tests[$i]"
+		done
+	fi
+}
+
+# @option $1 Skipping reason.
+L_unittest_skip() {
+	echo "${@//$'\n'/ }" >>"$_L_u_tmpd/$_L_u_test.skip"
+	exit 0
+}
+
+_L_unittest_main_runner() {
+	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr
+	printf -v _L_u_hdr "%s%-*s  " "${L_BOLD}" "$_L_u_testnamemaxlen" "${_L_u_testnames[L_XARGS_INDEX]}"
+  if (( _L_u_stream )); then
+  	printf "%s%s\n" "$_L_u_hdr" "${L_RESET}${L_CYAN}starting${L_RESET}" >&2
+  elif (( _L_u_nproc == 1 )); then
+		printf "%s" "$_L_u_hdr" >&2
+  fi
+  L_epochrealtime_usec -v _L_u_start
+  # Run the command.
+	if (( _L_u_subshell )); then
+		if (( _L_u_stream )); then
+			( "$@" )
+		else
+			( "$@" > "$_L_u_tmpd/$1.log" 2>&1 )
+		fi
+	else
+		if (( _L_u_stream )); then
+			"$@"
+		else
+			"$@" > "$_L_u_tmpd/$1.log" 2>&1
+		fi
+	fi || _L_u_ret=$?
+	# Store duration.
+	L_epochrealtime_usec -v _L_u_stop
+	local duration=$(( _L_u_stop - _L_u_start ))
+	if (( _L_u_durations )); then
+		echo "$duration ${_L_u_testnames[L_XARGS_INDEX]//[$' \t\n']}" >>"$_L_u_tmpd/durations.txt"
+	fi
+	local duration_str=""
+	L_usec_to_duration -v duration_str "$duration"
+	# Percent of tests.
+	echo "$_L_u_ret" > "$_L_u_tmpd/$1.ret"
+	local finished=("$_L_u_tmpd"/*.ret)
+	local percent="$(( ${#finished[*]} * 100 / ${#_L_u_tests[*]} ))"
+  # Calculate the status of the test.
+  case "$_L_u_ret" in
+  	0)
+  		if [[ -r "$_L_u_tmpd/$1.skip" ]]; then
+  			local reason=$(head -c 20 "$_L_u_tmpd/$1.skip")
+  			local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ ($reason)}"
+  		else
+  			local statuscolor="$L_GREEN" status="PASS"
+  		fi
+  		;;
+  	*) local statuscolor="$L_BOLD$L_RED" status="ERROR $_L_u_ret" ;;
+  esac
+  # Output the status.
+	printf -v status "%s%-9s%s %15s [%3s%%]" "$statuscolor" "$status" "$L_RESET" "($duration_str)" "$percent"
+  if (( _L_u_stream || _L_u_nproc != 1 )); then
+  	printf "%s%s\n" "$_L_u_hdr" "$status" >&2
+  else
+  	printf "%s\n" "$status" >&2
+  fi
+  # If requested, exit on first failure.
+	if (( _L_u_exitfirst && _L_u_ret )); then
+		return 255
+	fi
+}
+
+_L_unittest_main_output_printer() {
+	local i
+	for i in "${!_L_u_rets[@]}"; do
+		if (( _L_u_rets[i] $1 )); then
+			_L_unittest_main_print_line - "${_L_u_tests[i]}" "$L_CYAN"
+			local f="$_L_u_tmpd/${_L_u_tests[i]}.log"
+			if [[ ! -r "$f" ]]; then
+				L_critical "internal error: file does not exists: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
+			else
+				cat "$f"
+			fi
+		fi
+	done
+}
+
+# @description
+# Uninteresting unittesting suite runner.
 # @option -p <prefix> Get functions with this prefix to test
-# @option -r <regex> filter tests with regex
+# @option -k <expr> Run only tests whose names match EXPR. EXPR is a boolean filter:
+#           PATTERN            match tests containing PATTERN (regex)
+#           ! EXPR             negate
+#           EXPR && EXPR       both must match
+#           EXPR || EXPR       either must match
+#           ( EXPR )           grouping
+#
+#       Examples:
+#         -k foo             tests matching 'foo'
+#         -k 'foo && bar'    tests matching both 'foo' and 'bar'
+#         -k '! slow'        tests not matching 'slow'
+#         -k '(foo || bar) && ! slow'
 # @option -E exit on error
-# @option -P <nproc> Run in parallel. 'nproc' mean auto number of processes.
-# @option -l Do not run the test. Instead print the tests to exeucte.
+# @option -P <nproc> Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
+# @option -l Do not run the tests. Instead print the tests to exeucte.
 # @option -q Run tests in command substitution. Print only failed tests output.
 #            Great for LLM for reducing context size.
+# @option -d <int> Print a list of the slowest number of tests. Negative to print all.
+# @option -x Exit after the first failure.
+# @option -s Stream output directly to terminal. Do not capture stdout and stderr.
+# @option -S Do not stream output directly to terminal. Capture stdout and stderr. The default.
+# @option -c Execute in current shell execution context. No subshell.
+# @option -v Increase verbosity. Call L_log_level_inc.
 # @option -h Print this help and return 0.
 # @arg $@ Specify a space, tab or newline separated list of funtions to execute.
 #         For example output of compgen.
 L_unittest_main() {
 	set -euo pipefail
-	local OPTIND OPTARG OPTERR _L_tests _L_nproc=1 _L_list=0 _L_u_quiet=0 _L_i _L_rets
-	while getopts p:r:EP:lqh _L_i; do
+	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
+		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt _L_u_testnamemaxlen \
+		_L_u_verbose=0 _L_u_rc=0
+	while getopts p:k:EP:lqd:xscvh _L_i; do
 		case $_L_i in
 			p)
-				L_log "Getting function with prefix %q" "${OPTARG}"
-				L_list_functions_with_prefix -v _L_tests "$OPTARG"
+				L_log "Getting functions with prefix %q" "${OPTARG}"
+				L_compgen -V _L_u_tests -A function -- "$OPTARG"
+				_L_u_testscnt=${_L_u_tests[*]:+${#_L_u_tests[*]}}
 				;;
-			r)
-				L_log "Filtering tests with %q" "${OPTARG}"
-				L_array_filter_eval _L_tests '[[ $1 =~ $OPTARG ]]'
-				;;
+			k) _L_unittest_main_handle_k "$OPTARG" ;;
 			E) L_unittest_exit_on_error=1 ;;
-			P) _L_nproc=$OPTARG ;;
-			l) _L_list=1 ;;
+			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_u_nproc=$L_v; else _L_u_nproc=$OPTARG; fi ;;
+			l) _L_u_list=1 ;;
 			q) _L_u_quiet=1 ;;
+			d) _L_u_durations=$OPTARG ;;
+			x) _L_u_exitfirst=1 ;;
+			s) _L_u_stream=1 ;;
+			S) _L_u_stream=0 ;;
+			c) _L_u_subshell=0 ;;
+			v) _L_u_verbose=1 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }"
-	_L_tests+=("${_L_i[@]}")
-	L_assert 'no tests matched' test "${#_L_tests[@]}" '!=' 0
+	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }" && _L_u_tests+=( ${_L_i[@]:+"${_L_i[@]}"} )
+	L_assert 'no tests matched' test "${#_L_u_tests[@]}" '!=' 0
+	# If there is only one test, no reason to run in parallel.
+	if (( ${#_L_u_tests[*]} == 1 && _L_u_nproc > 1 )); then
+		_L_u_nproc=1
+	fi
+	# Re-index tests array, we need it to associated rets with test name later.
+	_L_u_tests=("${_L_u_tests[@]}")
+	# Extract the path:lineno of definitions of tests functions.
+	local _L_u_testnames=() _L_u_a _L_u_b _L_u_f
+	if _L_u_a=$(shopt -s extdebug && declare -F "${_L_u_tests[@]}"); then
+		while IFS=' ' read -r _L_u_f _L_u_a _L_u_b; do
+			_L_u_testnames+=("$_L_u_b:$_L_u_a:$_L_u_f")
+		done <<<"$_L_u_a"
+	else
+		_L_u_testnames=("${_L_u_tests[@]}")
+	fi
+	# Get maximum length of test name
+	_L_unittest_main_longest_string_to _L_u_testnamemaxlen _L_u_testnames
+	# Print welcoming message.
+	_L_unittest_init_COLUMNS
+	_L_unittest_main_print_line = "test session start" >&2
+	_L_i="Running ${#_L_u_tests[*]} tests"
+	if (( _L_u_stream )); then
+		_L_i+="; no output caching"
+	fi
+	if (( !_L_u_subshell )); then
+		_L_i+="; no subshell"
+	fi
+	if (( _L_u_nproc != 1 )); then
+		if (( _L_u_nproc == 0 )); then
+			_L_i+="; all in parallel"
+		else
+			_L_i+="; $_L_u_nproc count in parallel"
+		fi
+	fi
+	if (( _L_u_durations )); then
+		_L_i+="; showing top $_L_u_durations durations"
+	fi
+	echo "$_L_i." >&2
 	#
-	if (( _L_list )); then
-		L_log "Would execute tests:"
-		printf "%s\n" "${_L_tests[@]}"
+	if (( _L_u_list )); then
+		# -l option only lists tests.
+		printf "%s\n" "${_L_u_tests[@]}"
 		return 0
 	fi
-	L_xargs -a _L_tests -v _L_rets -P "$_L_nproc" _L_unittest_main_runner
-	L_log "Done testing: ${_L_tests[*]}"
+	# Create a temporary directory with our context.
+	L_with_tmpdir_to _L_u_tmpd
+	# echo "Using directory $_L_u_tmpd"
+	# Execute the tests.
+	L_epochrealtime_usec -v _L_u_start
+	L_xargs -q -O -a _L_u_tests -P "$_L_u_nproc" _L_unittest_main_runner || _L_u_rc=$?
+	L_epochrealtime_usec -v _L_u_end
+	# Handle L_xargs exit status.
+	case "$_L_u_rc" in
+		0|123|124|125) ;;
+		*) return "$_L_u_rc" ;;
+	esac
+	# local IFS=' '
+	# L_log "Done testing: ${_L_u_tests[*]}"
+	# Collect exit statuses.
+	local i
+	for i in "${!_L_u_tests[@]}"; do
+		local f="$_L_u_tmpd/${_L_u_tests[i]}.ret"
+		if [[ -e "$f" ]]; then
+			_L_u_rets[i]=$(< "$f")
+		fi
+	done
 	{
-		if (( _L_nproc > 1 )); then
-			# Print results separately, to see them last on the output.
-			for _L_i in "${!_L_childs[@]}"; do
-				if (( _L_result[_L_i] )); then
-					L_error "Test ${_L_tests[_L_i]} with pid ${_L_childs[_L_i]} failed with exit status ${_L_rets[_L_i]}"
-					(( ++L_unittest_fails ))
+		# Calculate statistics and show short test summary info.
+		local IFS="+"
+		local failed=$(( ${_L_u_rets[*]/#/ !!} )) deselected=$(( _L_u_testscnt - ${#_L_u_tests[*]} )) skipped_files=( "$_L_u_tmpd"/*.skip )
+		if [[ ! -e "${skipped_files[0]:-}" ]]; then skipped_files=(); fi
+		local skipped=${#skipped_files[*]}
+		local passed=$(( ${_L_u_rets[*]/#/!} - skipped ))
+	}
+	if (( !_L_u_stream )); then
+		# Ouptut passed if verbose
+		if (( _L_u_verbose && passed )); then
+			_L_unittest_main_print_line = "$passed PASSES" "$L_GREEN$L_BOLD"
+			_L_unittest_main_output_printer " == 0"
+		fi
+		# Output failures
+		if (( failed )); then
+			_L_unittest_main_print_line = "$failed FAILURES" "$L_RED$L_BOLD"
+			_L_unittest_main_output_printer " != 0"
+		fi
+	fi
+	#
+	if (( _L_u_durations )); then
+		# Handle duration.
+		_L_i=$(sort -k1nr "$_L_u_tmpd/durations.txt")
+		local lines
+		L_string_count_lines -v lines "$_L_i"
+		local count=$(( _L_u_durations < 0 ? lines : _L_u_durations > lines ? lines : _L_u_durations ))
+		_L_unittest_main_print_line = "slowest $count durations" "$L_MAGENTA"
+		local func duration count=0
+		while IFS=' ' read duration func; do
+			if (( _L_u_durations > 0 && count++ >= _L_u_durations )); then
+				break
+			fi
+			L_usec_to_duration -v duration "$duration"
+			printf "%-*s  %s\n" "$_L_u_testnamemaxlen" "$func" "$duration"
+		done <<<"$_L_i"
+	fi
+	{
+		# Print short failed summary
+		if (( failed )); then
+			_L_unittest_main_print_line = "short summary" "$L_CYAN"
+			for i in "${!_L_u_tests[@]}"; do
+				if (( _L_u_rets[i] )); then
+					local line=$(tail -n 1 "$_L_u_tmpd/${_L_u_tests[i]}.log")
+					printf -v line "%s %s\n" "${_L_u_testnames[i]}" "$line"
+					printf "%s%s\n" "${line::${COLUMNS:-80}}" "$L_RESET" >&2
 				fi
 			done
 		fi
 	}
-	local IFS="+"
-	if (( ${_L_rets[*]} )); then
-		L_error "Testing failed"
-		exit 1
-	else
-		L_ok "Testing success"
-	fi
+	{
+		# Print the ending footnote.
+		local duration=$(( _L_u_end - _L_u_start ))
+		L_usec_to_duration -v duration "$duration"
+		_L_unittest_main_print_line = "$failed failed, $passed passed, $skipped skipped, $deselected deselected in $duration" "$L_BOLD"
+		if (( failed )); then
+			exit 1
+		fi
+	}
 } <&-
 
 # shellcheck disable=SC2035
@@ -5952,14 +6230,15 @@ _L_unittest_cmd_exit_trap() {
 #   L_unittest_cmd -r 'world' grep world /tmp/1
 #   L_unittest_cmd -r 'No such file or directory' ! grep something not_existing_file
 L_unittest_cmd() {
-	if ((L_unittest_unset_x)) && [[ $- = *x* ]]; then
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )) && [[ $- = *x* ]]; then
 		local -
-		# set +x
+		set +x
 		local _L_uopt_setx=1
 	else
 		local _L_uopt_setx=0
 	fi
-	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0 _L_uopt_closestdin=1 _L_uopt_up=0
+	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0  \
+		_L_uopt_closestdin=1 _L_uopt_up=0 L_v _L_u_a _L_u_b
 	while getopts cifINjxXv:r:o:e:s:h _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_curenv=1 ;;
@@ -6041,15 +6320,20 @@ L_unittest_cmd() {
 		# For nice output
 		set -- "!" "$@"
 	fi
-	_L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] exited with $_L_uret =? $_L_uopt_exitcode" "${_L_uout+output $(printf %q "$_L_uout")}" [ "$_L_uret" -eq "$_L_uopt_exitcode" ]
+	L_quote_printf_v "$@"
+	printf -v _L_u_a "[%s] exited with %d =~ %d" "$L_v" "$_L_uret" "$_L_uopt_exitcode"
+	printf -v _L_u_b "${_L_uout+output %q}%s" "${_L_uout+$_L_uout}" ""
+	_L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "$_L_u_b" [ "$_L_uret" -eq "$_L_uopt_exitcode" ]
 	if [[ -n $_L_uopt_regex ]]; then
-		if ! _L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") matches $(printf %q "$_L_uopt_regex")" "" L_regex_match "$_L_uout" "$_L_uopt_regex"; then
+		printf -v _L_u_a "[%s] output %q matches %q" "$L_v" "$_L_uout" "$_L_uopt_regex"
+		if ! _L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "" L_regex_match "$_L_uout" "$_L_uopt_regex"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_regex"
 			return 1
 		fi
 	fi
 	if [[ -n $_L_uopt_output ]]; then
-		if ! _L_unittest_internal -s "$_L_uopt_up" "[$(L_quote_printf "$@")] output $(printf %q "$_L_uout") equal $(printf %q "$_L_uopt_output")" "" [ "$_L_uout" = "$_L_uopt_output" ]; then
+		printf -v _L_u_a "[%s] output %q equal %q" "$L_v" "$_L_uout" "$_L_uopt_output"
+		if ! _L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "" [ "$_L_uout" = "$_L_uopt_output" ]; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_output"
 			return 1
 		fi
@@ -6076,10 +6360,12 @@ _L_unittest_showdiff() {
 # @description Test if a variable has specific value.
 # @arg $1 variable nameref
 # @arg $2 value
+# @arg $2 Message to print on failure.
 L_unittest_vareq() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "" test "$#" = 2
-	if ! _L_unittest_internal "\$$1=${!1:+$(printf %q "${!1}")} == $(printf %q "$2")" "" [ "${!1:-}" == "$2" ]; then
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
+	local _L_u_a
+	printf -v _L_u_a "\$%s=${!1:+%q}%s == %q" "$1" "${!1:+${!1}}" "$2"
+	if ! _L_unittest_internal "$_L_u_a" "${3:-}" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
 	fi
@@ -6089,9 +6375,10 @@ L_unittest_vareq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_eq() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "${FUNCNAME[0]} received invalid number of arguments" test "$#" = 2
-	if ! _L_unittest_internal "$(printf "%q == %q" "$1" "$2")" "" [ "$1" == "$2" ]; then
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
+	local _L_u_a
+	printf -v _L_u_a "%q == %q" "$1" "$2"
+	if ! _L_unittest_internal "$_L_u_a" "${3:-}" [ "$1" == "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -6101,28 +6388,25 @@ L_unittest_eq() {
 # @arg $1 array variable
 # @arg $@ values
 L_unittest_arreq() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
 	L_assert "" test "$#" -ge 1
-	local _L_arr _L_n _L_i IFS=' ' _L_tmp
-	_L_n=$1
-	_L_i="$1[@]"
-	_L_tmp=$-
+	local _L_arr=$1 _L_n=$1 _L_i=$1[@] IFS=' ' _L_tmp=$-
 	set +u
 	_L_arr=(${!_L_i+"${!_L_i}"})
 	if [[ "$_L_tmp" == *u* ]]; then set -u; fi
 	shift
-	if ! _L_unittest_internal "$(printf "\${#%s[@]}=%q == %q" "$_L_n" "${#_L_arr[@]}" "$#")" "" \
-			[ "${#_L_arr[@]}" == "$#" ]; then
+	printf -v _L_tmp "\${#%s[@]}=%q == %q" "$_L_n" "${#_L_arr[@]}" "$#"
+	if ! _L_unittest_internal "$_L_tmp" "" [ "${#_L_arr[@]}" == "$#" ]; then
 		return 1
 	fi
 	_L_i=0
 	while (($#)); do
-		if ! _L_unittest_internal "$(printf "%s[%d]=%q == %q" "$_L_n" "$_L_i" "${_L_arr[_L_i]}" "$1")" "" \
-				[ "${_L_arr[_L_i]}" == "$1" ]; then
+		printf -v _L_tmp "%s[%d]=%q == %q" "$_L_n" "$_L_i" "${_L_arr[_L_i]}" "$1"
+		if ! _L_unittest_internal "$_L_tmp" "" [ "${_L_arr[_L_i]}" == "$1" ]; then
 			_L_unittest_showdiff "$1" "${_L_arr[_L_i]}"
 			return 1
 		fi
-		((++_L_i))
+		(( ++_L_i ))
 		shift
 	done
 }
@@ -6131,8 +6415,7 @@ L_unittest_arreq() {
 # @arg $1 one string
 # @arg $2 second string
 L_unittest_ne() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "" test "$#" = 2
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
 	if ! _L_unittest_internal "$(printf %q "$1") != $(printf %q "$2")" "" [ "$1" != "$2" ]; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
@@ -6143,9 +6426,10 @@ L_unittest_ne() {
 # @arg $1 string
 # @arg $2 regex
 L_unittest_regex() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "" test "$#" = 2
-	if ! _L_unittest_internal "$(printf %q "$1") =~ $(printf %q "$2")" "" L_regex_match "$1" "$2"; then
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
+	local _L_u_a
+	printf -v _L_u_a "%q =~ %q" "$1" "$2"
+	if ! _L_unittest_internal "$_L_u_a" "${3:-}" L_regex_match "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -6155,9 +6439,10 @@ L_unittest_regex() {
 # @arg $1 string
 # @arg $2 needle
 L_unittest_contains() {
-	if ((L_unittest_unset_x)); then local -; set +x; fi
-	L_assert "" test "$#" = 2
-	if ! _L_unittest_internal "$(printf %q "$1") == *$(printf %q "$2")*" "" L_strstr "$1" "$2"; then
+	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
+	local _L_u_a
+	printf -v _L_u_a "%q == *%q*" "$1" "$2"
+	if ! _L_unittest_internal "" "${3:-}" L_strstr "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
@@ -8981,11 +9266,10 @@ if ((L_HAS_VARIABLE_FD)); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd_to() {
-	local _L__fd
-	for _L__fd in "$@"; do
-		exec {_L__fd}>/dev/null
-		printf -v "$1" "%d" "$_L__fd"
-		shift
+	local _L_f_fd _L_f_v
+	for _L_f_v in "$@"; do
+		exec {_L_f_fd}>/dev/null
+		printf -v "$_L_f_v" "%d" "$_L_f_fd"
 	done
 }
 # shellcheck disable=SC2094
@@ -8995,12 +9279,12 @@ _L_pipe_opener() {
 }
 else
 	L_get_free_fd_to() {
-		local _L__fd
-		for _L__fd in {18..1023}; do
-			if ! L_is_fd_open "$_L__fd"; then
-				printf -v "$1" "%d" "$_L__fd"
+		local _L_f_fd
+		for _L_f_fd in {18..1023}; do
+			if ! L_is_fd_open "$_L_f_fd"; then
+				printf -v "$1" "%d" "$_L_f_fd"
 				if (($# == 1)); then
-					return
+					return 0
 				fi
 				shift
 			fi
@@ -9017,11 +9301,18 @@ fi
 # @description Open two connected file descriptors.
 # This internally creates a temporary file with mkfifo
 # The result variable is assigned an array that:
-#   - [0] element is input from the pipe,
-#   - [1] element is the output to the pipe.
+#   - [0] element is the input to the pipe,
+#   - [1] element is the output from the pipe.
 # This is meant to mimic the pipe() C function.
 # @arg <var> variable name to assign result to
 # @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_pipe_XXXXXXXXXX
+# @example
+#   L_pipe tmp
+#   L_array_extract tmp in out
+#   echo 123 >&"$in"
+#   exec "$in">&-
+#   cat <&"$out"
+#   exec "$out"<&-
 L_pipe() {
 	local _L_i _L_file _L_1 _L_0 _L_tmp
 	L_assert 'mktemp or mkfifo utilities are missing' L_hash mktemp mkfifo
@@ -9040,6 +9331,27 @@ L_pipe() {
 		fi
 	done
 	return 1
+}
+
+# @description Open three file descriptors read-write connected to a deleted temporary file.
+# This internally creates a temporary file and immidately removes it.
+# Why three FD? Because it is not possible to rewind the file descriptor in shell,
+# so you get extra spare ones to read from the file.
+# @arg <var> variable name to assign result to
+# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_mkstemp_XXXXXXXXXX
+L_mkstemp() {
+	local _L_m_file _L_m_fd1 _L_m_fd2 _L_m_fd3
+	# mktemp -> open FDs -> rm file
+	if ((L_HAS_VARIABLE_FD)); then
+		_L_m_file=$(mktemp "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}") || return 1
+		exec {_L_m_fd1}<>"$_L_m_file" {_L_m_fd2}<>"$_L_m_file" {_L_m_fd3}<>"$_L_m_file"
+	else
+		L_get_free_fd_to _L_m_fd1 _L_m_fd2
+		_L_m_file=$(mktemp "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}") || return 1
+		eval "exec $_L_m_fd1<>\"\$_L_m_file\" $_L_m_fd2<>\"\$_L_m_file\" $_L_m_fd3<>\"\$_L_m_file\""
+	fi
+	rm -f "$_L_m_file"
+	L_array_assign "$1" "$_L_m_fd1" "$_L_m_fd2" "$_L_m_fd3"
 }
 
 _L_proc_init_setup_redirs() {
@@ -9663,14 +9975,15 @@ L_read_fds() {
 		L_func_usage_error "no file descriptors to read from"
 		return 2
 	fi
+	if (( $# % 2 == 1 )); then
+		L_func_usage_error "the number of arguments has to be divisible by 2: \$#=$#"
+		return 2
+	fi
 	# Collect arguments into arrays.
 	while (($#)); do
 		_L_fds+=("$1")
 		_L_vars+=("$2")
-		if ! shift 2; then
-			L_func_usage_error "the number of arguments must be even"
-			return 2
-		fi
+		shift 2
 	done
 	# The lowest timeout in read in <Bash4.0 is 1 second, cause it is an integer.
 	if ((!L_HAS_BASH4_0)); then

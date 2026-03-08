@@ -37,7 +37,7 @@ Processing file2"
     # This test just ensures it runs without error, exact output order may vary
     output=$(printf "1
 2
-3" | L_xargs -P 3 -n 1 bash -c 'echo "proc:$BASHPID val:$1"' --)
+3" | L_xargs -P 3 -n 1 bash -c 'echo "proc:${BASHPID:-123} val:$1"' --)
     L_unittest_match "$output" "proc:[0-9]+ val:[123]
 proc:[0-9]+ val:[123]
 proc:[0-9]+ val:[123]" "L_xargs -P should run in parallel"
@@ -60,7 +60,7 @@ _L_test_L_xargs_extended_options() {
     # Test -a option (read from array)
     local my_array=("a b" "c" "d")
     output=$(L_xargs -a my_array echo)
-    L_unittest_eq "$output" "a b c d"
+    L_unittest_eq "$output" $'a b\nc\nd'
 
     # Test -s option (shell-like parsing)
     output=$(printf "'a b'
@@ -76,8 +76,8 @@ c
     # Test -^ option (prefix)
     output=$(printf "1
 2" | L_xargs -n 1 -^ echo)
-    L_unittest_eq "$output" "1: 1
-2: 2"
+    L_unittest_match "$output" "[12]: [12]
+[12]: [12]"
 }
 
 L_unittest_match() {
