@@ -519,7 +519,8 @@ L_panic() {
 	if [[ "$1" == -- ]]; then
 		shift
 	fi
-	printf "%s\n" "$*" >&2
+	# Colors were set in L_print_traceback above.
+	printf "${L_RED}${L_BOLD}%s${L_RESET}\n" "$*" >&2
 	exit "$e"
 }
 
