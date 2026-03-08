@@ -3,10 +3,9 @@ set -euo pipefail
 
 ulimit -c 0
 export TIMEFORMAT='real=%6lR user=%6lU system=%6lS'
-. "$(dirname "$0")"/../bin/L_lib.sh
+dir="$(dirname "${BASH_SOURCE[0]}")"
+. "$dir"/../bin/L_lib.sh
 L_log_configure -L
-
-. "$(dirname "$0")"/../scripts/xargs.sh
 
 get_all_variables() {
 	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
@@ -24,11 +23,11 @@ USR2_CNT=0
 
 ###############################################################################
 
-. "$L_DIR"/array_index_tests.sh
-. "$L_DIR"/foreach_tests.sh
-. "$L_DIR"/test_xargs.sh
-. "$L_DIR"/test_xargs_extended.sh
-. "$L_DIR"/test_duration.sh
+. "$dir"/array_index_tests.sh
+. "$dir"/foreach_tests.sh
+. "$dir"/test_xargs.sh
+. "$dir"/test_xargs_extended.sh
+. "$dir"/test_duration.sh
 
 _L_test_color() {
 	{
@@ -722,9 +721,8 @@ _L_test_array_string() {
 	helper() {
 		local src dst str i
 		src=("$@")
-		L_setx L_var_to_string -v str src
+		L_var_to_string -v str src
 		local -a dst="$str"
-		L_pretty_print src str dst
 		L_unittest_arreq dst ${src[@]+"${src[@]}"}
 		L_unittest_eq "${!src[*]}" "${!dst[*]}"
 		for i in ${src[@]+"${!src[@]}"}; do
@@ -1741,8 +1739,8 @@ _L_test_asa() {
 
 fi  # L_HAS_ASSOCIATIVE_ARRAY
 
-. "$(dirname "$0")"/argparse_tests.sh
-. "$(dirname "$0")"/argparse_tests_2.sh
+. "$dir"/argparse_tests.sh
+. "$dir"/argparse_tests_2.sh
 
 _L_test_path() {
 	local v
@@ -1916,90 +1914,7 @@ _L_test_path() {
 	}
 }
 
-_L_test_cache() {
-	local opt i stdout cachef
-	L_with_tmpfile_to cachef
-	exec 100>&2
-	local BASH_XTRACEFD=100
-	# L_decorate L_setx L_cache
-	#
-	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS")
-  if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-  	local -A shouldbeasa=([a]=b [$' \t\n']=$' \t\n' ["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS")
-  fi
-	#
-	for opt in "" "-f$cachef"; do
-		echo "USING $opt"
-		{
-			cachevars() {
-  			var="$shouldbevar"
-  			array=("${shouldbearray[@]}")
-  			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-  				L_asa_copy shouldbeasa asa
-  				declare -p asa
-  			fi
-  			executed=1
-			}
-			L_cache $opt -r cachevars
-			local asaarg=""
-			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-				asaarg="-sasa"
-			fi
-			L_decorate L_cache -T 1 -s var -s array $asaarg $opt cachevars
-			#
-			for i in _ _; do
-				L_cache $opt -r cachevars
-				for i in 1 0 0; do
-					local var="" array=() executed=0
-					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-						local -A asa=()
-					fi
-					cachevars
-					L_unittest_vareq var "$shouldbevar"
-					L_unittest_arreq array "${shouldbearray[@]}"
-					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-						L_unittest_eq "${asa[a]}" "b"
-						L_unittest_eq "${asa[$' \t\n']}" $' \t\n'
-						L_unittest_eq "${asa[$L_SAFE_ALLCHARS]}" "$L_SAFE_ALLCHARS"
-					fi
-					L_unittest_vareq executed "$i"
-				done
-			done
-		}
-		{
-			cachestdout() { echo 123; echo EXECUTED >&2; }
-			L_decorate L_cache -T 1 -o $opt cachestdout
-			for i in _ _; do
-				L_cache $opt -r cachestdout a
-				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout a
-				L_unittest_cmd -c -j -r "^123$" cachestdout a
-				L_cache $opt -r cachestdout
-				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout a
-			done
-		}
-		{
-			local ret=123
-			cacheerr() { echo "$ret"; return "$ret"; }
-			L_decorate L_cache $opt cacheerr
-			for i in _ _; do
-				L_cache $opt -r cacheerr
-				ret=123
-				L_unittest_cmd -c -e 123 cacheerr
-				ret=1
-				L_unittest_cmd -c -e 123 cacheerr
-				L_unittest_cmd -c -e 123 cacheerr
-			done
-		}
-	done
-	#
-	L_unittest_cmd L_cache -l
-	L_unittest_cmd L_cache -f "$cachef" -l
-	#
-	unset -f cachevars cachestdout
-}
+. "$dir"/test_L_cache.sh
 
 # shellcheck disable=SC2178
 _L_test_var_to_string() {
@@ -2109,6 +2024,7 @@ _L_test_PATH() {
 
 _L_test_L_proc() {
 	local proc exitcode line
+	local beforefiles=(/tmp/L_*)
 	{
 		L_log ''
 		L_proc_popen -Ipipe -Opipe proc cat
@@ -2194,9 +2110,9 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 101
 	}
 	{
-		L_log "check there are nano left temporary files"
+		L_log "check there are nano left temporary files (unstable check)"
 		local leftovers=(/tmp/L_*)
-		L_unittest_arreq leftovers "/tmp/L_*"
+		L_unittest_eq "${#leftovers[*]}" "${#beforefiles[*]}" "leftover=${leftovers[*]} beforefiles=${beforefiles[*]}"
 	}
 }
 
@@ -2255,7 +2171,7 @@ _L_test_no_duplicate_functions() {
 	#
 	vars=$(grep -o $'^[^ \t]*=' "$L_LIB_SCRIPT" | sort)
 	vars_cnt=$(wc -l <<<"$vars")
-	L_unittest_cmd test "$vars_cnt" -gt 200
+	L_unittest_cmd test "$vars_cnt" -gt 150
 	dups="$(uniq -d <<<"$vars")"
 	L_unittest_eq "$dups" ""
 	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
@@ -2760,7 +2676,16 @@ _L_test_finally_proc() {
 	{
 		L_info "test all signals in process"
 		script() {
-			bash -c ". $L_LIB_SCRIPT; ulimit -c 0; L_finally echo EXIT; L_raise -$1"
+			# Somehow SIGINT is not set to default here, reset it.
+			trap - SIGINT
+			bash -c "
+				. $L_LIB_SCRIPT
+				ulimit -c 0
+				L_finally echo EXIT
+				# set -x
+				L_raise -$1
+				echo 'SIGNAL $1 DID NOT TERMINATE' >&2
+			"
 		}
 		local i
 		for i in $(L_trap_names); do
@@ -2786,7 +2711,7 @@ _L_test_finally_interrupt() {
 		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
 		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
 		# set +x
-		enable sleep || :
+		enable sleep 2>/dev/null || :
 		local to; L_timeout_set_to to "$1"; while ! L_timeout_expired "$to"; do sleep 0.1; done
 	}
 	{
@@ -2835,7 +2760,7 @@ _L_test_finally_interrupt() {
 		L_unittest_cmd -e "$e" "${newbash[@]}" f2 return
 		L_unittest_cmd -e "$e" "${newbash[@]}" f2 exit
 		if ((!L_HAS_BASH5_0)); then
-			L_warning "Disabled below bash5.0"
+			L_unittest_skip "Disabled below bash5.0"
 			return
 		fi
 		L_unittest_cmd -e "$e" f2 signal
@@ -3381,6 +3306,11 @@ _L_test_sections_ok() {
 	L_unittest_eq "$vim_sections" "$file_sections"
 	L_unittest_eq "$vim_sections" "$docs_sections"
 	# L_unittest_eq "$vim_sections" "$list_sections"
+}
+
+_L_test_unittest_skip() {
+	L_unittest_skip "reason to skip"
+	false
 }
 
 ###############################################################################

@@ -5,8 +5,9 @@ set -euo pipefail
   -- -q --quiet flag=1 help="Silence output from dockers" \
   -- -i --input help="Stdin" default="" \
   -- -c --script flag=1 help="Instead of bash arguments take script to execute" \
+  -- -t --tty flag=1 help="attach tty" \
   -- versions nargs="?" help="Bash version to test against, or all. Default: all" default="all" \
-  -- args nargs="*" help="Bash arguments" \
+  -- args nargs=remainder help="Bash arguments" \
   ---- "$@"
 
 if [[ "$versions" == "all" ]]; then
@@ -21,6 +22,10 @@ fi
 if ((script)); then
   args=(-c "${args[*]}")
 fi
+dockerargs=()
+if (( tty )); then
+  dockerargs+=("-t")
+fi
 
 IFS=$', \t\n' read -r -a versions <<<"$versions"
 for version in "${versions[@]}"; do
@@ -32,7 +37,8 @@ for version in "${versions[@]}"; do
         if ((quiet)); then
           exec 1>/dev/null
         else
-          exec 2>&1
+          :
+          # exec 2>&1
         fi
         docker run -q -i --rm -v $PWD:$PWD:ro -w "$PWD" bash:"$version" bash "${args[@]}" <<<"$input"
       ) || rc=$?

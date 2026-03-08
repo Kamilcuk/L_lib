@@ -6,9 +6,8 @@ set -euo pipefail
 _L_test_L_xargs_callback_option() {
     # Test for the -c (callback) option
     callback_func() {
-        if [[ ${i:-0} -lt 3 ]]; then
+        if (( i < 3 )); then
             L_v="item$((++i))"
-            return 0
         else
             return 1
         fi
@@ -45,7 +44,7 @@ _L_test_L_xargs_i_shorthand_option() {
     local output
     output=$(printf "file1
 file2" | L_xargs -i echo "Processing {}")
-    L_unittest_eq "$output" "Processing file1
+    L_unittest_match "$output" "Processing file1
 Processing file2"
 }
 
@@ -72,7 +71,7 @@ _L_test_L_xargs_no_run_if_empty_option() {
 _L_test_L_xargs_P_nproc_option() {
     # Test for -P nproc
     local output
-    output=$(L_xargs -P nproc -n 1 bash -c 'echo "proc:$BASHPID val:$1"' -- <<<"1
+    output=$(L_xargs -P nproc -n 1 bash -c 'echo "proc:${BASHPID:-123} val:$1"' -- <<<"1
 2
 3" | sort)
     L_unittest_match "$output" "proc:[0-9]+ val:1
@@ -85,17 +84,17 @@ _L_test_L_xargs_process_killing() {
     # and that it happens quickly.
     local pid start end duration dur=1023491 before after beforelines afterlines
     L_epochrealtime_usec -v start
-    L_xargs -P 4 -n 1 sleep "$dur" -- <<<"1 2 3 4" & pid=$!
+    L_xargs -P 4 -n 1 sleep "$dur" <<<"1 2 3 4" & pid=$!
     sleep 0.2
-    before=$(pgrep -u $UID -f "sleep $dur") || :
+    before=$(pgrep -u $UID -f "sleep $dur" || :)
     kill $pid
     wait $pid 2>/dev/null || :
-    after=$(pgrep -u $UID -f "sleep $dur") || :
+    after=$(pgrep -u $UID -f "sleep $dur" || :)
     L_epochrealtime_usec -v end
     duration=$((end - start))
     L_unittest_cmd eval "(( duration < 1000000 ))"
     sleep 0.1
-    L_unittest_cmd -e 1 -j kill -0 "$pid" 2>/dev/null
+    L_unittest_cmd -e 1 -j -v _ kill -0 "$pid"
     L_string_count_lines -v beforelines "$before"
     L_string_count_lines -v afterlines "$after"
     L_unittest_cmd eval "(( beforelines - afterlines == 4 ))"

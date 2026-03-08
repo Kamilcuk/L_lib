@@ -152,3 +152,6 @@ docs_docker:
 K ?= 2
 llm:
 	,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
+
+llm2:
+	GOOGLE_GEMINI_BASE_URL=http://localhost:8990/gemini ,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
