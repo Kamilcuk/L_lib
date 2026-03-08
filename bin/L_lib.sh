@@ -1873,7 +1873,7 @@ L_subshell() { ( "$@" ); }
 if ((L_HAS_COMPGEN_V)); then
 # @description Wrapper around compgen that does not support -V argument.
 #
-# @note `copmgen -W` allows execution. For example `compagen -W '$(echo something >&2)'`` executes echo.
+# @note `copmgen -W` allows execution. For example `compgen -W '$(echo something >&2)'`` executes echo.
 #
 # @option -V <var> Store the output in variable instead of printing it.
 # @arg $@ Any other compgen options and arguments.
@@ -1883,7 +1883,7 @@ else
 		case "$1" in
 		-V)
 			local _L_tmp
-			if _L_tmp=$(trap - ERR; compgen "${@:3}"); then
+			if _L_tmp=$(set +e; compgen "${@:3}"); then
 				L_readarray "$2" <<<"$_L_tmp"
 			else
 				return "$?"
@@ -1891,7 +1891,7 @@ else
 			;;
 		-V*)
 			local _L_tmp
-			if _L_tmp=$(trap - ERR; compgen "${@:2}"); then
+			if _L_tmp=$(set +e; compgen "${@:2}"); then
 				L_readarray "${1#-V}" <<<"$_L_tmp"
 			else
 				return "$?"
