@@ -5682,6 +5682,49 @@ L_with_cd_tmpdir() {
     L_with_cd "$tmpdir" "$((${1-}+1))"
 }
 
+_L_with_process_finally() {
+	if (( $2 )); then
+		L_log "L_with_process: kill and wait 30 seconds for process $1"
+	fi
+	kill "$1" || :
+	local rc
+	L_wait -t 30 "$1" || rc=$?
+	if (( rc == 124 )); then
+		# timeout
+		if (( $2 )); then
+			L_log "L_with_process: kill -s 9 and wait for process $1"
+		fi
+		kill -s 9 "$1"
+		wait "$1"
+	fi
+}
+
+# @description
+# @description Run command in background and store its PID in variable.
+# Register RETURN trap that will kill process on return from parent function.
+# @option -v Be verbose.
+# @option -h Show help.
+# @arg $1 Variable to store the PID of the background process.
+# @arg $@ Command to execute in the background.
+L_with_process() {
+	local OPTIND OPTARG OPTERR i v=0
+	while getopts vh i; do
+		case "$i" in
+			v) v=1 ;;
+			h) L_func_usage; return 0 ;;
+			*) L_func_usage_error; return 2 ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	case "$#" in
+		0) L_func_usage_error "missing variable to assign to with pid"; return 2 ;;
+		1) L_func_usage_error "missing command to execute"; return 2 ;;
+	esac
+	"${@:2}" &
+	L_finally -r -s 1 _L_with_process_finally "$!" "$v"
+	printf -v "$1" "%s" "$!"
+}
+
 _L_with_redirect_stdout_to_finally() {
   eval "exec 1>&$3"
   printf -v "$1" "%s" "$(< "$2")"
