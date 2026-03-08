@@ -4086,7 +4086,7 @@ _L_pretty_print_nested() {
 	else
 		local _L_pp_key _L_pp_keys=("${!_L_pp_array[@]}") L_v
 		# Associative array indexes are not sorted.
-		LC_ALL=C L_sort _L_pp_keys
+		LC_ALL=C L_sort -z _L_pp_keys
 		#
 		_L_pretty_print_flush
 		_L_pretty_print_output "%s=(" "$1"
