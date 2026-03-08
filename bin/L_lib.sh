@@ -5330,7 +5330,7 @@ L_trap() {
 # L_SIGRET=""
 
 _L_finally_debug() {
-	L_critical "pid=$BASHPID signal=$L_SIGNAL exec=[$*]"
+	echo "${L_ANSI_BG_RED}pid=$BASHPID signal=$L_SIGNAL exec=[${1//[$'\t\n']/ }] BASH_COMMAND=[${_L_BASH_COMMAND:-}] #LINENO=${#BASH_LINENO[*]} $(L_var_to_string BASH_LINENO) $(L_var_to_string _L_finally_return) ${*:2} ${L_ANSI_RESET}"
 }
 
 # @description L_finally RETURN handler.
@@ -5343,11 +5343,11 @@ L_finally_handle_return() {
   	# https://stackoverflow.com/a/79783255/9072753
   	# Handle it up the stack.
 		# _L_finally_debug "${_L_finally_return[${#BASH_LINENO[*]}]:-}"
-		eval "${_L_finally_return[${#BASH_LINENO[*]}]:-}"
-		unset -v "_L_finally_return[$((${#BASH_LINENO[*]}))]"
+		eval "${_L_finally_return["${#BASH_LINENO[*]}"]:-}"
+		unset -v "_L_finally_return[${#BASH_LINENO[*]}]"
 	else
-		# _L_finally_debug "${_L_finally_return[${#BASH_LINENO[*]}-1]}"
-		eval "${_L_finally_return[${#BASH_LINENO[*]}-1]}"
+		# _L_finally_debug "${_L_finally_return[$((${#BASH_LINENO[*]}-1))]}"
+		eval "${_L_finally_return["${#BASH_LINENO[*]}-1"]:-}"
 		unset -v "_L_finally_return[$((${#BASH_LINENO[*]}-1))]"
 	fi
 	#
