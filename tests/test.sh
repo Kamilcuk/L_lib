@@ -1765,6 +1765,7 @@ fi  # L_HAS_ASSOCIATIVE_ARRAY
 
 . "$dir"/argparse_tests.sh
 . "$dir"/argparse_tests_2.sh
+. "$dir"/argparse_tests_3.sh
 
 _L_test_path() {
 	local v
