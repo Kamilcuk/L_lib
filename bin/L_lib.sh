@@ -5968,29 +5968,70 @@ L_unittest_skip() {
 	exit 0
 }
 
+_L_unittest_main_runner_finally_catter() {
+
+	cat "$1" 2>/dev/null
+}
+
 _L_unittest_main_runner() {
-	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr
-	printf -v _L_u_hdr "%s%-*s  " "${L_BOLD}" "$_L_u_testnamemaxlen" "${_L_u_testnames[L_XARGS_INDEX]}"
+	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr _L_u_storage=""
+	printf -v _L_u_hdr "%s%s " "${L_BOLD}" "${_L_u_testnames[L_XARGS_INDEX]}"
   if (( _L_u_stream )); then
   	printf "%s%s\n" "$_L_u_hdr" "${L_RESET}${L_CYAN}starting${L_RESET}" >&2
   elif (( _L_u_nproc == 1 )); then
 		printf "%s" "$_L_u_hdr" >&2
   fi
   L_epochrealtime_usec -v _L_u_start
-  # Run the command.
-	if (( _L_u_subshell )); then
+  {
+  	# Run the command.
 		if (( _L_u_stream )); then
-			( "$@" )
+			# No caching of the output. Using >&2 to sync stdout and stderr buffering.
+			if (( _L_u_subshell )); then
+				( "$@" >&2 )
+			else
+				"$@" >&2
+			fi
+			_L_u_ret=$?
 		else
-			( "$@" > "$_L_u_tmpd/$1.log" 2>&1 )
+			if (( _L_u_subshell )); then
+				if [[ "$-" == *e* ]]; then
+					# The ( ) subshell will exit with nonzero triggering set -e and ERR trap.
+					# Disable temporary -e and ERR trap. Store ERR trap in _L_u_storage.
+					set +e -E
+					L_trap_get -v _L_u_storage ERR
+					trap - ERR
+				fi
+				(
+					if [[ -n "$_L_u_storage" ]]; then
+						# Restore -e and ERR trap inside the subshell.
+						set -e
+						trap "$_L_u_storage" ERR
+					fi
+					"$@" > "$_L_u_tmpd/$1.log" 2>&1
+				)
+				_L_u_ret=$?
+				if [[ -n "$_L_u_storage" ]]; then
+					# Now restore -e and ERR trap outside of the subshell.
+					set -e
+					trap "$_L_u_storage" ERR
+				fi
+			else
+  			if [[ "$-" == *e* ]]; then
+  				# If the command inside exits as part of set -e expression, register a L_finally to print the log line in case of errors.
+  				# Index of finally trap is stored in _L_u_storage.
+  				L_finally -v _L_u_storage L_eval 'cat "$1" 2>/dev/null || :' "$_L_u_tmpd/$1.log"
+  			fi
+  			#
+				"$@" > "$_L_u_tmpd/$1.log" 2>&1
+				_L_u_ret=$?
+				#
+				if [[ -n "$_L_u_storage" ]]; then
+					# If the code did not fire under set -e, the finally trap no longer relevant, file willl be printed below.
+					L_finally_pop -n -i "$_L_u_storage"
+				fi
+			fi
 		fi
-	else
-		if (( _L_u_stream )); then
-			"$@"
-		else
-			"$@" > "$_L_u_tmpd/$1.log" 2>&1
-		fi
-	fi || _L_u_ret=$?
+	}
 	# Store duration.
 	L_epochrealtime_usec -v _L_u_stop
 	local duration=$(( _L_u_stop - _L_u_start ))
@@ -6016,12 +6057,13 @@ _L_unittest_main_runner() {
   	*) local statuscolor="$L_BOLD$L_RED" status="ERROR $_L_u_ret" ;;
   esac
   # Output the status.
-	printf -v status "%s%-9s%s %15s [%3s%%]" "$statuscolor" "$status" "$L_RESET" "($duration_str)" "$percent"
+  local left="$statuscolor$status$L_RESET ($duration_str)" \
+  	offset="$(( COLUMNS - ( ${#_L_u_testnames[L_XARGS_INDEX]} + ${#status} + 2 + ${#duration_str} + 4 ) ))"
+  printf -v percent "[%3d%%]" "$percent"
   if (( _L_u_stream || _L_u_nproc != 1 )); then
-  	printf "%s%s\n" "$_L_u_hdr" "$status" >&2
-  else
-  	printf "%s\n" "$status" >&2
+  	left=$_L_u_hdr$left
   fi
+  printf "%s %*s\n" "$left" "$(( offset > 0 ? offset : 0 ))" "$percent" >&2
   # If requested, exit on first failure.
 	if (( _L_u_exitfirst && _L_u_ret )); then
 		return 255
@@ -6034,10 +6076,8 @@ _L_unittest_main_output_printer() {
 		if (( _L_u_rets[i] $1 )); then
 			_L_unittest_main_print_line - "${_L_u_tests[i]}" "$L_CYAN"
 			local f="$_L_u_tmpd/${_L_u_tests[i]}.log"
-			if [[ ! -r "$f" ]]; then
-				L_critical "internal error: file does not exists: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
-			else
-				cat "$f"
+			if ! cat "$f"; then
+				L_critical "internal error: could not cat file: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
 			fi
 		fi
 	done
@@ -6076,8 +6116,8 @@ L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt _L_u_testnamemaxlen \
-		_L_u_verbose=0 _L_u_rc=0
-	while getopts p:k:EP:lqd:xscvh _L_i; do
+		_L_u_verbose=0 _L_u_rc=0 _L_u_finally_idx=""
+	while getopts p:k:EP:lqd:xsScvh _L_i; do
 		case $_L_i in
 			p)
 				L_log "Getting functions with prefix %q" "${OPTARG}"
@@ -6148,10 +6188,11 @@ L_unittest_main() {
 	fi
 	# Create a temporary directory with our context.
 	L_with_tmpdir_to _L_u_tmpd
+	L_finally -v _L_u_finally_idx eval 'echo "Exiting because received $L_SIGNAL"'
 	# echo "Using directory $_L_u_tmpd"
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
-	L_xargs -q -O -a _L_u_tests -P "$_L_u_nproc" _L_unittest_main_runner || _L_u_rc=$?
+	L_xargs -X -q -O -v _L_u_rets -a _L_u_tests -P "$_L_u_nproc" _L_unittest_main_runner
 	L_epochrealtime_usec -v _L_u_end
 	# Handle L_xargs exit status.
 	case "$_L_u_rc" in
@@ -6182,6 +6223,20 @@ L_unittest_main() {
 			_L_unittest_main_print_line = "$passed PASSES" "$L_GREEN$L_BOLD"
 			_L_unittest_main_output_printer " == 0"
 		fi
+		if (( skipped )); then
+			_L_unittest_main_print_line = "$skipped SKIPPED" "$L_YELLOW$L_BOLD"
+			local i
+			for i in "${!_L_u_tests[@]}"; do
+				local f="$_L_u_tmpd/${_L_u_tests[i]}.skip" reason
+				if [[ -r "$f" ]]; then
+					if reason=$(cat "$f"); then
+						printf "%s %s\n" "${_L_u_testnames[i]}" "$reason"
+					else
+						L_critical "internal error: could not cat file: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
+					fi
+				fi
+			done
+		fi
 		# Output failures
 		if (( failed )); then
 			_L_unittest_main_print_line = "$failed FAILURES" "$L_RED$L_BOLD"
@@ -6211,9 +6266,9 @@ L_unittest_main() {
 			_L_unittest_main_print_line = "short summary" "$L_CYAN"
 			for i in "${!_L_u_tests[@]}"; do
 				if (( _L_u_rets[i] )); then
-					local line=$(tail -n 1 "$_L_u_tmpd/${_L_u_tests[i]}.log")
-					printf -v line "%s %s\n" "${_L_u_testnames[i]}" "$line"
-					printf "%s%s\n" "${line::${COLUMNS:-80}}" "$L_RESET" >&2
+					local line
+					line=$(tail -n 1 "$_L_u_tmpd/${_L_u_tests[i]}.log" || echo "??")
+					printf "%s %s%s\n" "${_L_u_testnames[i]}" "$line" "$L_RESET" >&2
 				fi
 			done
 		fi
@@ -6223,10 +6278,11 @@ L_unittest_main() {
 		local duration=$(( _L_u_end - _L_u_start ))
 		L_usec_to_duration -v duration "$duration"
 		_L_unittest_main_print_line = "$failed failed, $passed passed, $skipped skipped, $deselected deselected in $duration" "$L_BOLD"
-		if (( failed )); then
-			exit 1
-		fi
 	}
+	L_finally_pop -n -i "$_L_u_finally_idx"
+	if (( failed )); then
+		exit 1
+	fi
 } <&-
 
 # shellcheck disable=SC2035
@@ -6354,6 +6410,7 @@ L_unittest_cmd() {
 		L_trap_push '_L_unittest_cmd_exit_trap $? '"$(L_quote_printf "$@")" EXIT
 		# shellcheck disable=2030,2093,1083
 		if ((_L_uopt_capture)); then
+			# L_critical "_L_uopt_capture=$_L_uopt_capture _L_uc=[$_L_uc]"
 			# Use temporary file
 			local _L_utmpf
 			_L_utmpf=$(mktemp)
@@ -6371,7 +6428,7 @@ L_unittest_cmd() {
 		fi
 		L_trap_pop EXIT
 	else  # _L_uopt_curenv
-		_L_uc="set +e;trap - ERR;$_L_uc"
+		# _L_uc="set +e;$_L_uc"
 		if ((_L_uopt_capture)); then
 			_L_uout=$( eval "$_L_uc" ) || _L_uret=$?
 		else
