@@ -5753,8 +5753,11 @@ L_with_tmpfile_to() {
 L_with_tmpdir_to() {
   local _L_v &&
     _L_v=$(mktemp -d "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
-    L_finally -r -s "$((${2-}+1))" rm -rf "$_L_v" &&
+    L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_to_callback "$_L_v" &&
     printf -v "$1" "%s" "$_L_v"
+}
+_L_with_tmpdir_to_callback() {
+	rm -rf "$1" || L_critical "Could not remove directory $1"
 }
 
 # @description Create a temporary directory and cd into it.
@@ -8051,7 +8054,6 @@ _L_argparse_optspec_dest_arr_clear() {
 # @set ${_L_opt_dest[_L_opti]}
 _L_argparse_optspec_dest_store() {
 	eval "${_L_opt_dest[_L_opti]}=\$1" || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
-
 }
 
 # @description append $@ to the variable

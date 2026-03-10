@@ -1,20 +1,22 @@
-_L_test_z_argparse29_dir_types() {
-	local tmpd1 tmpd2 tmp
-	L_unittest_cmd -v tmpd1 mktemp -d
-	L_unittest_cmd -v tmpd2 mktemp -d
-	chmod -r "$tmpd1"
-	chmod -w "$tmpd2"
 
+_L_test_z_argparse29_dir_types() {
+	if (( UID == 0 )); then
+		L_unittest_skip "running as root user (its ok)"
+		return
+	fi
+	local tmpd1 tmpd2 tmp
+	L_with_tmpdir_to tmpd1
+	L_with_tmpdir_to tmpd2
+	L_unittest_cmd -- L_argparse -- --dir type=dir_r ---- --dir "$tmpd1"
+	L_unittest_cmd -- L_argparse -- --dir type=dir_w ---- --dir "$tmpd2"
+	chmod -x "$tmpd1"
+	chmod -w "$tmpd2"
 	# Need to run in subshell because L_argparse exits on failure
 	L_unittest_failure_capture tmp -- L_argparse -- --dir type=dir_r ---- --dir "$tmpd1"
 	L_unittest_contains "$tmp" "directory not readable"
 
 	L_unittest_failure_capture tmp -- L_argparse -- --dir type=dir_w ---- --dir "$tmpd2"
 	L_unittest_contains "$tmp" "directory not writable"
-
-	# Cleanup
-	chmod +rwx "$tmpd1" "$tmpd2"
-	rm -rf "$tmpd1" "$tmpd2"
 }
 
 _L_test_z_argparse30_file_type() {
