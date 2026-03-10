@@ -9,7 +9,8 @@ COPY tests/ /tests/
 COPY docs/ /docs/
 COPY mkdocs.yml mkdocs.yml
 ARG ARGS=""
-RUN /tests/test.sh ${ARGS}
+RUN /tests/citest.sh ${ARGS}
+
 
 FROM koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh /
