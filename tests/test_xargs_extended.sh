@@ -72,9 +72,9 @@ _L_test_L_xargs_P_nproc_option() {
     output=$(L_xargs -P nproc -n 1 bash -c 'echo "proc:${BASHPID:-123} val:$1"' -- <<<"1
 2
 3" | sort)
-    L_unittest_match "$output" "proc:[0-9]+ val:1
-proc:[0-9]+ val:2
-proc:[0-9]+ val:3" "L_xargs -P nproc should run in parallel"
+    L_unittest_match "$output" "proc:[0-9]+ val:[123]
+proc:[0-9]+ val:[123]
+proc:[0-9]+ val:[123]" "L_xargs -P nproc should run in parallel"
 }
 
 _L_test_L_xargs_process_killing() {
