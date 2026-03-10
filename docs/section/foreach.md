@@ -9,7 +9,7 @@ It is used within a `while` loop, and on each iteration, it assigns values from 
 The simplest use case is iterating over a standard array and assigning each element to a single variable. The syntax requires you to specify the variable name(s), a colon separator `:`, and the array name(s).
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 
 # Define an array of strings

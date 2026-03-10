@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 . "$(dirname "$0")"/bin/L_lib.sh L_argparse \
   description="Compare behavior of multiple bash versions" \

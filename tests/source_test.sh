@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 . "${BASH_SOURCE[0]%/*}/../bin/L_lib.sh"
 

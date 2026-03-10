@@ -25,7 +25,7 @@ The utility for command line argument parsing.
 Let's start with a simple script that demonstrates how to define program information, optional flags, and a positional argument.
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 # Source the L_lib library. The -s flag makes it silent.
 . L_lib.sh -s
 
@@ -363,7 +363,7 @@ You can also nest `call=function` to create a hierarchical command structure dyn
 In this example, the main parser discovers functions prefixed with `CMD_`. The `CMD_remote` function then defines its own sub-parser that discovers functions prefixed with `CMD_REMOTE_`.
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 
 # Level 2: Sub-commands for 'remote'

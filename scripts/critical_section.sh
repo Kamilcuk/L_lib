@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 . ../bin/L_lib.sh
 
 L_critical_section() {

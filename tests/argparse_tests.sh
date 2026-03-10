@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Argparse tests
 
 _L_test_z_argparse01() {

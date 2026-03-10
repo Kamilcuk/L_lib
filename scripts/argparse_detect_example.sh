@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 CMD_clone() {
   local repo
   L_argparse description="clone repository" -- repo ---- "$@"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 
 # Level 2: Sub-commands for 'remote'

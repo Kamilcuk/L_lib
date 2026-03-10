@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -xeuo pipefail
 cd "$(dirname "$0")/.."
 sections=$(sed -n 's!# @section \(.*\)$!\1!p' bin/L_lib.sh)

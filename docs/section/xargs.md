@@ -39,7 +39,7 @@ This is a primary use case for `L_xargs`. The function does not need to be expor
 Crucially, if the `-P` (parallel) option is **not** used, the function is executed in the *current shell execution environment*. This means any modifications to variables made by the function will persist after `L_xargs` has finished.
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 
 my_prefix="Item"
