@@ -43,6 +43,11 @@ To run tests for the current Bash version:
 ./tests/test.sh
 ```
 
+To run a subset of tests, you can use the `-k` option with a filter expression:
+```bash
+./tests/test.sh -k 'xargs'
+```
+
 To run only `shellcheck` for static analysis:
 ```bash
 make shellcheck
@@ -65,9 +70,9 @@ The project adheres to strict conventions to maintain consistency and readabilit
     *   `2`: Usage errors (e.g., incorrect arguments).
     *   `124`: Timeout.
 *   **Shell Options:** Scripts and the library itself operate with `set -euo pipefail` to ensure robust error handling and predictable behavior.
-*   **Testing Practices:** Unit tests are organized into functions prefixed with `_L_test_` within `tests/test.sh` and are executed by `L_unittest_main`.
+*   **Testing Practices:** Unit tests are organized into functions prefixed with `_L_test_` within `tests/test.sh` and are executed by `L_unittest_main`. New tests should be added to separate files in the `tests/` directory and sourced from `tests/test.sh`. Each test file should contain multiple tests for a reasonable section or group of functions.
 
 ## Agent Interaction Rules
 
-*   **Task Management:** Always first create a todo list with a todo write tools and then execute it.
+*   **Task Management:** Always first create a todo list with a todo write tools and then execute it. The todo list should be detailed and break down the problem into small, manageable steps. When adding new tasks, append them to the existing todo list by first reading the list if necessary.
 *   **Communication Style:** Be as concise and short as possible in communications, sacrificing grammatical structure and correctness.

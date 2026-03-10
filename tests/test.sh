@@ -27,7 +27,10 @@ USR2_CNT=0
 . "$dir"/foreach_tests.sh
 . "$dir"/test_xargs.sh
 . "$dir"/test_xargs_extended.sh
+. "$dir"/test_xargs_extra.sh
 . "$dir"/test_duration.sh
+. "$dir"/test_L_date.sh
+. "$dir"/test_asserts.sh
 
 _L_test_color() {
 	{

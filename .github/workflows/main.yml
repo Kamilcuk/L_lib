@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
-      - run: ./tests/test.sh
+      - run: ./tests/citest.sh
 
   shellcheck:
     runs-on: ubuntu-latest

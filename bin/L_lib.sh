@@ -547,10 +547,10 @@ L_assert() {
 		set +x
 		local L_v
 		L_quote_printf_v "${@:2}"
-		if [[ "${1:-}" =~ ^(-[0-9]+)$' \t\r\n'*(.*)$ ]]; then
-			L_panic "${BASH_REMATCH[1]}" -- "$L_NAME: ERROR: assertion [$L_v] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
+		if [[ "${1:-}" =~ ^(-[0-9]+)[$' \t\r\n']*(.*)$ ]]; then
+			L_panic "${BASH_REMATCH[1]}" "$L_NAME: ERROR: assertion [$L_v] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
 		else
-			L_panic -- "$L_NAME: ERROR: assertion [$L_v] failed${1:+: $1}"
+			L_panic "$L_NAME: ERROR: assertion [$L_v] failed${1:+: $1}"
 		fi
 	fi
 }
@@ -577,7 +577,7 @@ L_die() {
 }
 
 # @description With no arguments or an empty string, exit with 0.
-# Otherwise, the arguments are printed to stderr and exit with 27.
+# Otherwise, the arguments are printed to stderr and exit with 1.
 # @note If you want to exit with number, just call builtin exit,
 # @example
 # 	err=()
@@ -590,12 +590,20 @@ L_die() {
 L_exit() {
 	if [[ -n "$*" ]]; then
 		printf "%s\n" "$*" >&2
-		exit 27
+		exit 1
 	else
 		exit 0
 	fi
 }
 
+# @description
+# Execute a command given from the second argument.
+# If the command fails, call `L_exit`.
+# The difference to `L_assert` is that it prints calltrace on error.
+# `L_check` function only prints the error message with the program name on error.
+# @see L_panic
+# @see L_assert
+# @see L_check
 # @description
 # Execute a command given from the second argument.
 # If the command fails, call `L_exit`.
@@ -2226,7 +2234,7 @@ L_uuid4_v() {
 # Otherwise, try to use printf %(fmt)T.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and exit.
-# @arg $1 Format string.
+# @arg $1 Format string, without leading +.
 # @arg [$2] Optional timepoint in seconds with optional digit or any date understood format.
 L_date() { L_handle_v_scalar "$@"; }
 L_date_v() {
@@ -10824,6 +10832,7 @@ _L_xargs_handle_eof_str() {
 #         125 if the command exited with the status 128-192
 #         126 if the command cannot be run
 #         127 if the command is not found
+# @env L_XARGS_INDEX The index of the job being executed.
 L_xargs() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_v \
 			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
