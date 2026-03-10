@@ -10609,7 +10609,13 @@ _L_xargs_run() {
 	if (( _L_x_done )); then
 		return
 	fi
-	if [[ -n "$_L_x_replace" ]]; then
+	if (( _L_x_template )); then
+		# Replace {} and {1} {2} ... {N}.
+		local _L_cmdready=("${_L_cmd[@]//\{\}/$*}")
+		for (( _L_i = 1; _L_i <= $#; ++_L_i )); do
+			_L_cmdready=("${_L_cmdready[@]//\{${_L_i}\}/${!_L_i}}")
+		done
+	elif [[ -n "$_L_x_replace" ]]; then
 		# Replace {}.
 		local _L_cmdready=("${_L_cmd[@]//"$_L_x_replace"/$*}")
 	else
@@ -10627,7 +10633,12 @@ _L_xargs_run() {
 		L_quote_printf "+" "${_L_cmdready[@]}" >&2
 	fi
 	if (( _L_x_maxprocs == 1 )); then
-		L_exit_to _L_i "${_L_cmdready[@]}"
+		if (( _L_x_preserve_set_e )); then
+			"${_L_cmdready[@]}"
+			_L_i=$?
+		else
+			L_exit_to _L_i "${_L_cmdready[@]}"
+		fi
 		_L_xargs_handle_return "$_L_i"
 		_L_x_rets+=("$_L_i")
 	else
@@ -10645,7 +10656,7 @@ _L_xargs_run() {
 			"${_L_cmdready[@]}" &
 		fi
 		_L_x_pid_to_num["$!"]=$L_XARGS_INDEX
-		if (( _L_x_maxprocs != 0 && ${#_L_x_pid_to_num[@]} >= _L_x_maxprocs )); then
+		if (( _L_x_maxprocs > 0 && ${#_L_x_pid_to_num[@]} >= _L_x_maxprocs )); then
 			_L_xargs_wait || return 1
 		fi
 	fi
@@ -10703,6 +10714,9 @@ _L_xargs_callback_array() {
 _L_xargs_callback_read() {
 	IFS= read -u "$_L_x_fd" -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]
 }
+_L_xargs_handle_eof_str() {
+	"$@" && [[ "$L_v" != "$_L_x_eof_str" ]]
+}
 
 # @description A high-performance Bash implementation of the `xargs` utility designed for seamless
 # integration with local shell environments. Unlike binary `xargs`, `L_xargs` executes within
@@ -10726,9 +10740,10 @@ _L_xargs_callback_read() {
 # @option -s Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
 # @option -S Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
 # @option -u <fd> Read the input stream from the specified file descriptor.
-# @option -I <replace-str> Replace occurrences of replace-str in the command. Forces -n 1.
+# @option -I <replace-str> Replace occurrences of replace-str in the command. Sets -n 1.
 # @option -i Shorthand for -I{}.
 # @option -L <max-records> Trigger execution once <max-records> have been accumulated.
+# @option -l Shorthand for -L1.
 # @option -n <max-atoms> Trigger execution once <max-atoms> have been accumulated.
 # @option -r If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
 # @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
@@ -10737,6 +10752,11 @@ _L_xargs_callback_read() {
 # @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
 # @option -q Be quiet.
 # @option -v <var> Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
+# @option -E <eof-str> Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
+# @option -e <eof-str> Like -E, compatibility wtih GNU xargs, use -E.
+# @option -X Exit on error when set -e flag is set. Capture the command exit status with "cmd; rc=$?", preserving set -e flag effect during the duration of cmd.
+# @option -T  Use the command as a template: {} is replaced by all arguments,
+#             {1} {2} ... {N} are replaced by the corresponding argument.
 # @option -h Display this help documentation and exit.
 # @arg $@ Command to execute. Default: L_quote_printf.
 # @return 0 on success
@@ -10751,8 +10771,9 @@ L_xargs() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_v \
 			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
 			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd=0 _L_x_a _L_x_a_index=0 _L_x_split="" \
-			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0
-	while getopts a:0c:d:sSu:I:in:L:rP:tO^qv:h _L_i; do
+			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
+			_L_x_eof_str="" _L_x_preserve_set_e=0 _L_x_template=0
+	while getopts a:0c:d:sSu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
 		case "$_L_i" in
 			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=(${!_L_i+"${!_L_i}"}) _L_x_split=${_L_x_split:-0} _L_records_limit=${_L_records_limit:-1} ;;
 			0) _L_x_callback=(_L_xargs_callback_read) _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
@@ -10771,6 +10792,7 @@ L_xargs() {
 			i) _L_atoms_limit=1 _L_x_replace="{}" ;;
 			n) _L_atoms_limit=$OPTARG ;;
 			L) _L_records_limit=$OPTARG ;;
+			l) _L_records_limit=1 ;;
 			r) _L_x_r=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_x_maxprocs=$L_v; else _L_x_maxprocs=$OPTARG; fi ;;
 			t) _L_x_verbose=1 ;;
@@ -10778,12 +10800,22 @@ L_xargs() {
 			^) _L_x_prefix=1 ;;
 			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
+			E) _L_x_eof_str=$OPTARG ;;
+			e) _L_x_eof_str=$OPTARG ;;
+			X) _L_x_preserve_set_e=1 ;;
+			T) _L_x_template=1 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error "L_xargs: invalid option: -$_L_i"; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
+	# When under -E or -e, exit when a line is exactly something.
+	if (( _L_x_eof_str )); then
+		_L_x_callback=(_L_xargs_handle_eof_str "${_L_x_callback[@]}")
+	fi
+	# Start the loop over records.
 	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
+	# _L_x_done is set when any command exits wtih 255.
 	while (( !_L_x_done )) && L_v=() && "${_L_x_callback[@]}"; do
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
@@ -10792,28 +10824,42 @@ L_xargs() {
 		fi
 		# Accumulate atoms (L_v is 1 atom in Solid mode, 1+ in Split mode)
 		_L_atoms+=("${L_v[@]}")
-		# Dual-threshold trigger logic
-		while (( (_L_atoms_limit > 0 && ${#_L_atoms[*]} >= _L_atoms_limit) || (_L_records_limit > 0 && _L_cur_records >= _L_records_limit) )); do
-			if (( _L_atoms_limit > 0 && ${#_L_atoms[*]} >= _L_atoms_limit )); then
-				_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}" || return 1
+		# Dual-threshold trigger logic - on number of atoms and number of records.
+		if (( _L_atoms_limit > 0 )); then
+			while (( ${#_L_atoms[*]} >= _L_atoms_limit )); do
+				if (( _L_x_preserve_set_e )); then
+					_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}"
+				else
+					_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}" || return 1
+				fi
 				_L_atoms=("${_L_atoms[@]:_L_atoms_limit}")
+				_L_cur_records=0
+			done
+		fi
+		if (( _L_records_limit > 0 && _L_cur_records >= _L_records_limit )); then
+			if (( _L_x_preserve_set_e )); then
+				_L_xargs_run "${_L_atoms[@]}"
 			else
 				_L_xargs_run "${_L_atoms[@]}" || return 1
-				_L_atoms=()
 			fi
+			_L_atoms=()
 			_L_cur_records=0
-		done
+		fi
 	done
 	# Final EOF Flush
 	if (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 )); then
-		_L_xargs_run "${_L_atoms[@]}" || return 1
+		if (( _L_x_preserve_set_e )); then
+			_L_xargs_run "${_L_atoms[@]}"
+		else
+			_L_xargs_run "${_L_atoms[@]}" || return 1
+		fi
 	fi
 	# Reaper for parallel mode
 	while (( ${_L_x_pid_to_num[*]:+${#_L_x_pid_to_num[*]}}+0 )); do
 		_L_xargs_wait || return 1
 	done
 	if [[ -n "$_L_x_v" ]]; then
-		L_array_assign "$_L_x_v" "${_L_x_rets[@]}"
+		L_array_assign "$_L_x_v" "${_L_x_rets[@]}" || return 1
 		return 0
 	fi
 	return "$_L_x_return"
