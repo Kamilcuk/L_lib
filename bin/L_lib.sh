@@ -968,15 +968,15 @@ L_time() {
 # @arg $1 Duration string.
 # @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
 L_duration_to_usec() { L_handle_v_scalar "$@"; }
+# shellcheck disable=SC2211,SC2035,SC2035,SC1102
 L_duration_to_usec_v() {
   [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
-    #         123          45          67          89          01          23          45           67            8        9   0
-    printf -v L_v "%s%06d" "$((
-    	( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18]
-    	+ (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
-      ))" "$((
-    	BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) }
-      ))" &&
+  #           123          45          67          89          01          23          45           67            8        9   0
+  # convert year, week, day, ... into <seconds><microseconds>
+    printf -v L_v "%s%06d" \
+    	"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18] + (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
+      ))" \
+      "$(( BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) } ))" &&
     # Remove leading zeros.
     L_v=$(( 10#$L_v ))
 }
@@ -1239,6 +1239,7 @@ L_cache() {
   fi
   # Calculate key if not specified.
   if [[ -z "$_L_key" ]]; then
+  	# shellcheck disable=SC2059
     printf -v _L_key "${1+%q} " "$@"
     _L_key=${_L_key%% }
   fi
@@ -5892,7 +5893,7 @@ _L_unittest_internal() {
 } >&2
 
 _L_unittest_main_longest_string_to() {
-	local i=$2[@] j=0
+	local i="$2[@]" j=0
 	for i in "${!i}"; do
 		(( j = j < ${#i} ? ${#i} : j ))
 	done
@@ -5912,7 +5913,7 @@ _L_unittest_init_COLUMNS() {
 # @arg $2 string to print
 _L_unittest_main_print_line() {
 	if (( ${#2}+2 >= COLUMNS )); then
-		printf "%s\n" "$txt"
+		printf "%s\n" "$2"
 	else
 		local pre post
 		printf -v pre "%$(( ( COLUMNS - ${#2} - 2) / 2 ))s" ""
@@ -5942,6 +5943,7 @@ _L_unittest_main_handle_k() {
 	if (( ${#elems[*]} == 1 )); then
 		# One element - no need to be fancy.
 		for i in "${!_L_u_tests[@]}"; do
+			# shellcheck disable=SC2076
 			[[ "${_L_u_tests[$i]}" =~ "${elems[0]}" ]] || unset -v "_L_u_tests[$i]"
 		done
 	else
@@ -6013,6 +6015,7 @@ _L_unittest_main_runner() {
 					if [[ -n "$_L_u_storage" ]]; then
 						# Restore -e and ERR trap inside the subshell.
 						set -e
+						# shellcheck disable=SC2064
 						trap "$_L_u_storage" ERR
 					fi
 					"$@" > "$_L_u_tmpd/$1.log" 2>&1
@@ -6021,6 +6024,7 @@ _L_unittest_main_runner() {
 				if [[ -n "$_L_u_storage" ]]; then
 					# Now restore -e and ERR trap outside of the subshell.
 					set -e
+					# shellcheck disable=SC2064
 					trap "$_L_u_storage" ERR
 				fi
 			else
@@ -6056,7 +6060,8 @@ _L_unittest_main_runner() {
   case "$_L_u_ret" in
   	0)
   		if [[ -r "$_L_u_tmpd/$1.skip" ]]; then
-  			local reason=$(head -c 20 "$_L_u_tmpd/$1.skip")
+  			local reason
+  			reason=$(head -c 20 "$_L_u_tmpd/$1.skip" || :)
   			local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ ($reason)}"
   		else
   			local statuscolor="$L_GREEN" status="PASS"
@@ -6081,8 +6086,9 @@ _L_unittest_main_runner() {
 _L_unittest_main_output_printer() {
 	local i
 	for i in "${!_L_u_rets[@]}"; do
+		# shellcheck disable=SC2211,SC2086
 		if (( _L_u_rets[i] $1 )); then
-			_L_unittest_main_print_line - "${_L_u_tests[i]}" "$L_CYAN"
+			_L_unittest_main_print_line "-" "${_L_u_tests[i]}" "$L_CYAN"
 			local f="$_L_u_tmpd/${_L_u_tests[i]}.log"
 			if ! cat "$f"; then
 				L_critical "internal error: could not cat file: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
@@ -6120,6 +6126,7 @@ _L_unittest_main_output_printer() {
 # @option -h Print this help and return 0.
 # @arg $@ Specify a space, tab or newline separated list of funtions to execute.
 #         For example output of compgen.
+# shellcheck disable=SC2179
 L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
@@ -6169,7 +6176,7 @@ L_unittest_main() {
 	_L_unittest_main_longest_string_to _L_u_testnamemaxlen _L_u_testnames
 	# Print welcoming message.
 	_L_unittest_init_COLUMNS
-	_L_unittest_main_print_line = "test session start" >&2
+	_L_unittest_main_print_line "=" "test session start" >&2
 	_L_i="Running ${#_L_u_tests[*]} tests"
 	if (( _L_u_stream )); then
 		_L_i+="; no output caching"
@@ -6228,11 +6235,11 @@ L_unittest_main() {
 	if (( !_L_u_stream )); then
 		# Ouptut passed if verbose
 		if (( _L_u_verbose && passed )); then
-			_L_unittest_main_print_line = "$passed PASSES" "$L_GREEN$L_BOLD"
+			_L_unittest_main_print_line "=" "$passed PASSES" "$L_GREEN$L_BOLD"
 			_L_unittest_main_output_printer " == 0"
 		fi
 		if (( skipped )); then
-			_L_unittest_main_print_line = "$skipped SKIPPED" "$L_YELLOW$L_BOLD"
+			_L_unittest_main_print_line "=" "$skipped SKIPPED" "$L_YELLOW$L_BOLD"
 			local i
 			for i in "${!_L_u_tests[@]}"; do
 				local f="$_L_u_tmpd/${_L_u_tests[i]}.skip" reason
@@ -6247,7 +6254,7 @@ L_unittest_main() {
 		fi
 		# Output failures
 		if (( failed )); then
-			_L_unittest_main_print_line = "$failed FAILURES" "$L_RED$L_BOLD"
+			_L_unittest_main_print_line "=" "$failed FAILURES" "$L_RED$L_BOLD"
 			_L_unittest_main_output_printer " != 0"
 		fi
 	fi
@@ -6258,9 +6265,9 @@ L_unittest_main() {
 		local lines
 		L_string_count_lines -v lines "$_L_i"
 		local count=$(( _L_u_durations < 0 ? lines : _L_u_durations > lines ? lines : _L_u_durations ))
-		_L_unittest_main_print_line = "slowest $count durations" "$L_MAGENTA"
+		_L_unittest_main_print_line "=" "slowest $count durations" "$L_MAGENTA"
 		local func duration count=0
-		while IFS=' ' read duration func; do
+		while IFS=' ' read -r duration func; do
 			if (( _L_u_durations > 0 && count++ >= _L_u_durations )); then
 				break
 			fi
@@ -6271,7 +6278,7 @@ L_unittest_main() {
 	{
 		# Print short failed summary
 		if (( failed )); then
-			_L_unittest_main_print_line = "short summary" "$L_CYAN"
+			_L_unittest_main_print_line "=" "short summary" "$L_CYAN"
 			for i in "${!_L_u_tests[@]}"; do
 				if (( _L_u_rets[i] )); then
 					local line
@@ -6285,7 +6292,7 @@ L_unittest_main() {
 		# Print the ending footnote.
 		local duration=$(( _L_u_end - _L_u_start ))
 		L_usec_to_duration -v duration "$duration"
-		_L_unittest_main_print_line = "$failed failed, $passed passed, $skipped skipped, $deselected deselected in $duration" "$L_BOLD"
+		_L_unittest_main_print_line "=" "$failed failed, $passed passed, $skipped skipped, $deselected deselected in $duration" "$L_BOLD"
 	}
 	L_finally_pop -n -i "$_L_u_finally_idx"
 	if (( failed )); then
@@ -6521,7 +6528,7 @@ L_unittest_eq() {
 L_unittest_arreq() {
 	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
 	L_assert "" test "$#" -ge 1
-	local _L_arr=$1 _L_n=$1 _L_i=$1[@] IFS=' ' _L_tmp=$-
+	local _L_arr="$1" _L_n="$1" _L_i="$1[@]" IFS=' ' _L_tmp=$-
 	set +u
 	_L_arr=(${!_L_i+"${!_L_i}"})
 	if [[ "$_L_tmp" == *u* ]]; then set -u; fi
@@ -6573,7 +6580,7 @@ L_unittest_contains() {
 	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
 	local _L_u_a
 	printf -v _L_u_a "%q == *%q*" "$1" "$2"
-	if ! _L_unittest_internal "" "${3:-}" L_strstr "$1" "$2"; then
+	if ! _L_unittest_internal "$_L_u_a" "${3:-}" L_strstr "$1" "$2"; then
 		_L_unittest_showdiff "$1" "$2"
 		return 1
 	fi
