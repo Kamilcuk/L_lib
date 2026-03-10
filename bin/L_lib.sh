@@ -9797,7 +9797,8 @@ _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 	# Otherwise it will unset and fallback to the upper scope _L_tmp,
 	# which might happen to have a value.
 	for _L_pid in "${_L_pids[@]}"; do
-		if ((L_HAS_WAIT_P)); then
+		if (( L_HAS_BASH5_3 )); then
+			# Bash<5.3 does not correctly handle -n -p combination in wait, removing _all_ pids from the wait table.
 			local _L_tmp
 			# -p is unset when receiving a signal.
 			while wait -n -p _L_tmp "$_L_pid" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_tmp; do
@@ -9830,7 +9831,7 @@ _L_wait_collect_any_pids() {
 			_L_rets+=("$_L_ret")
 			_L_done+=("${_L_pids[_L_i]}")
 			unset -v "_L_pids[$_L_i]"
-			if ((!_L_all)); then
+			if (( !_L_all )); then
 				break
 			fi
 		fi
@@ -9882,19 +9883,24 @@ L_wait() {
 	# Return with 0 with no PIDs.
 	if (( !${_L_pids[*]:+1}+0 )); then return 0; fi
 	if [[ -z "$_L_timeout" ]]; then
-		if ((_L_all || $# == 1)); then
+		if (( _L_all || $# == 1 )); then
 			# Wait for all pids without a timeout.
 			_L_wait_collect_all_pids_and_assign_pids_done_rets || return "$?"
 		else
 			# Wait for the first pid without a timeout.
-			if ((L_HAS_WAIT_P)); then
+			if (( L_HAS_BASH5_3 )); then
+				# Bash<5.3 does not correctly handle -n -p combination in wait, removing _all_ pids from the wait table.
 				while wait -n -p _L_pid "${_L_pids[@]}" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_pid; do
 					_L_wait_handle_err "$_L_ret" -n -p _L_pid "${_L_pids[@]}" || return "$?"
 				done
 				_L_rets+=("$_L_ret")
 				_L_done+=("$_L_pid")
+			# elif (( L_HAS_WAIT_N )); then
+			# 	# Wait with -n for the first pid.
+			# 	wait -n "${_L_pids[@]}" 2>/dev/null || :
+			# 	_L_wait_collect_any_pids || return "$?"
 			else
-				# Wait for any pid to finish.
+				# Wait for any pid to finish with busy loop
 				while
 					_L_wait_collect_any_pids || return "$?"
 					(( ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 ))
