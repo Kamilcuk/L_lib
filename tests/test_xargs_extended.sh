@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-. "$(dirname "${BASH_SOURCE[0]}")/../scripts/xargs.sh"
-
 _L_test_L_xargs_callback_option() {
     # Test for the -c (callback) option
     callback_func() {
