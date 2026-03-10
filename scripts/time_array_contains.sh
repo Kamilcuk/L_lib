@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . "$(dirname "$0")"/../bin/L_lib.sh -s
 array=($(seq 10000))

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 . "$L_LIB_SCRIPT"
 L_log_configure -L

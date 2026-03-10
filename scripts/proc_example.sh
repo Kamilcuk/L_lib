@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 . $(dirname "$0")/../L_lib.sh
 L_finally wait
 L_finally L_kill_all_childs

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 tmp=$("$1" --L_argparse_complete_bash)
 eval "$tmp"

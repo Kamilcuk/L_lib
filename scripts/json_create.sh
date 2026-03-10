@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 . bin/L_lib.sh -s || exit 2
 
 if (($# == 0)); then

@@ -71,7 +71,7 @@ Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement`
 For example, a simple script using the library could look like:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 L_log "Starting script"
 L_info "This is an info message"
