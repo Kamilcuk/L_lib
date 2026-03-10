@@ -9,6 +9,7 @@ set -euo pipefail
   -- -t --tty flag=1 help="attach tty" \
   -- -j --jq flag=1 help="run in tester" \
   -- -s --sequential flag=1 help="run in sequence, not in parallel" \
+  -- --podman flag=1 eval=' docker() { podman "$@"; } ' help="use podman" \
   -- versions nargs="?" help="Bash version to test against, or all. Default: all" default="all" \
   -- args nargs=remainder help="Bash arguments" \
   ---- "$@"

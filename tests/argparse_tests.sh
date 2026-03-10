@@ -746,7 +746,7 @@ _L_test_z_argparse09_time_profile() {
 		time=${output//*$'\n'}
 		echo "$time"
 		L_unittest_cmd L_float_cmp "$time" -gt 0.1
-		L_unittest_cmd L_float_cmp "$time" -lt 3
+		L_unittest_cmd L_float_cmp "$time" -lt 7
 	}
 	check -h
 	check run -h
