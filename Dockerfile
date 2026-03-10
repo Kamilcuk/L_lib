@@ -1,16 +1,22 @@
 ARG VERSION=latest
+
 FROM docker.io/library/bash:${VERSION} AS app
+USER nobody:nogroup
 COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 
-FROM app AS test
+FROM docker.io/library/bash:${VERSION} AS tester
 RUN apk add --no-cache jq
+
+FROM tester AS test
+USER nobody:nogroup
+COPY bin/L_lib.sh /bin/L_lib.sh
+RUN /bin/L_lib.sh --help
 COPY tests/ /tests/
 COPY docs/ /docs/
 COPY mkdocs.yml mkdocs.yml
 ARG ARGS=""
-RUN tests/citest.sh ${ARGS}
-
+RUN /tests/citest.sh ${ARGS}
 
 FROM koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh /
@@ -28,9 +34,6 @@ COPY mkdocs.yml .
 RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 /app/site /
-
-FROM docker.io/library/bash:${VERSION} AS tester
-RUN apk add --no-cache jq
 
 FROM alpine:3.20 AS basher
 RUN apk add --no-cache bash curl git coreutils
