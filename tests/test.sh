@@ -431,6 +431,10 @@ _L_test_format() {
 }
 
 _L_test_json_escape() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	t() {
 		local tmp input="$1"
 		L_json_escape -v tmp "$1"
@@ -454,6 +458,10 @@ _L_test_json_escape() {
 }
 
 _L_test_json_create() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	{
 		L_log "test L_json_create"
 		L_unittest_cmd -o '{"a":"b"}' eval 'L_json_create { a : b } | jq -c'
@@ -1248,11 +1256,18 @@ _L_test_argskeywords() {
 	}
 }
 
+_L_test_log_json() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
+	L_unittest_cmd -c L_log_configure -r -J
+	L_unittest_cmd -c eval 'L_log "$L_ALLCHARS" | jq'
+}
+
 _L_test_log() {
 	{
 		L_unittest_cmd -c -r 'L_log_configure' eval 'L_log_configure -h 2>&1'
-		L_unittest_cmd -c L_log_configure -r -J
-		L_unittest_cmd -c eval 'L_log "$L_ALLCHARS" | jq'
 		L_unittest_cmd -c L_log_configure -r -L
 		L_unittest_cmd -c eval 'L_log "hello world" 2>&1 | grep "hello world"'
 
@@ -1296,6 +1311,10 @@ _L_test_log_from() {
 }
 
 _L_test_log_json() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	local line
 	line=$( L_log_configure -r -J ; L_info "Hello world" 2>&1 )
 	L_unittest_cmd -I jq . <<<"$line"
@@ -1914,7 +1933,9 @@ _L_test_path() {
 	}
 }
 
+
 . "$dir"/test_L_cache.sh
+
 
 # shellcheck disable=SC2178
 _L_test_var_to_string() {
@@ -2023,8 +2044,14 @@ _L_test_PATH() {
 }
 
 _L_test_L_proc() {
-	local proc exitcode line
-	local beforefiles=(/tmp/L_*)
+	{
+		# Choose a temporary TMPDIR so that L_proc_popen creates temporary fifo there so we can check all are removed.
+		local tmpdir
+		L_with_tmpdir_to tmpdir
+		local -x TMPDIR="$tmpdir"
+		local proc exitcode line
+		local beforefiles=(${TMPDIR:-/tmp}/L_*)
+	}
 	{
 		L_log ''
 		L_proc_popen -Ipipe -Opipe proc cat
@@ -2110,8 +2137,8 @@ _L_test_L_proc() {
 		L_unittest_vareq exitcode 101
 	}
 	{
-		L_log "check there are nano left temporary files (unstable check)"
-		local leftovers=(/tmp/L_*)
+		L_log "check there are nano left temporary files"
+		local leftovers=(${TMPDIR:-/tmp}/L_*)
 		L_unittest_eq "${#leftovers[*]}" "${#beforefiles[*]}" "leftover=${leftovers[*]} beforefiles=${beforefiles[*]}"
 	}
 }
@@ -3121,6 +3148,7 @@ _L_test_all_childs() {
 			L_finally eval 'mypstree; L_kill_all_childs 2>&1; mypstree'
 			( ( ( bg & bg ) & bg ) & bg ) &
 			( bg & bg ) &
+			sleep 1  # give time for background tasks to start
 			L_get_all_childs
 		)
 		tmpfpids=$(< "$tmpf")
@@ -3309,7 +3337,7 @@ _L_test_sections_ok() {
 }
 
 _L_test_unittest_skip() {
-	L_unittest_skip "reason to skip"
+	L_unittest_skip "tests skipping"
 	false
 }
 
