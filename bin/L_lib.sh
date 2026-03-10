@@ -510,13 +510,13 @@ L_HAS_ARRAY=$L_HAS_BASH1_14_7
 L_panic() {
 	set +x
 	L_print_traceback 1 >&2
-	if [[ "$1" =~ ^-([0-9]+)$ ]]; then
+	if [[ "${1:-}" == -[0-9]* && ! "${1#-}" == *[^0-9]* ]]; then
 		local e="${1#-}"
 		shift
 	else
 		local e=29
 	fi
-	if [[ "$1" == -- ]]; then
+	if [[ "${1:-}" == -- ]]; then
 		shift
 	fi
 	# Colors were set in L_print_traceback above.
@@ -563,13 +563,13 @@ L_assert() {
 # @see L_check
 # @see L_assert
 L_die() {
-	if [[ "$1" =~ ^-([0-9]+)$ ]]; then
+	if [[ "${1:-}" == -[0-9]* && ! "${1#-}" == *[^0-9]* ]]; then
 		local e="${1#-}"
 		shift
 	else
 		local e=28
 	fi
-	if [[ "$1" == -- ]]; then
+	if [[ "${1:-}" == -- ]]; then
 		shift
 	fi
 	printf "%s\n" "$*" >&2
