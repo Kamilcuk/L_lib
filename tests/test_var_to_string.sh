@@ -95,7 +95,8 @@ newlines' $'	fourth	')
 	local tmp
 	local -a a2
 
-	L_var_to_string -v tmp a
+	L_setx L_var_to_string -v tmp a
+	printf "%q\n" "$tmp"
 	eval "a2=$tmp"
 	L_unittest_arreq a2 "${a[@]}"
 }

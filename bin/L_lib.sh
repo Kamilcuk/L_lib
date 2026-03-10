@@ -2094,7 +2094,7 @@ if ((L_HAS_QEPAa_EXPANSIONS)); then
 		if [[ ${!1@a} == *[aA]* ]]; then
 			# Indirect expansion with @A does not work in Bash5.0
 			# We know $1 is a sane valid variable name, becuase above worked.
-			eval "L_v=\${$1[@]@A}"
+			eval "L_v=\"\${$1[@]@A}\""
 			# @A does not print =() empty arrays assignment. Fix that.
 			if [[ "$L_v" != *" $1=("* ]]; then
 				L_v="()"
@@ -2137,7 +2137,7 @@ L_var_to_string_v() {
 	# If it is an array or associative array.
 	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
   	# Remove one level of quoting.
-  	eval "L_v=${L_v#*=}"
+  	eval "L_v=\"${L_v#*=}\""
 		# Fix erroneus \001 in front of every \177 and \001.
   	L_v=${L_v//$'\001\001'/$'\001'}
   	L_v=${L_v//$'\001\177'/$'\177'}
@@ -8053,7 +8053,7 @@ _L_argparse_optspec_dest_arr_clear() {
 # @env _L_optspec
 # @set ${_L_opt_dest[_L_opti]}
 _L_argparse_optspec_dest_store() {
-	eval "${_L_opt_dest[_L_opti]}=\$1" || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
+	eval "${_L_opt_dest[_L_opti]}=\"\$1\"" || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
 }
 
 # @description append $@ to the variable
@@ -8064,7 +8064,7 @@ _L_argparse_optspec_dest_arr_append() {
 	if [[ "${_L_opt_dest[_L_opti]}" == *"["*"]" ]]; then
 		local _L_tmp
 		printf -v _L_tmp "%q " "$@"
-		eval "${_L_opt_dest[_L_opti]}+=\$_L_tmp"
+		eval "${_L_opt_dest[_L_opti]}+=\"\$_L_tmp\""
 	else
 		eval "${_L_opt_dest[_L_opti]}+=(\"\$@\")"
 	fi || L_argparse_fatal "internal error: Could not set variable ${_L_opt_dest[_L_opti]}"
@@ -10330,7 +10330,7 @@ L_printf_v() {
 				local _L_printf_v
 				# shellcheck disable=SC2059
 				printf -v _L_printf_v "${@:2}"
-				eval "$1=\$_L_printf_v"
+				eval "$1=\"\$_L_printf_v\""
 			else
 				printf -v "$@"
 			fi

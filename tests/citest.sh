@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
-set -xeuo pipefail
-"$(dirname "$(readlink -f "$0")")"/test.sh -Pn -v "$@"
+set -euo pipefail
+cd "$(dirname "$(readlink -f "$0")")"/..
+set -x
+./tests/test.sh -d 10 -Pn -v "$@"
