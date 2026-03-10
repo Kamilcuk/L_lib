@@ -2227,16 +2227,50 @@ L_uuid4_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and exit.
 # @arg $1 Format string.
-# @arg [$2] Optional timepoint.
+# @arg [$2] Optional timepoint in seconds with optional digit or any date understood format.
 L_date() { L_handle_v_scalar "$@"; }
 L_date_v() {
 	# Support python %f.
-	L_v=${1//%f/%6N}
-	if (( !L_HAS_PRINTF_T )) || [[ "$L_v" =~ (^|[^%])%[0-9]*N || "${2:-1}" == *[^0-9]* ]]; then
-		# If printf %T is not suported or the format string contains %N or the timestamp is not in seconds.
-		L_v=$(date ${2:+-d"$2"} +"$L_v")
+	L_v="${1//%f/%6N}"
+	if [[
+		# If we have print %T
+		"$L_HAS_PRINTF_T" == 1 && (
+			# Or when the timepoint is now
+			"${2:--1}" == -1 && (
+				# And we have EPOCHREALTIME, which we can use to fill %N
+				"$L_HAS_EPOCHREALTIME" == 1 ||
+				# Or the format string has no %N, so there is no need to fill %N.
+				( ! "$L_v" =~ %([0-9]*)N )
+			) ||
+			# Or the timepoint is the number of seconds optionally with a decimal point.
+			# Or the timepoint is number of seconds with initial @ - ^@[0-9]*.?[0-9]*
+			# In which case we can use the number after the digit to fill %N.
+			( "$#" == 1 || ! ( "${2#@}" == *[^0-9.]* || "${2#@}" == *.*.* ) )
+		)
+	]]; then
+			# Default the timestamp to EPOCHREALTIME.
+			local _L_d_ts="${2:-${EPOCHREALTIME:--1}}" _L_d_tmp
+			_L_d_ts="${_L_d_ts#@}"
+			if [[ "$L_v" =~ (^|.*[^%])%([0-9]*)N(.*) ]]; then
+				# If we have any %N in the format string, we can replace them ourselves.
+				if [[ "$_L_d_ts" == *.* ]]; then
+					# If the timestamp has seconds, use them.
+					printf -v _L_d_tmp "%s%0*d" "${_L_d_ts#*.}" "${BASH_REMATCH[2]:-9}" 0
+				else
+					# Otherwise fill with just zeros.
+					printf -v _L_d_tmp "%0*d" "${BASH_REMATCH[2]:-9}" 0
+				fi
+				L_v=${BASH_REMATCH[1]}${_L_d_tmp::${BASH_REMATCH[2]:-9}}${BASH_REMATCH[3]}
+			fi
+			printf -v L_v "%($L_v)T" "${_L_d_ts%.*}"
 	else
-		printf -v L_v "%($L_v)T" "${2:--1}"
+		# Otherwise,
+		# - when printf %T is not supported,
+		# - the timestamp is not a simple seconds since epoch with optional leading @
+		# - the timestamp is now, but we do not have EPOCHREALTIME
+		# - the timestamp is now, but there is %N in the format string
+		# use date command.
+		L_v=$(date ${2:+"-d$2"} +"$L_v")
 	fi
 }
 
