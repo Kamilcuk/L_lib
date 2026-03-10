@@ -5651,7 +5651,7 @@ L_finally_pop() {
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_func_assert "too many arguments" test "$#" -eq 0 || return 2
+	if (( $# != 0 )); then L_func_error "too many arguments"; return 2; fi
 	# Protect against invalid pid.
 	L_bashpid_to _L_pid
 	if [[ "$_L_finally_pid" != "$_L_pid" ]]; then
