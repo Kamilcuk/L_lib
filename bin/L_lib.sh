@@ -6986,9 +6986,10 @@ fi
 # @env _L_parser
 # @exitcode 1
 L_argparse_fatal() {
-	if ((${_L_comp_enabled:-0})); then
-		return
+	if (( ${_L_comp_enabled:-0} )); then
+		return 0
 	fi
+	_L_argparse_fatal_occurred=1
 	L_argparse_print_usage -e "$@" >&2
 	if L_is_true "${_L_parser_exit_on_error[1]:-1}"; then
 		exit 1
@@ -7668,58 +7669,75 @@ _L_argparse_sub_function_get_helps() {
 	done
 }
 
-# @description Validate arguments inside validator for argparse.
-# In case of validation error, prints the error message.
-# @arg $1 <str> error message
-# @arg $2 <str> value to validate
-# @arg $@ <str> command to execute for validation
-# @exitcode 1 if validation fails
-# @see _L_argparse_validator_int
-L_argparse_validator() { if ! "${@:3}"; then L_argparse_fatal "%s: %q" "$1" "$2" || return 1; fi; }
-_L_argparse_validator_int() { L_argparse_validator "is not an integer" "$1" L_is_integer "$1"; }
-_L_argparse_validator_float() { L_argparse_validator "is not a float" "$1" L_is_float "$1"; }
+_L_argparse_validator_int() {
+	if ! L_is_integer "$1"; then
+		L_argparse_fatal "is not an integer: %q" "$1"
+	fi
+}
+_L_argparse_validator_float() {
+	if ! L_is_float "$1"; then
+		L_argparse_fatal "is not a float: %q" "$1"
+	fi
+}
 _L_argparse_validator_positive() {
-	_L_argparse_validator_int "$1" && L_argparse_validator "is lower than 0" "$1" test "$1" -gt 0
+	_L_argparse_validator_int "$1" || return 1
+	if ! (( $1 > 0 )); then
+		L_argparse_fatal "is lower than 0" "$1"
+	fi
 }
 _L_argparse_validator_nonnegative() {
-	_L_argparse_validator_int "$1" && L_argparse_validator "is lower than 0" "$1" test "$1" -ge 0
+	_L_argparse_validator_int "$1" || return 1
+	if ! (( $1 >= 0 )); then
+		L_argparse_fatal "is lower than 0: %q" "$1"
+	fi
 }
 _L_argparse_validator_file() {
-	L_argparse_validator "file does not exists" "$1" test -e "$1" &&
-		L_argparse_validator "expected a file, but received a directory" "$1" L_not test -d "$1"
+	if [[ ! -e "$1" ]]; then
+		L_argparse_fatal "file does not exists: %q" "$1"
+	elif [[ -d "$1" ]]; then
+		L_argparse_fatal "expected a file, but received a directory: %q" "$1"
+	fi
 }
 _L_argparse_validator_file_r() {
-	_L_argparse_validator_file "$1" &&
-		L_argparse_validator "file not readable" "$1" test -r "$1"
+	_L_argparse_validator_file "$1" || return 1
+	if [[ ! -r "$1" ]]; then
+		L_argparse_fatal "file not readable: %q" "$1"
+	fi
 }
 _L_argparse_validator_file_w() {
-	_L_argparse_validator_file "$1" &&
-		L_argparse_validator "file not writable" "$1" test -w "$1"
+	_L_argparse_validator_file "$1" || return 1
+	if [[ ! -w "$1" ]]; then
+		L_argparse_fatal "file not writable: %q" "$1"
+	fi
 }
 _L_argparse_validator_dir() {
-	if test -e "$1"; then
-		L_argparse_validator "not a directory" "$1" test -d "$1"
-	else
-		L_argparse_validator "directory does not exists" "$1" test -d "$1"
+	if [[ ! -e "$1" ]]; then
+		L_argparse_fatal "directory does not exists: %q" "$1"
+	elif [[ ! -d "$1" ]]; then
+		L_argparse_fatal "not a directory: %q" "$1"
 	fi
 }
 _L_argparse_validator_dir_r() {
-	_L_argparse_validator_dir "$1" &&
-		L_argparse_validator "directory not readable" "$1" test -x "$1" -a -r "$1"
+	_L_argparse_validator_dir "$1" || return 1
+	if [[ ! ( -x "$1" && -r "$1" ) ]]; then
+		L_argparse_fatal "directory not readable: %q" "$1"
+	fi
 }
 _L_argparse_validator_dir_w() {
-	_L_argparse_validator_dir "$1" &&
-		L_argparse_validator "directory not writable" "$1" test -x "$1" -a -w "$1"
+	_L_argparse_validator_dir "$1" || return 1
+	if [[ ! ( -x "$1" && -w "$1" ) ]]; then
+		L_argparse_fatal "directory not writable: %q" "$1"
+	fi
 }
 _L_argparse_validator_user() {
-	local IFS=$'\n'
-	# shellcheck disable=SC2046
-	L_argparse_validator "not a valid user" "$1" L_array_contains groups "$1" $(compgen -A user)
+	if [[ $'\n'"$(compgen -A user)"$'\n' != *$'\n'"$1"$'\n'* ]]; then
+		L_argparse_fatal "not a valid user: %q" "$1"
+	fi
 }
 _L_argparse_validator_group() {
-	local IFS=$'\n'
-	# shellcheck disable=SC2046
-	L_argparse_validator "not a valid group" "$1" L_array_contains groups "$1" $(compgen -A group)
+	if [[ $'\n'"$(compgen -A group)"$'\n' != *$'\n'"$1"$'\n'* ]]; then
+		L_argparse_fatal "not a valid group: %q" "$1"
+	fi
 }
 
 _L_argparse_spec_call_parameter_common_option_assign() {
@@ -7998,7 +8016,11 @@ _L_argparse_optspec_validate_values() {
 	local _L_validate=${_L_opt_validate[_L_opti]:-}
 	if [[ -n "$_L_validate" ]]; then
 		while (($#)); do
+			_L_argparse_fatal_occurred=0
 			if ! eval "$_L_validate"; then
+				if ((_L_argparse_fatal_occurred)); then
+					return 1
+				fi
 				local _L_type=${_L_opt_type[_L_opti]:-} _L_desc
 				_L_argparse_optspec_get_description _L_desc
 				if [[ -n "$_L_type" ]]; then
@@ -8075,7 +8097,7 @@ _L_argparse_optspec_execute_action() {
 	append_const) _L_argparse_optspec_dest_arr_append "${_L_opt_const[_L_opti]}" ;;
 	count) printf -v "${_L_opt_dest[_L_opti]}" "%s" "$(( ${!_L_opt_dest[_L_opti]:-0} + 1 ))" ;;
 	help) if ((!_L_comp_enabled)); then L_argparse_print_help; exit 0; fi ;;
-	eval) if ((!_L_comp_enabled)); then eval "${_L_opt_eval[_L_opti]}"; fi ;;
+	eval) if ((!_L_comp_enabled)); then eval "${_L_opt_eval[_L_opti]}"; return 0; fi ;;
 	*) _L_argparse_spec_fatal "internal error: invalid action=${_L_opt_action[_L_opti]}. This value should have been sanitized when parsing options and not now. This is an internal error in the library of how it validates the input. Either way, action=${_L_opt_action[_L_opti]} is an invalid action in the L_argparse specification." ;;
 	esac
 }
@@ -8758,7 +8780,7 @@ _L_argparse_parse_args() {
 		local _L_opti=-1  # Last evaluated positional argument.
 		while (( (_L_init_argsi = _L_argsi) < ${#_L_args[@]} )); do
 			# Parse options arguments, if enabled.
-			${_L_options_enabled:+_L_argparse_parse_args_parse_options}
+			${_L_options_enabled:+_L_argparse_parse_args_parse_options} || return "$?"
 			if (( _L_init_argsi == _L_argsi )); then
 				# If no arguments were parsed, parse positional arguments.
 				# Parse fromfile_prefix_chars.
@@ -8923,6 +8945,7 @@ _L_argparse_spec_parse_args() {
 			--|----|'}') break ;;
 			dest_dict=?*) _L_parser_dest_dict[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			dest_prefix=?*) _L_parser_dest_prefix[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			exit_on_error=?*) _L_parser_exit_on_error[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			add_help=?*) _L_parser_add_help[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			aliases=*) _L_parser_aliases[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			allow_abbrev=?*) _L_parser_allow_abbrev[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
@@ -9113,9 +9136,11 @@ L_argparse() {
 			_L_parsercur=1 \
 			_L_parseri=0 \
 			_L_parsercnt=0 \
+			_L_argparse_fatal_occurred=0 \
 			_L_parser_prog=() \
 			_L_parser_dest_dict \
 			_L_parser_dest_prefix \
+			_L_parser_exit_on_error \
 			_L_parser_add_help \
 			_L_parser_aliases \
 			_L_parser_allow_abbrev \
