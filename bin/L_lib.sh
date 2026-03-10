@@ -6446,7 +6446,7 @@ L_unittest_cmd() {
 		fi
 		L_trap_pop EXIT
 	else  # _L_uopt_curenv
-		# _L_uc="set +e;$_L_uc"
+		_L_uc="set +e;trap - ERR;$_L_uc"
 		if ((_L_uopt_capture)); then
 			_L_uout=$( eval "$_L_uc" ) || _L_uret=$?
 		else
