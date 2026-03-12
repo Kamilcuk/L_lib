@@ -6846,40 +6846,26 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 # and shorter that associative array.
 # @note unstable
 
-# @description Copy associative dictionary.
-# Notice: the destination array is _not_ cleared.
-# Slowish, O(N). Iterates of keys one by one.
-# Use L_asa_assign
-# @see L_asa_assign
+# @description Copy associative dictionary
+# Notice: the destination array is cleared.
+# Much faster then L_asa_copy.
+# Note: Arguments are in different order.
 # @arg $1 var Source associative array
 # @arg $2 var Destination associative array
-# @arg [$3] str Filter only keys with this regex
+# @example
+#   local -A map=([a]=b [c]=d)
+#   local -A mapcopy=()
+#   L_asa_copy map mapcopy
 L_asa_copy() {
-	L_assert "" test "$#" = 2 -o "$#" = 3
-	L_assert "" L_var_is_associative "$1"
-	L_assert "" L_var_is_associative "$2"
-	local _L_key
-	eval "_L_key=(\"\${!$1[@]}\")"
-	for _L_key in "${_L_key[@]}"; do
-		if (($# == 2)) || [[ "$_L_key" =~ $3 ]]; then
-			eval "$2[\"\$_L_key\"]=\${$1[\"\$_L_key\"]}"
-		fi
-	done
+	local L_v
+	L_var_to_string_v "$1" || return 2
+	eval "$2=$L_v"
 }
 
 # @description check if associative array has key
 # @arg $1 associative array nameref
 # @arg $2 key
-L_asa_has() {
-	L_var_is_set "$1[$2]"
-}
-
-# @description check if associative array is empty
-# @arg $1 associative array nameref
-L_asa_is_empty() {
-	L_assert "" L_var_is_associative "$1"
-	eval "(( \${#$1[@]} == 0 ))"
-}
+L_asa_has() { L_var_is_set "$1[$2]"; }
 
 # @description Get value from associative array
 # @option -v <var> Store the output in variable instead of printing it.
@@ -6903,29 +6889,13 @@ L_asa_get_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_len() { L_handle_v_scalar "$@"; }
-L_asa_len_v() {
-	L_assert "" L_is_valid_variable_name "$1"
-	eval "L_v=\"\${#$1[@]}\""
-}
+L_asa_len_v() { L_array_len_v "$@"; }
 
 # @description get keys of an associative array
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_keys() { L_handle_v_array "$@"; }
-L_asa_keys_v() {
-	L_assert "" test "$#" = 1
-	L_assert "" L_is_valid_variable_name "$1"
-	eval "L_v=(\"\${!$1[@]}\")"
-}
-
-# @description get keys of an associative array in a sorted
-# @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 associative array nameref
-L_asa_keys_sorted() { L_handle_v_array "$@"; }
-L_asa_keys_sorted_v() {
-	L_asa_keys_v "$1"
-	L_sort L_v
-}
+L_asa_keys_v() { L_array_keys_v "$@"; }
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # @description assign value to associative array
@@ -6948,25 +6918,6 @@ else
 	}
 fi
 
-# @description Copy associative dictionary
-# Notice: the destination array is cleared.
-# Much faster then L_asa_copy.
-# Note: Arguments are in different order.
-# @arg $1 var Destination associative array
-# @arg $2 =
-# @arg $3 var Source associative array
-# @see L_asa_copy
-# @see L_asa_dump
-# @example
-#   local -A map=([a]=b [c]=d)
-#   local -A mapcopy=()
-#   L_asa_assign mapcopy = map
-L_asa_assign() {
-	local L_v
-	L_var_to_string_v "$3" || return 2
-	eval "$1=$L_v"
-}
-
 # @description check if one associative array is equal to another
 # @arg $1 associative array name
 # @arg $2 associative array name
@@ -6978,10 +6929,21 @@ L_asa_assign() {
 #        echo "equal"
 #    fi
 L_asa_cmp() {
-	local _L_asa L_v
-	L_var_to_string -v _L_asa "$1" || return 2
-	L_var_to_string_v "$2" || return 2
-	[[ "$_L_asa" == "$L_v" ]]
+	if (( L_BASH_VERSION / 0x10000 == 5 )); then
+		# Fun fact: key order is not constant in Bash5.0 in associative array.
+		local -n _L_asa_a=$1 _L_asa_b=$2
+		local _L_asa_k
+		for _L_asa_k in "${!_L_asa_a[@]}" "${!_L_asa_b[@]}"; do
+			# If the value is set, it is concatenated with 'A'. So even if empty, it will compare "A".
+			# If null will expand to nothing while the other side will be at least 'A', effectively making the expression false.
+			[[ "${_L_asa_a[$_L_asa_k]+${_L_asa_a[$_L_asa_k]}A}" == "${_L_asa_b[$_L_asa_k]+${_L_asa_b[$_L_asa_k]}A}" ]] || return 1
+		done
+	else
+		local _L_asa L_v
+		L_var_to_string -v _L_asa "$1" || return 2
+		L_var_to_string_v "$2" || return 2
+		[[ "$_L_asa" == "$L_v" ]]
+	fi
 }
 
 # ]]]
