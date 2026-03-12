@@ -416,7 +416,7 @@ _L_test_finally_subshells() {
 		local i
 		for i in $(L_trap_names); do
 			case "$i" in
-			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
+			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT|SIGINT) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
 			esac
@@ -443,7 +443,7 @@ _L_test_finally_proc() {
 		for i in $(L_trap_names); do
 			case "$i" in
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGSTKFLT) ;;
+			SIGSTKFLT|SIGINT) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
 			esac
