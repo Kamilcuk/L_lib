@@ -5947,7 +5947,6 @@ _L_unittest_main_handle_k() {
 	ex=${ex//\)/ \) }
 	ex=${ex//&&/ \&\& }
 	ex=${ex//||/ \|\| }
-	L_log "Filtering tests with [$ex]"
 	IFS=' ' read -ra elems <<<"$ex"
 	if (( ${#elems[*]} == 1 )); then
 		# One element - no need to be fancy.
@@ -5994,11 +5993,13 @@ _L_unittest_main_runner_finally_catter() {
 
 _L_unittest_main_runner() {
 	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr _L_u_storage=""
-	printf -v _L_u_hdr "%s%s " "${L_BOLD}" "${_L_u_testnames[L_XARGS_INDEX]}"
-  if (( _L_u_stream )); then
-  	printf "%s%s\n" "$_L_u_hdr" "${L_RESET}${L_CYAN}starting${L_RESET}" >&2
-  elif (( _L_u_nproc == 1 )); then
-		printf "%s" "$_L_u_hdr" >&2
+	if (( !_L_u_quiet )); then
+		printf -v _L_u_hdr "%s%s " "${L_BOLD}" "${_L_u_testnames[L_XARGS_INDEX]}"
+  	if (( _L_u_stream )); then
+  		printf "%s%s\n" "$_L_u_hdr" "${L_RESET}${L_CYAN}starting${L_RESET}" >&2
+  	elif (( _L_u_nproc == 1 )); then
+			printf "%s" "$_L_u_hdr" >&2
+  	fi
   fi
   L_epochrealtime_usec -v _L_u_start
   {
@@ -6059,33 +6060,49 @@ _L_unittest_main_runner() {
 	if (( _L_u_durations )); then
 		echo "$duration ${_L_u_testnames[L_XARGS_INDEX]//[$' \t\n']}" >>"$_L_u_tmpd/durations.txt"
 	fi
-	local duration_str=""
-	L_usec_to_duration -v duration_str "$duration"
-	# Percent of tests.
+	# Store exit code.
 	echo "$_L_u_ret" > "$_L_u_tmpd/$1.ret"
-	local finished=("$_L_u_tmpd"/*.ret)
-	local percent="$(( ${#finished[*]} * 100 / ${#_L_u_tests[*]} ))"
-  # Calculate the status of the test.
-  case "$_L_u_ret" in
-  	0)
-  		if [[ -r "$_L_u_tmpd/$1.skip" ]]; then
-  			local reason
-  			reason=$(head -c 20 "$_L_u_tmpd/$1.skip" || :)
-  			local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ ($reason)}"
-  		else
-  			local statuscolor="$L_GREEN" status="PASS"
-  		fi
-  		;;
-  	*) local statuscolor="$L_BOLD$L_RED" status="ERROR $_L_u_ret" ;;
-  esac
-  # Output the status.
-  local left="$statuscolor$status$L_RESET ($duration_str)" \
-  	offset="$(( COLUMNS - ( ${#_L_u_testnames[L_XARGS_INDEX]} + ${#status} + 2 + ${#duration_str} + 4 ) ))"
-  printf -v percent "[%3d%%]" "$percent"
-  if (( _L_u_stream || _L_u_nproc != 1 )); then
-  	left=$_L_u_hdr$left
+	if (( _L_u_quiet )); then
+		# One quiet, just print one letter.
+  	case "$_L_u_ret" in
+  		0)
+  			if [[ -r "$_L_u_tmpd/$1.skip" ]]; then
+  				local statuscolor="$L_MAGENTA" status="S"
+  			else
+  				local statuscolor="$L_GREEN" status="."
+  			fi
+  			;;
+  		*) local statuscolor="$L_BOLD$L_RED" status="E"
+  	esac
+  	printf "%s" "$statuscolor$status$L_RESET" >&2
+	else
+		local duration_str=""
+		L_usec_to_duration -v duration_str "$duration"
+		# Percent of tests.
+		local finished=("$_L_u_tmpd"/*.ret)
+		local percent="$(( ${#finished[*]} * 100 / ${#_L_u_tests[*]} ))"
+  	# Calculate the status of the test.
+  	case "$_L_u_ret" in
+  		0)
+  			if [[ -r "$_L_u_tmpd/$1.skip" ]]; then
+  				local reason
+  				reason=$(head -c 20 "$_L_u_tmpd/$1.skip" || :)
+  				local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ ($reason)}"
+  			else
+  				local statuscolor="$L_GREEN" status="PASS"
+  			fi
+  			;;
+  		*) local statuscolor="$L_BOLD$L_RED" status="ERROR $_L_u_ret" ;;
+  	esac
+  	# Output the status.
+  	local left="$statuscolor$status$L_RESET ($duration_str)" \
+  		offset="$(( COLUMNS - ( ${#_L_u_testnames[L_XARGS_INDEX]} + ${#status} + 2 + ${#duration_str} + 4 ) ))"
+  	printf -v percent "[%3d%%]" "$percent"
+  	if (( _L_u_stream || _L_u_nproc != 1 )); then
+  		left=$_L_u_hdr$left
+  	fi
+  	printf "%s %*s\n" "$left" "$(( offset > 0 ? offset : 0 ))" "$percent" >&2
   fi
-  printf "%s %*s\n" "$left" "$(( offset > 0 ? offset : 0 ))" "$percent" >&2
   # If requested, exit on first failure.
 	if (( _L_u_exitfirst && _L_u_ret )); then
 		return 255
@@ -6139,16 +6156,16 @@ _L_unittest_main_output_printer() {
 L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
-		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt _L_u_testnamemaxlen \
-		_L_u_verbose=0 _L_u_rc=0 _L_u_finally_idx=""
+		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt \
+		_L_u_verbose=0 _L_u_finally_idx="" _L_u_msg=""
 	while getopts p:k:EP:lqd:xsScvh _L_i; do
 		case $_L_i in
 			p)
-				L_log "Getting functions with prefix %q" "${OPTARG}"
+				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
 				L_compgen -V _L_u_tests -A function -- "$OPTARG"
 				_L_u_testscnt=${_L_u_tests[*]:+${#_L_u_tests[*]}}
 				;;
-			k) _L_unittest_main_handle_k "$OPTARG" ;;
+			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
 			E) L_unittest_exit_on_error=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_u_nproc=$L_v; else _L_u_nproc=$OPTARG; fi ;;
 			l) _L_u_list=1 ;;
@@ -6165,10 +6182,41 @@ L_unittest_main() {
 	done
 	shift "$((OPTIND-1))"
 	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }" && _L_u_tests+=( ${_L_i[@]:+"${_L_i[@]}"} )
-	L_assert 'no tests matched' test "${#_L_u_tests[@]}" '!=' 0
 	# If there is only one test, no reason to run in parallel.
 	if (( ${#_L_u_tests[*]} == 1 && _L_u_nproc > 1 )); then
 		_L_u_nproc=1
+	fi
+	# Print welcoming message.
+	_L_unittest_init_COLUMNS
+	if (( !_L_u_quiet )); then
+		_L_unittest_main_print_line "=" "test session start" >&2
+		_L_u_msg+="; $((${_L_u_tests[*]+${#_L_u_tests[*]}}+0)) tests"
+		if (( _L_u_stream )); then
+			_L_u_msg+="; no output caching"
+		fi
+		if (( !_L_u_subshell )); then
+			_L_u_msg+="; no subshell"
+		fi
+		if (( _L_u_nproc != 1 )); then
+			if (( _L_u_nproc == 0 )); then
+				_L_u_msg+="; all in parallel"
+			else
+				_L_u_msg+="; $_L_u_nproc count in parallel"
+			fi
+		fi
+		if (( _L_u_durations )); then
+			_L_u_msg+="; showing top $_L_u_durations durations"
+		fi
+		echo "${_L_u_msg#; }." >&2
+	fi
+	if (( _L_u_list )); then
+		# -l option only lists tests.
+		printf "%s\n" ${_L_u_tests[@]+"${_L_u_tests[@]}"}
+		return 0
+	fi
+	if (( ${_L_u_tests[*]+${#_L_u_tests[*]}}+0 == 0 )); then
+		L_fatal "No tests matched"
+		exit 1
 	fi
 	# Re-index tests array, we need it to associated rets with test name later.
 	_L_u_tests=("${_L_u_tests[@]}")
@@ -6181,35 +6229,6 @@ L_unittest_main() {
 	else
 		_L_u_testnames=("${_L_u_tests[@]}")
 	fi
-	# Get maximum length of test name
-	_L_unittest_main_longest_string_to _L_u_testnamemaxlen _L_u_testnames
-	# Print welcoming message.
-	_L_unittest_init_COLUMNS
-	_L_unittest_main_print_line "=" "test session start" >&2
-	_L_i="Running ${#_L_u_tests[*]} tests"
-	if (( _L_u_stream )); then
-		_L_i+="; no output caching"
-	fi
-	if (( !_L_u_subshell )); then
-		_L_i+="; no subshell"
-	fi
-	if (( _L_u_nproc != 1 )); then
-		if (( _L_u_nproc == 0 )); then
-			_L_i+="; all in parallel"
-		else
-			_L_i+="; $_L_u_nproc count in parallel"
-		fi
-	fi
-	if (( _L_u_durations )); then
-		_L_i+="; showing top $_L_u_durations durations"
-	fi
-	echo "$_L_i." >&2
-	#
-	if (( _L_u_list )); then
-		# -l option only lists tests.
-		printf "%s\n" "${_L_u_tests[@]}"
-		return 0
-	fi
 	# Create a temporary directory with our context.
 	L_with_tmpdir_to _L_u_tmpd
 	L_finally -v _L_u_finally_idx eval 'echo "Exiting because received $L_SIGNAL"'
@@ -6218,11 +6237,11 @@ L_unittest_main() {
 	L_epochrealtime_usec -v _L_u_start
 	L_xargs -X -q -O -v _L_u_rets -a _L_u_tests -P "$_L_u_nproc" _L_unittest_main_runner
 	L_epochrealtime_usec -v _L_u_end
-	# Handle L_xargs exit status.
-	case "$_L_u_rc" in
-		0|123|124|125) ;;
-		*) return "$_L_u_rc" ;;
-	esac
+	if (( _L_u_quiet )); then
+		# When quiet the _L_unittest_main_runner writes one character per test, without any newlines.
+		# Write a newline now.
+		printf "\n" >&2
+	fi
 	# local IFS=' '
 	# L_log "Done testing: ${_L_u_tests[*]}"
 	# Collect exit statuses.
@@ -6275,7 +6294,9 @@ L_unittest_main() {
 		L_string_count_lines -v lines "$_L_i"
 		local count=$(( _L_u_durations < 0 ? lines : _L_u_durations > lines ? lines : _L_u_durations ))
 		_L_unittest_main_print_line "=" "slowest $count durations" "$L_MAGENTA"
-		local func duration count=0
+		local func duration count=0 _L_u_testnamemaxlen
+		# Get maximum length of test name
+		_L_unittest_main_longest_string_to _L_u_testnamemaxlen _L_u_testnames
 		while IFS=' ' read -r duration func; do
 			if (( _L_u_durations > 0 && count++ >= _L_u_durations )); then
 				break
