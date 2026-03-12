@@ -1,5 +1,5 @@
 # shellcheck disable=SC2178
-_L_test_var_to_string() {
+_L_test_var_to_string_normal() {
 	local tmp i
 	#
 	local a=1 b=123
@@ -30,42 +30,59 @@ _L_test_var_to_string() {
 	L_var_to_string -v tmp arr
 	local -a brr="$tmp"
 	L_unittest_arreq arr ${brr[@]:+"${brr[@]}"}
-	#
-	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-		unset a b
-		local -A a=() b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		eval "b=$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "A${a[*]+${!a[*]}}" "A${b[*]+${!b[*]}}"
-		L_unittest_eq "A${a[*]+${a[*]}}" "A${b[*]+${b[*]}}"
-		L_unittest_eq "$((${a[@]+${#a[@]}}+0))" 0
-		#
-		local -A a=(["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS") b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		eval "b=$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "${!a[*]}" "${!b[*]}"
-		L_unittest_eq "${a[*]}" "${b[*]}"
-		L_unittest_eq "${#a[@]}" 1
-		L_unittest_eq "${#b[@]}" 1
-		L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
-		L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
-		#
-		local -A a=(["$L_ALLCHARS"]="$L_ALLCHARS") b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		local -A b="$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "${!a[*]}" "${!b[*]}"
-		L_unittest_eq "${a[*]}" "${b[*]}"
-		L_unittest_eq "${#a[@]}" 1
-		L_unittest_eq "${#b[@]}" 1
-		L_unittest_eq "${a["$L_ALLCHARS"]}" "$L_ALLCHARS"
-		L_unittest_eq "${b["$L_ALLCHARS"]}" "$L_ALLCHARS"
-	fi
 }
 
-_L_test_var_to_string_scalar() {
+_L_test_var_to_string_assoc() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "No associative array"
+		return
+	fi
+
+	unset a b
+	local -A a=() b=([1]=2 [3]=4)
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_cmd L_asa_cmp a b
+	L_unittest_eq "A${a[*]+${!a[*]}}" "A${b[*]+${!b[*]}}"
+	L_unittest_eq "A${a[*]+${a[*]}}" "A${b[*]+${b[*]}}"
+	L_unittest_eq "$((${a[@]+${#a[@]}}+0))" 0
+
+}
+
+_L_test_var_to_string_assoc_space() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "No associative array"
+		return
+	fi
+	if (( !L_HAS_BASH4_1 )); then
+		L_unittest_skip "requires Bash4.1"
+		return
+	fi
+
+	local -A a=(["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS") b=([1]=2 [3]=4)
+	L_var_to_string -v tmp a
+	eval "b=$tmp"
+	L_unittest_cmd L_asa_cmp a b
+	L_unittest_eq "${!a[*]}" "${!b[*]}"
+	L_unittest_eq "${a[*]}" "${b[*]}"
+	L_unittest_eq "${#a[@]}" 1
+	L_unittest_eq "${#b[@]}" 1
+	L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+	L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+	#
+	local -A a=(["$L_ALLCHARS"]="$L_ALLCHARS") b=([1]=2 [3]=4)
+	L_var_to_string -v tmp a
+	local -A b="$tmp"
+	L_unittest_cmd L_asa_cmp a b
+	L_unittest_eq "${!a[*]}" "${!b[*]}"
+	L_unittest_eq "${a[*]}" "${b[*]}"
+	L_unittest_eq "${#a[@]}" 1
+	L_unittest_eq "${#b[@]}" 1
+	L_unittest_eq "${a["$L_ALLCHARS"]}" "$L_ALLCHARS"
+	L_unittest_eq "${b["$L_ALLCHARS"]}" "$L_ALLCHARS"
+}
+
+_L_test_var_to_string_scalar_2() {
 	local a="  leading trailing  " b="inside  space" c=$'with
 newlines' d=$'	with	tabs	'
 	local tmp
@@ -88,7 +105,7 @@ newlines' d=$'	with	tabs	'
 	L_unittest_vareq d2 "$d"
 }
 
-_L_test_var_to_string_array() {
+_L_test_var_to_string_array_2() {
 	local -a a=("  first  " "second  element" $'third
 with
 newlines' $'	fourth	')
@@ -101,20 +118,26 @@ newlines' $'	fourth	')
 	L_unittest_arreq a2 "${a[@]}"
 }
 
-_L_test_var_to_string_assoc() {
-	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-		local -A a=(
-			["  key 1  "]="  value 1  "
-			[$'key
-2']=$'value
-2'
-			[$'	key	3']=$'	value	3'
-		)
-		local tmp
-		local -A a2
-
-		L_var_to_string -v tmp a
-		eval "a2=$tmp"
-		L_unittest_cmd L_asa_cmp a a2
+_L_test_var_to_string_assoc_2() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "no associative array"
+		return
 	fi
+	if (( !L_HAS_BASH4_1 )); then
+		L_unittest_skip "requires Bash4.1"
+		return
+	fi
+
+	local -A a1=(
+		["  key 1  "]="  value 1  "
+		[$'key\n2']=$'value\n2'
+		[$'\tkey\t3']=$'\tvalue\t3'
+	)
+	local tmp
+	local -A a2
+	L_var_to_string -v tmp a1
+	eval "a2=$tmp"
+	L_pretty_print -w100 a1
+	L_pretty_print -w100 a2
+	L_unittest_cmd L_asa_cmp a1 a2
 }
