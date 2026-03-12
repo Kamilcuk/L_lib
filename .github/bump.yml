@@ -20,3 +20,7 @@ files:
     line: 18
   - file-path: 'pyproject.toml'
     line: 2
+  - file-path: 'README.md'
+    line: 45
+  - file-path: 'README.md'
+    line: 83
