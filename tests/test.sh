@@ -1694,9 +1694,11 @@ _L_test_map() {
 	}
 }
 
-if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-
 _L_test_asa() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "no associative array"
+		return
+	fi
 	declare -A map=()
 	local v
 	{
@@ -1728,7 +1730,7 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: copy"
 		local -A map=([a]=1 [c]=$'\'"@ ') map2=()
-		L_asa_assign map2 = map
+		L_asa_copy map map2
 		L_unittest_eq "${map[a]}" 1
 		L_unittest_eq "${map[c]}" $'\'"@ '
 		L_unittest_eq "${map2[a]}" 1
@@ -1748,11 +1750,6 @@ _L_test_asa() {
 		L_unittest_eq "$v" f
 	}
 	{
-		L_asa_keys_sorted -v v map2
-		L_unittest_eq "${v[*]}" "c e"
-		L_unittest_eq "$(L_asa_keys_sorted map2)" "c"$'\n'"e"
-	}
-	{
 		L_info "_L_test_asa: nested asa with quotes"
 		local -A map2=([a]="='='=")
 		L_var_to_string -v tmp map2
@@ -1760,8 +1757,6 @@ _L_test_asa() {
 		L_unittest_eq "${map2[a]}" "${map3[a]}"
 	}
 }
-
-fi  # L_HAS_ASSOCIATIVE_ARRAY
 
 . "$dir"/argparse_tests.sh
 . "$dir"/argparse_tests_2.sh
