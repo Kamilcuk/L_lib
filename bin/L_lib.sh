@@ -5421,9 +5421,9 @@ L_trap() {
 # @description The value of $? as expanded by trap.
 # L_SIGRET=""
 
-_L_finally_debug() {
-	echo "${L_ANSI_BG_RED}pid=$BASHPID signal=$L_SIGNAL exec=[${1//[$'\t\n']/ }] BASH_COMMAND=[${_L_BASH_COMMAND:-}] #LINENO=${#BASH_LINENO[*]} $(L_var_to_string BASH_LINENO) $(L_var_to_string _L_finally_return) ${*:2} ${L_ANSI_RESET}"
-}
+# _L_finally_debug() {
+# 	echo "${L_ANSI_BG_RED}pid=$BASHPID signal=$L_SIGNAL exec=[${1//[$'\t\n']/ }] BASH_COMMAND=[${_L_BASH_COMMAND:-}] #LINENO=${#BASH_LINENO[*]} ${*:2} ${L_ANSI_RESET}" >&2
+# }
 
 # @description L_finally RETURN handler.
 # @arg $1 The value of $?.
