@@ -2079,7 +2079,7 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # @see L_cache
 L_var_to_string() { L_handle_v_scalar "$@"; }
 
-if ((L_HAS_QEPAa_EXPANSIONS)); then
+if (( L_HAS_QEPAa_EXPANSIONS )); then
 	# The set +u is needed when the variable is unset, but has attributes.
 	# For example `declare -r var` makes `var` readonly without assigning any value to it.
 	L_var_is_notarray() { local -; set +u; [[ -n "${!1+y}" && "${!1@a}" != *[aA]* ]]; }
@@ -2135,13 +2135,19 @@ L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-
 L_var_to_string_v() {
 	L_v=$(LC_ALL=C declare -p "$1") || return 2
 	# If it is an array or associative array.
-	if [[ "$L_v" == declare\ -[aA]* && "${L_v#*=}" == \'\(*\)\' ]]; then
+	if [[ "${L_v::10}" == declare\ -[aA] ]]; then
+		# Bash before4.4 which is used here prints declare output of arrays in quotes.
+		if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
+			# There is space, tab or newline in the keys of an associative array on Bash4.0.
+			L_panic "Not possible to serialize an associative array with keys containing space, tab or newline on Bash 4.0. Such keys are just improperly stored in the first place and this is a bug in Bash. Consider moving to a newer bash version"
+		fi
   	# Remove one level of quoting.
-  	eval "L_v=\"${L_v#*=}\""
+  	eval "L_v=${L_v#*=}"
 		# Fix erroneus \001 in front of every \177 and \001.
   	L_v=${L_v//$'\001\001'/$'\001'}
   	L_v=${L_v//$'\001\177'/$'\177'}
   else
+  	# Non array variable.
 		printf -v L_v "%q" "${!1}"
   fi
 }
