@@ -5177,25 +5177,26 @@ L_trap_err_small() {
 
 # description Callback to be exectued on ERR trap that prints a traceback and exits.
 # @arg $1 int exit code
+# @arg $2 BASH_COMMAND
 # @example
 #    trap 'L_trap_err $?' ERR
 #    trap 'L_trap_err $?' EXIT
 L_trap_err() {
-	if ((L_HAS_LOCAL_DASH)); then local -; fi
+	if (( L_HAS_LOCAL_DASH )); then local -; fi
 	set +x
 	# Workaround for read EOF combo tripping traps
-	if ((!$1)); then
+	if (( !$1 )); then
 		return "$1"
 	fi
 	{
 		echo
 		L_print_traceback 1
-		L_critical "Command returned with non-zero exit status: $1"
-	} >&2 || :
-	L_trap_get_v EXIT
-	case "$L_v" in 'L_trap_err $?'|'L_trap_err "$?"')
+		L_critical "Command ${2:+[%q]} returned with non-zero exit status: %s" ${2:+"$2"} "$1"
+	} >&2
+	# Do not trigger itself again on EXIT, if registered also on EXIT.
+	if [[ "$(trap -p EXIT)" == "trap -- 'L_trap_err "*'$?'*"' EXIT" ]]; then
 		trap - EXIT
-	esac
+	fi
 	exit "$1"
 }
 
@@ -5205,7 +5206,7 @@ L_trap_err() {
 #  L_trap_err_enable
 L_trap_err_enable() {
 	set -eEo functrace
-	trap 'L_trap_err "$?"' ERR
+	trap 'L_trap_err "$?" "$BASH_COMMAND"' ERR
 }
 
 # @description Disable ERR trap
