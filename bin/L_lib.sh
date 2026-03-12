@@ -10676,17 +10676,27 @@ _L_xargs_handle_return() {
 _L_xargs_buf_read() {
 	# Read from file descriptors if created pipes.
 	if (( ${_L_x_buf_fds_set[*]+${#_L_x_buf_fds_set[*]}}+0 )); then
-		local _L_args=() _L_fd
-		# Prepare arguments for L_read_fds call - fd + buffer variable name.
-		for _L_fd in "${!_L_x_buf_fds_set[@]}"; do
-			_L_args+=( "$_L_fd" "_L_x_buf_output[$_L_fd]" )
-		done
-		# Read from file descriptors.
-		L_read_fds -v _L_fd "${_L_args[@]}" || return 1
-		# _L_fd finished. Close it, print output and remove from the list.
-		eval "exec $_L_fd>&-"
-		printf "%s" "${_L_x_buf_output[$_L_fd]}"
-		unset -v "_L_x_buf_fds_set[$_L_fd]" "_L_x_buf_output[$_L_fd]"
+		if (( _L_x_dobuf == 1 )); then
+			# Read from any filedescriptor finishes first, while caching the others.
+			local _L_args=() _L_fd
+			# Prepare arguments for L_read_fds call - fd + buffer variable name.
+			for _L_fd in "${!_L_x_buf_fds_set[@]}"; do
+				_L_args+=( "$_L_fd" "_L_x_buf_output[$_L_fd]" )
+			done
+			# Read from file descriptors.
+			L_read_fds -v _L_fd "${_L_args[@]}" || return 1
+			# _L_fd finished. Close it, print output and remove from the list.
+			eval "exec $_L_fd>&-"
+			printf "%s" "${_L_x_buf_output[$_L_fd]}"
+			unset -v "_L_x_buf_fds_set[$_L_fd]" "_L_x_buf_output[$_L_fd]"
+		elif (( _L_x_dobuf >= 2 )); then
+			# Read from file descriptors on order.
+			# Reorder, so first one has index number 0.
+			# See the assignment above.
+			_L_x_buf_fds_set=("${_L_x_buf_fds_set[@]}")
+			cat <&"${_L_x_buf_fds_set[0]}"
+			unset -v "_L_x_buf_fds_set[0]"
+		fi
 	fi
 }
 
@@ -10756,7 +10766,13 @@ _L_xargs_run() {
 			printf -v _L_cmd "%q " "${_L_cmdready[@]}"
 			L_pipe _L_pipe || return 1
 			eval "$_L_cmd ${_L_pipe[0]}>&- 1>&${_L_pipe[1]} & exec ${_L_pipe[1]}>&-"
-			_L_x_buf_fds_set["${_L_pipe[0]}"]=""
+			if (( _L_x_dobuf == 1 )); then
+				# When _L_x_dobuf=1, we can easily unset the buffer from L_wait using the file descriptor.
+				_L_x_buf_fds_set["${_L_pipe[0]}"]=""
+			else
+				# When _L_x_dobuf>=2, we can easily get the first buffer from [0] index.
+				_L_x_buf_fds_set+=("${_L_pipe[0]}")
+			fi
 		else
 			"${_L_cmdready[@]}" &
 		fi
@@ -10769,13 +10785,7 @@ _L_xargs_run() {
 }
 
 _L_xargs_trap() {
-	# local i
-	# for i in ${_L_x_pid_to_num[@]+"${!_L_x_pid_to_num[@]}"}; do
-	# 	if ! kill -0 "${_L_x_pid_to_num[$i]}" 2>/dev/null; then
-	# 		unset -v "_L_x_pid_to_num[$i]"
-	# 	fi
-	# done
-	if (( ${_L_x_pid_to_num[@]+${#_L_x_pid_to_num[@]}}+0 != 0 )); then
+	if (( ${_L_x_pid_to_num[@]+1} )); then
 		if [[ " SIGINT RETURN EXIT " == *"$L_SIGNAL"* ]]; then
 			# https://stackoverflow.com/a/75385863/9072753
 			# SIGINT is disabled in subshells so do not send it
@@ -10852,7 +10862,7 @@ _L_xargs_handle_eof_str() {
 # @option -n <max-atoms> Trigger execution once <max-atoms> have been accumulated.
 # @option -r If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
 # @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
-# @option -O Separate output of each command by using pipes.
+# @option -O Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
 # @option -t Verbose: Print each command to STDERR before execution.
 # @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
 # @option -q Be quiet.
@@ -10902,7 +10912,7 @@ L_xargs() {
 			r) _L_x_r=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_x_maxprocs=$L_v; else _L_x_maxprocs=$OPTARG; fi ;;
 			t) _L_x_verbose=1 ;;
-			O) _L_x_dobuf=1 ;;
+			O) _L_x_dobuf=$(( _L_x_dobuf + 1 )) ;;
 			^) _L_x_prefix=1 ;;
 			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
@@ -10926,13 +10936,13 @@ L_xargs() {
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
 			# Record -> Multiple Atoms
-			L_string_unquote -v L_v "${L_v[*]}" || return 1
+			L_string_unquote -v L_v ${L_v[*]+"${L_v[*]}"} || return 1
 		fi
 		# Accumulate atoms (L_v is 1 atom in Solid mode, 1+ in Split mode)
-		_L_atoms+=("${L_v[@]}")
+		_L_atoms+=(${L_v[@]+"${L_v[@]}"})
 		# Dual-threshold trigger logic - on number of atoms and number of records.
 		if (( _L_atoms_limit > 0 )); then
-			while (( ${#_L_atoms[*]} >= _L_atoms_limit )); do
+			while (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 >= _L_atoms_limit )); do
 				if (( _L_x_preserve_set_e )); then
 					_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}"
 				else
@@ -10944,16 +10954,16 @@ L_xargs() {
 		fi
 		if (( _L_records_limit > 0 && _L_cur_records >= _L_records_limit )); then
 			if (( _L_x_preserve_set_e )); then
-				_L_xargs_run "${_L_atoms[@]}"
+				_L_xargs_run ${_L_atoms[@]+"${_L_atoms[@]}"}
 			else
-				_L_xargs_run "${_L_atoms[@]}" || return 1
+				_L_xargs_run ${_L_atoms[@]+"${_L_atoms[@]}"} || return 1
 			fi
 			_L_atoms=()
 			_L_cur_records=0
 		fi
 	done
 	# Final EOF Flush
-	if (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 )); then
+	if (( ${_L_atoms[*]+1} )); then
 		if (( _L_x_preserve_set_e )); then
 			_L_xargs_run "${_L_atoms[@]}"
 		else
@@ -10961,7 +10971,7 @@ L_xargs() {
 		fi
 	fi
 	# Reaper for parallel mode
-	while (( ${_L_x_pid_to_num[*]:+${#_L_x_pid_to_num[*]}}+0 )); do
+	while (( ${_L_x_pid_to_num[*]+1} )); do
 		_L_xargs_wait || return 1
 	done
 	if [[ -n "$_L_x_v" ]]; then

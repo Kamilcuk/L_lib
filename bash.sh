@@ -9,7 +9,7 @@ set -euo pipefail
   -- -t --tty flag=1 help="attach tty" \
   -- -j --jq flag=1 help="run in tester" \
   -- -s --sequential flag=1 help="run in sequence, not in parallel" \
-  -- --podman flag=1 eval=' docker() { podman "$@"; } ' help="use podman" \
+  -- --podman flag=1 eval=' opt_podman=1; docker() { podman "$@"; } ' help="use podman" \
   -- versions nargs="?" help="Bash version to test against, or all. Default: all" default="all" \
   -- args nargs=remainder help="Bash arguments" \
   ---- "$@"
@@ -30,18 +30,24 @@ if (( opt_script )); then
   args=(-c "${args[*]}")
 fi
 
-dockerargs=()
-if (( opt_tty )); then
-  dockerargs+=("-t")
+if (( ! ${opt_podman:-0} )); then
+  if ! tmp=$(docker info 2>&1); then
+    if hash podman; then
+      L_warning "docker info failed, but podman found. Using podman."
+      docker() { podman "$@"; }
+    else
+      L_panic "docker info failed:$L_NL$tmp"
+    fi
+  fi
 fi
 
 docker_run() {
   local version=$1
   if (( opt_jq )); then
-    echo "/ dockerfile-tester:$version"
+    echo "/-- dockerfile-tester:$version"
     local image=$(docker build --target tester -q .)
   else
-    echo "/ bash:$version"
+    echo "/-- bash:$version"
     local image=bash:$version
   fi
   if (( opt_quiet )); then
@@ -49,36 +55,44 @@ docker_run() {
   else
     exec 2>&1
   fi
-  local args=(-q --rm -v $PWD:$PWD:ro -w "$PWD" "$image" bash "${args[@]}")
-  if [[ -z "$input" && -t 0 ]]; then
+  local args=(-q --rm ${TERM+-eTERM} -v $PWD:$PWD:ro -w "$PWD" "$image" bash "${args[@]}") rc=0
+  if (( opt_tty )) && [[ -z "$input" && -t 0 ]]; then
     docker run -ti "${args[@]}"
   else
     docker run -i "${args[@]}" <<<"$input"
-  fi
+  fi || rc=$?
+  echo "\-- rc=$rc"
 }
 
 IFS=$', \t\n' read -r -a versions <<<"$opt_versions"
 if (( ${#versions[@]} == 1 )); then
+  if (( ${#args[@]} == 0 )); then
+    opt_tty=1
+  fi
   docker_run "${versions[0]}"
-elif (( opt_sequential )); then
-  idx=0
-  for version in "${versions[@]}"; do
-    if (( idx++ != 0 )); then
-      echo
-    fi
-    rc=0
-    docker_run "$version" || rc=$?
-    echo "\ rc=$rc"
-  done
 else
-  for version in "${versions[@]}"; do
-    (
-      (
-        rc=0
-        ( docker_run "$version" ) || rc=$?
-        echo "\ rc=$rc"
-      ) | tr '\n' $'\002'
-      echo
-    ) &
-  done | sort -gk1 | cut -d' ' -f2- | tr $'\002' '\n' | sed '/^$/{$d}'
+  if (( ${#args[@]} == 0 )); then
+    L_panic "Too many version or missing command. Either give one version to start an interactive bash session or give a command to test against multiple versions. No command was found, but requested running on versions: ${versions[*]}"
+  fi
+  if (( opt_sequential )); then
+    for version in "${versions[@]}"; do
+      rc=0
+      docker_run "$version" || rc=$?
+    done
+  else
+    if true; then
+      L_xargs -OO -Pn -a versions docker_run
+    else
+      {
+        for version in "${versions[@]}"; do
+          {
+            # output version to sort the output properly
+            echo -n "$version "
+            docker_run "$version"
+          } | tr '\n' $'\002' &
+        done
+        wait
+      } | sort -gk1 | cut -d' ' -f2- | tr $'\002' '\n' | sed '/^$/{$d}'
+    fi
+  fi
 fi
