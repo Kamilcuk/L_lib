@@ -5,6 +5,7 @@ export PROGRESS_NO_TRUNC=1
 export DOCKER_BUILDKIT=1
 export DOCKER_PROGRESS=plain
 ARGS ?=
+DOCKER ?= docker
 DOCKERTERM = -eTERM $(shell [ -t 0 ] && printf -- -t)
 DOCKERHISTORY = --mount type=bind,source=$(CURDIR)/.bash_history,target=/.bash_history \
 	-eHISTCONTROL=ignoreboth:erasedups -eHISTFILE=/.bash_history
@@ -54,23 +55,23 @@ venv:
 	python3 -m venv venv
 	./venv/bin/pip install --upgrade pip setuptools
 
-IMAGE = $(shell docker build -q --target tester --build-arg VERSION=$* .)
+IMAGE = $(shell $(DOCKER) build -q --target tester --build-arg VERSION=$* .)
 .PHONY: test_bash%
 test_bash%:
-	docker run --rm $(DOCKERTERM) \
+	$(DOCKER) run --rm $(DOCKERTERM) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		$(DOCKERNICE) $(IMAGE) $(NICE) ./tests/test.sh $(ARGS)
 	@echo "test_bash$* success"
 test_docker%:
-	docker build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
+	$(DOCKER) build --build-arg VERSION=$* --build-arg ARGS='$(ARGS)' --target test .
 
 watchtest:
 	watchexec './tests/test.sh $(ARGS) && make test ARGS='$(ARGS)' -j$$(nproc) -O'
 
 shellcheck:
-	if hash shellcheck; then shellcheck bin/L_lib.sh; else docker build --target shellcheck .; fi
+	if hash shellcheck; then shellcheck bin/L_lib.sh; else $(DOCKER) build --target shellcheck .; fi
 shellcheckall:
-	docker build --target shellcheckall .
+	$(DOCKER) build --target shellcheckall .
 shellchecklocal:
 	shellcheck $(ARGS) bin/L_lib.sh
 shellcheckvim:
@@ -82,7 +83,7 @@ shellcheckvimall: shellcheckvim
 
 term-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
+	$(DOCKER) run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/etc/profile.d/L_lib.sh,readonly \
 		--mount type=bind,source=$(CURDIR)/bin/L_lib.sh,target=/bin/L_lib.sh,readonly \
@@ -90,12 +91,12 @@ term-%:
 		$(IMAGE) -l +H $(ARGS)
 termnoload-%:
 	@touch .bash_history
-	docker run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
+	$(DOCKER) run --rm $(DOCKERTERM) -i -u$(shell id -u):$(shell id -g) \
 		$(DOCKERHISTORY) \
 		--mount type=bind,source=$(CURDIR),target=$(CURDIR),readonly -w $(CURDIR) \
 		$(IMAGE) -l +H $(ARGS)
 run-%:
-	docker run --rm $(DOCKERTERM) -u$(shell id -u):$(shell id -g) --volume $(CURDIR):$(CURDIR) -w $(CURDIR) $(IMAGE) -l +H -c 'bin/L_lib.sh $(ARGS)' bash
+	$(DOCKER) run --rm $(DOCKERTERM) -u$(shell id -u):$(shell id -g) --volume $(CURDIR):$(CURDIR) -w $(CURDIR) $(IMAGE) -l +H -c 'bin/L_lib.sh $(ARGS)' bash
 
 runall: $(addprefix run-, $(BASHES))
 
@@ -147,11 +148,11 @@ docs_serve: _docs
 docs_serve2:
 	uvx --with-requirements=./docs/requirements.txt --with-editable=../mkdocstrings-sh/ mkdocs serve --livereload --dirtyreload
 docs_docker:
-	docker build --target doc --output type=local,dest=./public .
+	$(DOCKER) build --target doc --output type=local,dest=./public .
 
 K ?= 2
 llm:
 	,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
 
 llm2:
-	GOOGLE_GEMINI_BASE_URL=http://localhost:8990/gemini ,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
+	GOOGLE_GEMINI_BASE_URL=http://localhost:8990/gemini ,llm --no-hide -k $(K) gemini --model my -r
