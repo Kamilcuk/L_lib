@@ -32,12 +32,6 @@ The library can be tested ad-hoc directly from the command line:
 ### Running Tests
 The project includes a comprehensive suite of unit tests and linting checks.
 
-To run all tests and linting:
-```bash
-make test
-```
-This command will execute tests for various Bash versions (via Docker) and also run `shellcheck` for static analysis.
-
 To run tests for the current Bash version:
 ```bash
 ./tests/test.sh
