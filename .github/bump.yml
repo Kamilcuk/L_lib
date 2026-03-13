@@ -21,6 +21,6 @@ files:
   - file-path: 'pyproject.toml'
     line: 2
   - file-path: 'README.md'
-    line: 45
+    line: 24
   - file-path: 'README.md'
-    line: 83
+    line: 62
