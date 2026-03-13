@@ -17,32 +17,11 @@ Labrador Bash library. Collection of functions and libraries that I deem useful 
 
 # Installation
 
-## Package Managers
-
-Install L_lib using your preferred Bash package manager:
-
-### Basher
-```bash
-basher install Kamilcuk/L_lib
-```
-
-### bpkg
-```bash
-bpkg install Kamilcuk/L_lib
-```
-
-### Shpkg
-```bash
-shpkg install Kamilcuk/L_lib
-```
-
-## Manual Installation
-
 The library is one file. Download the latest release from GitHub and put in your PATH:
 
 ```bash
 mkdir -vp ~/.local/bin/
-wget -O ~/.local/bin/L_lib.sh https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh
+wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v1.0.5/L_lib.sh
 export PATH=~/.local/bin:$PATH
 ```
 
@@ -71,7 +50,7 @@ Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement`
 For example, a simple script using the library could look like:
 
 ```bash
-#!/bin/bash
+#!/usr/bin/env bash
 . L_lib.sh -s
 L_log "Starting script"
 L_info "This is an info message"
@@ -80,7 +59,7 @@ L_info "This is an info message"
 You can test the library ad-hoc:
 
 ```bash
-bash <(wget -qO- https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh) L_setx L_log 'Hello world'
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v1.0.5/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
 # Features

@@ -3,7 +3,8 @@ set -euo pipefail
 
 ulimit -c 0
 export TIMEFORMAT='real=%6lR user=%6lU system=%6lS'
-. "$(dirname "$0")"/../bin/L_lib.sh
+dir="$(dirname "${BASH_SOURCE[0]}")"
+. "$dir"/../bin/L_lib.sh
 L_log_configure -L
 
 get_all_variables() {
@@ -22,8 +23,17 @@ USR2_CNT=0
 
 ###############################################################################
 
-. "$L_DIR"/array_index_tests.sh
-. "$L_DIR"/foreach_tests.sh
+. "$dir"/array_index_tests.sh
+. "$dir"/foreach_tests.sh
+. "$dir"/test_xargs.sh
+. "$dir"/test_xargs_extended.sh
+. "$dir"/test_xargs_extra.sh
+. "$dir"/test_duration.sh
+. "$dir"/test_L_date.sh
+. "$dir"/test_asserts.sh
+. "$dir"/test_var_to_string.sh
+. "$dir"/test_finally.sh
+. "$dir"/test_pretty_print.sh
 
 _L_test_color() {
 	{
@@ -427,6 +437,10 @@ _L_test_format() {
 }
 
 _L_test_json_escape() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	t() {
 		local tmp input="$1"
 		L_json_escape -v tmp "$1"
@@ -450,6 +464,10 @@ _L_test_json_escape() {
 }
 
 _L_test_json_create() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	{
 		L_log "test L_json_create"
 		L_unittest_cmd -o '{"a":"b"}' eval 'L_json_create { a : b } | jq -c'
@@ -496,7 +514,6 @@ _L_test_json() {
 		}
 	}
 }
-
 _L_test_other() {
 	local IFS=" "
 	{
@@ -553,18 +570,6 @@ _L_test_other() {
 		L_unittest_checkexit 0 L_args_contain 1 1
 		L_unittest_checkexit 1 L_args_contain 0 1
 		L_unittest_checkexit 1 L_args_contain 0
-	}
-	{
-		local name=1 tmp
-		L_pretty_print -v tmp name 2
-		L_unittest_eq "$tmp" $'declare -- name="1"\n2\n'
-		local name=(1 2)
-		L_pretty_print -v tmp name 2
-		if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-			L_unittest_eq "$tmp" $'declare -a name=([0]="1" [1]="2")\n2\n'
-		else
-			L_unittest_eq "$tmp" $'declare -a name=\'([0]="1" [1]="2")\'\n2\n'
-		fi
 	}
 	{
 		L_unittest_cmd -e 0 L_float_cmp 1.1 -eq 1.1
@@ -717,9 +722,8 @@ _L_test_array_string() {
 	helper() {
 		local src dst str i
 		src=("$@")
-		L_setx L_var_to_string -v str src
+		L_var_to_string -v str src
 		local -a dst="$str"
-		L_pretty_print src str dst
 		L_unittest_arreq dst ${src[@]+"${src[@]}"}
 		L_unittest_eq "${!src[*]}" "${!dst[*]}"
 		for i in ${src[@]+"${!src[@]}"}; do
@@ -1245,11 +1249,18 @@ _L_test_argskeywords() {
 	}
 }
 
+_L_test_log_json() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
+	L_unittest_cmd -c L_log_configure -r -J
+	L_unittest_cmd -c eval 'L_log "$L_ALLCHARS" | jq'
+}
+
 _L_test_log() {
 	{
 		L_unittest_cmd -c -r 'L_log_configure' eval 'L_log_configure -h 2>&1'
-		L_unittest_cmd -c L_log_configure -r -J
-		L_unittest_cmd -c eval 'L_log "$L_ALLCHARS" | jq'
 		L_unittest_cmd -c L_log_configure -r -L
 		L_unittest_cmd -c eval 'L_log "hello world" 2>&1 | grep "hello world"'
 
@@ -1293,6 +1304,10 @@ _L_test_log_from() {
 }
 
 _L_test_log_json() {
+	if ! L_hash jq; then
+		L_unittest_skip "jq not found"
+		return
+	fi
 	local line
 	line=$( L_log_configure -r -J ; L_info "Hello world" 2>&1 )
 	L_unittest_cmd -I jq . <<<"$line"
@@ -1667,9 +1682,8 @@ _L_test_map() {
 	}
 }
 
-if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-
 _L_test_asa() {
+	skip_assoc
 	declare -A map=()
 	local v
 	{
@@ -1701,7 +1715,7 @@ _L_test_asa() {
 	{
 		L_info "_L_test_asa: copy"
 		local -A map=([a]=1 [c]=$'\'"@ ') map2=()
-		L_asa_assign map2 = map
+		L_asa_copy map map2
 		L_unittest_eq "${map[a]}" 1
 		L_unittest_eq "${map[c]}" $'\'"@ '
 		L_unittest_eq "${map2[a]}" 1
@@ -1721,11 +1735,6 @@ _L_test_asa() {
 		L_unittest_eq "$v" f
 	}
 	{
-		L_asa_keys_sorted -v v map2
-		L_unittest_eq "${v[*]}" "c e"
-		L_unittest_eq "$(L_asa_keys_sorted map2)" "c"$'\n'"e"
-	}
-	{
 		L_info "_L_test_asa: nested asa with quotes"
 		local -A map2=([a]="='='=")
 		L_var_to_string -v tmp map2
@@ -1734,10 +1743,9 @@ _L_test_asa() {
 	}
 }
 
-fi  # L_HAS_ASSOCIATIVE_ARRAY
-
-. "$(dirname "$0")"/argparse_tests.sh
-. "$(dirname "$0")"/argparse_tests_2.sh
+. "$dir"/argparse_tests.sh
+. "$dir"/argparse_tests_2.sh
+. "$dir"/argparse_tests_3.sh
 
 _L_test_path() {
 	local v
@@ -1911,157 +1919,9 @@ _L_test_path() {
 	}
 }
 
-_L_test_cache() {
-	local opt i stdout cachef
-	L_with_tmpfile_to cachef
-	exec 100>&2
-	local BASH_XTRACEFD=100
-	# L_decorate L_setx L_cache
-	#
-	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS")
-  if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-  	local -A shouldbeasa=([a]=b [$' \t\n']=$' \t\n' ["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS")
-  fi
-	#
-	for opt in "" "-f$cachef"; do
-		echo "USING $opt"
-		{
-			cachevars() {
-  			var="$shouldbevar"
-  			array=("${shouldbearray[@]}")
-  			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-  				L_asa_copy shouldbeasa asa
-  				declare -p asa
-  			fi
-  			executed=1
-			}
-			L_cache $opt -r cachevars
-			local asaarg=""
-			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-				asaarg="-sasa"
-			fi
-			L_decorate L_cache -T 1 -s var -s array $asaarg $opt cachevars
-			#
-			for i in _ _; do
-				L_cache $opt -r cachevars
-				for i in 1 0 0; do
-					local var="" array=() executed=0
-					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-						local -A asa=()
-					fi
-					cachevars
-					L_unittest_vareq var "$shouldbevar"
-					L_unittest_arreq array "${shouldbearray[@]}"
-					if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-						L_unittest_eq "${asa[a]}" "b"
-						L_unittest_eq "${asa[$' \t\n']}" $' \t\n'
-						L_unittest_eq "${asa[$L_SAFE_ALLCHARS]}" "$L_SAFE_ALLCHARS"
-					fi
-					L_unittest_vareq executed "$i"
-				done
-			done
-		}
-		{
-			cachestdout() { echo 123; echo EXECUTED >&2; }
-			L_decorate L_cache -T 1 -o $opt cachestdout
-			for i in _ _; do
-				L_cache $opt -r cachestdout a
-				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout a
-				L_unittest_cmd -c -j -r "^123$" cachestdout a
-				L_cache $opt -r cachestdout
-				L_unittest_cmd -c -j -r EXECUTED$'\n'123 cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout
-				L_unittest_cmd -c -j -r "^123$" cachestdout a
-			done
-		}
-		{
-			local ret=123
-			cacheerr() { echo "$ret"; return "$ret"; }
-			L_decorate L_cache $opt cacheerr
-			for i in _ _; do
-				L_cache $opt -r cacheerr
-				ret=123
-				L_unittest_cmd -c -e 123 cacheerr
-				ret=1
-				L_unittest_cmd -c -e 123 cacheerr
-				L_unittest_cmd -c -e 123 cacheerr
-			done
-		}
-	done
-	#
-	L_unittest_cmd L_cache -l
-	L_unittest_cmd L_cache -f "$cachef" -l
-	#
-	unset -f cachevars cachestdout
-}
 
-# shellcheck disable=SC2178
-_L_test_var_to_string() {
-	local tmp i
-	#
-	local a=1 b=123
-	L_var_to_string -v tmp a
-	eval "b=$tmp"
-	L_unittest_vareq b "$a"
-	#
-	local a="" b=123
-	L_var_to_string -v tmp a
-	eval "b=$tmp"
-	L_unittest_vareq b "$a"
-	#
-	local -a a=()
-	local b=123
-	L_var_to_string -v tmp a
-	eval "b=$tmp"
-	L_unittest_arreq a ${b[@]:+"${b[@]}"}
-	#
-	unset b
-	local -a arr=("$L_SAFE_ALLCHARS")
-	local brr=123
-	L_var_to_string -v tmp arr
-	eval "brr=$tmp"
-	L_unittest_arreq arr ${brr[@]:+"${brr[@]}"}
-	#
-	unset b
-	local -a arr=("$L_ALLCHARS")
-	L_var_to_string -v tmp arr
-	local -a brr="$tmp"
-	L_unittest_arreq arr ${brr[@]:+"${brr[@]}"}
-	#
-	if ((L_HAS_ASSOCIATIVE_ARRAY)); then
-		unset a b
-		local -A a=() b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		eval "b=$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "A${a[*]+${!a[*]}}" "A${b[*]+${!b[*]}}"
-		L_unittest_eq "A${a[*]+${a[*]}}" "A${b[*]+${b[*]}}"
-		L_unittest_eq "$((${a[@]+${#a[@]}}+0))" 0
-		#
-		local -A a=(["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS") b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		eval "b=$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "${!a[*]}" "${!b[*]}"
-		L_unittest_eq "${a[*]}" "${b[*]}"
-		L_unittest_eq "${#a[@]}" 1
-		L_unittest_eq "${#b[@]}" 1
-		L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
-		L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
-		#
-		local -A a=(["$L_ALLCHARS"]="$L_ALLCHARS") b=([1]=2 [3]=4)
-		L_var_to_string -v tmp a
-		local -A b="$tmp"
-		L_unittest_cmd L_asa_cmp a b
-		L_unittest_eq "${!a[*]}" "${!b[*]}"
-		L_unittest_eq "${a[*]}" "${b[*]}"
-		L_unittest_eq "${#a[@]}" 1
-		L_unittest_eq "${#b[@]}" 1
-		L_unittest_eq "${a["$L_ALLCHARS"]}" "$L_ALLCHARS"
-		L_unittest_eq "${b["$L_ALLCHARS"]}" "$L_ALLCHARS"
-	fi
-}
+. "$dir"/test_L_cache.sh
+
 
 _L_test_PATH() {
 	local P="A:B:C"
@@ -2103,7 +1963,14 @@ _L_test_PATH() {
 }
 
 _L_test_L_proc() {
-	local proc exitcode line
+	{
+		# Choose a temporary TMPDIR so that L_proc_popen creates temporary fifo there so we can check all are removed.
+		local tmpdir
+		L_with_tmpdir_to tmpdir
+		local -x TMPDIR="$tmpdir"
+		local proc exitcode line
+		local beforefiles=(${TMPDIR:-/tmp}/L_*)
+	}
 	{
 		L_log ''
 		L_proc_popen -Ipipe -Opipe proc cat
@@ -2190,8 +2057,8 @@ _L_test_L_proc() {
 	}
 	{
 		L_log "check there are nano left temporary files"
-		local leftovers=(/tmp/L_*)
-		L_unittest_arreq leftovers "/tmp/L_*"
+		local leftovers=(${TMPDIR:-/tmp}/L_*)
+		L_unittest_eq "${#leftovers[*]}" "${#beforefiles[*]}" "leftover=${leftovers[*]} beforefiles=${beforefiles[*]}"
 	}
 }
 
@@ -2250,7 +2117,7 @@ _L_test_no_duplicate_functions() {
 	#
 	vars=$(grep -o $'^[^ \t]*=' "$L_LIB_SCRIPT" | sort)
 	vars_cnt=$(wc -l <<<"$vars")
-	L_unittest_cmd test "$vars_cnt" -gt 200
+	L_unittest_cmd test "$vars_cnt" -gt 150
 	dups="$(uniq -d <<<"$vars")"
 	L_unittest_eq "$dups" ""
 	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
@@ -2327,602 +2194,6 @@ _L_test_bashpid() {
 	)
 	unset -f check
 }
-
-_L_test_finally() {
-	L_finally -r L_log -s 1 'Test finally done #2'
-	L_finally L_log -s 1 'Test finally done #1'
-	{
-		func() {
-			L_finally -r echo "$L_UUID"
-		}
-		L_unittest_cmd -o "$L_UUID" func
-	}
-	{
-		func() {
-			L_finally -r printf 2
-			L_finally -r printf 1
-			# L_finally_list >&2
-		}
-		L_unittest_cmd -o 12 func
-	}
-	{
-		func() {
-			L_finally printf 2
-			L_finally -r printf 1
-			# L_finally_list >&2
-		}
-		L_unittest_cmd -o 12 func
-	}
-	{
-		func() {
-			L_finally printf 3
-			L_finally -r printf 1
-			L_finally printf 2
-			# L_finally_list >&2
-		}
-		L_unittest_cmd -o 123 func
-	}
-	{
-		func_inner() {
-			printf i
-			L_finally -r printf 2
-		}
-		func_outer() {
-			printf 1
-			L_finally printf 4
-			L_finally -r printf 3
-			func_inner
-			func_inner
-			func_inner
-		}
-		L_unittest_cmd -o 1i2i2i234 func_outer
-	}
-	{
-		L_info "Test inner RETURN finaly works"
-		func_very_inner() {
-			L_finally printf V
-			printf v
-			L_finally -r printf 1
-		}
-		func_inner() {
-			L_finally printf I
-			printf i
-			L_finally -r printf 2
-			func_very_inner
-			func_very_inner
-			func_very_inner
-		}
-		func_outer() {
-			L_finally printf O
-			L_finally -r printf 3
-			func_inner
-			func_inner
-			func_inner
-		}
-		L_unittest_cmd -o iv1v1v12''iv1v1v12''iv1v1v12''3''VVVIVVVIVVVIO func_outer
-	}
-	{
-		L_info "Test L_finally_pop works"
-		func() {
-			L_finally echo -n 2
-			echo -n 1
-			L_finally_pop
-			echo -n 3
-			! L_finally_pop
-			echo -n 4
-			! L_finally_pop
-			return 0
-		}
-		L_unittest_cmd -o "1234" func
-		#
-		func() {
-			L_finally printf 2
-			L_finally printf 1
-			L_finally_pop
-			L_finally_pop
-		}
-		L_unittest_cmd -o 12 func
-		#
-		func() {
-			local a b c
-			L_finally -r printf 5
-			L_finally -v b printf 2
-			L_finally -r -v a printf 1
-			L_finally -v c printf 3
-			L_finally printf 4
-			L_finally_pop -i "$a"
-			L_finally_pop -i "$b"
-			L_finally_pop -i "$c"
-			L_finally_pop
-		}
-		L_unittest_cmd -o 12345 func
-		#
-		#
-		func_inner() {
-			L_finally -r printf "$1"
-		}
-		func() {
-			local a b c
-			func_inner 1
-			func_inner 2
-			L_finally -r printf 8
-			L_finally -v b printf 5
-			func_inner 3
-			L_finally -r -v a printf 4
-			L_finally -v c printf 6
-			L_finally printf 7
-			L_finally_pop -i "$a"
-			L_finally_pop -i "$b"
-			L_finally_pop -i "$c"
-			L_finally_pop
-		}
-		L_unittest_cmd -o 12345678 func
-		#
-		func() {
-			L_finally printf 9
-			L_finally -r printf 8
-			L_finally printf 6
-			L_finally -r printf 4
-			L_finally printf 2
-			printf 1
-			L_finally_pop
-			printf 3
-			L_finally_pop
-			printf 5
-			L_finally_pop
-			printf 7
-		}
-		L_unittest_cmd -o 123456789 func
-	}
-	{
-		L_info "Test that L_finally_pop not afects subshells"
-		func() {
-			L_finally -r printf 3
-			printf 1
-			( L_finally_pop )
-			printf 2
-			L_finally_pop
-		}
-		L_unittest_cmd -o 123 func
-		#
-		func_inner() {
-			L_finally_pop
-			( L_finally_pop )
-		}
-		func_outer() {
-			L_finally -r printf 2
-			printf 1
-			func_inner
-			printf 3
-			L_finally_pop
-			return 0
-		}
-		L_unittest_cmd -o 123 func_outer
-		#
-		func_inner() {
-			L_finally_pop
-			( L_finally_pop )
-			L_finally -r printf 3
-		}
-		func_outer() {
-			L_finally printf 5
-			L_finally -r printf 2
-			printf 1
-			func_inner
-			( L_finally_pop )
-			printf 4
-		}
-		L_unittest_cmd -o 12345 func_outer
-	}
-	{
-		L_info "Test exit is ok"
-		func() (
-			L_finally printf 2
-			printf 1
-			exit
-		)
-		L_unittest_cmd -o "12" func
-		#
-		func() (
-			L_finally printf 2
-			printf 1
-		 	exit 234
-		)
-		L_unittest_cmd -e 234 -o "12" func
-		#
-		func() (
-			L_finally -r exit 234
-			exit 123
-		)
-		L_unittest_cmd -e 234 func
-		#
-		func() {
-			L_finally -r printf 2
-			printf 1
-			return 234
-		}
-		L_unittest_cmd -e 234 -o 12 func
-		#
-		func() {
-			L_finally -r eval 'printf 2'
-			printf 1
-			return 234
-		}
-		L_unittest_cmd -e 234 -o 12 func
-	}
-	{
-		L_info "Test exit is ok"
-		func() {
-			(
-				L_finally printf 2
-				printf 1
-				exit 234
-			)
-		}
-		L_unittest_cmd -o "12" -e 234 func
-	}
-	{
-		L_info "Test signal is ok"
-		func() {
-			(
-				L_finally printf 2
-				printf 1
-				# L_unsetx L_finally_list >&2
-				# pstree -p >&2
-				# trap - SIGTERM
-				L_raise -"$1"
-			)
-			# echo $?
-			# return $?
-		}
-		export -f func
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) \
-			"${newbash[@]}" func INT
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) \
-			"${newbash[@]}" func TERM
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) \
-			"${newbash[@]}" func HUP
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) func INT
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
-	}
-	{
-		L_info "test custom handler"
-		func() {
-			(
-				L_finally
-				L_trap USR1 printf 'USR1 '
-				L_trap USR2 printf 'USR2 '
-				L_finally echo 'EXIT'
-				L_trap HUP printf 'HUP '
-				L_trap INT printf 'INT '
-				# set -x
-				L_raise -USR2
-				L_raise -INT
-				L_raise -HUP
-				L_raise -USR1
-				L_raise -HUP
-				L_raise -USR1
-				L_raise -USR2
-				L_raise -INT
-				L_raise
-			)
-		}
-		export -f func
-		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" func
-		L_unittest_cmd -o 'USR2 INT HUP USR1 HUP USR1 USR2 INT EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" "${newbash[@]}" func
-	}
-	{
-		L_info "test command substition"
-		func() {
-			L_finally -r printf 4
-			L_finally printf 5
-			a=$(
-				L_finally printf 3
-				L_finally printf 2
-			)
-			L_unittest_vareq a 23 >&2 || exit 2
-			L_finally -r printf "%s" "$a"
-			L_finally -r printf 1
-		}
-		L_unittest_cmd -o 12345 func
-		export -f func
-		L_unittest_cmd -o 12345 "${newbash[@]}" func
-	}
-	{
-		L_info "nested return ok"
-		a?*() {
-			L_finally -r printf "$1"
-		}
-		a*() {
-			L_finally -r printf "$1"
-			'a?*' "$2"
-		}
-		a.*() {
-			L_finally -r printf "$1"
-			'a*' "$2" "$3"
-		}
-		a() {
-			L_finally -r printf 4
-			'a.*' 3 2 1
-		}
-		export -f "a" "a.*" "a*" "a?*"
-		L_unittest_cmd -o 1234 a
-		L_unittest_cmd -o 1234 "${newbash[@]}" a
-		#
-		a?*() {
-			L_finally -r printf "$1"
-			echo -n a
-		}
-		a*() {
-			L_finally -r printf "$1"
-			'a?*' "$2"
-			echo -n b
-		}
-		a.*() {
-			L_finally -r printf "$1"
-			'a*' "$2" "$3"
-			echo -n c
-		}
-		a() {
-			L_finally -r printf 8
-			'a.*' 3 2 1
-			L_finally -r printf 7
-			'a.*' 6 5 4
-			echo -n d
-		}
-		export -f "a" "a.*" "a*" "a?*"
-		L_unittest_cmd -o a1b2c3a4b5c6d78 a
-		L_unittest_cmd -o a1b2c3a4b5c6d78 L_subshell a
-		L_unittest_cmd -o a1b2c3a4b5c6d78 "${newbash[@]}" a
-		L_unittest_cmd -o a1b2c3a4b5c6d78 bash -eEo functrace -c ". $L_LIB_SCRIPT && a"
-	}
-	#
-	L_finally_list
-	local a
-	a=$(L_finally_list)
-	L_unittest_cmd -I grep -q L_log <<<"$a"
-	L_finally_pop
-}
-
-_L_test_finally_loop() {
-	{
-		L_log "many calls slow down?"
-		func() {
-			L_finally echo -n "$i "
-			L_finally -r echo -n "$i "
-			# set -x
-		}
-		f() {
-			local i
-			for ((i=0;i<$1;++i)); do
-				func
-				# set +x
-			done
-			for ((i=0;i<$1;++i)); do
-				L_finally_pop
-			done
-			echo
-			echo "${#_L_finally_arr[@]}"
-		}
-		L_unittest_cmd L_time f 100
-		L_unittest_cmd L_time f 1000
-	}
-	{
-		L_log "nested calls"
-		func() {
-			L_finally echo -n 6
-			L_finally -r echo -n 3
-			func() {
-				L_finally echo -n 5
-				L_finally -r echo -n 2
-				func() {
-					L_finally echo -n 4
-					L_finally -r echo -n 1
-				}
-				func
-				func
-			}
-			func
-			func
-		}
-		L_unittest_cmd -o 1121344456 func
-	}
-}
-
-_L_test_finally_subshells() {
-	{
-		L_info "test all signals in subshell"
-		func() {
-			(
-				# set -x
-				L_finally echo EXIT
-				L_raise -"$1"
-			)
-		}
-		local i
-		for i in $(L_trap_names); do
-			case "$i" in
-			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
-			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
-			esac
-		done
-	}
-}
-
-_L_test_finally_proc() {
-	{
-		L_info "test all signals in process"
-		script() {
-			bash -c ". $L_LIB_SCRIPT; ulimit -c 0; L_finally echo EXIT; L_raise -$1"
-		}
-		local i
-		for i in $(L_trap_names); do
-			case "$i" in
-			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGSTKFLT) ;;
-			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
-			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
-			esac
-		done
-	}
-}
-
-_L_test_finally_interrupt() {
-	{
-		L_info "test SIGRET"
-		f() { L_finally eval 'echo $L_SIGRET'; exit 123; }
-		L_unittest_cmd -o 123 -e 123 f
-		f() { L_finally -r eval 'echo $L_SIGRET'; exit 234; }
-		L_unittest_cmd -o 234 -e 234 f
-	}
-	waiter() {
-		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
-		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
-		# set +x
-		enable sleep || :
-		local to; L_timeout_set_to to "$1"; while ! L_timeout_expired "$to"; do sleep 0.1; done
-	}
-	{
-		local e=$((128+$(L_trap_to_number USR1)))
-		L_info "test interrupting error handling"
-		f() {
-			L_finally waiter 0.5
-			L_bashpid_to bashpid
-			sleep 0.2 && kill -USR1 "$bashpid" || : &
-			case "$1" in
-				pop) L_finally_pop ;;
-				return) return ;;
-				exit) exit ;;
-				signal) L_raise -USR1 ;;
-			esac
-		}
-		export -f f waiter
-		L_unittest_cmd -e "$e" "${newbash[@]}" f pop
-		L_unittest_cmd -e "$e" "${newbash[@]}" f return
-		L_unittest_cmd -e "$e" "${newbash[@]}" f exit
-		L_unittest_cmd -e "$e" "${newbash[@]}" f signal
-		L_unittest_cmd -e "$e" f pop
-		L_unittest_cmd -e "$e" f return
-		L_unittest_cmd -e "$e" f exit
-		L_unittest_cmd -e "$e" f signal
-	}
-	{
-		L_info "test interrupting error handling twice"
-		f2() {
-			L_finally waiter 10
-			L_bashpid_to bashpid
-			sleep 0.2 && kill -USR1 "$bashpid" &
-			sleep 0.4 && kill -USR1 "$bashpid" &
-			case "$1" in
-				pop) L_finally_pop ;;
-				return) return ;;
-				exit) exit ;;
-				signal) L_raise -USR1 ;;
-			esac
-		}
-		export -f f2
-		L_unittest_cmd -e "$e" f2 pop
-		L_unittest_cmd -e "$e" f2 return
-		L_unittest_cmd -e "$e" f2 exit
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 pop
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 return
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 exit
-		if ((!L_HAS_BASH5_0)); then
-			L_warning "Disabled below bash5.0"
-			return
-		fi
-		L_unittest_cmd -e "$e" f2 signal
-	}
-	{
-		L_info "test good function calls return"
-		f1() {
-			echo -n 1
-			f2
-			echo -n 10
-		}
-		f2() {
-			echo -n 2
-			f3
-			echo -n 9
-		}
-		f3() {
-			L_finally -r echo -n 8
-			echo -n 3
-			f4
-			echo -n 7
-		}
-		f4() {
-			echo -n 4
-			f5
-			echo -n 6
-		}
-		f5() {
-			L_finally echo -n 11
-			echo -n 5
-		}
-		L_unittest_cmd -o 1234567891011 f1
-		L_unittest_cmd -o 1234567891011 bash -c ". $L_LIB_SCRIPT;"'. "$1"' bash <(declare -f f1 f2 f3 f4 f5; echo f1)
-	}
-}
-
-_L_test_finally_source() {
-	if ((!L_HAS_BASH4_4)); then
-		L_warning "ignoring test for bash below 4.4"
-		return
-	fi
-	{
-		L_log "source return finally works?"
-		L_unittest_cmd -o 21 bash -euo pipefail -c ". $L_LIB_SCRIPT; . <(echo 'L_finally echo -n 1'); echo -n 2"
-		L_unittest_cmd -o 12 bash -euo pipefail -c ". $L_LIB_SCRIPT
-			. <(echo '
-				L_finally -r echo -n 1
-				return 2
-				'
-			) || r=\$?
-			echo -n \$r
-			"
-		L_log "using L_source instead of ."
-		L_unittest_cmd -o 1234567 bash -euo pipefail -c ". $L_LIB_SCRIPT -s
-			f() {
-				local r
-				L_finally -r echo -n 6
-				echo -n 2
-				L_source <(echo '
-					L_finally -r echo -n 4
-					echo -n 3
-					return 5
-					'
-				) || r=\$?
-				echo -n \$r
-			}
-			echo -n 1
-			f
-			echo -n 7
-			"
-		L_log "using source. Special handling"
-		L_unittest_cmd -o 1234567 bash -euo pipefail -c ". $L_LIB_SCRIPT -s
-			f() {
-				local r
-				L_finally -r echo -n 6
-				echo -n 2
-				. <(echo '
-					L_finally -r echo -n 4
-					echo -n 3
-					return 5
-					'
-				) || r=\$?
-				echo -n \$r
-			}
-			echo -n 1
-			f
-			echo -n 7
-			"
-	}
-}
-
-###############################################################################
 
 wait_interrupt() {
 	local mypid
@@ -3191,6 +2462,7 @@ _L_test_all_childs() {
 			L_finally eval 'mypstree; L_kill_all_childs 2>&1; mypstree'
 			( ( ( bg & bg ) & bg ) & bg ) &
 			( bg & bg ) &
+			sleep 1  # give time for background tasks to start
 			L_get_all_childs
 		)
 		tmpfpids=$(< "$tmpf")
@@ -3378,13 +2650,25 @@ _L_test_sections_ok() {
 	# L_unittest_eq "$vim_sections" "$list_sections"
 }
 
+_L_test_unittest_skip() {
+	L_unittest_skip "tests skipping"
+	false
+}
+
 ###############################################################################
+
+skip_assoc() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "no associative array"
+		exit 123
+	fi
+}
 
 newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)
 
 L_trap_err_enable
-_L_lib_run_tests "$@"
+L_unittest_main -p _L_test_ "$@"
 
 # Check for any new variables.
 diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :

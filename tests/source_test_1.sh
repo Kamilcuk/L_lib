@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SCOPE+=("source_test_1")
 eval "$SCRIPT"

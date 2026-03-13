@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Source the L_lib library. The -s flag makes it silent.
 . ../bin/L_lib.sh -s
 
