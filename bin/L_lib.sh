@@ -6171,7 +6171,6 @@ L_unittest_main() {
 	fi
 	if (( ${_L_u_tests[*]+${#_L_u_tests[*]}}+0 == 0 )); then
 		L_fatal "No tests matched"
-		exit 1
 	fi
 	# Re-index tests array, we need it to associated rets with test name later.
 	_L_u_tests=("${_L_u_tests[@]}")
@@ -10874,7 +10873,8 @@ L_xargs() {
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
 			# Record -> Multiple Atoms
-			L_string_unquote -v L_v ${L_v[*]+"${L_v[*]}"} || return 1
+			# shellcheck disable=SC2048
+			L_string_unquote -v L_v "${L_v[*]+${L_v[*]}}" || return 1
 		fi
 		# Accumulate atoms (L_v is 1 atom in Solid mode, 1+ in Split mode)
 		_L_atoms+=(${L_v[@]+"${L_v[@]}"})
