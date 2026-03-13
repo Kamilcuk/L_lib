@@ -33,6 +33,7 @@ USR2_CNT=0
 . "$dir"/test_asserts.sh
 . "$dir"/test_var_to_string.sh
 . "$dir"/test_finally.sh
+. "$dir"/test_pretty_print.sh
 
 _L_test_color() {
 	{
@@ -513,7 +514,6 @@ _L_test_json() {
 		}
 	}
 }
-
 _L_test_other() {
 	local IFS=" "
 	{
@@ -570,18 +570,6 @@ _L_test_other() {
 		L_unittest_checkexit 0 L_args_contain 1 1
 		L_unittest_checkexit 1 L_args_contain 0 1
 		L_unittest_checkexit 1 L_args_contain 0
-	}
-	{
-		local name=1 tmp
-		L_pretty_print -v tmp name 2
-		L_unittest_eq "$tmp" $'declare -- name="1"\n2\n'
-		local name=(1 2)
-		L_pretty_print -v tmp name 2
-		if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-			L_unittest_eq "$tmp" $'declare -a name=([0]="1" [1]="2")\n2\n'
-		else
-			L_unittest_eq "$tmp" $'declare -a name=\'([0]="1" [1]="2")\'\n2\n'
-		fi
 	}
 	{
 		L_unittest_cmd -e 0 L_float_cmp 1.1 -eq 1.1
@@ -1695,10 +1683,7 @@ _L_test_map() {
 }
 
 _L_test_asa() {
-	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
-		L_unittest_skip "no associative array"
-		return
-	fi
+	skip_assoc
 	declare -A map=()
 	local v
 	{
@@ -2671,6 +2656,13 @@ _L_test_unittest_skip() {
 }
 
 ###############################################################################
+
+skip_assoc() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "no associative array"
+		exit 123
+	fi
+}
 
 newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)

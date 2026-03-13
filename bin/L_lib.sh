@@ -4120,142 +4120,96 @@ L_parse_range_list_v() {
 	done
 }
 
-if ((L_HAS_DECLARE_WITH_NO_QUOTES)); then
-	# @description extglob that matches declare -p output from array or associative array
-	_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])=\(@(|\[?*\]=?*)\)"
-else
-	_L_DECLARE_P_ARRAY_EXTGLOB="declare -[aA]*([a-zA-Z]) [a-zA-Z_]*([a-zA-Z_0-9-])='\(@(|\[?*\]=?*)\)'"
-fi
-
-# @description Add stuff to output from pretty_print
-# @arg $1 <str> printf format string
-# @arg $@ <any> any printf arguments
-# @env _L_pp_compact
-# @env _L_pp_prefix_sav
-# @env _L_pp_line
-# @env _L_pp_width
-# @env _L_pp_v
-_L_pretty_print_output() {
-	if ((_L_pp_compact)); then
-		local _L_pp_tmp
-		# shellcheck disable=SC2059
-		printf -v _L_pp_tmp "$@"
-		# If the line would be widther then terminal width, output it.
-		if (( ${#_L_pp_prefix_sav} + ${#_L_pp_line} + !!${#_L_pp_line} + ${#_L_pp_tmp} > _L_pp_width )); then
-			_L_pretty_print_flush
-		fi
-		_L_pp_line+=${_L_pp_line:+ }$_L_pp_tmp
-	else
-		L_printf_append "$_L_pp_v" "%s$1\n" "$_L_pp_prefix" "${@:2}"
-	fi
-}
-
-# @description Flush the output of pretty_print
-# @noargs
-# @env _L_pp_nested
-# @env _L_pp_line
-# @env _L_pp_prefix_sav
-# @env _L_pp_prefix
-_L_pretty_print_flush() {
-	if ((_L_pp_compact && ${#_L_pp_line})); then
-		L_printf_append "$_L_pp_v" "%s%s\n" "$_L_pp_prefix_sav$_L_pp_line"
-		_L_pp_prefix_sav=$_L_pp_prefix
-		_L_pp_line=""
-	fi
-}
-
-# @description Handle nested arrays by L_pretty_print
-# @arg $1 <str> key value
-# @arg $2 <str> declare -p output with removed =
-# @env _L_pp_v
-# @env _L_pp_width
-_L_pretty_print_nested() {
-	set -- "${1##* }" "$2"
-	local -A _L_pp_array="$2"
-	if ((${#_L_pp_array[@]} == 0)); then
-		_L_pretty_print_output "%s=()" "$1"
-	else
-		local _L_pp_key _L_pp_keys=("${!_L_pp_array[@]}") L_v
-		# Associative array indexes are not sorted.
-		LC_ALL=C L_sort -z _L_pp_keys
-		#
-		_L_pretty_print_flush
-		_L_pretty_print_output "%s=(" "$1"
-		_L_pp_prefix+="  "
-		for _L_pp_key in "${_L_pp_keys[@]}"; do
-			local _L_pp_value="${_L_pp_array["$_L_pp_key"]}"
-			if (( _L_pp_nested && ${#_L_pp_value} > _L_pp_width )); then
-				# shellcheck disable=SC2053
-				if [[ "$_L_pp_value" == "(["?*"]="*")" ]]; then
-					_L_pretty_print_nested "[$_L_pp_key]" "$_L_pp_value"
-					continue
-				elif [[ "$_L_pp_value" == $_L_DECLARE_P_ARRAY_EXTGLOB ]]; then
-					_L_pretty_print_nested "[$_L_pp_key]" "${_L_pp_value#*=}"
-					continue
-				fi
-			fi
-			if [[ "$_L_pp_value" == *$'\n'* ]]; then
-				printf -v L_v "%q" "$_L_pp_value"
-			else
-				L_quote_setx_v "$_L_pp_value"
-			fi
-			_L_pretty_print_output "[%q]=%s" "$_L_pp_key" "$L_v"
-		done
-		if ((_L_pp_compact)); then
-			_L_pretty_print_output ")"
-			_L_pp_prefix=${_L_pp_prefix%"  "}
-		else
-			_L_pp_prefix=${_L_pp_prefix%"  "}
-			_L_pretty_print_output ")"
-		fi
-		_L_pretty_print_flush
-	fi
-}
-
 # @description Prints values with declare, but array values are on separate lines.
 # @option -p <str> Prefix each line with this prefix
 # @option -v <var> Store the output in variable instead of printing it.
-# @option -w <int> Set terminal width. This modifies compact output line wrapping.
-# @option -n Enable pretty printing nested arrays
-# @option -C Disable compact output for arrays, i.e. each key is on separate line.
+# @option -w <int> Set output width for compact output.
+# @option -c Make the output compact. The default.
+# @option -C Make the output not compact.
 # @option -h Print this help and return 0.
-# @option -c Compact output.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
-	local OPTIND OPTARG OPTERR _L_pp_opt _L_pp_declare _L_pp_prefix="" _L_pp_v="" _L_pp_width=${COLUMNS:-80} _L_pp_nested=0 _L_pp_line="" _L_pp_compact=0 _L_pp_prefix_sav=""
-	while getopts :p:v:w:nch _L_pp_opt; do
-		case $_L_pp_opt in
-		p) _L_pp_prefix="$OPTARG " ;;
-		v) _L_pp_v=$OPTARG; printf -v "$_L_pp_v" "%s" "" ;;
-		w) _L_pp_width=$OPTARG ;;
-		n) _L_pp_nested=1 ;;
-		c) _L_pp_compact=1 ;;
-		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+	local OPTIND OPTARG OPTERR \
+		_L_pp_prefix="" _L_pp_var="" _L_pp_compact=1 _L_pp_width=${COLUMNS:-80}  \
+		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" _L_pp_sep
+	while getopts p:v:w:cCh _L_pp_i; do
+		case $_L_pp_i in
+			p) _L_pp_prefix=$OPTARG ;;
+			v) _L_pp_var=$OPTARG ;;
+			w) _L_pp_width=$OPTARG ;;
+			c) _L_pp_compact=1 ;;
+			C) _L_pp_compact=0 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_error; return 2 ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	while (($#)); do
-		if ! L_is_valid_variable_name "$1" || ! _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
-			_L_pretty_print_output "%s" "$1"
-		elif
-			((${#_L_pp_declare} <= _L_pp_width)) ||
-				[[ "$_L_pp_declare" != "declare -"[aA]* ]] ||
-				((!L_HAS_ASSOCIATIVE_ARRAY))
-		then
-			if L_isprint "$_L_pp_declare"; then
-				_L_pretty_print_output "%s" "$_L_pp_declare"
+		# Start a new line in the output.
+		_L_pp_out+="${_L_pp_out:+$'\n'}"
+		if _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
+			# Extract variable flags from declare output.
+			local _L_pp_declare_opts=${_L_pp_declare#declare }
+			_L_pp_declare_opts=${_L_pp_declare_opts%% *}
+			# Add variable flags if they are something fancy.
+			case "$_L_pp_declare_opts" in
+				""|--|-a|-A) ;;
+				*) _L_pp_out+="${_L_pp_declare_opts} " ;;
+			esac
+			if [[ "$_L_pp_declare" != *=* ]]; then
+				_L_pp_out+="$1 is null"
+			elif [[ "$_L_pp_declare_opts" == -[Aa]* ]]; then
+				_L_pp_out+="$1=("
+				if [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
+					# Dense normal array - just output values in order.
+					L_array_len -v _L_pp_len "$1"
+					_L_pp_sep=""
+					for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
+						_L_pp_v="$1[$_L_pp_i]"
+						printf -v _L_pp_v "%q" "${!_L_pp_v}"
+						_L_pp_out+="$_L_pp_sep$_L_pp_v"
+						_L_pp_sep=" "
+					done
+				else
+					# Normal array with non-sequential elements, or an associative array.
+					L_array_keys -v _L_pp_keys "$1"
+					if [[ "$_L_pp_declare_opts" == -A* ]]; then
+						# Sort associative array keys.
+						L_sort -z _L_pp_keys
+					fi
+					_L_pp_sep=""
+					for _L_pp_k in "${_L_pp_keys[@]}"; do
+						eval "_L_pp_v=\${$1[\"\$_L_pp_k\"]}"
+						printf -v _L_pp_k "%q" "$_L_pp_k"
+						printf -v _L_pp_v "%q" "$_L_pp_v"
+						_L_pp_out+="$_L_pp_sep[$_L_pp_k]=$_L_pp_v"
+						_L_pp_sep=" "
+					done
+				fi
+				_L_pp_out+=")"
 			else
-				_L_pretty_print_output "%q" "$_L_pp_declare"
+				# Scalar value. Don't want to use declare output, cause it overquotes.
+				printf -v _L_pp_current "%s=%q" "$1" "${!1}"
+				_L_pp_out+="$_L_pp_current"
 			fi
 		else
-			_L_pretty_print_nested "${_L_pp_declare%%=*}" "${_L_pp_declare#*=}"
+			_L_pp_out+="$1"
 		fi
-		_L_pretty_print_flush
 		shift
 	done
+	if (( _L_pp_compact )); then
+		# Join by space and format with fmt.
+		_L_pp_out="${_L_pp_out//$'\n'/ }"
+		if [[ -n "$_L_pp_out" ]] && L_hash fmt; then
+			_L_pp_out=$(fmt -w "$_L_pp_width" <<<"$_L_pp_out")
+		fi
+	fi
+	if [[ -z "$_L_pp_var" ]]; then
+		printf "%s\n" "$_L_pp_out"
+	else
+		printf -v "$_L_pp_var" "%s" "$_L_pp_out"
+	fi
 }
-
 # @see L_argskeywords
 _L_argskeywords_assert() {
 	if ! "${@:2}"; then
