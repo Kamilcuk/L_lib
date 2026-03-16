@@ -63,8 +63,7 @@ _L_test_z_argparse27_nested_subparsers() {
 		)
 
 		# Execute the parser with nested sub-commands and options at each level
-		L_unittest_cmd -c L_argparse "${parser[@]}" \
-			-v remote --remote-name test-remote add final-name http://example.com
+		L_unittest_cmd -c L_argparse "${parser[@]}" -v remote --remote-name test-remote add final-name http://example.com
 
 		# Assert that all variables from all levels are correctly assigned
 		L_unittest_vareq verbose true
@@ -114,5 +113,63 @@ _L_test_z_argparse28_nested_subparsers_positional() {
 		L_unittest_vareq command remote
 		L_unittest_vareq remote_command add
 		L_unittest_vareq remote_name "my-remote-name"
+	}
+}
+
+_L_test_z_argparse29_positional_default_nargs() {
+	{
+		L_log "check positional argument with default is optional"
+		local foo=""
+		L_unittest_cmd -c L_argparse -- foo default=42 ----
+		L_unittest_vareq foo 42
+	}
+	{
+		local foo=""
+		L_unittest_cmd -c L_argparse -- foo default=42 ---- "hello"
+		L_unittest_vareq foo "hello"
+	}
+	{
+		L_log "check two positional arguments with default are optional"
+		local foo="" bar=""
+		L_unittest_cmd -c L_argparse -- foo default=42 -- bar default=world ----
+		L_unittest_vareq foo 42
+		L_unittest_vareq bar world
+	}
+	{
+		local foo="" bar=""
+		L_unittest_cmd -c L_argparse -- foo default=42 -- bar default=world ---- "hello"
+		L_unittest_vareq foo "hello"
+		L_unittest_vareq bar world
+	}
+	{
+		local foo="" bar=""
+		L_unittest_cmd -c L_argparse -- foo default=42 -- bar default=world ---- "hello" "again"
+		L_unittest_vareq foo "hello"
+		L_unittest_vareq bar "again"
+	}
+	{
+		L_log "check positional arguments with default and options"
+		local foo="" bar="" opt1="" opt2=""
+		L_unittest_cmd -c L_argparse -- --opt1 -- --opt2 default="default_opt2" -- foo default=42 -- bar default=world ---- --opt1 val1 "hello"
+		L_unittest_vareq foo "hello"
+		L_unittest_vareq bar "world"
+		L_unittest_vareq opt1 "val1"
+		L_unittest_vareq opt2 "default_opt2"
+	}
+	{
+		local foo="" bar="" opt1="" opt2=""
+		L_unittest_cmd -c L_argparse -- --opt1 -- --opt2 default="default_opt2" -- foo default=42 -- bar default=world ---- --opt2 val2 "hello" "again"
+		L_unittest_vareq foo "hello"
+		L_unittest_vareq bar "again"
+		L_unittest_vareq opt1 ""
+		L_unittest_vareq opt2 "val2"
+	}
+	{
+		local foo="" bar="" opt1="" opt2=""
+		L_unittest_cmd -c L_argparse -- --opt1 -- --opt2 default="default_opt2" -- foo default=42 -- bar default=world ---- --opt1 val1 --opt2 val2 "hello" "again"
+		L_unittest_vareq foo "hello"
+		L_unittest_vareq bar "again"
+		L_unittest_vareq opt1 "val1"
+		L_unittest_vareq opt2 "val2"
 	}
 }
