@@ -1,5 +1,5 @@
 [project]
-version = "1.0.4" # sync version with .github/bump.yml
+version = "1.1.0" # sync version with .github/bump.yml
 name = "L_lib"
 description = "Collection of Bash useful functions and utilities for shell scripting"
 readme = "README.md"
