@@ -7835,7 +7835,12 @@ _L_argparse_spec_argument_common() {
 		# apply defaults depending on action
 		case "${_L_opt_action[_L_opti]:=store}" in
 		store)
-			: "${_L_opt_nargs[_L_opti]:=1}"
+			# If it is an argument with a default and missing nargs, default nargs to ?.
+			if [[ "${_L_opt__class[_L_opti]}" == "argument" ]] && L_var_is_set "_L_opt_default[_L_opti]"; then
+				: "${_L_opt_nargs[_L_opti]:="?"}"
+			else
+				: "${_L_opt_nargs[_L_opti]:="1"}"
+			fi
 			;;
 		store_const)
 			if ! L_var_is_set "_L_opt_const[_L_opti]"; then
