@@ -7208,8 +7208,10 @@ L_argparse_print_help() {
 		shift "$((OPTIND-1))"
 	}
 	{
-		if ((${_L_parser_color[1]:-1})); then
+		if [[ -z "${_L_parser_color[1]:-}" ]]; then
 			L_color_detect
+		elif L_is_true "${_L_parser_color[1]}"; then
+			L_color_enable
 		else
 			L_color_disable
 		fi
