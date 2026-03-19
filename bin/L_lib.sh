@@ -7263,7 +7263,7 @@ L_argparse_print_help() {
 					local _L_metavar
 					_L_argparse_optspec_get_metavar _L_metavar
 					_L_argparse_optspec_get_usagearg _L_args_usage
-					_L_usage_args_helps+=("$_L_metavar"$'\n'"$_L_opthelp")
+					_L_usage_args_helps+=("$cgreen$_L_metavar$creset"$'\n'"$_L_opthelp")
 				fi
 			fi
 		done
