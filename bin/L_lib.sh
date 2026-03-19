@@ -6044,7 +6044,7 @@ _L_unittest_main_runner() {
   				reason=$(head -c 20 "$_L_u_tmpd/$1.skip" || :)
   				local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ ($reason)}"
   			else
-  				local statuscolor="$L_GREEN" status="PASS"
+  				local statuscolor="$L_GREEN" status="PASSED"
   			fi
   			;;
   		*) local statuscolor="$L_BOLD$L_RED" status="ERROR $_L_u_ret" ;;
