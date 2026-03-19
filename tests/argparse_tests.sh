@@ -848,6 +848,18 @@ _L_test_z_argparse18_color() {
 		out=$(L_argparse color=0 prog=prog ---- -h 2>&1)
 		L_unittest_cmd ! L_regex_match "$out" $'\033'
 	}
+	{
+		L_log "check color with positional argument"
+		local out
+		out=$(
+			L_term_has_color() { return 0; }
+			L_argparse color=1 prog=prog -- mypos help='a positional arg' ---- -h 2>&1
+		)
+		# Check that color escape codes are present in the output
+		L_unittest_cmd L_regex_match "$out" $'\033'
+		# Specifically check that 'mypos' is colored with bold green: \033[1m\033[32mmypos\033[m
+		L_unittest_cmd L_regex_match "$out" $'\033\[1m\033\[32mmypos\033\[m'
+	}
 }
 
 _L_test_z_argparse20_allow_subparser_abbrev() {
