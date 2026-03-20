@@ -39,7 +39,7 @@ To run tests for the current Bash version:
 
 To run a subset of tests, you can use the `-k` option with a filter expression:
 ```bash
-./tests/test.sh -k 'xargs'
+./tests/test.sh -k <filter>
 ```
 
 To run only `shellcheck` for static analysis:

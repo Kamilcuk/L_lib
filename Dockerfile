@@ -45,3 +45,9 @@ COPY ./bin/ /app/bin/
 RUN basher link /app kamilcuk/L_lib
 RUN basher list -v
 RUN L_lib.sh --help
+
+FROM docker.io/library/bash:${VERSION} AS perfbash
+RUN apk add --no-cache perf bubblewrap bc coreutils util-linux
+COPY . /app/
+WORKDIR /app
+CMD ["./scripts/perfbash"]

@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -euo pipefail
+DIR="$(dirname "$(readlink -f "$0")")"/..
+
+# Source L_lib for parsing arguments
+. "$DIR"/bin/L_lib.sh -s
+
+L_argparse \
+  description="Run perfbash in an isolated, privileged Docker container." \
+  -- -r --rebuild flag=1 help="Force rebuild of the Docker image showing build logs" \
+  -- -b --bash default="latest" help="Specify the Bash version to test (e.g., 5.0, 4.4)" \
+  -- args nargs=remainder help="Arguments passed directly to perfbash inside the container" \
+  ---- "$@"
+
+# Define the build arguments to pass the chosen Bash version
+build_args=(--target perfbash --build-arg "VERSION=$bash")
+
+if (( rebuild )); then
+  echo "Rebuilding Docker image for bash:$bash..."
+  # Build without -q to stream output to the user
+  docker build "${build_args[@]}" "$DIR"
+fi
+
+# Build quietly to retrieve just the image ID
+# (If we just rebuilt it, this pulls from cache instantly)
+iid=$(docker build -q "${build_args[@]}" "$DIR")
+
+# Run directly on the ephemeral image ID, no tagging required
+exec docker run --rm --privileged "$iid" ./scripts/perfbash ${args[@]+"${args[@]}"}
