@@ -201,12 +201,15 @@ L_argparse \
 
 **Predefined Choices (`choices=`):**
 Restricts input to a specific set of values.
+The values are provided as a space-separated list, similar to how elements are defined in a Bash array.
+You can use quotes to include spaces within a choice.
 
 ```bash
 L_argparse \
   -- --color help="Choose a color." choices="red green blue" \
+  -- --size help="Choose a size." choices="small medium \"extra large\"" \
   ---- "$@"
-# Usage: my_script.sh --color red (valid)
+# Usage: my_script.sh --size "extra large" (valid)
 #        my_script.sh --color yellow (invalid, will show error)
 ```
 
@@ -495,7 +498,6 @@ Each `add_argument` group defines how a single command-line argument should be p
     - `nargs=remainder` - All remaining arguments are gathered into an array, and the parser's `remainder` setting is implicitly set to `true`.
 - `const=` - A constant value required for `action=store_const` and `action=append_const`.
 - `eval=` - A Bash script to evaluate when an option is used. Implies `nargs=0` and `action=eval`.
-    - **Note:** The script is evaluated each time the option appears. For example, `-vvv` would execute the script three times.
 - `flag=` - A shorthand for `action=store_*`.
     - `flag=0` is equivalent to `action=store_0`.
     - `flag=1` is equivalent to `action=store_1`.
@@ -543,6 +545,41 @@ Each `add_argument` group defines how a single command-line argument should be p
             # ...
             L_argparse ... validate='validate_my_arg "$1"'
 
+### `eval=` action
+
+The `eval=` action allows you to execute an arbitrary Bash command when an option is used. The arguments consumed by `nargs` are available as positional parameters (`$1`, `$2`, etc.).
+- When `action=eval` is specified, the `eval=` string is executed and the default action of storing the value is suppressed.
+- When `action=append` is used with `eval=`, the `eval=` string is executed *first*, and then the argument is appended to the destination variable. This allows you to perform a custom action and also store the original value.
+
+**Example: Simple `eval`**
+```bash
+#!/usr/bin/env bash
+. L_lib.sh -s
+
+foo=0
+L_argparse -- --foo eval='((foo++))' ---- --foo --foo --foo
+echo "foo is $foo"  # Output: foo is 3
+```
+
+**Example: `eval` with `nargs`**
+```bash
+#!/usr/bin/env bash
+. L_lib.sh -s
+
+foo=()
+L_argparse -- --foo eval='foo+=("evaluated-$1")' nargs=1 ---- --foo 1 --foo 2
+declare -p foo # Output: declare -a foo=([0]="evaluated-1" [1]="evaluated-2")
+```
+**Example: `action=append` with `eval`**
+```bash
+#!/usr/bin/env bash
+. L_lib.sh -s
+
+foo=()
+L_argparse -- --foo action=append eval='foo+=("evaluated-$1")' nargs=1 ---- --foo 1 --foo 2
+declare -p foo # Output: declare -a foo=([0]="evaluated-1" [1]="1" [2]="evaluated-2" [3]="2")
+```
+
 ### `add_subparser` options:
 
 To define sub-commands (like `git pull`), use the `call=subparser` group, followed by one or more parser definitions enclosed in curly braces `{ ... }`.
@@ -572,7 +609,7 @@ L_argparse \
 This provides a way to dynamically create sub-commands from existing shell functions.
 
 - `prefix=` - Required. All functions with this prefix are treated as potential sub-commands. The prefix is removed to form the command name.
-- `required=`, `metavar=`, `dest=` - Same as in `add_argument`.
+- `dest=` - Same as in `add_argument`.
 - `subcall=` - Controls how `L_argparse` inspects the discovered functions to generate help and completions.
     - `0` (Default) - Functions are not called during help/completion generation. Help text for these commands will be empty unless a help variable is defined.
     - `1` - The function is called with special internal arguments to request its `L_argparse` definition.

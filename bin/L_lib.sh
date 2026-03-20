@@ -1830,7 +1830,7 @@ else
 	}
 
 	L_setposix() {
-		if shopt -po posix >/dev/null; then
+		if [[ -o posix ]]; then
 			"$@"
 		else
 			set -o posix
@@ -1839,7 +1839,7 @@ else
 		fi
 	}
 	L_unsetposix() {
-		if shopt -po posix >/dev/null; then
+		if [[ -o posix ]]; then
 			set +o posix
 			"$@"
 			eval "set -o posix;return \"$?\""
