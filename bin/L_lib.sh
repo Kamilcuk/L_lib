@@ -1817,22 +1817,16 @@ L_unsetposix() {
 else
 
 	L_setx() {
-		if shopt -po xtrace >/dev/null; then
-			"$@"
-		else
-			set -x
-			"$@"
-			eval "set +x;return \"$?\""
-		fi
+		case $- in
+			*x*) "$@" ;;
+			*) set -x; "$@"; eval "set +x;return \"$?\"" ;;
+		esac
 	}
 	L_unsetx() {
-		if shopt -po xtrace >/dev/null; then
-			set +x
-			"$@"
-			eval "set -x;return \"$?\""
-		else
-			"$@"
-		fi
+		case $- in
+			*x*) set +x; "$@"; eval "set -x;return \"$?\"" ;;
+			*) "$@" ;;
+		esac
 	}
 
 	L_setposix() {

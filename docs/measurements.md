@@ -41,3 +41,45 @@
 | `[ "$(ls -A "$1")" ]`                                                | big   | 0    | 23992066     | 0.0031162 ± 0.0000508 (1.63%)   |
 | `if test -e "$1/"*; then true; else (($?!=1)); fi`                   | big   | 0    | 32164808     | 0.0030001 ± 0.0000222 (0.74%)   |
 | `files=("$1"/* "$1"/.[^.]*); ((${#files[@]} != 2))`                  | big   | 0    | 42237627     | 0.00403384 ± 0.00000903 (0.22%) |
+
+
+## `L_sete` Implementation Profiling (Profiled on GNU bash, version 5.1.16(1)-release x86_64-pc-linux-gnu)
+
+
+We profiled four different implementations of the `L_sete` function to measure both parsing/startup overhead and pure runtime execution overhead. The four implementations tested were:
+1. `shopt -po errexit >/dev/null`
+2. `[[ $- == *e* ]]`
+3. `[[ -o errexit ]]`
+4. `case $- in *e*)`
+
+### Scenario 1: Single Execution (Parsing Overhead)
+This scenario measures the time it takes for Bash to parse the function definition and execute it a single time.
+
+```
+-r 100 --no-bwrap -C 1 --prefix '. /tmp/l_sete_funcs.sh; ' 'L_sete_shopt :' 'L_sete_match :' 'L_sete_opt :' 'L_sete_case :'
+```
+
+| command          | arg | exit | instructions | seconds time elapsed          |
+| ---              | --- | ---  |              |                               |
+| `L_sete_case :`  | 1   | 0    |              | 0.0025979 ± 0.0000321 (1.24%) |
+| `L_sete_match :` | 1   | 0    |              | 0.0020370 ± 0.0000296 (1.45%) |
+| `L_sete_opt :`   | 1   | 0    |              | 0.0026350 ± 0.0000419 (1.59%) |
+| `L_sete_shopt :` | 1   | 0    |              | 0.0022563 ± 0.0000392 (1.74%) |
+
+**Result:** The `[[ $- == *e* ]]` implementation is the fastest to parse. It is functionally smaller and bypasses the structure needed for `case`, taking ~0.0020 seconds compared to ~0.0025 seconds.
+
+### Scenario 2: Loop Execution (Runtime Overhead)
+This scenario measures the pure runtime execution overhead by defining the function once and running it 10,000 times (5,000 times with `+e` and 5,000 times with `-e`).
+
+```
+-r 100 --no-bwrap -C 1 --prefix '. /tmp/l_sete_funcs.sh; ' loop_shopt loop_match loop_opt loop_case
+```
+
+| command      | arg | exit | instructions | seconds time elapsed      |
+| ---          | --- | ---  |              |                           |
+| `loop_case`  | 1   | 0    |              | 0.26593 ± 0.00178 (0.67%) |
+| `loop_match` | 1   | 0    |              | 0.27963 ± 0.00247 (0.88%) |
+| `loop_opt`   | 1   | 0    |              | 0.27852 ± 0.00260 (0.93%) |
+| `loop_shopt` | 1   | 0    |              | 0.42494 ± 0.00561 (1.32%) |
+
+**Result:** In pure runtime execution, the `case` statement proves to be the most performant implementation. It executes approximately 60% faster than the original `shopt` method and holds a ~5% speed advantage over conditional checks (`[[ ]]`). This demonstrates that for high-iteration logic within the Bash evaluator, native POSIX keywords like `case` bypass the overhead of evaluating condition expressions.
