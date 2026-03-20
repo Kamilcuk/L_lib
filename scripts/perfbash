@@ -1,5 +1,58 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+extract_from_run() {
+  local args i
+  args=()
+  [[ -n "${repeat:-}" ]] && args+=(-r "$repeat")
+  for b in ${binaries[@]+"${binaries[@]}"}; do args+=(-b "$b"); done
+  for ((i=0; i<verbose; i++)); do
+    args+=(-v)
+  done
+  if (( no_bwrap )); then
+    args+=(--no-bwrap)
+  fi
+  #
+  ret=0
+  out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$@") || ret=$?
+  extract_stats "$out"
+}
+
+extract_stats() {
+  eval "$(awk '
+    /instructions/ { print "instructions=" $1 }
+    /seconds time elapsed/ {
+      print "seconds_time_elapsed=" $1
+      print "seconds_time_elapsed_dev=" $3
+      print "seconds_time_elapsed_percent=" $9
+    }
+    /user_time/ { print "user_time=" $1 }
+    /system_time/ { print "system_time=" $1 }
+  ' <<<"$1")"
+}
+
+diff_prepare() {
+  instructions_empty=$instructions
+  seconds_time_elapsed_empty=$seconds_time_elapsed
+  user_time_empty=$user_time
+  system_time_empty=$system_time
+}
+
+diff_show() {
+  # echo "$out" | sed '/^$/d' | grep -E 'Performance counter stats|user_time|system_time|cpu_core/instructions|seconds time'
+  echo "$out" | sed '/^$/d'
+  printf "%+18d""    instructions diff to previous ( %+5.2f%% )\n" \
+    "$((instructions - instructions_empty))" \
+    "$(bc -l <<<"100 * ($instructions - $instructions_empty) / $instructions_empty" )"
+  printf "%+18.7f    elapsed seconds diff to previous ( %+5.2f%% )\n" \
+    "$(bc -l <<<"$seconds_time_elapsed - $seconds_time_elapsed_empty" )" \
+    "$(bc -l <<<"100 * ($seconds_time_elapsed - $seconds_time_elapsed_empty) / $seconds_time_elapsed_empty" )"
+  # printf "%+18d""    user_time diff to previous\n" "$((user_time - user_time_empty))"
+  # printf "%+18d""    system_time diff to previous\n" "$((system_time - system_time_empty))"
+}
+
+###############################################################################
+
 DIR="$(dirname "$(readlink -f "$0")")"/..
 perfargs=()
 . "$DIR"/bin/L_lib.sh L_argparse \
@@ -16,48 +69,13 @@ Pass script arguments as an option to --compare option. Example: --compare arg1 
   -- -p --perfargs action=append help="additoinal perf arguments" \
   -- -d --diff flag=1 help="Show difference scripts execution instructions and times" \
   -- -P --previous flag=1 help="Show difference to previous execution of the script" \
+  -- --no-bwrap flag=1 \
   -- --prefix help="Add this at th begining of the script" default="" \
+  -- -D --detailed flag=1 help="Pass -d to perf for detailed stats (branch-misses, etc.)" \
+  -- -L --loop type=int default=0 help="Wrap command in a for loop running N times." \
   -- command nargs="+" help="Shell script to execute. Passed to bash -c" \
   ---- "$@"
-#
-extract_from_run() {
-  local args i
-  args=(${repeat+-r"$repeat"} "${binaries[@]/#/-b}")
-  for i in $(seq $verbose); do
-    args+=(-v)
-  done
-  #
-  ret=0
-  out=$(L_run "$0" -p -o/dev/stdout "${args[@]}" "$@") || ret=$?
-  extract_stats "$out"
-}
-extract_stats() {
-  instructions=$(awk '/cpu_core\/instructions\/u/{print $1}' <<<"$1")
-  seconds_time_elapsed=$(awk '/seconds time elapsed/{print $1}' <<<"$1")
-  seconds_time_elapsed_dev=$(awk '/seconds time elapsed/{print $3}' <<<"$1")
-  seconds_time_elapsed_percent=$(awk '/seconds time elapsed/{print $9}' <<<"$1")
-  user_time=$(awk '/user_time/{print $1}' <<<"$1")
-  system_time=$(awk '/system_time/{print $1}' <<<"$1")
-}
-diff_prepare() {
-  instructions_empty=$instructions
-  seconds_time_elapsed_empty=$seconds_time_elapsed
-  user_time_empty=$user_time
-  system_time_empty=$system_time
-}
-diff_show() {
-  # echo "$out" | sed '/^$/d' | grep -E 'Performance counter stats|user_time|system_time|cpu_core/instructions|seconds time'
-  echo "$out" | sed '/^$/d'
-  printf "%+18d""    instructions diff to previous ( %+5.2f%% )\n" \
-    "$((instructions - instructions_empty))" \
-    "$(bc -l <<<"100 * ($instructions - $instructions_empty) / $instructions_empty" )"
-  printf "%+18.7f    elapsed seconds diff to previous ( %+5.2f%% )\n" \
-    "$(bc -l <<<"$seconds_time_elapsed - $seconds_time_elapsed_empty" )" \
-    "$(bc -l <<<"100 * ($seconds_time_elapsed - $seconds_time_elapsed_empty) / $seconds_time_elapsed_empty" )"
-  # printf "%+18d""    user_time diff to previous\n" "$((user_time - user_time_empty))"
-  # printf "%+18d""    system_time diff to previous\n" "$((system_time - system_time_empty))"
-}
-#
+
 if ((previous)); then
   prevf=/tmp/perfbash.txt
   if [[ ! -e "$prevf" ]]; then
@@ -74,7 +92,7 @@ if ((previous)); then
   done
   exit "$ret"
 fi
-#
+
 if ((diff)); then
   extract_from_run ''
   # echo "$out"
@@ -85,7 +103,7 @@ if ((diff)); then
   done
   exit "$ret"
 fi
-#
+
 if ((${#compare[@]})); then
   for arg in "${compare[@]}"; do
     partresult=""
@@ -93,7 +111,9 @@ if ((${#compare[@]})); then
       extract_from_run "$prefix$script" bash "$arg"
       script_str=${script//[ $'\t\n']/ }
       max_len=70
-      script_str=${script_str:${#script_str} > max_len ? ${#script_str} - max_len : 0}
+      if (( ${#script_str} > max_len )); then
+        script_str="${script_str:0:max_len}..."
+      fi
       partresult+="\`$script_str\`$L_RS$arg$L_RS$ret$L_RS$instructions$L_RS$seconds_time_elapsed ± $seconds_time_elapsed_dev ($seconds_time_elapsed_percent)$L_RS"$'\n'
     done
     result+=$(sort -t "$L_RS" -k 4 -n <<<"$partresult")
@@ -109,44 +129,66 @@ $output
 EOF
   exit
 fi
-#
-binaries=(bash perf "${binaries[@]}")
+
+binaries=(bash perf ${binaries+"${binaries[@]}"})
 paths=(
-  /lib64/ld-linux-x86-64.so.2
+  # /lib64/ld-linux-x86-64.so.2  # will be found out by itslef
   # $(pacman -Ql perf | awk '{print $2}' | grep -v '/$')
 )
-#
-bwrapargs=()
-for n in "${binaries[@]}"; do
-  i=$(which -- "$n") || L_panic "command not found: $n"
-  L_assert '' test -e "$i"
-  bwrapargs+=(--bind "$i" "$i")
-  for i in $(ldd -- "$i" | grep '=>' | awk '{print $3}'); do
+
+cmd=()
+if (( !no_bwrap )); then
+  bwrapargs=()
+  for n in "${binaries[@]}"; do
+    i=$(which -- "$n") || L_panic "command not found: $n"
     L_assert '' test -e "$i"
     bwrapargs+=(--bind "$i" "$i")
+    for i in $(ldd -- "$i" | grep '=>' | awk '{print $3}'); do
+      L_assert '' test -e "$i"
+      bwrapargs+=(--bind "$i" "$i")
+    done
   done
-done
-for i in "${paths[@]}"; do
-  bwrapargs+=(--bind "$i" "$i")
-done
-for i in /proc /dev /sys; do
-  bwrapargs+=(--dev-bind "$i" "$i")
-done
+  for i in "${paths[@]}"; do
+    bwrapargs+=(--bind "$i" "$i")
+  done
+  for i in /proc /dev /sys; do
+    bwrapargs+=(--dev-bind "$i" "$i")
+  done
+  cmd=(
+    setarch $(uname -m) -R
+    bwrap
+    --clearenv
+    --setenv PATH "$PATH"  # /bin:/usr/bin:/sbin:/usr/sbin
+    --bind "$DIR" "$DIR"
+    "${bwrapargs[@]}"
+    --
+  )
+fi
+
+# Determine perf events based on --detailed
+perf_events="cycles,instructions"
+if (( detailed )); then
+  perf_events+=",branch-misses,L1-dcache-load-misses"
+fi
+
+# Handle auto-looping
+final_cmd=("${command[@]}")
+if (( loop > 0 )); then
+  final_cmd=("for ((_L_i=0; _L_i<$loop; _L_i++)); do ${command[*]}; done")
+fi
+
 #
+cmd=(
+  nice -n -20 taskset "$(( $(nproc) - 1 ))" "${cmd[@]}"
+  "$(which perf)" stat
+  -e "$perf_events"
+  ${repeat+-r"$repeat"}
+  "${perfargs[@]}"
+  --
+  "$(which bash)" -c "${final_cmd[@]}"
+)
+trap - ERR
 if ((verbose)); then
   set -x
 fi
-taskset 1 \
-  bwrap \
-  --clearenv \
-  --setenv PATH /bin:/usr/bin:/sbin:/usr/sbin \
-  --bind "$DIR" "$DIR" \
-  "${bwrapargs[@]}" \
-  -- \
-  "$(which perf)" stat \
-  -e cycles,instructions,user_time,system_time \
-  ${repeat+-r"$repeat"} \
-  "${perfargs[@]}" \
-  -- \
-  "$(which bash)" -c "${command[@]}" <&-
-
+"${cmd[@]}" <&-
