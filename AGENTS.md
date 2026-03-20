@@ -46,6 +46,20 @@ To run only `shellcheck` for static analysis:
 ```bash
 make shellcheck
 ```
+
+### Performance Benchmarking
+
+The project provides a specialized tool called `perfbash` for micro-benchmarking bash commands and scripts. To run accurate execution time profiling and parse CPU instructions/cycles, use `perfbash` isolated in a Docker container:
+
+```bash
+sudo ./scripts/dockerperfbash --bash <version> -- -r 100 -C 1 'command_1' 'command_2'
+```
+
+If you need to run `perfbash` natively on the host without `bwrap` namespace isolation (e.g. if you encounter container restrictions), use the `--no-bwrap` flag directly:
+
+```bash
+./scripts/perfbash --no-bwrap -r 100 -C 1 'command_1' 'command_2'
+```
 The tests are defined within `tests/test.sh` and are executed via the `_L_lib_run_tests` function. Test functions follow a naming convention, starting with `_L_test_`, and are automatically discovered and run by the test runner.
 
 ## Development Conventions
