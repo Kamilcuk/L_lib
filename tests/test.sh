@@ -1746,6 +1746,7 @@ _L_test_asa() {
 . "$dir"/argparse_tests.sh
 . "$dir"/argparse_tests_2.sh
 . "$dir"/argparse_tests_3.sh
+. "$dir"/argparse_tests_4.sh
 
 _L_test_path() {
 	local v
