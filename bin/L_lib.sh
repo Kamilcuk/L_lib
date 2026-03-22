@@ -7420,6 +7420,8 @@ _L_argparse_spec_call_subparser() {
 			case "${_L_args[_L_argsi]}" in
 			--|----|"{") break ;; # }
 			action=*) _L_opt_action[_L_opti]=${_L_args[_L_argsi]#*=} ;;
+			allow_abbrev=*) _L_parser_allow_subparser_abbrev[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
+			default=*) _L_opt_default[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			metavar=*) _L_opt_metavar[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			dest=*) _L_opt_dest[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			*) _L_argparse_spec_fatal "unsupported subparser argument: ${_L_args[_L_argsi]}" ;;
@@ -9203,6 +9205,10 @@ L_argparse() {
 			# If no subparser is found and allow_abbrev and there is only one abbreviation found, use it.
 			if ((_L_subparseri == -1 && ${#_L_subparseri_abbrev[@]} == 1)) && L_is_true "${_L_parser_allow_subparser_abbrev[_L_parseri]:-0}"; then
 					_L_subparseri=${_L_subparseri_abbrev[0]}
+			fi
+			# If no subparser is found, but we have a default and there are no arguments.
+			if (( _L_subparseri == -1 && _L_argsi == ${#_L_args[@]} )) && [[ -n "${_L_opt_default[_L_opti]:-}" ]]; then
+				_L_subparseri=$(L_array_find_index _L_subparsers "${_L_opt_default[_L_opti]}")
 			fi
 			# If no subparser is found.
 			if ((_L_subparseri == -1)); then
