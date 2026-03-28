@@ -5894,7 +5894,11 @@ _L_unittest_main_handle_k() {
 	ex=${ex//\!/ \! }
 	ex=${ex//\(/ \( }
 	ex=${ex//\)/ \) }
+	ex=${ex//&/\&\&}
+	ex=${ex//&&&&/\&\&}
 	ex=${ex//&&/ \&\& }
+	ex=${ex//|/\|\|}
+	ex=${ex//||||/\|\|}
 	ex=${ex//||/ \|\| }
 	IFS=' ' read -ra elems <<<"$ex"
 	if (( ${#elems[*]} == 1 )); then
@@ -6079,7 +6083,9 @@ _L_unittest_main_output_printer() {
 #           PATTERN            match tests containing PATTERN (regex)
 #           ! EXPR             negate
 #           EXPR && EXPR       both must match
+#           EXPR & EXPR        both must match
 #           EXPR || EXPR       either must match
+#           EXPR | EXPR        either must match
 #           ( EXPR )           grouping
 #
 #       Examples:
