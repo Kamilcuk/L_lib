@@ -15,7 +15,7 @@
 ---
 # Package identity and metadata
 name: L_lib
-version: 1.1.1 # sync version with .github/bump.yml
+version: 1.1.2 # sync version with .github/bump.yml
 author: Kamil Cukrowski
 license: GPL-3.0
 description: Collection of Bash useful functions and utilities for shell scripting

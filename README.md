@@ -21,7 +21,7 @@ The library is one file. Download the latest release from GitHub and put in your
 
 ```bash
 mkdir -vp ~/.local/bin/
-wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v1.1.1/L_lib.sh
+wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v1.1.2/L_lib.sh
 export PATH=~/.local/bin:$PATH
 ```
 
@@ -59,7 +59,7 @@ L_info "This is an info message"
 You can test the library ad-hoc:
 
 ```bash
-bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v1.1.1/L_lib.sh) L_setx L_log 'Hello world'
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v1.1.2/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
 # Features
