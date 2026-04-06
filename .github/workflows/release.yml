@@ -21,7 +21,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v6
-      - uses: MeilCli/bump-release-action@v2
+      - uses: MeilCli/bump-release-action@v3
         id: create_release
         with:
           config_path: '.github/bump.yml'
