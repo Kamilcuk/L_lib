@@ -33,14 +33,14 @@ deploy_artifact() {
             v) verbose=1 ;;
             u) user="$OPTARG" ;;
             h) L_func_help; return 0 ;;
-            *) L_func_usage; return 2 ;;
+            *) L_func_usage; return "$L_EX_USAGE" ;;
         esac
     done
     shift "$((OPTIND-1))"
     
     # Assertions simplify error checking
-    L_func_assert "File argument is required" test "$#" -ge 1 || return 2
-    L_func_assert "File does not exist: $1" test -f "$1" || return 2
+    L_func_assert "File argument is required" test "$#" -ge 1 || return "$L_EX_USAGE"
+    L_func_assert "File does not exist: $1" test -f "$1" || return "$L_EX_USAGE"
     
     local file="$1" dest="${2:-/tmp}"
     
@@ -97,11 +97,11 @@ L_func_usage_error "Invalid argument"
 # Explicit check
 if [[ ! -f "$file" ]]; then
     L_func_error "File not found: $file"
-    return 2
+    return "$L_EX_USAGE"
 fi
 
 # Equivalent using L_func_assert
-L_func_assert "File not found: $file" test -f "$file" || return 2
+L_func_assert "File not found: $file" test -f "$file" || return "$L_EX_USAGE"
 ```
 
 ## API Reference
