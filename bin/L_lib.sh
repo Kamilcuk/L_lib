@@ -37,6 +37,47 @@ else
 fi
 
 # ]]]
+# sysexits [[[
+# @section sysexits
+# @description Standard exit codes based on sysexits.h.
+# These codes are used to standardize return values and exit statuses throughout the library.
+
+# @description Successful termination.
+L_EX_OK=0
+# @description The command was used incorrectly, e.g., with the wrong number of arguments, a bad flag, a bad syntax in a parameter, or whatever.
+L_EX_USAGE=64
+# @description The input data was incorrect in some way. This should only be used for user's data & not system files.
+L_EX_DATAERR=65
+# @description An input file (not a system file) did not exist or was not readable.
+L_EX_NOINPUT=66
+# @description The user specified did not exist. This might be used for mail addresses or remote logins.
+L_EX_NOUSER=67
+# @description The host specified did not exist. This is used in mail addresses or network requests.
+L_EX_NOHOST=68
+# @description A service is unavailable. This can occur if a support program or file does not exist.
+L_EX_UNAVAILABLE=69
+# @description An internal software error has been detected. This should be limited to non-operating system related errors as possible.
+L_EX_SOFTWARE=70
+# @description An operating system error has been detected. This is intended to be used for such things as "cannot fork", "cannot create pipe", or the like.
+L_EX_OSERR=71
+# @description Some system file (e.g., /etc/passwd, /var/run/utmp, etc.) does not exist, cannot be opened, or has some sort of error (e.g., syntax error).
+L_EX_OSFILE=72
+# @description A (user specified) output file cannot be created.
+L_EX_CANTCREAT=73
+# @description An error occurred while doing I/O on some file.
+L_EX_IOERR=74
+# @description Temporary failure, indicating something that is not really an error.
+L_EX_TEMPFAIL=75
+# @description The remote system returned something that was "not possible" during a protocol exchange.
+L_EX_PROTOCOL=76
+# @description You did not have sufficient permission to perform the operation.
+L_EX_NOPERM=77
+# @description Something was found in an unconfigured or misconfigured state.
+L_EX_CONFIG=78
+# @description The command timed out. Convention from GNU timeout utility.
+L_EX_TIMEOUT=124
+
+# ]]]
 # colors [[[
 # @section colors
 # @description Variables storing xterm ANSI escape sequences for colors.
@@ -673,12 +714,12 @@ L_func_comment() {
 					! _L_f=$(shopt -s extdebug && declare -F "$OPTARG") ||
 						! IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f"
 				then
-					L_func_error "Could not get function $OPTARG location"; return 2
+					L_func_error "Could not get function $OPTARG location"; return "$L_EX_USAGE"
 				fi
 				;;
 			s) _L_up=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -715,11 +756,11 @@ L_func_comment() {
 #          t) t=1 ;;
 #          g) g=$OPTARG ;;
 #          h) L_func_help; return 0 ;;
-#          *) L_func_usage; return 2 ;;
+#          *) L_func_usage; return "$L_EX_USAGE" ;;
 #        esac
 #      done
 #      shift "$((OPTARG-1))"
-#      L_func_assert "one positional argument required" test "$#" -eq 1 || return 2
+#      L_func_assert "one positional argument required" test "$#" -eq 1 || return "$L_EX_USAGE"
 #      #
 #      : utility logic
 #    }
@@ -797,15 +838,15 @@ L_func_usage_error() {
 }
 
 # @description Assert that the command exits with 0.
-# If it does not, call L_func_error and return 2.
+# If it does not, call L_func_error and return 64 ($L_EX_USAGE).
 # If the message starts with -[0-9]+, the number is used as the number of stackframes up the message is about.
 # @arg $1 Message to print, may be empty.
 # @arg $@ Arguments to test.
-# @return 2 if the expression failed.
+# @return 64 ($L_EX_USAGE) if the expression failed.
 # @example
 #    utility() {
 #      local num="$1"
-#      L_func_assert "not a number: $num" L_is_integer "$num" || return 2
+#      L_func_assert "not a number: $num" L_is_integer "$num" || return "$L_EX_USAGE"
 #    }
 L_func_assert() {
 	if ! "${@:2}"; then
@@ -816,7 +857,7 @@ L_func_assert() {
 			set -- "$1" 1
 		fi
 		L_func_error "assertion [$L_v] failed${1:+: $1}" "$2"
-		return 2
+		return "$L_EX_USAGE"
 	fi
 }
 
@@ -891,7 +932,7 @@ _L_redecorate() {
 #
 L_decorate() {
   local def deco func="${*:$#}"
-  def=$(declare -f "$func") || return 2
+  def=$(declare -f "$func") || return "$L_EX_USAGE"
   # if [[ "$def" == "$func"*"()"*"{"*":"*"eval"*"$func"*"\"\$@\""*"_L_redecorate"*"$func"*"}" ]]; then
   # def=$(
   # 	:() { printf "%q " "$@"; exit 1; }
@@ -997,7 +1038,7 @@ _L_getopts_in_initer() {
 #
 # Option -h is always added and calls L_func_help function and returns 0.
 #
-# Invalid option triggers L_func_usage_error and returns 2.
+# Invalid option triggers L_func_usage_error and returns 64 ($L_EX_USAGE).
 #
 # @option -p <str> Add prefix to assigned variables.
 # @option -n <str> Check positional arguments count. Can be a number or one of "*", "+", "?". Default: "*".
@@ -1011,9 +1052,9 @@ _L_getopts_in_initer() {
 # @arg $2 Function to call.
 # @arg $@ Arguments to parse.
 # @return Sub-function return status,
-#         3 on itself usage error,
+#         70 ($L_EX_SOFTWARE) on itself usage error,
 #         0 if -h option was given,
-#         2 on child usage error.
+#         64 ($L_EX_USAGE) on child usage error.
 # @example
 #
 #    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
@@ -1033,7 +1074,7 @@ L_getopts_in() {
       w) _L_local=(_L_getopts_in_initer) ;;
       E) _L_eval=1 ;;
       h) L_func_help; return ;;
-      *) L_func_usage_error; return 3 ;;
+      *) L_func_usage_error; return "$L_EX_SOFTWARE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -1043,9 +1084,9 @@ L_getopts_in() {
   _L_tmp=$_L_spec
   while [[ -n "$_L_tmp" ]]; do
     case "$_L_tmp" in
-      [^:]::*) "${_L_local[@]}" -a "${_L_prefix}${_L_tmp::1}=()" || return 3; _L_tmp=${_L_tmp:3} ;;
+      [^:]::*) "${_L_local[@]}" -a "${_L_prefix}${_L_tmp::1}=()" || return "$L_EX_SOFTWARE"; _L_tmp=${_L_tmp:3} ;;
       [^:]:*) _L_tmp=${_L_tmp:2} ;;
-      [^:]*) "${_L_local[@]}" "${_L_prefix}${_L_tmp::1}=0" || return 3; _L_tmp=${_L_tmp:1} ;;
+      [^:]*) "${_L_local[@]}" "${_L_prefix}${_L_tmp::1}=0" || return "$L_EX_SOFTWARE"; _L_tmp=${_L_tmp:1} ;;
       *) _L_tmp=${_L_tmp:1} ;;
     esac
   done
@@ -1061,7 +1102,7 @@ L_getopts_in() {
     	*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
     	*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
     	h) L_func_usage "$_L_up"; return 0 ;;
-    	*) L_func_usage_error "$_L_up"; return 2 ;;
+    	*) L_func_usage_error "$_L_up"; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -1071,28 +1112,28 @@ L_getopts_in() {
     '?')
       if (( $# > 1 )); then
         L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
-        return 2
+        return "$L_EX_USAGE"
       fi
       ;;
     '+')
       if (( $# == 0 )); then
         L_func_usage_error "Missing positional argument" "$_L_up"
-        return 2
+        return "$L_EX_USAGE"
       fi
       ;;
     [0-9]*'+')
       if (( $# < ${_L_nargs%%+} )); then
         L_func_usage_error "Wrong number of arguments. Expected at least ${_L_nargs%%+} but received $#" "$_L_up"
-        return 2
+        return "$L_EX_USAGE"
       fi
       ;;
     [0-9]*)
       if (( $# != _L_nargs )); then
         L_func_usage_error "Wrong number of arguments. Expected $_L_nargs but received $#" "$_L_up"
-        return 2
+        return "$L_EX_USAGE"
       fi
       ;;
-    *) L_func_usage_error 0 "Invalid nargs=$_L_nargs"; return 3 ;;
+    *) L_func_usage_error 0 "Invalid nargs=$_L_nargs"; return "$L_EX_SOFTWARE" ;;
   esac
   #
   # L_array_assign "${_L_prefix}args" "$@"
@@ -1150,7 +1191,7 @@ _L_cache_append_or_remove() {
 # @arg $@ Arguments.
 # @set _L_CACHE
 # @env _L_CACHE
-# @return 222 on invalid usage or error
+# @return 64 ($L_EX_USAGE) or other error code on invalid usage or error
 #         otherwise returns the exit status of the cached command.
 #
 # @example
@@ -1179,12 +1220,12 @@ L_cache() {
       T)
         if ! L_duration_to_usec -v _L_ttl "$OPTARG"; then
           L_func_usage_error "invalid ttl: $OPTARG"
-          return 222
+          return "$L_EX_USAGE"
         fi
         ;;
       L) _L_flock=$OPTARG ;;
       h) L_func_help; return 0 ;;
-      *) L_func_usage; return 222 ;;
+      *) L_func_usage; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -1192,7 +1233,7 @@ L_cache() {
   if (( ${_L_vars[@]:+1} )); then
     if (( _L_stdout_output )) || [[ -n "$_L_stdout_var" ]]; then
       L_func_usage_error "can't cache variables while running the command in process substitution. Remove -s or remove -o or -O options."
-      return 222
+      return "$L_EX_USAGE"
     fi
   fi
   # Calculate key if not specified.
@@ -1216,7 +1257,7 @@ L_cache() {
 		# Not _L_c_remove mode - either running mode or -l list mode.
 		if (( !_L_list )) && (( $# == 0 )); then
 				L_func_usage_error "no command to execute given. Specify the command to cache"
-				return 222
+				return "$L_EX_USAGE"
 		fi
   	# First extract current cache content. Save in _L_cache.
   	if [[ -z "$_L_file" ]]; then
@@ -1226,8 +1267,8 @@ L_cache() {
       	L_exit_to_10 _L_flock L_hash flock
     	fi
     	if
-      	{ ((_L_flock)) && { _L_cache=$(flock "$_L_file" cat "$_L_file") || return 222; }; } ||
-      		{ [[ -e "$_L_file" ]] && { _L_cache=$(< "$_L_file") || return 222; }; }
+      	{ ((_L_flock)) && { _L_cache=$(flock "$_L_file" cat "$_L_file") || return "$L_EX_IOERR"; }; } ||
+      		{ [[ -e "$_L_file" ]] && { _L_cache=$(< "$_L_file") || return "$L_EX_IOERR"; }; }
     	then
       	if [[ "$_L_cache" != "$_L_cache_header"* ]]; then
         	_L_cache=()
@@ -1247,7 +1288,7 @@ L_cache() {
         	if
         		# If the TTL of the key valid?
           	if [[ -n "$_L_ttl" ]]; then
-            	L_epochrealtime_usec -v _L_c_now || return 222
+            	L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
             	(( _L_cache[_L_i+1] + _L_ttl >= _L_c_now ))
           	fi
         	then
@@ -1270,7 +1311,7 @@ L_cache() {
         if
         	# If the TTL of the key valid?
           if [[ -n "$_L_ttl" ]]; then
-            L_epochrealtime_usec -v _L_c_now || return 222
+            L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
             # echo "${_L_cache[_L_i+1]} ${_L_ttl} ${_L_c_now}" >&2
             (( _L_cache[_L_i+1] + _L_ttl >= _L_c_now ))
           fi
@@ -1303,11 +1344,11 @@ L_cache() {
     fi
     # Serialize variables to save into a string.
     for _L_i in ${_L_vars[@]:+"${_L_vars[@]}"}; do
-    	L_var_to_string -v _L_tmp "$_L_i" || return 222
+    	L_var_to_string -v _L_tmp "$_L_i" || return "$L_EX_SOFTWARE"
     	_L_c_data+="${_L_c_data:+ }$_L_i=$_L_tmp"
     done
     # printf "%q\n" "_L_c_data=$_L_c_data" >&2
-    L_epochrealtime_usec -v _L_c_now || return 222
+    L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
 	fi
   # Store data back in the cache or remove elemnet from it.
   if [[ -z "$_L_file" ]]; then
@@ -1343,7 +1384,7 @@ _L_getopts_forward() {
     elif [[ "$_L_spec" == *"$_L_i"* ]]; then
       _L_ret+=("-$_L_i")
     else
-      return 2
+      return "$L_EX_USAGE"
     fi
   done
   L_array_assign "$_L_v" "$((OPTIND-1))" "${_L_ret[@]}"
@@ -1449,7 +1490,7 @@ L_handle_v_array() {
 	case "${1:-}" in
 	-v?*)
 		if ! L_is_valid_variable_name "${1##-v}"; then
-			L_func_error "not a valid identifier: ${1##-v}" 1; return 2
+			L_func_error "not a valid identifier: ${1##-v}" 1; return "$L_EX_USAGE"
 		fi
 		if
 			if [[ "${2:-}" == -- ]]; then
@@ -1516,7 +1557,7 @@ else  # L_HAS_NAMEREF
 			fi
 			;;
 		-v?*)
-			local -n L_v="${1##-v}" || return 2
+			local -n L_v="${1##-v}" || return "$L_EX_USAGE"
 			if [[ "${2:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:3}"
 			else
@@ -1525,7 +1566,7 @@ else  # L_HAS_NAMEREF
 			;;
 		-v)
 			if [[ "$2" != L_v ]]; then
-				local -n L_v="$2" || return 2
+				local -n L_v="$2" || return "$L_EX_USAGE"
 			fi
 			if [[ "${3:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:4}"
@@ -1566,7 +1607,7 @@ else  # L_HAS_NAMEREF
 			fi
 			;;
 		-v?*)
-			local -n L_v="${1##-v}" || return 2
+			local -n L_v="${1##-v}" || return "$L_EX_USAGE"
 			if [[ "${2:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:3}"
 			else
@@ -1575,7 +1616,7 @@ else  # L_HAS_NAMEREF
 			;;
 		-v)
 			if [[ "$2" != L_v ]]; then
-				local -n L_v="$2" || return 2
+				local -n L_v="$2" || return "$L_EX_USAGE"
 			fi
 			if [[ "${3:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_v "${@:4}"
@@ -1686,7 +1727,7 @@ L_regex_replace() {
 		c) _L_countmax=$OPTARG ;;
 		n) _L_count_v=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -1974,7 +2015,7 @@ L_has_sourced_arguments() {
 	# Check if we are sourced.
 	local IFS=' ' i
 	if [[ " ${FUNCNAME[*]} " != *" source "* ]]; then
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	# Find the source function position.
 	for i in "${!FUNCNAME[@]}"; do
@@ -2085,7 +2126,7 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
 L_var_to_string_v() {
-	L_v=$(LC_ALL=C declare -p "$1") || return 2
+	L_v=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
 	# If it is an array or associative array.
 	if [[ "${L_v::10}" == declare\ -[aA] ]]; then
 		# Bash before4.4 which is used here prints declare output of arrays in quotes.
@@ -2524,7 +2565,7 @@ L_path_relative_to() { L_handle_v_scalar "$@"; }
 L_path_relative_to_v() {
 	if (($# != 2)); then
 		L_func_error "invalid number of arguments" 2
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	local _L_current="${1:+"$2"}"
 	local _L_target="${1:-"$2"}"
@@ -3101,7 +3142,7 @@ L_percent_format_v() {
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
 		#                                    12     3            4   5         6                     7
 		if [[ "$_L_fmt" == "${BASH_REMATCH[7]}" ]]; then
-			L_func_error "invalid format specification: $1" 2; return 2
+			L_func_error "invalid format specification: $1" 2; return "$L_EX_USAGE"
 		fi
 		_L_fmt="${BASH_REMATCH[7]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -3131,7 +3172,7 @@ L_fstring_v() {
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
 		#                                    12      3                        4   5       6 7             8
 		if [[ "$_L_fmt" == "${BASH_REMATCH[8]}" ]]; then
-			L_func_error "invalid format specification: $1" 2; return 2
+			L_func_error "invalid format specification: $1" 2; return "$L_EX_USAGE"
 		fi
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -3291,7 +3332,7 @@ L_string_unquote() {
 			A) _L_ansic1="" _L_ansic2="" ;;
 			q) _L_q=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3332,7 +3373,7 @@ L_string_unquote() {
 			  		"'")
 			  			if [[ "$_L_input" != *"'"* ]]; then
 			  				L_func_error "No closing quotation '"
-				  			return 2
+				  			return "$L_EX_USAGE"
 				  		fi
 				  		_L_input="'"$_L_input
 				  		;;
@@ -3340,16 +3381,16 @@ L_string_unquote() {
 				  	'\')
 				  		if [[ -z "$_L_input" ]]; then
 			  				L_func_error "No escaped character"
-			  				return 2
+			  				return "$L_EX_USAGE"
 			  			fi
 				  		_L_input='\'$_L_input
 				  		;;
 				  	'') ;;
-				  	*) L_func_error "INTERNAL ERROR 1: ${BASH_REMATCH[2]}"; return 3
+				  	*) L_func_error "INTERNAL ERROR 1: ${BASH_REMATCH[2]}"; return "$L_EX_SOFTWARE"
 				  esac
 			  fi
 			else
-				L_func_error "INTERNAL ERROR 2: $_L_input"; return 3
+				L_func_error "INTERNAL ERROR 2: $_L_input"; return "$L_EX_SOFTWARE"
 			fi
 			;;
 		"\$'")
@@ -3374,7 +3415,7 @@ L_string_unquote() {
 				_L_mode=""
 			else
 				L_func_error "No closing quotation $_L_mode"
-				return 2
+				return "$L_EX_USAGE"
 			fi
 			;;
 		'"')
@@ -3396,15 +3437,15 @@ L_string_unquote() {
 				fi
 			else
 				L_func_error "No closing quotation $_L_mode"
-				return 4
+				return "$L_EX_DATAERR"
 			fi
 			;;
-		*) L_func_error "INTERNAL ERROR #4 _L_mode=$_L_mode"; return 3
+		*) L_func_error "INTERNAL ERROR #4 _L_mode=$_L_mode"; return "$L_EX_SOFTWARE"
 		esac
 	done
 	if [[ -n "$_L_mode" ]]; then
 		L_func_error "No closing quotation $_L_mode"
-		return 5
+		return "$L_EX_DATAERR"
 	fi
 	if ((_L_started)); then
 		_L_output+=("$_L_new")
@@ -3532,28 +3573,28 @@ L_array_keys() { L_handle_v_array "$@"; }
 
 if ((L_HAS_NAMEREF)); then
 
-L_array_len_v() { local -n _L_arr="$1" || return 2; L_v=${#_L_arr[@]}; }
+L_array_len_v() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_v=${#_L_arr[@]}; }
 
-L_array_keys_v() { local -n _L_arr="$1" || return 2; L_v=("${!_L_arr[@]}"); }
+L_array_keys_v() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_v=("${!_L_arr[@]}"); }
 
 # @description Set elements of array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to set
 # @example L_array_assign arr 1 2 3
-L_array_assign() { local -n _L_arr="$1" || return 2; _L_arr=("${@:2}"); }
+L_array_assign() { local -n _L_arr="$1" || return "$L_EX_USAGE"; _L_arr=("${@:2}"); }
 
 # @description Assign element of an array
 # @arg $1 <var> array nameref
 # @arg $2 <int> array index
 # @arg $3 <str> value to assign
 # @example L_array_assign arr 5 "Hello"
-L_array_set() { local -n _L_arr="$1" || return 2; _L_arr["$2"]="$3"; }
+L_array_set() { local -n _L_arr="$1" || return "$L_EX_USAGE"; _L_arr["$2"]="$3"; }
 
 # @description Append elements to array.
 # @arg $1 <var> array nameref
 # @arg $@ elements to append
 # @example L_array_append arr "Hello" "World"
-L_array_append() { local -n _L_arr="$1" || return 2; _L_arr+=("${@:2}"); }
+L_array_append() { local -n _L_arr="$1" || return "$L_EX_USAGE"; _L_arr+=("${@:2}"); }
 
 # @description Insert element at specific position in an array.
 # This will move all elements from the position to the end of the array.
@@ -3561,22 +3602,22 @@ L_array_append() { local -n _L_arr="$1" || return 2; _L_arr+=("${@:2}"); }
 # @arg $2 <int> index position
 # @arg $@ elements to append
 # @example L_array_insert arr 2 "Hello" "World"
-L_array_insert() { local -n _L_arr="$1" || return 2; _L_arr=(${_L_arr[@]+"${_L_arr[@]::$2}"} "${@:3}" ${_L_arr[@]+"${_L_arr[@]:$2}"}); }
+L_array_insert() { local -n _L_arr="$1" || return "$L_EX_USAGE"; _L_arr=(${_L_arr[@]+"${_L_arr[@]::$2}"} "${@:3}" ${_L_arr[@]+"${_L_arr[@]:$2}"}); }
 
 # @description Remove first array element.
 # @arg $1 <var> array nameref
-L_array_pop_front() { local -n _L_arr="$1" || return 2; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"}); }
+L_array_pop_front() { local -n _L_arr="$1" || return "$L_EX_USAGE"; _L_arr=(${_L_arr[@]+"${_L_arr[@]:1}"}); }
 
 # @description Remove last array element.
 # @arg $1 <var> array nameref
 # @example L_array_pop_back arr
-L_array_pop_back() { local -n _L_arr="$1" || return 2; unset -v "_L_arr[${#_L_arr[@]}-1]"; }
+L_array_pop_back() { local -n _L_arr="$1" || return "$L_EX_USAGE"; unset -v "_L_arr[${#_L_arr[@]}-1]"; }
 
 # @description Return success, if all array elements are in sequence from 0.
 # @arg $1 <var> array nameref
 # @example if L_array_is_dense arr; then echo "Array is dense"; fi
 L_array_is_dense() {
-	local -n _L_arr="$1" || return 2
+	local -n _L_arr="$1" || return "$L_EX_USAGE"
 	[[ "${#_L_arr[*]}" = 0 || " ${!_L_arr[*]}" == *" $((${#_L_arr[*]}-1))" ]]
 }
 
@@ -3674,7 +3715,7 @@ L_readarray() {
 		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
 		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3793,7 +3834,7 @@ L_array_filter_eval() {
 L_array_index() { L_handle_v_scalar "$@"; }
 L_array_index_v() {
 	local _L_i _L_k
-	L_array_keys_v "$1" || return 2
+	L_array_keys_v "$1" || return "$L_EX_USAGE"
 	for _L_k in ${L_v[@]+"${L_v[@]}"}; do
 		_L_i="$1[$_L_k]"
 		if [[ "$2" == "${!_L_i}" ]]; then
@@ -3979,7 +4020,7 @@ L_table() {
 		o) _L_o=$OPTARG ;;
 		R) _L_R=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4092,7 +4133,7 @@ L_pretty_print() {
 			c) _L_pp_compact=1 ;;
 			C) _L_pp_compact=0 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4167,9 +4208,9 @@ _L_argskeywords_assert() {
 	if ! "${@:2}"; then
 		L_error -s 2 "%s" "${_L_errorprefix:+$_L_errorprefix }$1"
 		if ((_L_errorexit)); then
-			exit 2
+			exit "$L_EX_USAGE"
 		else
-			return 2
+			return "$L_EX_USAGE"
 		fi
 	fi
 }
@@ -4205,7 +4246,7 @@ _L_argskeywords_assign() {
 # @example
 #   range() {
 #      local start stop step
-#       L_argskeywords start stop step=1 -- "$@" || return 2
+#       L_argskeywords start stop step=1 -- "$@" || return "$L_EX_USAGE"
 #       for ((; start < stop; start += stop)); do echo "$start"; done
 #   }
 #   range start=1 stop=6 step=2
@@ -4213,14 +4254,14 @@ _L_argskeywords_assign() {
 #
 #   max() {
 #      local arg1 arg2 args key
-#      L_argskeywords arg1 arg2 @args key='' -- "$@" || return 2
+#      L_argskeywords arg1 arg2 @args key='' -- "$@" || return "$L_EX_USAGE"
 #      ...
 #   }
 #   max 1 2 3 4
 #
 #   int() {
 #      local string base
-#      L_argskeywords string / base=10 -- "$@" || return 2
+#      L_argskeywords string / base=10 -- "$@" || return "$L_EX_USAGE"
 #      ...
 #   }
 #   int 10 7 # error
@@ -4236,7 +4277,7 @@ L_argskeywords() {
 			E) _L_errorexit=1 ;;
 			e) _L_errorprefix=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -4251,53 +4292,53 @@ L_argskeywords() {
 			case "$1" in
 			--) break ;;
 			@) # <positional or keyword> * <keyword only>
-				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return 2
-				_L_argskeywords_assert 'named arguments must follow bare @' test "${2:-}" != "--" || return 2
+				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return "$L_EX_USAGE"
+				_L_argskeywords_assert 'named arguments must follow bare @' test "${2:-}" != "--" || return "$L_EX_USAGE"
 				_L_positional_cnt=${#_L_arguments[@]}
 				_L_seen_star=1
 				;;
 			/) # <positional only> / <positional or keyword>
-				_L_argskeywords_assert '/ may appear only once' test "$_L_seen_slash" = 0 || return 2
-				_L_argskeywords_assert '/ must be ahead of @' test "$_L_seen_star" = 0 || return 2
+				_L_argskeywords_assert '/ may appear only once' test "$_L_seen_slash" = 0 || return "$L_EX_USAGE"
+				_L_argskeywords_assert '/ must be ahead of @' test "$_L_seen_star" = 0 || return "$L_EX_USAGE"
 				_L_nonkeyword_cnt=${#_L_arguments[@]}
 				_L_seen_slash=1
 				;;
 			@@*)
-				_L_argskeywords_assert "${1#@@} is not a valid variable name" L_is_valid_variable_name "${1#@@}" || return 2
-				_L_argskeywords_assert "arguments cannot follow var-keyword argument: ${2:-}" test "${2:-}" == "--" || return 2
+				_L_argskeywords_assert "${1#@@} is not a valid variable name" L_is_valid_variable_name "${1#@@}" || return "$L_EX_USAGE"
+				_L_argskeywords_assert "arguments cannot follow var-keyword argument: ${2:-}" test "${2:-}" == "--" || return "$L_EX_USAGE"
 				_L_excess_keyword="${1#@@}"
 				if ((_L_use_map)); then
 					L_map_clear "$_L_excess_keyword"
 				else
-					_L_argskeywords_assert "$1 must be an associative array" L_var_is_associative "$_L_excess_keyword" || return 2
+					_L_argskeywords_assert "$1 must be an associative array" L_var_is_associative "$_L_excess_keyword" || return "$L_EX_USAGE"
 					eval "$_L_excess_keyword=()"
 				fi
 				;;
 			@*)
-				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return 2
+				_L_argskeywords_assert '* argument may appear only once' test "$_L_seen_star" = 0 || return "$L_EX_USAGE"
 				_L_excess_positional="${1#@}"
-				_L_argskeywords_assert "${_L_excess_positional} is not a valid variable name" L_is_valid_variable_name "${_L_excess_positional}" || return 2
+				_L_argskeywords_assert "${_L_excess_positional} is not a valid variable name" L_is_valid_variable_name "${_L_excess_positional}" || return "$L_EX_USAGE"
 				_L_seen_star=1
 				_L_positional_cnt=${#_L_arguments[@]}
 				eval "$_L_excess_positional=()"
 				;;
 			*=*)
-				_L_argskeywords_assert "${1##=*} is not a valid variable name" L_is_valid_variable_name "${1%%=*}" || return 2
-				_L_argskeywords_assert "duplicate argument ${1##=*}" L_not L_args_contain "${1%%=*}" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return 2
+				_L_argskeywords_assert "${1##=*} is not a valid variable name" L_is_valid_variable_name "${1%%=*}" || return "$L_EX_USAGE"
+				_L_argskeywords_assert "duplicate argument ${1##=*}" L_not L_args_contain "${1%%=*}" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return "$L_EX_USAGE"
 				_L_argskeywords_assign "${1%%=*}" "${1#*=}"
 				_L_isset[${#_L_arguments[@]}]=1
 				_L_arguments+=("${1%%=*}")
 				;;
 			*)
-				_L_argskeywords_assert "parameter without a default follows parameter with a default: $1" test "${#_L_isset[@]}" -eq 0 || return 2
-				_L_argskeywords_assert "$1 is not a valid variable name" L_is_valid_variable_name "$1" || return 2
-				_L_argskeywords_assert "duplicate argument $1" L_not L_args_contain "$1" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return 2
+				_L_argskeywords_assert "parameter without a default follows parameter with a default: $1" test "${#_L_isset[@]}" -eq 0 || return "$L_EX_USAGE"
+				_L_argskeywords_assert "$1 is not a valid variable name" L_is_valid_variable_name "$1" || return "$L_EX_USAGE"
+				_L_argskeywords_assert "duplicate argument $1" L_not L_args_contain "$1" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return "$L_EX_USAGE"
 				_L_arguments+=("$1")
 				;;
 			esac
 			shift
 		done
-		_L_argskeywords_assert '"--" separator argument is missing' test "${1:-}" = "--" || return 2
+		_L_argskeywords_assert '"--" separator argument is missing' test "${1:-}" = "--" || return "$L_EX_USAGE"
 		shift
 		: "${_L_positional_cnt:=${#_L_arguments[@]}}" "${_L_nonkeyword_cnt:=0}"
 	}
@@ -4318,7 +4359,7 @@ L_argskeywords() {
 							continue 2
 						else
 							# declare -p _L_nonkeyword_cnt _L_arguments _L_positional_cnt
-							_L_argskeywords_assert "got some positional only arguments passed as keyword arguments: $1" false || return 2
+							_L_argskeywords_assert "got some positional only arguments passed as keyword arguments: $1" false || return "$L_EX_USAGE"
 						fi
 					fi
 				done
@@ -4329,17 +4370,17 @@ L_argskeywords() {
 						L_asa_set "$_L_excess_keyword" "${1%%=*}" "${1#*=}"
 					fi
 				else
-					_L_argskeywords_assert "got an unexpected keyword argument: $_L_key" false || return 2
+					_L_argskeywords_assert "got an unexpected keyword argument: $_L_key" false || return "$L_EX_USAGE"
 				fi
 			elif ((_L_seen_equal)); then
-				_L_argskeywords_assert "positional argument follows keyword argument: $1" false || return 2
+				_L_argskeywords_assert "positional argument follows keyword argument: $1" false || return "$L_EX_USAGE"
 			elif ((_L_positional_idx < _L_positional_cnt)); then
 				_L_isset[_L_positional_idx]=1
 				_L_argskeywords_assign "${_L_arguments[_L_positional_idx++]}" "$1"
 			elif [[ -n "$_L_excess_positional" ]]; then
 				eval "$_L_excess_positional+=(\"\$1\")"
 			else
-				_L_argskeywords_assert "takes $_L_positional_cnt positional arguments but more were given: $1" false || return 2
+				_L_argskeywords_assert "takes $_L_positional_cnt positional arguments but more were given: $1" false || return "$L_EX_USAGE"
 			fi
 			shift
 		done
@@ -4359,8 +4400,8 @@ L_argskeywords() {
 					fi
 				fi
 			done
-			_L_argskeywords_assert "missing $positional_cnt required positional arguments: $positional_str" test "$positional_cnt" -eq 0 || return 2
-			_L_argskeywords_assert "missing $keyword_cnt required keyword-only arguments: $keyword_str" test "$keyword_cnt" -eq 0 || return 2
+			_L_argskeywords_assert "missing $positional_cnt required positional arguments: $positional_str" test "$positional_cnt" -eq 0 || return "$L_EX_USAGE"
+			_L_argskeywords_assert "missing $keyword_cnt required keyword-only arguments: $keyword_str" test "$keyword_cnt" -eq 0 || return "$L_EX_USAGE"
 		fi
 	}
 }
@@ -4389,7 +4430,7 @@ L_version_cmp() {
 		'<='|'<'|'>'|'>=') op="$2" ;;
 		*)
 			L_error "L_version_cmp: invalid second argument: $op"
-			return 2
+			return "$L_EX_USAGE"
 		esac
 		IFS=' .-()' read -r -a a <<<"$1"
 		IFS=' .-()' read -r -a b <<<"$3"
@@ -4506,11 +4547,11 @@ L_log_configure() {
 					esac
 				fi
 				;;
-			*) L_func_error; return 2; ;;
+			*) L_func_error; return "$L_EX_USAGE"; ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_func_assert "invalid arguments: $*" test "$#" -eq 0 || return 2
+	L_func_assert "invalid arguments: $*" test "$#" -eq 0 || return "$L_EX_USAGE"
 	_L_logconf_configured=1
 }
 
@@ -4733,11 +4774,11 @@ L_trace() {
 	L_log -s 1 -l "$L_LOGLEVEL_TRACE" "$@"
 }
 
-# @description Output a critical message and exit the script with 2.
+# @description Output a critical message and exit the script with 64 ($L_EX_USAGE).
 # @arg $@ L_critical arguments
 L_fatal() {
 	L_critical -s 1 "$@"
-	exit 2
+	exit "$L_EX_USAGE"
 }
 
 # @description log a command and then execute it
@@ -4760,7 +4801,7 @@ L_ok() {
 		case $o in
 			s) a+=(-s "$OPTARG") ;;
 			l) a+=(-l "$OPTARG") ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4789,7 +4830,7 @@ L_run() {
 			l) _L_logargs+=(-l "$OPTARG") ;;
 			s) _L_logargs+=(-s "$OPTARG") ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4813,7 +4854,7 @@ L_run() {
 # @description Shuffle an array
 # @arg $1 array nameref
 L_shuf_bash() {
-	local -n _L_arr="$1" || return 2
+	local -n _L_arr="$1" || return "$L_EX_USAGE"
 	local _L_i _L_j _L_tmp
 	# RANDOM range is 0..32767
 	for ((_L_i=${#_L_arr[@]}-1; _L_i; --_L_i)); do
@@ -4920,18 +4961,18 @@ L_sort_bash() {
 			c) _L_sort_compare+=("$OPTARG") ;;
 			E) eval "_L_sort_temp() { $OPTARG; }"; _L_sort_compare=_L_sort_temp ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return 2 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	if (($# != 1)); then
 		L_func_usage_error "wrong number of positional arguments: array name expected"
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	if (( _L_sort_numeric )); then
 		if (( ${#_L_sort_compare[*]} != 0 )); then
 			L_func_usage_error "-c option conflicts with -n option"
-			return 2
+			return "$L_EX_USAGE"
 		fi
 		_L_sort_compare=(_L_sort_compare_numeric)
 	elif (( ${#_L_sort_compare[*]} == 0 )); then
@@ -4945,7 +4986,7 @@ L_sort_bash() {
 		_L_c="$1[@]"
 		_L_array=(${!_L_c+"${!_L_c}"})
 	else
-		local -n _L_array="$1" || return 2
+		local -n _L_array="$1" || return "$L_EX_USAGE"
 	fi
 	_L_sort_bash_in 0 "$((${#_L_array[@]}-1))"
 	if ((!L_HAS_NAMEREF)); then
@@ -5490,7 +5531,7 @@ L_finally() {
     R) _L_register=1 ;;
     v) _L_v=$OPTARG ;;
     h) L_func_help; return 0 ;;
-    *) L_func_error; return 2 ;;
+    *) L_func_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -5514,7 +5555,7 @@ L_finally() {
   	_L_idx=$(( ${_L_idx[_L_first ? 0 : ${#_L_idx[@]}-1]:-10000000000} + (_L_first ? -1 : 1) ))
   	# After calculating index, store it to the user, if he wants that.
   	if [[ -n "$_L_v" ]]; then
-  		printf -v "$_L_v" "%s" "$_L_idx" || return 2
+  		printf -v "$_L_v" "%s" "$_L_idx" || return "$L_EX_USAGE"
   	fi
   	# Create element to insert.
   	printf -v _L_elem "%q " "$@"
@@ -5560,7 +5601,7 @@ L_finally() {
 # @option -i <index> Remove action of index <index>.
 # @option -h Print this help and return 0.
 # @see L_finally
-# @return 1 if nothing was popped, 2 on invalid usage,
+# @return 1 if nothing was popped, 64 ($L_EX_USAGE) on invalid usage,
 # otherwise return the exit status of the executed action.
 L_finally_pop() {
 	local OPTIND OPTARG OPTERR _L_pid _L_i _L_run=1 _L_idx="" _L_prefix="" _L_ret=0 _L_elem
@@ -5569,11 +5610,11 @@ L_finally_pop() {
 			n) _L_run=0 ;;
 			i) _L_idx=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	if (( $# != 0 )); then L_func_error "too many arguments"; return 2; fi
+	if (( $# != 0 )); then L_func_error "too many arguments"; return "$L_EX_USAGE"; fi
 	# Protect against invalid pid.
 	L_bashpid_to _L_pid
 	if [[ "$_L_finally_pid" != "$_L_pid" ]]; then
@@ -5587,7 +5628,7 @@ L_finally_pop() {
 		_L_idx=("${!_L_finally_arr[@]}")
 	else
 		if [[ -z "${_L_finally_arr[_L_idx]}" ]]; then
-			L_func_error "index not found: $_L_idx"; return 2
+			L_func_error "index not found: $_L_idx"; return "$L_EX_USAGE"
 		fi
 	fi
 	if ((_L_run)); then
@@ -5690,7 +5731,7 @@ _L_with_process_finally() {
 	kill "$1" || :
 	local rc
 	L_wait -t 30 "$1" || rc=$?
-	if (( rc == 124 )); then
+	if (( rc == L_EX_TIMEOUT )); then
 		# timeout
 		if (( $2 )); then
 			L_log "L_with_process: kill -s 9 and wait for process $1"
@@ -5713,13 +5754,13 @@ L_with_process() {
 		case "$i" in
 			v) v=1 ;;
 			h) L_func_usage; return 0 ;;
-			*) L_func_usage_error; return 2 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	case "$#" in
-		0) L_func_usage_error "missing variable to assign to with pid"; return 2 ;;
-		1) L_func_usage_error "missing command to execute"; return 2 ;;
+		0) L_func_usage_error "missing variable to assign to with pid"; return "$L_EX_USAGE" ;;
+		1) L_func_usage_error "missing command to execute"; return "$L_EX_USAGE" ;;
 	esac
 	"${@:2}" &
 	L_finally -r -s 1 _L_with_process_finally "$!" "$v"
@@ -6090,7 +6131,7 @@ L_unittest_main() {
 			c) _L_u_subshell=0 ;;
 			v) _L_u_verbose=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return 2 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -6334,7 +6375,7 @@ L_unittest_cmd() {
 		e) _L_uopt_exitcode=$OPTARG ;;
 		s) _L_uopt_up=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -6555,7 +6596,7 @@ L_map_assign() {
 	shift
 	while (($#)); do
 		L_map_set_noremove "$_L_map" "$2" "$3"
-		shift 2 || return 2
+		shift 2 || return "$L_EX_USAGE"
 	done
 }
 
@@ -6791,7 +6832,7 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 #   L_asa_copy map mapcopy
 L_asa_copy() {
 	local L_v
-	L_var_to_string_v "$1" || return 2
+	L_var_to_string_v "$1" || return "$L_EX_USAGE"
 	eval "$2=$L_v"
 }
 
@@ -6873,8 +6914,8 @@ L_asa_cmp() {
 		done
 	else
 		local _L_asa L_v
-		L_var_to_string -v _L_asa "$1" || return 2
-		L_var_to_string_v "$2" || return 2
+		L_var_to_string -v _L_asa "$1" || return "$L_EX_USAGE"
+		L_var_to_string_v "$2" || return "$L_EX_USAGE"
 		[[ "$_L_asa" == "$L_v" ]]
 	fi
 }
@@ -7160,7 +7201,7 @@ L_argparse_print_help() {
 				u|s) _L_short=1 ;;
 				e) _L_err=1 ;;
 				h) L_func_help; return 0 ;;
-				*) L_func_error; return 2 ;;
+				*) L_func_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -7350,9 +7391,9 @@ _L_argparse_spec_fatal() {
 		echo "L_argparse: When parsing arguments specification the following error occured: $*"
 	) >&2
 	if L_is_true "${_L_parser_exit_on_error[1]:-1}"; then
-		exit 2
+		exit "$L_EX_USAGE"
 	else
-		return 2
+		return "$L_EX_USAGE"
 	fi
 }
 
@@ -8020,7 +8061,7 @@ _L_argparse_optspec_execute_action() {
 # @option -ANY Any options supported by compgen, except -P and -S
 # @option -D <str> Specify the description of appended to the result. If description is an empty string, it is not printed. Default: help of the option.
 # @arg $1 <str> incomplete
-# @exitcode 0 if compgen returned 0 or 1, otherwise 2
+# @exitcode 0 if compgen returned 0 or 1, otherwise 64 ($L_EX_USAGE)
 L_argparse_compgen() {
 	local OPTIND OPTARG OPTERR args=() c="" prefix="" suffix="" desc
 	while getopts 'abcdefgjksuvo:A:G:W:F:C:X:P:S:D:' c; do
@@ -8030,7 +8071,7 @@ L_argparse_compgen() {
 		P) prefix="$OPTARG" ;;
 		S) suffix="$OPTARG" ;;
 		D) desc="$OPTARG" ;;
-		?) compgen "-$_L_c" || L_fatal "invalid option: -$_L_c"; return 2 ;;
+		?) compgen "-$_L_c" || L_fatal "invalid option: -$_L_c"; return "$L_EX_USAGE" ;;
 		esac
 	done
 	if ! L_var_is_set desc && ((_L_opti > 0)) && L_var_is_set "_L_opt_help[_L_opti]"; then
@@ -8049,7 +8090,7 @@ L_argparse_compgen() {
 	compgen ${args[@]:+"${args[@]}"} \
 		-P "plain${L_GS}${L_comp_prefix:-}$prefix" \
 		-S "$suffix${desc:+${L_GS}$desc}" \
-		-- "$@" || (($? == 1)) || return 2
+		-- "$@" || (($? == 1)) || return "$L_EX_USAGE"
 }
 
 # @description validate argument with choices is correct
@@ -8874,13 +8915,13 @@ _L_argparse_spec_parse_args() {
 			unknown_args=*) _L_parser_unknown_args[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			fromfile_prefix_chars=*) _L_parser_fromfile_prefix_chars[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			color=*) _L_parser_color[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
-			*[$' \r\v\t\n=']*|*=*|'') _L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}" || return 2 ;;
+			*[$' \r\v\t\n=']*|*=*|'') _L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE" ;;
 			*)
 				if ((_L_parseri == 1)); then
-					_L_argparse_spec_fatal "unknown parser positional argument: ${_L_args[_L_argsi]}" || return 2
+					_L_argparse_spec_fatal "unknown parser positional argument: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE"
 				else
 					if [[ -n "${_L_parser_name[_L_parseri]:-}" ]]; then
-						_L_argparse_spec_fatal "parser or subparser received multiple positional arguments: ${_L_args[_L_argsi]}" || return 2
+						_L_argparse_spec_fatal "parser or subparser received multiple positional arguments: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE"
 					fi
 					_L_parser_name[_L_parseri]=${_L_args[_L_argsi]}
 				fi
@@ -8892,10 +8933,10 @@ _L_argparse_spec_parse_args() {
 	if ((_L_parseri != 1)); then
 		# a subparser has to have a name
 		if [[ -z "${_L_parser_name[_L_parseri]:-}" ]]; then
-			_L_argparse_spec_fatal "a subparser has to have a name=" || return 2
+			_L_argparse_spec_fatal "a subparser has to have a name=" || return "$L_EX_USAGE"
 		fi
 		if ((_L_parseri == _L_parser__parent[_L_parseri])); then
-			_L_argparse_spec_fatal "internal error: circular loop detected in subparsers" || return 2
+			_L_argparse_spec_fatal "internal error: circular loop detected in subparsers" || return "$L_EX_USAGE"
 		fi
 		_L_argparse_spec_subparser_inherit_from_parent "$_L_parseri"
 	fi
@@ -8903,13 +8944,13 @@ _L_argparse_spec_parse_args() {
 		# validate dest_dict
 		if [[ -n "${_L_parser_dest_dict[_L_parseri]:-}" ]]; then
 			if ! L_is_valid_variable_name "${_L_parser_dest_dict[_L_parseri]}"; then
-				_L_argparse_spec_fatal "not a valid variable name: dest_dict=${_L_parser_dest_dict[_L_parseri]}" || return 2
+				_L_argparse_spec_fatal "not a valid variable name: dest_dict=${_L_parser_dest_dict[_L_parseri]}" || return "$L_EX_USAGE"
 			fi
 		fi
 		# validate dest_prefix
 		if [[ -n "${_L_parser_dest_prefix[_L_parseri]:-}" ]]; then
 			if ! L_is_valid_variable_name "${_L_parser_dest_prefix[_L_parseri]}"; then
-				_L_argparse_spec_fatal "not a valid variable name: dest_prefix=${_L_parser_dest_prefix[_L_parseri]}" || return 2
+				_L_argparse_spec_fatal "not a valid variable name: dest_prefix=${_L_parser_dest_prefix[_L_parseri]}" || return "$L_EX_USAGE"
 			fi
 		fi
 	}
@@ -8926,7 +8967,7 @@ _L_argparse_spec_parse_args() {
 			fi
 			if [[ -n "${_L_tmp[0]:-}${_L_tmp[1]:-}" ]]; then
 				((++_L_opti))
-				_L_argparse_spec_call _L_argparse_spec_call_parameter "${_L_tmp[@]}" || return 2
+				_L_argparse_spec_call _L_argparse_spec_call_parameter "${_L_tmp[@]}" || return "$L_EX_USAGE"
 			fi
 		fi
 	}
@@ -8936,10 +8977,10 @@ _L_argparse_spec_parse_args() {
 			((++_L_opti))
 			case "${_L_args[++_L_argsi]}" in
 			""|----|--|"{"|"}") _L_argparse_spec_fatal "invalid arguments: ${_L_args[_L_argsi]:-}" ;;
-			call=function|class=function) ((++_L_argsi)); _L_argparse_spec_call_function || return 2 ;;
-			call=subparser|class=subparser) ((++_L_argsi)); _L_argparse_spec_call_subparser || return 2 ;;
+			call=function|class=function) ((++_L_argsi)); _L_argparse_spec_call_function || return "$L_EX_USAGE" ;;
+			call=subparser|class=subparser) ((++_L_argsi)); _L_argparse_spec_call_subparser || return "$L_EX_USAGE" ;;
 			call=*|class=*) _L_argparse_spec_fatal "invalid ${_L_args[_L_argsi]%=*}, must be subparser or function: ${_L_args[_L_argsi]:-}" ;;
-			*) _L_argparse_spec_call_parameter || return 2 ;;
+			*) _L_argparse_spec_call_parameter || return "$L_EX_USAGE" ;;
 			esac
 		done
 	}
@@ -8951,7 +8992,7 @@ _L_argparse_print_var() {
 		case "$c" in
 		s) style="$OPTARG" ;;
 		i) idx[OPTARG]=1 ;;
-		*) return 2 ;;
+		*) return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -9111,7 +9152,7 @@ L_argparse() {
 	local _L_argsi=0      # Index into _L_args
 	local _L_subparser_argsi="" # Index in _L_args where subparser arguments start.
 	local _L_subparser_opti=-1  # The option index of the subparser argument.
-	_L_argparse_spec_parse_args || return 2
+	_L_argparse_spec_parse_args || return "$L_EX_USAGE"
 	# After parsing, restore the indexes.
 	_L_parseri=$_L_parsercur
 	unset -v _L_parsercur
@@ -9154,7 +9195,7 @@ L_argparse() {
 			case "${_L_opt__class[_L_opti]}" in
 			subparser) _L_argparse_sub_subparser_choices_indexes _L_subparsers _L_indexes || return "$?" ;;
 			function) _L_argparse_sub_function_choices _L_subparsers || return "$?" ;;
-			*) L_argparse_fatal "internal error class=${_L_opt__class[_L_opti]}" || return 2 ;;
+			*) L_argparse_fatal "internal error class=${_L_opt__class[_L_opti]}" || return "$L_EX_USAGE" ;;
 			esac
 			if ((_L_argsi < ${#_L_args[@]})); then
 				# Find the subparser. Generate a list of similar subparsers to manipulate them later.
@@ -9443,7 +9484,7 @@ _L_proc_init_setup_redirs() {
 		input)
 			if [[ "$redir" != *"<" ]]; then
 				L_func_error "invalid argument $arg: not possible to input string to output" 1
-				return 2
+				return "$L_EX_USAGE"
 			fi
 			L_printf_append _L_redirs " <(printf %%s %q)" "$val"
 			;;
@@ -9464,13 +9505,13 @@ _L_proc_init_setup_redirs() {
 			fi
 			;;
 		file)
-			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exists: $val" 1; return 2; fi
+			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exists: $val" 1; return "$L_EX_USAGE"; fi
 			L_printf_append _L_redirs "%q" "$val"
 			;;
 		fd) L_printf_append _L_redirs "&%d" "$val" ;;
-		*) L_func_error "Invalid argument $arg $mode" 1; return 2; ;;
+		*) L_func_error "Invalid argument $arg $mode" 1; return "$L_EX_USAGE"; ;;
 		esac
-		printf -v "$4" "%s" "$ret" || return 2
+		printf -v "$4" "%s" "$ret" || return "$L_EX_USAGE"
 	fi
 }
 
@@ -9541,7 +9582,7 @@ L_proc_popen() {
 		W) _L_cleanup=$1 ;;
 		n) _L_dryrun=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -9549,7 +9590,7 @@ L_proc_popen() {
 	shift
 	if ((!$#)); then
 		L_func_usage_error "no command to execute"
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	printf -v _L_cmd "%q " "$@" || return "$?"
 	_L_cmd=${_L_cmd%% }
@@ -9720,7 +9761,7 @@ _L_proc_close_fd() {
 	if [[ -n "$L_v" ]]; then
 		if ! [[ "$L_v" =~ ^[0-9]+$ ]]; then
 			L_func_error "internal error: is not a file descriptor $2: $L_v"
-			return 2
+			return "$L_EX_USAGE"
 		fi
 		eval "exec $L_v>&-"
 		_L_proc_rm_fd "$1" "$2"
@@ -9773,7 +9814,7 @@ _L_wait_assign_pids_done_rets() {
 	# Timeout occurs when there are any unfinished pids.
 	# Timeout in -n mode occurs when no single one pid is finished.
 	if (( _L_all ? ${_L_pids[@]+${#_L_pids[@]}}+0 != 0 : ${_L_done[@]+${#_L_done[@]}}+0 == 0 )); then
-		_L_return=124
+		_L_return=$L_EX_TIMEOUT
 	fi
 	# Assign results.
 	if [[ -n "$_L_pids_var" ]]; then
@@ -9867,8 +9908,8 @@ _L_wait_collect_any_pids() {
 # @option -h Print this help and exit.
 # @arg $@ pids to wait on
 # @return 0 on success
-#         2 usage error
-#         124 timeout
+#         64 ($L_EX_USAGE) usage error
+#         124 ($L_EX_TIMEOUT) timeout
 L_wait() {
 	local OPTIND OPTARG OPTERR _L_timeout="" _L_rets_var="" _L_pids_var="" _L_left_var="" \
 		_L_polltime=0.1 _L_all=1 _L_bashonly=0 _L_ret _L_i _L_pid _L_tmp _L_tmpf IFS=' ' \
@@ -9883,7 +9924,7 @@ L_wait() {
 			n) _L_all=0 ;;
 			b) _L_bashonly=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -9957,7 +9998,7 @@ L_wait() {
 				if timeout "$_L_timeout" tail "${@/#/--pid=}" -f /dev/null; then
 					_L_wait_collect_all_pids_and_assign_pids_done_rets || return "$?"
 					return 0
-				elif (($? == 124)); then
+				elif (($? == L_EX_TIMEOUT)); then
 					_L_wait_collect_any_pids || return "$?"
 					_L_wait_assign_pids_done_rets
 					return "$_L_return"
@@ -9990,7 +10031,7 @@ L_wait() {
 # @option -h Print this help and return 0.
 # @arg $1 PID from L_proc_popen
 # @exitcode 0 if L_proc has finished
-#           124 if timeout expired
+#           124 ($L_EX_TIMEOUT) if timeout expired
 L_proc_wait() {
 	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
 	while getopts t:v:ch _L_opt; do
@@ -9999,7 +10040,7 @@ L_proc_wait() {
 		v) _L_v="$OPTARG" ;;
 		c) _L_close=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10039,30 +10080,30 @@ L_proc_wait() {
 #   echo "read from 10 fd text: $a"
 #   echo "read from 11 fd text: $b"
 # @return 0 on success
-#         124 on timeout
+#         124 ($L_EX_TIMEOUT) on timeout
 L_read_fds() {
 	local _L_vars=() _L_fds=() _L_i _L_ret _L_line="" OPTIND OPTARG OPTERR \
 		_L_timeout="" _L_poll=0.05 IFS="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
 	while getopts t:p:v:i:d:nh _L_i; do
 		case "$_L_i" in
-			t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return 2; fi ;;
+			t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return "$L_EX_USAGE"; fi ;;
 			p) _L_poll="$OPTARG" ;;
-			v) _L_v="$OPTARG"; printf -v "$_L_v" "%s" "" || return 2 ;;
-			i) _L_opt_i=$OPTARG; printf -v "$_L_opt_i" "%s" "" || return 2 ;;
+			v) _L_v="$OPTARG"; printf -v "$_L_v" "%s" "" || return "$L_EX_USAGE" ;;
+			i) _L_opt_i=$OPTARG; printf -v "$_L_opt_i" "%s" "" || return "$L_EX_USAGE" ;;
 			d) _L_delim=$OPTARG ;;
 			n) _L_once=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return 2 ;;
+			*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	if (( !$# )); then
 		L_func_usage_error "no file descriptors to read from"
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	if (( $# % 2 == 1 )); then
 		L_func_usage_error "the number of arguments has to be divisible by 2: \$#=$#"
-		return 2
+		return "$L_EX_USAGE"
 	fi
 	# Collect arguments into arrays.
 	while (($#)); do
@@ -10091,7 +10132,7 @@ L_read_fds() {
 			fi
 			# This check is done after calculation, so we know _L_poll is positive above.
 			if L_timeout_expired "$_L_timeout"; then
-				return 124
+				return "$L_EX_TIMEOUT"
 			fi
 		else
 			# If this is last single file descriptor, do not timeout the read.
@@ -10155,8 +10196,8 @@ L_read_fds() {
 # @arg $1 PID from L_proc_popen
 # @exitcode
 #   0 on success.
-#   2 on usage error.
-#   124 on timeout.
+#   64 ($L_EX_USAGE) on usage error.
+#   124 ($L_EX_TIMEOUT) on timeout.
 L_proc_communicate() {
 	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
 	while getopts i:o:e:t:kv:h _L_opt; do
@@ -10168,7 +10209,7 @@ L_proc_communicate() {
 		k) _L_kill=1 ;;
 		v) _L_v="$OPTARG" ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return 2 ;;
+		*) L_func_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10338,7 +10379,7 @@ _L_foreach_sort_indirect_L_arrs() {
 # @env _L_FOREACH_[0-9]+
 # @return 0 if iteration should be continued,
 #         1 on interanl error,
-#         2 on usage error,
+#         64 ($L_EX_USAGE) on usage error,
 #         4 if iteration should stop.
 # @example
 #    local array1=(a b c d) array2=(d e f g)
@@ -10375,7 +10416,7 @@ L_foreach() {
       c) _L_opt_c=$OPTARG ;;
       e) _L_opt_e=$OPTARG; L_array_clear "$_L_opt_e" ;;
       h) L_func_help; return 0 ;;
-      *) L_func_error; return 2 ;;
+      *) L_func_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -10550,8 +10591,8 @@ _L_xargs_handle_return() {
 	0) ;;
 	255)
 		_L_x_done=1
-		if ((_L_x_return < 124)); then
-			_L_x_return=124
+		if ((_L_x_return < L_EX_TIMEOUT)); then
+			_L_x_return=$L_EX_TIMEOUT
 		fi
 		if (( !_L_x_quiet )); then
 			printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_cmd[0]}" >&2
@@ -10784,9 +10825,9 @@ _L_xargs_handle_eof_str() {
 # @arg $@ Command to execute. Default: L_quote_printf.
 # @return 0 on success
 #         1 on some other error
-#         2 on invalid usage
+#         64 ($L_EX_USAGE) on invalid usage
 #         123 if any invocation oft he command exited with status 1-125 and 192-254
-#         124 if the command exited with status 255
+#         124 ($L_EX_TIMEOUT) if the command exited with status 255
 #         125 if the command exited with the status 128-192
 #         126 if the command cannot be run
 #         127 if the command is not found
@@ -10829,7 +10870,7 @@ L_xargs() {
 			X) _L_x_preserve_set_e=1 ;;
 			T) _L_x_template=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error "L_xargs: invalid option: -$_L_i"; return 2 ;;
+			*) L_func_error "L_xargs: invalid option: -$_L_i"; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10903,7 +10944,7 @@ _L_lib_log() {
 
 _L_lib_fatal() {
 	_L_lib_log "FATAL: $*"
-	exit 3
+	exit "$L_EX_SOFTWARE"
 }
 
 _L_lib_selfupdate() {

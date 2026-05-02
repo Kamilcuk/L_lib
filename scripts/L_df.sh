@@ -115,7 +115,7 @@ L_DF_NAN="$L_DEL"
 # @arg $2 number of columns
 # @arg $@ list of headers followed by a list of types followed by rows
 L_df_init_raw() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df=(
     "$2" # [0] = number of columns
     "$_L_DF_OFFSET" # [1] = offset
@@ -138,15 +138,15 @@ L_df_init() {
 # @arg $1 dataframe namereference source
 # @arg $2 dataframe namereference destination
 L_df_copy_empty() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
-  if [[ "$2" != _L_df ]]; then local -n _L_df="$2" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
+  if [[ "$2" != _L_df ]]; then local -n _L_df="$2" || return "$L_EX_USAGE"; fi
   _L_df=("${L_df[@]::$_L_DF_DATA*0}")
 }
 
 # @description Remove values from dataframe.
 # @arg $1 dataframe namerefence
 L_df_clear() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df=("${L_df[@]::$_L_DF_DATA*0}")
 }
 
@@ -156,7 +156,7 @@ L_df_clear() {
 # @arg $2 List of headers
 # @arg $3 List of values.
 L_df_from_lists() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_i
   read -r -a _L_i <<<"$2"
   L_df_init L_df "${_L_i[@]}"
@@ -171,7 +171,7 @@ L_df_from_lists() {
 # @arg $1 dataframe namereference
 # @arg $2 associative array namereference
 L_df_append_dict() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local -n _L_dict=$2
   local _L_key _L_val _L_columns _L_column_idx _L_end="${#L_df[*]}" _L_added=0
   L_df_get_columns -v _L_columns "$1"
@@ -191,7 +191,7 @@ L_df_append_dict() {
 # @arg $1 dataframe namereference
 # @arg $@ Row values.
 L_df_add_row() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_i=$(( $# - 1 - L_df[0] ))
   if (( _L_i > 0 )); then
     while (( _L_i-- )); do
@@ -211,7 +211,7 @@ L_df_add_row() {
 # @arg $2 column name
 # @arg $@ values
 L_df_add_column() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   # Make space for another column.
   eval eval " \
     'L_df=(' \
@@ -237,7 +237,7 @@ L_df_add_column() {
 }
 
 L_df_read_csv() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_i IFS=,
   # Create the dataframe headers.
   read -ra _L_i || return "$?"
@@ -259,7 +259,7 @@ L_df_read_csv() {
 # @arg $3 column index
 L_df_get_iat() { L_handle_v_array "$@"; }
 L_df_get_iat_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_v="${L_df[$_L_DF_DATA * $2 + $3]}"
 }
 
@@ -269,7 +269,7 @@ L_df_get_iat_v() {
 # @arg $3 column index
 # @arg $4 value to set
 L_df_set_iat() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df[$_L_DF_DATA * $2 + $3]=$4
 }
 
@@ -278,21 +278,21 @@ L_df_set_iat() {
 # @arg $3 column name
 L_df_get_at() { L_handle_v_array "$@"; }
 L_df_get_at_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df_get_column_idx_v "$1" "$3"
   L_v=("${L_df[@]:$_L_DF_DATA * $2 + $L_v:L_df[0]}")
 }
 
 L_df_get_row() { L_handle_v_array "$@"; }
 L_df_get_row_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_v=("${L_df[@]:$_L_DF_DATA * $2:L_df[0]}")
 }
 
 # @description Get number of rows in a dataframe.
 L_df_get_len() { L_handle_v_scalar "$@"; }
 L_df_get_len_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_v=$(( ( ${#L_df[@]} - ($_L_DF_DATA*0) ) / L_df[0] ))
 }
 
@@ -305,14 +305,14 @@ L_df_get_shape_v() {
 # @description Get columns in a dataframe.
 L_df_get_columns() { L_handle_v_array "$@"; }
 L_df_get_columns_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_v=("${L_df[@]:$_L_DF_COLUMNS:L_df[0]}")
 }
 
 # @description Get column types of a dataframe.
 L_df_get_dtypes() { L_handle_v_array "$@"; }
 L_df_get_dtypes_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_v=("${L_df[@]:$_L_DF_TYPES:L_df[0]}")
 }
 
@@ -322,7 +322,7 @@ L_df_copy() { L_array_copy "$1" "$2"; }
 # @arg $@ column names
 L_df_get_column_idx() { L_handle_v_array "$@"; }
 L_df_get_column_idx_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_i
   L_v=()
   while (($# >= 2)); do
@@ -345,10 +345,10 @@ L_df_get_column_idx_v() {
 # @arg $@ column indexes
 L_df_get_column_name() { L_handle_v_array "$@"; }
 L_df_get_column_name_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   if (($# == 1)); then
     L_func_usage_error "Not enough positional arguments" 2
-    return 2
+    return "$L_EX_USAGE"
   fi
   local _L_i
   L_v=()
@@ -375,14 +375,14 @@ L_df_get_column_idx_to_array() { L_handle_v_array "$@"; }
 L_df_get_column_idx_to_array_v() {
   local _L_rows
   L_df_get_len -v _L_rows "$1" || return $?
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   eval eval "'L_v=(' '\"\${L_df[\$_L_DF_DATA*'{0..$((_L_rows-1))}'+\$2]}\"' ')'"
 }
 
 
 # @description Return dataframe with only specific columns by index.
 L_df_select_columns_idx() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_i IFS=' '
   #
   for (( _L_i = L_df[0] - 1; _L_i >= 0; --_L_i )); do
@@ -406,7 +406,7 @@ L_df_select_columns() {
 
 # @description Drop column by name.
 L_df_drop_column() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local L_v
   L_df_get_column_idx_v "$1" "$2"
   L_df_drop_column_idx "$1" "$L_v"
@@ -414,7 +414,7 @@ L_df_drop_column() {
 
 # @description Drop column by index.
 L_df_drop_column_idx() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_column_idx=$2
   # Remove all indexes starting from _L_column_idx up until the end each column.
   eval "unset 'L_df['{$(( L_df[1] + _L_column_idx ))..${#L_df[*]}..${L_df[0]}}']'"
@@ -483,7 +483,7 @@ _L_df_sort_cmp() {
 # @arg $@ column names to sort by
 L_df_sort() { L_getopts_in -p _L_sort_ "nr" _L_df_sort_in "$@"; }
 _L_df_sort_in() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_sort_idx=() L_v _L_sort_dtypes _L_sort_rows
   # Get column indexes of all columns names.
   shift
@@ -524,17 +524,17 @@ L_df_astype() {
       fi
     done
   fi
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df[$_L_DF_TYPES+_L_column_idx]=$_L_type
 }
 
 L_df_head_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df=("${L_df[@]::$_L_DF_DATA*$2}")
 }
 
 L_df_tail() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_rows
   L_df_get_len -v _L_rows "$1"
   L_df=(
@@ -554,7 +554,7 @@ L_df_get_row_as_dict_v() {
 }
 
 L_df_row_slice() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_rows _L_i
   L_df_get_len -v _L_rows "$1"
   L_df=(
@@ -576,7 +576,7 @@ L_df_row_slice() {
 #   # This will drop the row at index 1 from the dataframe df.
 #   L_df_drop_row df 1
 L_df_drop_row() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_rows _L_i="$2"
   L_df_get_len -v _L_rows "$1"
   if (( _L_i >= _L_rows )); then
@@ -593,7 +593,7 @@ L_df_drop_row() {
 #   # This will keep only rows where the product name starts with "M".
 #   L_df_filter_dict df L_eval '[[ "${L_v["product"]::1}" == "M" ]]'
 L_df_filter_dict() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   shift
   local _L_rows _L_i _L_columns
   L_df_get_len -v _L_rows L_df
@@ -622,7 +622,7 @@ L_df_filter_dict() {
 #   L_df_describe -p 10,25,50,75,90 df
 L_df_describe() { L_getopts_in -p _L_opt_ "ap:e:i:" _L_df_describe_in "$@"; }
 _L_df_describe_in() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_percentiles=(25 50 75) _L_include=() _L_exclude=() _L_columns _L_dtypes _L_col _L_col_idx _L_rows _L_values _L_min _L_max _L_mean _L_std _L_percentile_values _L_percentile _L_percentile_value _L_rows
   # Parse options
   if [[ -n "$_L_opt_p" ]]; then
@@ -681,7 +681,7 @@ _L_df_describe_in() {
 # @option $1 Row number or start:stop or start:stop:step or : for all columns.
 # @option $2 Column indexes separated by a comma.
 L_df_iloc() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_row_spec=$2 _L_col_spec=${3:-} _L_start _L_end _L_step _L_col_indices _L_result=()
   # Parse row specification
   if [[ "$_L_row_spec" == ":" ]]; then
@@ -718,7 +718,7 @@ L_df_iloc() {
 # @option $1 Row number or start:stop or start:stop:step or : for all columns.
 # @option $@ Column names
 L_df_loc() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_row_spec=$2 _L_col_names _L_col_indices="" _L_col
   # Parse column specification
   for _L_col in "${@:3}"; do
@@ -731,7 +731,7 @@ L_df_loc() {
 
 # @description Return 0 if dataframe is grouped.
 L_df_is_grouped() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   [[ -n "${L_df[2]}" ]] && L_assert "internal error: grouped by columns list is invalid" \
     L_regex_match "${L_df[2]}" "^[0-9]+( [0-9]+)*$"
 }
@@ -739,7 +739,7 @@ L_df_is_grouped() {
 # @description Get column names by which dataframe was grouped.
 L_df_get_grouped_columns() { L_handle_v_array "$@"; }
 L_df_get_grouped_columns_v() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_df_is_grouped L_df && {
     L_v=()
     local _L_i=0 IFS=' '
@@ -762,7 +762,7 @@ L_df_groupby() {
 # @arg $1 dataframe namereference
 # @arg $@ column indexes to group by
 L_df_igroupby() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_assert "dataframe is already grouped" L_not L_df_is_grouped L_df
   shift
   local -a _L_cols=( "$@" )   # groupby column indexes
@@ -793,7 +793,7 @@ L_df_igroupby() {
 # @description Remove groups and reset index
 # @arg $1 dataframe namereference
 L_df_reset_index() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_cols_off=${L_df[1]}
   local _L_ngroups=$(( _L_cols_off - $_L_DF_OFFSET ))
   if (( _L_ngroups )); then
@@ -814,7 +814,7 @@ _L_df_column() {
 # @description Print a dataframe.
 # @arg $1 dataframe namereference
 L_df_print() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local i IFS=$'!' rows row txt="" right=() dtypes
   L_df_get_len -v rows "$1"
   echo "=== DataFrame $1 columns=${L_df[0]} rows=${rows} ===="
@@ -837,7 +837,7 @@ L_df_print() {
 # @description Print groupby groups stored in a flattened groups array.
 # @arg $1 dataframe nameref (expects ${df}_groups)
 L_df_print_groups() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   L_assert "dataframe not grouped" test -n "${L_df[2]}"
   local _L_cols_off=${L_df[1]}
   local _L_ngroups=$(( _L_cols_off - $_L_DF_OFFSET ))
@@ -886,7 +886,7 @@ L_df_filter_eq() {
 # @arg $1 dataframe or grouped_df nameref   Name of the DataFrame or grouped object
 # @arg $@ optional column names            Numeric columns to sum; if omitted, sum all numeric columns
 L_df_sum() {
-  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return 2; fi
+  if [[ "$1" != L_df ]]; then local -n L_df="$1" || return "$L_EX_USAGE"; fi
   local _L_df_new IFS=' ' _L_groupby_columns _L_values _L_col
   L_df_init _L_df_new
   if L_df_is_grouped L_df; then

@@ -12,7 +12,7 @@ SCRIPT='
 echo
 
 case "${SCOPE[0]}" in
-main) is_sourced=1 has_sourced_arguments=? ;;
+main) is_sourced=1 has_sourced_arguments=$L_EX_USAGE ;;
 args*) is_sourced=0 has_sourced_arguments=0 ;;
 noargs*) is_sourced=0 has_sourced_arguments=1 ;;
 *) echo "ERROROOR: ${SCOPE[*]}"; exit 123 ;;

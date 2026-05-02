@@ -36,7 +36,7 @@ set -euo pipefail
 # - #_L_FLOW[@] - _L_FLOW[2]+_L_FLOW[1]*2 = length of current iterator vlaue
 
 L_flow_is_finished() {
-  if [[ $# && "$1" != "-" && "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  if [[ $# && "$1" != "-" && "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return "$L_EX_USAGE"; fi
   (( _L_FLOW[3] ))
 }
 
@@ -58,7 +58,7 @@ L_flow_is_finished() {
 #   local gen
 #   L_flow_new gen 'L_flow_source_range 5' 'L_flow_pipe_head 3' L_flow_sink_printf
 L_flow_new() {
-  if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return "$L_EX_USAGE"; fi
   shift
   # Create context.
   _L_FLOW=(
@@ -76,7 +76,7 @@ L_flow_new() {
 }
 
 L_flow_append() {
-  if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  if [[ "$1" != "_L_FLOW" ]]; then local -n _L_FLOW="$1" || return "$L_EX_USAGE"; fi
   shift
   # Merge context if -f option is given.
   if ! (( _L_FLOW[0] == -1 && _L_flow_start[1] > 0 )); then
@@ -154,7 +154,7 @@ L_flow_make() {
 #   L_flow_make gen + L_flow_source_range 5 + L_flow_sink_printf
 #   L_flow_run gen
 L_flow_run() {
-  if [[ "$1" != "_L_FLOW" && "$1" != "-" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  if [[ "$1" != "_L_FLOW" && "$1" != "-" ]]; then local -n _L_FLOW="$1" || return "$L_EX_USAGE"; fi
   if (( _L_FLOW[0] != -1 )); then
     L_panic 'depth at run stage should be -1. Are you trying to run a running generator?'
   fi
@@ -183,7 +183,7 @@ L_flow_make_run() {
 # @example
 #   L_flow_use my_gen L_flow_sink_printf
 L_flow_use() {
-  if [[ "$1" != "_L_FLOW" && "$1" != "-" ]]; then local -n _L_FLOW="$1" || return 2; fi
+  if [[ "$1" != "_L_FLOW" && "$1" != "-" ]]; then local -n _L_FLOW="$1" || return "$L_EX_USAGE"; fi
   "${@:2}"
 }
 
@@ -479,7 +479,7 @@ L_flow_source_range() {
         i=$(( i + $2 ))
       fi
       ;;
-    *) L_func_usage_error; return 2 ;;
+    *) L_func_usage_error; return "$L_EX_USAGE" ;;
   esac
 }
 
@@ -538,7 +538,7 @@ L_flow_source_repeat() {
         L_flow_yield "$1"
       fi
       ;;
-    *) L_func_usage_error "invalid number of positional rguments"; return 2 ;;
+    *) L_func_usage_error "invalid number of positional rguments"; return "$L_EX_USAGE" ;;
   esac
 }
 
@@ -589,7 +589,7 @@ _L_flow_pipe_batch_in() {
     else
       if (( _L_s )); then
         L_func_error "incomplete batch"
-        return 2
+        return "$L_EX_USAGE"
       fi
       break
     fi
@@ -1128,7 +1128,7 @@ _L_flow_pipe_sort_cmp() {
       if (( $1 > $2 )); then
         return 1
       else
-        return 2
+        return "$L_EX_USAGE"
       fi
     fi
   else
@@ -1136,7 +1136,7 @@ _L_flow_pipe_sort_cmp() {
       if [[ "$1" > "$2" ]]; then
         return 1
       else
-        return 2
+        return "$L_EX_USAGE"
       fi
     fi
   fi
@@ -1304,7 +1304,7 @@ L_flow_pipe_islice() {
   case "$#" in
     1) local _L_start=0 _L_stop=$1 _L_step=1 ;;
     2|3) local _L_start=$1 _L_stop=$2 _L_step=${3:-1} ;;
-    *) L_func_usage_error "wrong number of positional arguments: $#"; return 2 ;;
+    *) L_func_usage_error "wrong number of positional arguments: $#"; return "$L_EX_USAGE" ;;
   esac
   if (( _L_start < 0 )); then
     L_panic "invalid value: start=$_L_start"

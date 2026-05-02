@@ -62,7 +62,7 @@ L_class_set_dict() {
 	while (($#)); do
 		local _L_vk="$1" _L_vv="$2"
 		L_map_set "$_L_v" "${_L_k:+$_L_k/}$_L_vk" "$_L_vv"
-		shift 2 || return 2
+		shift 2 || return "$L_EX_USAGE"
 	done
 }
 
@@ -118,7 +118,7 @@ L_class_get_v() {
 			fi
 		done
 	else
-		return 2
+		return "$L_EX_USAGE"
 	fi
 }
 
@@ -185,7 +185,7 @@ L_class_items_v() {
 			done
 			L_v+=("$_L_tmp")
 		else
-			return 2
+			return "$L_EX_USAGE"
 		fi
 	done
 }
