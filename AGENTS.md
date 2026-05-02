@@ -75,8 +75,8 @@ The project adheres to strict conventions to maintain consistency and readabilit
 *   **Result Storage:** Functions designed to return values use the `-v <var>` option to store their output in the specified variable, mirroring `printf -v`. If `-v` is not provided, results are typically printed to standard output.
 *   **Return Codes:**
     *   `0`: Success.
-    *   `2`: Usage errors (e.g., incorrect arguments).
-    *   `124`: Timeout.
+    *   `64` (L_EX_USAGE): Usage errors (e.g., incorrect arguments).
+    *   `124` ($L_EX_TIMEOUT): Timeout.
 *   **Shell Options:** Scripts and the library itself operate with `set -euo pipefail` to ensure robust error handling and predictable behavior.
 *   **Testing Practices:** Unit tests are organized into functions prefixed with `_L_test_` within `tests/test.sh` and are executed by `L_unittest_main`. New tests should be added to separate files in the `tests/` directory and sourced from `tests/test.sh`. Each test file should contain multiple tests for a reasonable section or group of functions.
 

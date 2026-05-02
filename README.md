@@ -108,6 +108,10 @@ Below is a selection of the library's features. The library contains much more.
     [`$L_HAS_WAIT_N`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_WAIT_N)
 - Waiting on multiple PIDs with a timeout ignoring signals and collecting all exit codes
     [`L_wait`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_wait)
+- Standard exit codes based on `sysexits.h`
+    [`$L_EX_OK`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_OK)
+    [`$L_EX_USAGE`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_USAGE)
+    [`$L_EX_TIMEOUT`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_TIMEOUT)
 - Simplify storing exit status of a command into a variable
     [`L_exit_to`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to)
     [`L_exit_to_10`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to_10)
@@ -163,7 +167,7 @@ Contributions are welcome! You can run the tests locally with `make test` or che
     - This follows the convention of `printf -v <var>`.
     - Without the `-v` option, the function outputs the elements on lines to standard output.
     - Associated function with `_v` suffix store the result in a hardcoded scratch variable `L_v`.
-- Return 2 on usage error, return 124 on timeout.
+- Return 64 ($L_EX_USAGE) on usage error, return 124 ($L_EX_TIMEOUT) on timeout.
 
 # License
 

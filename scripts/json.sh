@@ -3,19 +3,19 @@
 # @description Print JSON parsing error.
 _L_json_err() {
   L_func_error "$1" "$(( ${#FUNCNAME[@]} - j_stackpos ))"
-  return 2
+  return "$L_EX_USAGE"
 }
 
 # @description Parse a string in a JSON.
 _L_json_get_string() {
   _L_json_lstrip "$j_json"
   if [[ "${j_json::1}" != '"' ]]; then
-    _L_json_err "internal error: missing \" at $j_json" || return 2
+    _L_json_err "internal error: missing \" at $j_json" || return "$L_EX_USAGE"
   fi
   j_json=${j_json:1}
   if ! [[ "$j_json" =~ ((^|[^\"\\]|\\\")(\\\\)*)\"(.*)$ ]]; then
     #                  12               3         4
-    _L_json_err "not closed \": $j_json" || return 2
+    _L_json_err "not closed \": $j_json" || return "$L_EX_USAGE"
   fi
 	printf -v "$1" "%s" "${j_json::${#j_json}-${#BASH_REMATCH[0]}+${#BASH_REMATCH[1]}}"
 	j_json=${BASH_REMATCH[4]}
@@ -56,7 +56,7 @@ _L_json_do_v() {
       L_v+=("$key")
       _L_json_lstrip "$j_json"
       if [[ "${j_json::1}" != : ]]; then
-        _L_json_err "not found ':' in $j_json" || return 2
+        _L_json_err "not found ':' in $j_json" || return "$L_EX_USAGE"
       fi
       _L_json_lstrip "${j_json:1}"
       if (($#)) && [[ "$key" == "$1" ]]; then
@@ -72,7 +72,7 @@ _L_json_do_v() {
       _L_json_lstrip "$j_json"
     done
     if [[ "${j_json::1}" != "}" ]]; then
-      _L_json_err "Closing } not found: $j_json" || return 2
+      _L_json_err "Closing } not found: $j_json" || return "$L_EX_USAGE"
     fi
     "$_L_cb" "}"
     j_json=${j_json:1}
@@ -83,7 +83,7 @@ _L_json_do_v() {
   "[")
     "$_L_cb" "["
     if (($#)) && ! [[ "$1" =~ ^[0-9]+$ ]]; then
-      _L_json_err "array index must be a number: $1" || return 2
+      _L_json_err "array index must be a number: $1" || return "$L_EX_USAGE"
     fi
     local idx=0
     _L_json_lstrip "${j_json:1}"
@@ -95,16 +95,16 @@ _L_json_do_v() {
       type="array"
       _L_json_lstrip "${j_json:1}"
       if (($#)) && ((idx++ == $1)); then
-        _L_json_do_v "${@:2}" || return 2
+        _L_json_do_v "${@:2}" || return "$L_EX_USAGE"
         return
       else
-        _L_json_do -v value || return 2
+        _L_json_do -v value || return "$L_EX_USAGE"
         L_v+=("${value[0]}" "${value[1]}")
       fi
       _L_json_lstrip "$j_json"
     done
     if [[ "${j_json::1}" != "]" ]]; then
-      _L_json_err "Closing ] not found: $j_json" || return 2
+      _L_json_err "Closing ] not found: $j_json" || return "$L_EX_USAGE"
     fi
     "$_L_cb" "]"
     j_json=${j_json:1}
@@ -114,7 +114,7 @@ _L_json_do_v() {
     ;;
   '"')
     type="string"
-    _L_json_get_string value || return 2
+    _L_json_get_string value || return "$L_EX_USAGE"
     L_v=("$value")
     "$_L_cb" "string" "\"$value\""
     printf -v subvalue "%b" "$value"
@@ -123,7 +123,7 @@ _L_json_do_v() {
     type="number"
     if ! [[ "$j_json" =~ ^(-?(0|[1-9][0-9]*)([.][0-9]*)?([eE][-+]?[0-9]*)?)(.*)$ ]]; then
       #                   1  2              3           4                  5
-      _L_json_err "invalid number: $j_json" || return 2
+      _L_json_err "invalid number: $j_json" || return "$L_EX_USAGE"
     fi
     L_v=("${BASH_REMATCH[1]}")
     subvalue=$L_v
@@ -139,7 +139,7 @@ _L_json_do_v() {
     j_json=${j_json:${#L_v[0]}}
     ;;
   '') ;;
-  *) _L_json_err "invalid j_json: $(printf %q "$j_json")" || return 2
+  *) _L_json_err "invalid j_json: $(printf %q "$j_json")" || return "$L_EX_USAGE"
   esac
   local length="$((${#j_fulljson}-${#j_json}-startposition))"
   L_v=(
@@ -278,7 +278,7 @@ _L_json_pretty() {
       esac
       _L_out+=$2
       ;;
-    *) _L_json_err "could not print. args: $*"; return 2 ;;
+    *) _L_json_err "could not print. args: $*"; return "$L_EX_USAGE" ;;
   esac
 }
 
@@ -297,7 +297,7 @@ _L_json_compact() {
   case "$1" in
     ["[{:,}]"]) _L_out+=${2:-}$1 ;;
     string|number|literal) _L_out+=$2 ;;
-    *) _L_json_err "could not print. args: $*"; return 2 ;;
+    *) _L_json_err "could not print. args: $*"; return "$L_EX_USAGE" ;;
   esac
 }
 

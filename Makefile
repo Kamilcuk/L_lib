@@ -32,7 +32,7 @@ test_parallel:
 	if ! $(MAKE) -O -j $(NPROC) test > >(tee build/output >&2) 2>&1; then \
 		grep -B500 '^make\[.*\]:.*Makefile.*\] Error' build/output; \
 		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
-		exit 2; \
+		exit 64; \
 	fi
 test_parallel2:
 	@mkdir -vp build
