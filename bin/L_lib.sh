@@ -3465,6 +3465,38 @@ L_string_unquote() {
 	fi
 }
 
+# @description Fuzzy search a key in a list of strings, returning matches in L_v.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 Key to search for
+# @arg $@ Candidate strings
+L_fuzzy() { L_handle_v_array "$@"; }
+L_fuzzy_v() {
+  local _L_target=$1 _L_p_target="*" _L_cand _L_i
+  shift
+  L_v=()
+  if [[ -z "$_L_target" ]]; then
+    for _L_cand in "$@"; do
+      [[ -z "$_L_cand" ]] && L_v+=("")
+    done
+    return 0
+  fi
+	for (( _L_i = 0; _L_i < ${#_L_target}; _L_i++ )); do _L_p_target+="${_L_target:_L_i:1}*"; done
+  for _L_cand in "$@"; do
+    if [[ -z "$_L_cand" ]]; then continue; fi
+  	local _L_p_cand="*"
+		for (( _L_i = 0; _L_i < ${#_L_cand}; _L_i++ )); do _L_p_cand+="${_L_cand:_L_i:1}*"; done
+    # Symmetric fuzzy match:
+    # 1. Exact match
+    # 2. Candidate fits target pattern (deletion: target="verbose", cand="vrbose")
+    # 3. Target fits candidate pattern (addition: target="helpp", cand="help")
+    if [[ "$_L_cand" == "$_L_target" || "$_L_cand" == $_L_p_target || "$_L_target" == $_L_p_cand ]]; then
+      L_v+=("$_L_cand")
+    fi
+  done
+  return 0
+}
+
+
 # ]]]
 # json [[[
 # @section json

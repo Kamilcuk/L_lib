@@ -34,6 +34,7 @@ USR2_CNT=0
 . "$dir"/test_var_to_string.sh
 . "$dir"/test_finally.sh
 . "$dir"/test_pretty_print.sh
+. "$dir"/test_fuzzy.sh
 
 _L_test_color() {
 	{
