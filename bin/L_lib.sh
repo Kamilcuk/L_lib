@@ -5727,7 +5727,7 @@ L_with_cd() {
 # @arg $2 Optional stack offset to add to RETURN trap.
 L_with_tmpfile_to() {
 	local _L_v &&
-    _L_v=$(mktemp "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
+    L_mktemp -v _L_v "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX" &&
     L_finally -r -s "$((${2-}+1))" rm -f "$_L_v" &&
     printf -v "$1" "%s" "$_L_v"
 }
@@ -6443,7 +6443,7 @@ L_unittest_cmd() {
 			# L_critical "_L_uopt_capture=$_L_uopt_capture _L_uc=[$_L_uc]"
 			# Use temporary file
 			local _L_utmpf
-			_L_utmpf=$(mktemp)
+			L_mktemp -v _L_utmpf
 			# No trap EXIT - literally next command removes the file.
 			# shellcheck disable=SC2094
 			{
@@ -9450,35 +9450,68 @@ else
 	}
 fi
 
+# @description Create a temporary file natively in Bash.
+# This avoids the overhead of calling the mktemp utility.
+# Performance: ~2x faster than 'mktemp' utility by avoiding subshells and external binary execution.
+# No L_mktemp -d, cause mktemp -d is faster then shell implementation.
+# It uses 'set -C' (noclobber) for atomic file creation.
+# @option -v <var> variable name to assign result to
+# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_mktemp.XXXXXXXXXX
+# @example
+#   L_mktemp -v tmp
+#   echo "data" > "$tmp"
+#   rm "$tmp"
+L_mktemp() { L_handle_v_scalar "$@"; }
+L_mktemp_v() {
+	local _L_i _L_file _L_tpl="${1:-${TMPDIR:-/tmp}/L_mktemp.XXXXXXXXXX}" _L_old_opts="$(set +o)"
+	for _L_i in {1..10}; do
+		if [[ "$_L_tpl" == *XXXXXXXXXX ]]; then
+			_L_file="${_L_tpl%XXXXXXXXXX}${HOSTNAME:-h}.$$.${BASHPID:-0}.$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))"
+		else
+			_L_file="$_L_tpl"
+		fi
+		set -C
+		if : > "$_L_file" 2>/dev/null; then
+			eval "$_L_old_opts"
+			L_v="$_L_file"
+			return 0
+		fi
+	done
+	eval "$_L_old_opts"
+	return 1
+}
+
 # @description Open two connected file descriptors.
-# This internally creates a temporary file with mkfifo
+# This internally creates a temporary file with mkfifo.
+# It avoids the overhead of calling the mktemp utility.
 # The result variable is assigned an array that:
-#   - [0] element is the input to the pipe,
-#   - [1] element is the output from the pipe.
+#   - [0] element is the output from the pipe (read end),
+#   - [1] element is the input to the pipe (write end).
 # This is meant to mimic the pipe() C function.
 # @arg <var> variable name to assign result to
-# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_pipe_XXXXXXXXXX
+# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_pipe.XXXXXXXXXX
 # @example
 #   L_pipe tmp
-#   L_array_extract tmp in out
+#   L_array_extract tmp out in
 #   echo 123 >&"$in"
 #   exec "$in">&-
 #   cat <&"$out"
 #   exec "$out"<&-
 L_pipe() {
-	local _L_i _L_file _L_1 _L_0 _L_tmp
-	L_assert 'mktemp or mkfifo utilities are missing' L_hash mktemp mkfifo
-	for _L_i in _ _ _ _ _; do
-		if
-			_L_file="$(mktemp -u "${2:-${TMPDIR:-/tmp}/L_pipe_XXXXXXXXXX}")" &&
-			mkfifo "$_L_file"
-		then
+	local _L_i _L_file _L_1 _L_0 _L_tmp _L_tpl="${2:-${TMPDIR:-/tmp}/L_pipe.XXXXXXXXXX}"
+	for _L_i in {1..10}; do
+		if [[ "$_L_tpl" == *XXXXXXXXXX ]]; then
+			_L_file="${_L_tpl%XXXXXXXXXX}${HOSTNAME:-h}.$$.${BASHPID:-0}.$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))"
+		else
+			_L_file="$_L_tpl"
+		fi
+		if mkfifo "$_L_file" 2>/dev/null; then
 			if _L_pipe_opener; then
-				rm "$_L_file" || return 1
-				L_array_assign "$1" "$_L_0" "$_L_1" || return 1
+				rm "$_L_file" || return "$?"
+				L_array_assign "$1" "$_L_0" "$_L_1" || return "$?"
 				return 0
 			else
-				rm "$_L_file" || return 1
+				rm "$_L_file" || return "$?"
 			fi
 		fi
 	done
@@ -9495,11 +9528,11 @@ L_mkstemp() {
 	local _L_m_file _L_m_fd1 _L_m_fd2 _L_m_fd3
 	# mktemp -> open FDs -> rm file
 	if ((L_HAS_VARIABLE_FD)); then
-		_L_m_file=$(mktemp "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}") || return 1
+		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
 		exec {_L_m_fd1}<>"$_L_m_file" {_L_m_fd2}<>"$_L_m_file" {_L_m_fd3}<>"$_L_m_file"
 	else
-		L_get_free_fd_to _L_m_fd1 _L_m_fd2
-		_L_m_file=$(mktemp "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}") || return 1
+		L_get_free_fd_to _L_m_fd1 _L_m_fd2 _L_m_fd3
+		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
 		eval "exec $_L_m_fd1<>\"\$_L_m_file\" $_L_m_fd2<>\"\$_L_m_file\" $_L_m_fd3<>\"\$_L_m_file\""
 	fi
 	rm -f "$_L_m_file"
@@ -9866,12 +9899,13 @@ _L_wait_assign_pids_done_rets() {
 _L_wait_handle_err() {
 	if (($1 == 127)); then
 		# Wait returns 127 on error.
-		_L_tmpf=$(mktemp) || return 1
+		local _L_tmpf _L_err
+		L_mktemp -v _L_tmpf || return
 		{
 			rm "$_L_tmpf"
 			wait "${@:2}" 2>&10
-			err=$(cat <&11)
-			if [[ -n "$err" ]]; then
+			_L_err=$(cat <&11)
+			if [[ -n "$_L_err" ]]; then
 				return 1
 			fi
 		} 10>"$_L_tmpf" 11<"$_L_tmpf"
@@ -9885,11 +9919,11 @@ _L_wait_collect_all_pids_and_assign_pids_done_rets() {
 	for _L_pid in "${_L_pids[@]}"; do
 		if (( L_HAS_BASH5_3 )); then
 			# Bash<5.3 does not correctly handle -n -p combination in wait, removing _all_ pids from the wait table.
-			local _L_tmp
+			local _L_w_tmp
 			# -p is unset when receiving a signal.
-			while wait -n -p _L_tmp "$_L_pid" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_tmp; do
+			while wait -n -p _L_w_tmp "$_L_pid" && _L_ret=0 || _L_ret=$?; ! L_var_is_set _L_w_tmp; do
 				# We have received a signal, wait again.
-				_L_wait_handle_err "$_L_ret" -n -p _L_tmp "$_L_pid" || return "$?"
+				_L_wait_handle_err "$_L_ret" -n -p _L_w_tmp "$_L_pid" || return "$?"
 			done
 		else
 			while wait "$_L_pid" && _L_ret=0 || _L_ret=$?; (( _L_ret > 128 )); do
