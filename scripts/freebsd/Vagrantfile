@@ -75,11 +75,44 @@ Vagrant.configure("2") do |config|
   #   apt-get install -y apache2
   # SHELL
 
+  config.vm.provider :libvirt do |libvirt|
+    libvirt.driver = "kvm"
+    libvirt.memory = 2048
+    libvirt.cpus = 2
+  end
+
+  config.vm.provider "qemu" do |qe|
+    qe.arch = "x86_64"
+    qe.machine = "q35"
+    qe.cpu = "host"
+    qe.memory = "2G"
+    qe.ssh_auto_correct = true
+    qe.net_device = "virtio-net-pci"
+    qe.qemu_dir = "/usr/bin"
+    qe.extra_qemu_args = %w(-enable-kvm -serial file:qemu.log)
+  end
   config.vm.synced_folder "../..", "/L_lib"
   config.vm.provision "shell", inline: <<-SHELL
     sudo mount -t procfs proc /proc
     sudo mount -t devfs dev /dev
-    sudo pkg install -y jq
+    sudo pkg install -y jq bash
+    sudo chsh -s /usr/bin/bash vagrant
+    # Bash config
+    {
+      echo "alias l='ls -lah'"
+      echo "cd /L_lib"
+    } >> /home/vagrant/.bashrc
+    # SH config (FreeBSD default sh)
+    {
+      echo "alias l='ls -lah'"
+      echo "cd /L_lib"
+    } >> /home/vagrant/.shrc
+    # TCSH config (Standard FreeBSD root/user shell)
+    {
+      echo "alias l 'ls -lah'"
+      echo "cd /L_lib"
+    } >> /home/vagrant/.cshrc
+    chown vagrant:vagrant /home/vagrant/.bashrc /home/vagrant/.shrc /home/vagrant/.cshrc
   SHELL
 
 end
