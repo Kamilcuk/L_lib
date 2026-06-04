@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Find project root
+DIR="$(dirname "$(readlink -f "$0")")"/..
+. "$DIR"/bin/L_lib.sh L_argparse \
+  description="Deterministic instruction counting using QEMU user-mode emulation." \
+  dest_prefix=arg_ \
+  -- -P --prefix default="" help="Prefix code to run before every command (e.g. setup)" \
+  -- -r --repeat type=int default=1 help="Number of times to repeat the command inside a loop. Not needed as QEMU measuring is exact." \
+  -- -b --bwrap action=store_const const=1 dest=bwrap help="Use bwrap for isolation (default)" \
+  -- -B --no-bwrap flag=0 dest=bwrap help="Disable bwrap isolation" \
+  -- -s --stdout flag=1 help="Show guest stdout/stderr (don't redirect to /dev/null)" \
+  -- -v --verbose flag=1 help="Print raw QEMU command and logs" \
+  -- commands nargs="+" help="Bash commands to profile" \
+  ---- "$@"
+
+# Deterministic instruction counting using QEMU user-mode emulation.
+L_assert "qemu-x86_64 not found. install apt-get install qemu-user-static to fix" L_hash qemu-x86_64
+L_assert "bash not found." L_hash bash
+
+QEMU_BIN=$(which qemu-x86_64)
+BASH_BIN=$(which bash)
+
+# Baseline: Empty bash execution
+get_insn_count_to() {
+    local _var=$1
+    local _cmd_str=$2
+    local log_file
+    L_with_tmpfile_to log_file
+    
+    local final_cmd=()
+    if ((arg_bwrap)); then
+        local BWRAP_BIN=$(which bwrap) || L_panic "bwrap not found"
+        local bwrap_args=(
+            --clearenv
+            --setenv PATH "/usr/bin:/bin"
+            --dev /dev
+            --proc /proc
+            --unshare-all
+            --ro-bind "$QEMU_BIN" "$QEMU_BIN"
+            --ro-bind "$BASH_BIN" "$BASH_BIN"
+            --ro-bind "$DIR" "$DIR"
+            --bind "$log_file" "$log_file"
+        )
+        
+        # Add libraries
+        local libs=() ldd_out
+        ldd_out=$(ldd "$BASH_BIN" "$QEMU_BIN") || L_panic "ldd failed for $BASH_BIN or $QEMU_BIN"
+        while read -r line; do
+            [[ "$line" =~ ^/.*: ]] && continue
+            local matches
+            if matches=$(echo "$line" | grep -o '/[^ ]*'); then
+                for path in $matches; do
+                    if [[ -e "$path" ]]; then
+                        libs+=("$path")
+                        local real=$(readlink -f "$path")
+                        [[ "$real" != "$path" ]] && libs+=("$real")
+                    fi
+                done
+            fi
+        done <<<"$ldd_out"
+        
+        local lib
+        for lib in $(printf "%s\n" "${libs[@]+"${libs[@]}"}" | sort -u); do
+            bwrap_args+=(--ro-bind "$lib" "$lib")
+        done
+
+        final_cmd=(
+            "$BWRAP_BIN"
+            "${bwrap_args[@]}"
+            --
+            "$QEMU_BIN" "-one-insn-per-tb" "-d" "exec" "-D" "$log_file"
+            "$BASH_BIN" "--norc" "--noprofile" "-c" "$_cmd_str"
+        )
+    else
+        final_cmd=(
+            "$QEMU_BIN" "-one-insn-per-tb" "-d" "exec" "-D" "$log_file"
+            "$BASH_BIN" "--norc" "--noprofile" "-c" "$_cmd_str"
+        )
+    fi
+
+    if ((arg_verbose)); then
+        L_log "Running: ${final_cmd[*]}"
+    fi
+
+    # Execute and capture exit code
+    local _status=0
+    if ((arg_stdout)); then
+        "${final_cmd[@]}" || _status=$?
+    else
+        "${final_cmd[@]}" >/dev/null 2>&1 || _status=$?
+    fi
+    
+    local _count
+    _count=$(grep -c "^Trace" "$log_file")
+    printf -v "$_var" "%s %s" "$_count" "$_status"
+}
+
+# Main Loop
+printf "%-55s | %10s | %7s | %4s | %6s\n" "Command" "Instr" "Diff" "Exit" "Stdev"
+printf "%-55s-|------------|---------|------|--------\n" "-------------------------------------------------------"
+
+prev_total=0
+for cmd in "${arg_commands[@]}"; do
+    full_cmd="${arg_prefix}${cmd}"
+
+    samples=()
+    statuses=()
+    sum=0
+    for ((r=0; r<arg_repeat; r++)); do
+        get_insn_count_to res "$full_cmd"
+        read -r count status <<<"$res"
+        samples+=("$count")
+        statuses+=("$status")
+        sum=$((sum + count))
+    done
+
+    # Calculate Mean
+    mean_total=$(bc -l <<< "$sum / $arg_repeat")
+    total_fmt=$(printf "%.0f" "$mean_total")
+
+    # Calculate Diff to previous row
+    diff_str="-"
+    if (( prev_total > 0 )); then
+        diff_val=$((total_fmt - prev_total))
+        printf -v diff_str "%+d" "$diff_val"
+    fi
+    prev_total=$total_fmt
+
+    # Calculate Stdev
+    stdev=0
+    if ((arg_repeat > 1)); then
+        sum_sq_diff=0
+        for s in "${samples[@]}"; do
+            sum_sq_diff=$(bc -l <<< "$sum_sq_diff + ($s - $mean_total)^2")
+        done
+        stdev=$(bc -l <<< "sqrt($sum_sq_diff / $arg_repeat)")
+    fi
+    stdev_fmt=$(printf "%.2f" "$stdev")
+
+    # Final status: show the first one
+    final_status="${statuses[0]}"
+
+    # Truncate command for display
+    display_cmd="$cmd"
+    if (( ${#display_cmd} > 52 )); then
+        display_cmd="${display_cmd:0:52}..."
+    fi
+
+    printf "%-55s | %10d | %7s | %4s | %6s\n" "$display_cmd" "$total_fmt" "$diff_str" "$final_status" "$stdev_fmt"
+done
