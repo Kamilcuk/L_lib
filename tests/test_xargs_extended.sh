@@ -82,7 +82,7 @@ _L_test_L_xargs_process_killing() {
     # and that it happens quickly.
     local pid start end duration dur=1023491 before after beforelines afterlines
     L_epochrealtime_usec -v start
-    L_xargs -P 4 -n 1 sleep "$dur" <<<"1 2 3 4" & pid=$!
+    L_xargs -P 4 -I {} sleep "$dur" <<<"1 2 3 4" & pid=$!
     sleep 0.2
     before=$(pgrep -u $UID -f "sleep $dur" || :)
     kill $pid
