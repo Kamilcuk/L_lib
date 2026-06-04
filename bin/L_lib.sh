@@ -756,7 +756,7 @@ L_func_comment() {
 #          t) t=1 ;;
 #          g) g=$OPTARG ;;
 #          h) L_func_help; return 0 ;;
-#          *) L_func_usage; return "$L_EX_USAGE" ;;
+#          *) L_func_usage_error; return "$L_EX_USAGE" ;;
 #        esac
 #      done
 #      shift "$((OPTARG-1))"
@@ -1772,58 +1772,85 @@ L_return() { return "$1"; }
 # @arg $@ Command to execute
 L_shopt_extglob() {
 	if shopt -p extglob >/dev/null; then "$@"
-	else
-		shopt -s extglob; if "$@"; then shopt -u extglob
-		else eval "shopt -u extglob;return \"$?\""; fi
-	fi
+	else shopt -s extglob; "$@"; eval "shopt -u extglob; return $?"; fi
+}
+
+# @description Runs the command with the specified shopt option enabled temporarily.
+# @arg $1 shopt option name (e.g., nullglob)
+# @arg $@ command to execute
+L_shopt() {
+	if shopt -p "$1" >/dev/null; then "${@:2}"
+	else shopt -s "$1"; "${@:2}"; eval "shopt -u \$1; return $?"; fi
 }
 
 if ((L_HAS_LOCAL_DASH)); then
 
+# @description Runs the command with the specified shell option enabled temporarily.
+# The design choice is to provide a scoped (RAII-like) setting that automatically
+# restores the original shell state upon return, ensuring environment isolation.
+# It supports both single-letter flags (-x, -f) and long options (-o pipefail).
+# @arg $1 The shell option to apply (e.g., -x, -f, -o).
+# @arg [$2] If $1 was -o, the -o <option> to apply.
+# @arg $@ The command and its arguments to execute.
+# @example
+#    # Chain multiple options by nesting:
+#    L_with_set -o pipefail L_with_set -x my_command arg1
+L_with_set() {
+	local -
+	if [[ "$1" == [+-]o ]]; then
+		set "$1" "$2" && "${@:3}"
+	else
+		set "$1" && "${@:2}"
+	fi
+}
+
 # @description Runs the command under set -x restoring the setting after return.
 # @arg $@ Command to execute
-L_setx() {
-	local -
-	set -x
-	"$@"
-}
+L_setx() { local -; set -x; "$@"; }
 
 # @description Runs the command under set +x restoring the setting after return.
 # @arg $@ Command to execute
 # @see L_setx
-L_unsetx() {
-	local -
-	set +x
-	"$@"
-}
+L_unsetx() { local -; set +x; "$@"; }
 
 # @description Runs the command under set -o posix restoring the setting after return.
 # @arg $@ Command to execute
-L_setposix() {
-	local -
-	set -o posix
-	"$@"
-}
+L_setposix() { local -; set -o posix; "$@"; }
 
 # @description Runs the command under set +o posix restoring the setting after return.
 # @arg $@ Command to execute
-L_unsetposix() {
-	local -
-	set +o posix
-	"$@"
-}
+L_unsetposix() { local -; set +o posix; "$@"; }
 
 else
+
+	L_with_set() {
+		# Case is faster then ifs and getopts. Getopts is almost as fast.
+		case "$1/$-/:$SHELLOPTS:" in
+			-o/*/*:"$2":*) "${@:3}" ;;
+			-o/*/*) set -o "$2" && "${@:3}"; eval "set +o \"$2\" && return $?" ;;
+			+o/*/*:"$2":*) set +o "$2" && "${@:3}"; eval "set -o \"$2\" && return $?" ;;
+			+o/*/*) "${@:3}" ;;
+			-o*/*/*:"${1:2}":*) "${@:2}" ;;
+			-o*/*/*) set "$1" && "${@:2}"; eval "set +o \"${1:2}\" && return $?" ;;
+			+o*/*/*:"${1:2}":*) set "$1" && "${@:2}"; eval "set -o \"${1:2}\" && return $?" ;;
+			+o*/*/*) "${@:2}" ;;
+			"-${1:1}"/*"${1:1}"*/*) "${@:2}" ;;
+			"-${1:1}"/*) set "$1" && "${@:2}"; eval "set +${1:1} && return $?" ;;
+			"+${1:1}"/*"${1:1}"*/*) set "$1" && "${@:2}"; eval "set -${1:1} && return $?" ;;
+			"+${1:1}"/*) "${@:2}" ;;
+			*) "$@" ;;
+		esac
+	}
 
 	L_setx() {
 		case $- in
 			*x*) "$@" ;;
-			*) set -x; "$@"; eval "set +x;return \"$?\"" ;;
+			*) set -x; "$@"; eval "set +x;return $?" ;;
 		esac
 	}
 	L_unsetx() {
 		case $- in
-			*x*) set +x; "$@"; eval "set -x;return \"$?\"" ;;
+			*x*) set +x; "$@"; eval "set -x;return $?" ;;
 			*) "$@" ;;
 		esac
 	}
@@ -1834,14 +1861,14 @@ else
 		else
 			set -o posix
 			"$@"
-			eval "set +o posix;return \"$?\""
+			eval "set +o posix;return $?"
 		fi
 	}
 	L_unsetposix() {
 		if [[ -o posix ]]; then
 			set +o posix
 			"$@"
-			eval "set -o posix;return \"$?\""
+			eval "set -o posix;return $?"
 		else
 			"$@"
 		fi
@@ -2376,6 +2403,7 @@ L_timeout_expired() {
 L_timeout_left() { L_handle_v_scalar "$@"; }
 L_timeout_left_v() {
 	L_epochrealtime_usec_v &&
+	(( ${L_v//.} < $1 )) &&
 	L_v=$(( $1 - ${L_v//.} )) &&
 	L_usec_to_sec_v "$L_v"
 }
@@ -4925,30 +4953,27 @@ L_shuf() {
 _L_sort_bash_in() {
 	local _L_sort_start="$1" _L_sort_end="$2" _L_sort_left _L_sort_right _L_sort_pivot _L_sort_tmp
 	if (( _L_sort_start < _L_sort_end )); then
-		_L_sort_left=$((_L_sort_start + 1))
-		_L_sort_right=$_L_sort_end
-		_L_sort_pivot=${_L_array[_L_sort_start]}
+		_L_sort_right=$_L_sort_end \
+			_L_sort_pivot=${_L_array[_L_sort_left = _L_sort_start + 1, _L_sort_start]}
 		while (( _L_sort_left < _L_sort_right )); do
 			if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
 				(( ++_L_sort_left, 1 ))
 			elif "${_L_sort_compare[@]}" "${_L_array[_L_sort_right]}" "$_L_sort_pivot"; then
 				(( --_L_sort_right, 1 ))
 			else
-				_L_sort_tmp=${_L_array[_L_sort_left]}
-				_L_array[_L_sort_left]=${_L_array[_L_sort_right]}
-				_L_array[_L_sort_right]=$_L_sort_tmp
+				_L_sort_tmp=${_L_array[_L_sort_left]} \
+					_L_array[_L_sort_left]=${_L_array[_L_sort_right]} \
+					_L_array[_L_sort_right]=$_L_sort_tmp
 			fi
 		done
 		if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
-			_L_sort_tmp=${_L_array[_L_sort_left]}
-			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
-			_L_array[_L_sort_start]=$_L_sort_tmp
-			(( --_L_sort_left, 1 ))
+			_L_sort_tmp=${_L_array[_L_sort_left]} \
+				_L_array[_L_sort_left--]=${_L_array[_L_sort_start]} \
+				_L_array[_L_sort_start]=$_L_sort_tmp
 		else
-			(( --_L_sort_left, 1 ))
-			_L_sort_tmp=${_L_array[_L_sort_left]}
-			_L_array[_L_sort_left]=${_L_array[_L_sort_start]}
-			_L_array[_L_sort_start]=$_L_sort_tmp
+			_L_sort_tmp=${_L_array[--_L_sort_left]} \
+				_L_array[_L_sort_left]=${_L_array[_L_sort_start]} \
+				_L_array[_L_sort_start]=$_L_sort_tmp
 		fi
 		_L_sort_bash_in "$_L_sort_start" "$_L_sort_left"
 		_L_sort_bash_in "$_L_sort_right" "$_L_sort_end"
