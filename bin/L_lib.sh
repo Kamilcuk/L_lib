@@ -5245,33 +5245,14 @@ L_trap_names_v() {
 # @arg $1 trap name or trap number
 L_trap_to_number() { L_handle_v_scalar "$@"; }
 L_trap_to_number_v() {
-	case "$1" in
-	EXIT) L_v=0 ;;
-	DEBUG|ERR|RETURN)
-		_L_TRAPS_init
-		L_v=${_L_TRAPS%%" $1 "*}
-		if [[ "$L_v" == "$_L_TRAPS" ]]; then
-      L_func_error "trap $1 not found"; return 1
-    fi
-		L_v=${L_v##* }
-		;;
-	[0-9]*)
-		_L_TRAPS_init
-		if [[ "$_L_TRAPS" != *" $1 "* ]]; then
-      L_func_error "trap $1 not found"; return 1
-    fi
-		L_v=$1
-		;;
-	[A-Z][A-Z]*)
-		_L_TRAPS_init
-		L_v=${_L_TRAPS%%" SIG${1#SIG} "*}
-		if [[ "$L_v" == "$_L_TRAPS" ]]; then
-      L_func_error "trap $1 not found"; return 1
-    fi
-		L_v=${L_v##* }
-		;;
-	*) return 1
-	esac
+	if [[ "$1" == [0-9]* ]]; then
+		kill -l "$1" >/dev/null && L_v=$1
+	else
+		L_v=$(kill -l "$1" 2>&1) || {
+			_L_TRAPS_init
+			[[ "$_L_TRAPS" =~ " "([0-9]+)" $1 " ]] && L_v=${BASH_REMATCH[1]}
+		}
+	fi
 }
 
 # @description convert trap number to trap name
@@ -5282,23 +5263,14 @@ L_trap_to_name() { L_handle_v_scalar "$@"; }
 L_trap_to_name_v() {
 	case "$1" in
 	0) L_v=EXIT ;;
-	DEBUG|RETURN|EXIT|ERR) L_v="$1" ;;
+	EXIT|DEBUG|ERR|RETURN) L_v=$1 ;;
 	[0-9]*)
-		_L_TRAPS_init
-		L_v=${_L_TRAPS##*" $1 "}
-		if [[ "$L_v" == "$_L_TRAPS" ]]; then
-			L_func_error "trap $1 not found"; return 1
-		fi
-		L_v=${L_v%% *}
+		L_v=SIG$(kill -l "$1" 2>/dev/null) || {
+			_L_TRAPS_init
+			[[ "$_L_TRAPS" =~ " $1 "([^ ]+)" " ]] && L_v=${BASH_REMATCH[1]}
+		}
 		;;
-	[A-Z][A-Z][A-Z]*)
-		_L_TRAPS_init
-		L_v="SIG${1/#SIG}"
-		if [[ "$_L_TRAPS" != *" $L_v "* ]]; then
-			L_func_error "trap $1 not found" ; return 1
-		fi
-		;;
-	*) return 1
+	*) kill -l "$1" >/dev/null && L_v="SIG${1/#SIG}" ;;
 	esac
 }
 
@@ -5455,7 +5427,7 @@ L_finally_handle_exit() {
 
 # @description L_finally signal handler.
 # @arg $1 The trap signal name to handle.
-# @arg $2 The trap signal number to handle.
+# @arg $2 The value of $?.
 L_finally_handle_signal() {
 	local _L_pid
   L_bashpid_to _L_pid
@@ -5468,24 +5440,25 @@ L_finally_handle_signal() {
   			trap - "$1" EXIT
 				L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately" || :
   			kill -"$1" "$_L_finally_pid"
-  			exit "$(( 128 + $2 ))"
+  			exit "$(( 128 + $(kill -l "$1") ))"
 			else
 				# Signal received during servicing of a signal. Add the signal to pending signals.
-				_L_finally_pending+=("$@")
+				_L_finally_pending+=("$1" "$(kill -l "$1")" "$2")
 			fi
 		else
   		trap - EXIT  # _L_finally_arr executed below, no need for EXIT trap.
-  		local L_SIGNAL="$1" L_SIGNUM="$2" L_SIGRET="${3:-}"
+  		local L_SIGNAL="$1" L_SIGNUM="$(kill -l "$1")" L_SIGRET="${2:-}"
 			# _L_finally_debug "${_L_finally_arr[@]}"
 			${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 			# Preserve signal exit status.
 			trap - "$1"
   		kill -"$1" "$_L_finally_pid"
-  		exit "$((128+$2))"
+  		exit "$(( 128 + L_SIGNUM ))"
   	fi
   else
-  	# If finally pid is not BASHPID, reset this trap to default, so we are not called again.
+  	# If finally pid is not BASHPID, reset this trap to default and re-raise.
   	trap - "$1"
+  	kill -"$1" "$_L_pid"
   fi
 }
 
@@ -5531,6 +5504,8 @@ L_finally_list() {
 #            the nth position in the stack relative to the current position. Default: 0
 # @option -l Add action to be executed last, not first of the stack.
 #            Calling L_finally_pop after registering such action is undefined.
+# @option -f Add action to be executed strictly first. 5000 such actions are allowed.
+#            This is not allowed with -r.
 # @option -R Force reregister all the traps. Unless this option, traps are only registered on the first call of a BASHPID.
 # @option -v <var> Store the action index in the variable.
 #            This index can be used with `L_finally_pop -i` to remove the action.
@@ -5552,18 +5527,19 @@ L_finally_list() {
 #    }
 # shellcheck disable=SC2089,SC2090
 L_finally() {
-  local OPTIND OPTARG OPTERR _L_i _L_onreturn=0 _L_up=1 _L_first=1 _L_pid _L_v="" \
-  	_L_register=0 L_v _L_idx _L_elem
+  local OPTIND OPTARG OPTERR _L_i _L_onreturn=0 _L_up=1 _L_last=0 _L_pid _L_v="" \
+  	_L_register=0 L_v _L_idx _L_elem _L_first=0
   # Parse arguments.
-  while getopts rs:lRv:h _L_i; do
+  while getopts rs:lfRv:h _L_i; do
     case "$_L_i" in
     r) _L_onreturn=1 ;;
     s) _L_up=$((OPTARG + _L_up)) ;;
-    l) _L_first=0 ;;
+    l) _L_last=1 ;;
+    f) _L_first=1 ;;
     R) _L_register=1 ;;
     v) _L_v=$OPTARG ;;
     h) L_func_help; return 0 ;;
-    *) L_func_error; return "$L_EX_USAGE" ;;
+    *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -5582,9 +5558,25 @@ L_finally() {
   # Add element to our array variable.
 	if (($#)); then
 		# Calculate new element index. This is getting slower, but we assume we will have small number of elements.
-  	_L_idx=( ${_L_finally_arr[@]:+"${!_L_finally_arr[@]}"} )
-  	# We want to execute in reverse order. Thus we start inputting elements at a very high index and go down.
-  	_L_idx=$(( ${_L_idx[_L_first ? 0 : ${#_L_idx[@]}-1]:-10000000000} + (_L_first ? -1 : 1) ))
+		_L_idx=( ${_L_finally_arr[@]:+"${!_L_finally_arr[@]}"} )
+		if (( _L_first )); then
+			# The first 5000 elements for "first" callbacks.
+			(( _L_idx = ${_L_idx[0]:-5000} , _L_idx > 5000 && ( _L_idx = 5000 ) , _L_idx-- ))
+			if (( _L_onreturn )); then return "$L_EX_USAGE"; fi
+			if (( _L_idx < 0 )); then return "$L_EX_USAGE"; fi
+		elif (( _L_last )); then
+			# Add element to be executed last. Start from 10B.
+			# If there are already elements, find the largest one and increment.
+			(( _L_idx = ${_L_idx[${#_L_idx[@]}-1]:-10000000000} , _L_idx < 5000 && ( _L_idx = 10000000000 ) , ++_L_idx ))
+		else
+			# Add element to be executed first. Start from 10B and go down.
+			# But ignore indices < 5000 (the "strictly first" range).
+			local _L_min=10000000000
+			for _L_i in "${_L_idx[@]}"; do
+				(( _L_i >= 5000 && ( _L_min = _L_i ) )) && break
+			done
+			_L_idx=$(( _L_min - 1 ))
+		fi
   	# After calculating index, store it to the user, if he wants that.
   	if [[ -n "$_L_v" ]]; then
   		printf -v "$_L_v" "%s" "$_L_idx" || return "$L_EX_USAGE"
@@ -5616,15 +5608,33 @@ L_finally() {
 	if [[ "${_L_finally_pid:-}" != "$_L_pid" ]] || ((_L_register)); then
 		_L_finally_pid="$_L_pid"
 		#
-    trap 'L_finally_handle_exit "$?"' EXIT || return 1
-		# List of all signals that result in termination.
-  	for _L_i in SIGABRT SIGALRM SIGBUS SIGFPE SIGHUP SIGILL SIGINT SIGIO SIGPIPE SIGPROF SIGPWR SIGQUIT SIGSEGV SIGSTKFLT SIGSYS SIGTERM SIGTRAP SIGUSR1 SIGUSR2 SIGVTALRM SIGXCPU SIGXFSZ SIGRTMAX SIGRTMAX-1 SIGRTMAX-10 SIGRTMAX-11 SIGRTMAX-12 SIGRTMAX-13 SIGRTMAX-14 SIGRTMAX-2 SIGRTMAX-3 SIGRTMAX-4 SIGRTMAX-5 SIGRTMAX-6 SIGRTMAX-7 SIGRTMAX-8 SIGRTMAX-9 SIGRTMIN SIGRTMIN+1 SIGRTMIN+10 SIGRTMIN+11 SIGRTMIN+12 SIGRTMIN+13 SIGRTMIN+14 SIGRTMIN+15 SIGRTMIN+2 SIGRTMIN+3 SIGRTMIN+4 SIGRTMIN+5 SIGRTMIN+6 SIGRTMIN+7 SIGRTMIN+8 SIGRTMIN+9; do
-  		# If the trap exists, extract it's number.
-  		if L_trap_to_number_v "$_L_i" 2>/dev/null; then
-  			# shellcheck disable=SC2064
-      	trap "L_finally_handle_signal $_L_i $L_v \"\$?\"" "$_L_i" || return 1
-      fi
-    done
+    trap 'L_finally_handle_exit $?' EXIT || return 1
+		# Disable set -e for the block with ! . Realtime signals might not exeists everywhere.
+		{
+			# List of all signals that result in termination.
+			trap "L_finally_handle_signal SIGABRT \$?" SIGABRT
+			trap "L_finally_handle_signal SIGALRM \$?" SIGALRM
+			trap "L_finally_handle_signal SIGBUS \$?" SIGBUS
+			trap "L_finally_handle_signal SIGFPE \$?" SIGFPE
+			trap "L_finally_handle_signal SIGHUP \$?" SIGHUP
+			trap "L_finally_handle_signal SIGILL \$?" SIGILL
+			trap "L_finally_handle_signal SIGINT \$?" SIGINT
+			trap "L_finally_handle_signal SIGIO \$?" SIGIO
+			trap "L_finally_handle_signal SIGPIPE \$?" SIGPIPE
+			trap "L_finally_handle_signal SIGPROF \$?" SIGPROF
+			trap "L_finally_handle_signal SIGPWR \$?" SIGPWR
+			trap "L_finally_handle_signal SIGQUIT \$?" SIGQUIT
+			trap "L_finally_handle_signal SIGSEGV \$?" SIGSEGV
+			trap "L_finally_handle_signal SIGSTKFLT \$?" SIGSTKFLT
+			trap "L_finally_handle_signal SIGSYS \$?" SIGSYS
+			trap "L_finally_handle_signal SIGTERM \$?" SIGTERM
+			trap "L_finally_handle_signal SIGTRAP \$?" SIGTRAP
+			trap "L_finally_handle_signal SIGUSR1 \$?" SIGUSR1
+			trap "L_finally_handle_signal SIGUSR2 \$?" SIGUSR2
+			trap "L_finally_handle_signal SIGVTALRM \$?" SIGVTALRM
+			trap "L_finally_handle_signal SIGXCPU \$?" SIGXCPU
+			trap "L_finally_handle_signal SIGXFSZ \$?" SIGXFSZ
+		} 2>/dev/null || :
   fi
 }
 

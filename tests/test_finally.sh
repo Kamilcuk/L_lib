@@ -414,6 +414,7 @@ _L_test_finally_subshells() {
 		local i
 		for i in $(L_trap_names); do
 			case "$i" in
+			SIGRT*) ;;
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT|SIGINT) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
@@ -441,7 +442,7 @@ _L_test_finally_proc() {
 		for i in $(L_trap_names); do
 			case "$i" in
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGSTKFLT|SIGINT) ;;
+			SIGSTKFLT|SIGINT|SIGRT*) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
 			esac
@@ -637,3 +638,39 @@ _L_test_finally_simple_cleanup() {
 	L_unittest_cmd ! test -e "$tmpf"
 }
 
+
+_L_test_finally_fix_signum() {
+    L_info "Verifying L_SIGNUM fix in L_finally_handle_signal"
+    func() {
+        (
+            . bin/L_lib.sh
+            L_finally :
+            kill -USR1 $BASHPID
+        )
+    }
+    local e=$(( 128 + $(L_trap_to_number USR1) ))
+    local res
+    L_unittest_cmd -e "$e" -j -v res func
+    [[ "$res" != *"invalid signal specification"* ]]
+    L_unittest_eq "$?" 0
+}
+
+_L_test_finally_fix_subshell_reraise() {
+    L_info "Verifying subshell re-raise fix"
+    func() {
+        L_finally :
+        (
+            sleep 10
+            echo "SHOULD NOT BE REACHED"
+        ) &
+        local pid=$!
+        sleep 0.2
+        kill -TERM "$pid"
+        wait "$pid"
+    }
+    local e=$(( 128 + $(L_trap_to_number TERM) ))
+    local res
+    L_unittest_cmd -e "$e" -v res func
+    [[ "$res" != *"SHOULD NOT BE REACHED"* ]]
+    L_unittest_eq "$?" 0
+}
