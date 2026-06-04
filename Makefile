@@ -150,9 +150,5 @@ docs_serve2:
 docs_docker:
 	$(DOCKER) build --target doc --output type=local,dest=./public .
 
-K ?= 2
 llm:
-	,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
-
-llm2:
-	GOOGLE_GEMINI_BASE_URL=http://localhost:8990/gemini ,llm --no-hide -k $(K) gemini --model my -r
+	,llm --podman -H gemini

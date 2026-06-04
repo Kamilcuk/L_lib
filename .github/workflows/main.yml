@@ -74,6 +74,19 @@ jobs:
           python-version: '3.x'
       - run: make test_pip
 
+  test_freebsd:
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y jq bash
+          run: |
+            ./tests/citest.sh
+
   build_pages:
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'
@@ -123,7 +136,7 @@ jobs:
   deploy_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip]
+    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip, test_freebsd]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -233,7 +246,7 @@ jobs:
 
   pypi-publish:
     name: Upload release to PyPI
-    needs: [test, test_ubuntu, shellcheck, test_pip]
+    needs: [test, test_ubuntu, shellcheck, test_pip, test_freebsd]
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 5
