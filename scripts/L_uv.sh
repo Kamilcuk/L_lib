@@ -103,7 +103,7 @@ _L_uv_run_waiter() {
 
 # @description Internal timeout checker for L_uv_run.
 _L_uv_run_check_timeout() {
-  if L_timeout_expired "$L_UV_TIMEOUT"; then
+  if L_timeout_is_expired "$L_UV_TIMEOUT"; then
     return "$L_EX_TIMEOUT"
   fi
 }
@@ -119,20 +119,14 @@ _L_uv_run_check_timeout() {
 # @example L_uv_add_timer loop 1 echo "hello"; L_uv_run loop
 L_uv_run() {
   local OPTIND OPTARG OPTERR _L_opt _L_uv_sleep_time="" L_UV_TIMEOUT="" _L_uv_break=0 _L_uv_pipe \
-  L_UV_USES_SIGCHLD=0 _L_uv_childs _L_uv_line="" L_UV_CURRENT _L_uv_waiter_cb=sleep \
-  _L_uv_check_timeout_cb=""
+  L_UV_USES_SIGCHLD=0 _L_uv_childs _L_uv_line="" L_UV_CURRENT _L_uv_waiter_cb=sleep
   while getopts s:1cCt:h _L_opt; do
     case "$_L_opt" in
       s) _L_uv_sleep_time=$OPTARG ;;
       1) _L_uv_break=1 ;;
       c) L_UV_USES_SIGCHLD=1 ;;
       C) L_UV_USES_SIGCHLD=0 ;;
-      t)
-        L_duration_to_usec -v L_UV_TIMEOUT "$OPTARG" || return
-        L_usec_to_sec -v L_UV_TIMEOUT "$L_UV_TIMEOUT" || return
-        L_timeout_set_to L_UV_TIMEOUT "$OPTARG" || return
-        _L_uv_check_timeout_cb=_L_uv_run_check_timeout
-        ;;
+      t) L_timeout_init_into L_UV_TIMEOUT "$OPTARG" || return ;;
       h) L_func_help; return 0 ;;
       *) L_func_usage_error; return "${L_EX_USAGE:-64}" ;;
     esac
@@ -152,7 +146,6 @@ L_uv_run() {
       { (( L_UV_USES_SIGCHLD )) && read -t 0 -u "${_L_uv_pipe[0]}" _; }
     }
   do
-    $_L_uv_check_timeout_cb || return
     "$_L_uv_waiter_cb" "${_L_uv_sleep_time:-0.1}" || return
     eval "${L_UV[@]:1073741820}"
   done
@@ -627,7 +620,7 @@ if L_is_main; then
   L_log_configure -L
   L_uv_init
   L_pipe fd
-  L_with_process _ L_eval 'for i in 1 2 3; do sleep 0.6; echo $i; done >&"${fd[1]}"'
+  L_with_process_into _ L_eval 'for i in 1 2 3; do sleep 0.6; echo $i; done >&"${fd[1]}"'
   exec {fd[1]}>&-
   L_uv_add_readline "" "${fd[0]}" myreader
   L_uv_add_timer -d 1 -r 2 -v mytimer "" mycallback

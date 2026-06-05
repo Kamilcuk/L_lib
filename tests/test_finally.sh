@@ -463,7 +463,7 @@ _L_test_finally_interrupt() {
 		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
 		# set +x
 		enable sleep 2>/dev/null || :
-		local to; L_timeout_set_to to "$1"; while ! L_timeout_expired "$to"; do sleep 0.1; done
+		local to; L_timeout_init_into to "$1"; while ! L_timeout_is_expired "$to"; do sleep 0.1; done
 	}
 	{
 		local e=$((128+$(L_trap_to_number USR1)))
