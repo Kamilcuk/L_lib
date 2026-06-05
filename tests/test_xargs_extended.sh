@@ -5,7 +5,7 @@ _L_test_L_xargs_callback_option() {
     # Test for the -c (callback) option
     callback_func() {
         if (( i < 3 )); then
-            L_v="item$((++i))"
+            L_RET="item$((++i))"
         else
             return 1
         fi

@@ -166,7 +166,7 @@ Contributions are welcome! You can run the tests locally with `make test` or che
 - The option `-v <var>` is used to store the result in a variable instead of printing it.
     - This follows the convention of `printf -v <var>`.
     - Without the `-v` option, the function outputs the elements on lines to standard output.
-    - Associated function with `_v` suffix store the result in a hardcoded scratch variable `L_v`.
+    - Associated function with `_vL_RET` suffix store the result in a hardcoded scratch variable `L_RET`.
 - Return 64 ($L_EX_USAGE) on usage error, return 124 ($L_EX_TIMEOUT) on timeout.
 
 # License
