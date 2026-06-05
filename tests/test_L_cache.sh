@@ -1,7 +1,7 @@
 
 _L_test_cache_file_backend() {
 	local cachef
-	L_with_tmpfile_to cachef
+	L_with_tmpfile_into cachef
 	#
 	L_log "Testing L_cache with file backend: adding an entry"
 	L_unittest_cmd L_cache -f "$cachef" -k mykey echo 123
@@ -13,7 +13,7 @@ _L_test_cache_file_backend() {
 
 _L_test_cache_return_code() {
 	local opt i
-	L_with_tmpfile_to cachef
+	L_with_tmpfile_into cachef
 	#
 	for opt in "" "-f$cachef"; do
 		echo "USING $opt"
@@ -39,7 +39,7 @@ _L_test_cache_return_code() {
 
 _L_test_cache_stdout() {
 	local opt i
-	L_with_tmpfile_to cachef
+	L_with_tmpfile_into cachef
 	#
 	for opt in "" "-f$cachef"; do
 		echo "USING $opt"
@@ -71,7 +71,7 @@ _L_test_cache_stdout() {
 
 _L_test_cache_ttl() {
   local cachef
-  L_with_tmpfile_to cachef
+  L_with_tmpfile_into cachef
 
   # Add a cache entry with a TTL of 1 second
   L_log "Testing L_cache with TTL: adding an entry"
@@ -89,7 +89,7 @@ _L_test_cache_ttl() {
 
 _L_test_cache_vars() {
 	local opt i
-	L_with_tmpfile_to cachef
+	L_with_tmpfile_into cachef
 	#
 	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS" '*')
   if ((L_HAS_ASSOCIATIVE_ARRAY)); then

@@ -1264,7 +1264,7 @@ L_cache() {
     	_L_cache=(${_L_CACHE[@]:+"${_L_CACHE[@]}"})
   	else
     	if [[ -z "$_L_flock" ]]; then
-      	L_exit_to_10 _L_flock L_hash flock
+      	L_exit_into_10 _L_flock L_hash flock
     	fi
     	if
       	{ ((_L_flock)) && { _L_cache=$(flock "$_L_file" cat "$_L_file") || return "$L_EX_IOERR"; }; } ||
@@ -2381,7 +2381,6 @@ L_usec_to_sec_vL_RET() {
 # @arg $1 Variable to assign with the timeout value in usec.
 # @arg $2 Timeout in seconds. May be a fraction.
 # @see L_epochrealtime_usec
-# @note should this be L_timeout_assign -v ?
 L_timeout_set_to() {
 	local _L__now L_RET
 	L_epochrealtime_usec -v _L__now &&
@@ -2415,7 +2414,7 @@ L_timeout_left_vL_RET() {
 # @description store exit status of a command to a variable
 # @arg $1 variable
 # @arg $@ command to execute
-L_exit_to() {
+L_exit_into() {
 	if "${@:2}"; then
 		printf -v "$1" 0
 	else
@@ -2428,9 +2427,9 @@ L_exit_to() {
 # @arg $1 variable
 # @arg $@ command to execute
 # @example
-#     L_exit_to_1null suceeded test "$#" = 0
+#     L_exit_into_1null suceeded test "$#" = 0
 #     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
-L_exit_to_1null() {
+L_exit_into_1null() {
 	if "${@:2}"; then
 		printf -v "$1" "1"
 	else
@@ -2442,9 +2441,9 @@ L_exit_to_1null() {
 # @arg $1 variable
 # @arg $@ command to execute
 # @example
-#     L_exit_to_1null suceeded test "$#" = 0
+#     L_exit_into_1null suceeded test "$#" = 0
 #     echo "${suceeded:+"SUCCESS"}"  # prints SUCCESS or nothing
-L_exit_to_1unset() {
+L_exit_into_1unset() {
 	if "${@:2}"; then
 		printf -v "$1" "1"
 	else
@@ -2455,7 +2454,7 @@ L_exit_to_1unset() {
 # @description store 1 if command exited with 0, store 0 if command exited with nonzero
 # @arg $1 variable
 # @arg $@ command to execute
-L_exit_to_10() {
+L_exit_into_10() {
 	if "${@:2}"; then
 		printf -v "$1" 1
 	else
@@ -3120,7 +3119,7 @@ L_abbreviation_vL_RET() {
 # @example
 #    L_float_cmp 123.234 -le 234.345
 #    echo $?  # outputs 0
-#    L_exit_to ret L_float_cmp 123.234 -le 234.345
+#    L_exit_into ret L_float_cmp 123.234 -le 234.345
 #    echo "$ret"  # outputs 0
 L_float_cmp() {
 	local a1 a2 b1 b2 _ IFS=',.' r
@@ -4099,7 +4098,7 @@ L_table() {
 		if L_var_is_set "_L_arr[100 * _L_row + 0]"; then
 			for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
 				_L_tmp=${_L_arr[100 * _L_row + _L_column]:-}
-				L_exit_to _L_last L_var_is_set "_L_arr[100 * _L_row + _L_column + 1]"
+				L_exit_into _L_last L_var_is_set "_L_arr[100 * _L_row + _L_column + 1]"
 				if L_args_contain "$((_L_column+1))" ${_L_R[@]+"${_L_R[@]}"}; then
 					L_printf_append "$_L_v" "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
 				else
@@ -4596,8 +4595,8 @@ L_log_configure() {
 			[lcfFsoLJ])
 				if ((${_L_logconf_configured:-0} == 0)); then
 					case "$_L_opt" in
-						l) L_log_level_to_int_to _L_logconf_level "$OPTARG" ;;
-						c) L_exit_to_1null _L_logconf_color L_is_true "$OPTARG" ;;
+						l) L_log_level_to_int_into _L_logconf_level "$OPTARG" ;;
+						c) L_exit_into_1null _L_logconf_color L_is_true "$OPTARG" ;;
 						f) _L_logconf_formateval=$OPTARG ;;
 						F) _L_logconf_formateval="$OPTARG"' "$@"' ;;
 						s) _L_logconf_selecteval=$OPTARG ;;
@@ -4630,7 +4629,7 @@ L_log_level_dec() {
 # @description Convert log string to number
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
-L_log_level_to_int_to() {
+L_log_level_to_int_into() {
 	local L_RET=${2##*_}
 	case "$L_RET" in
 	[0-9]*) L_RET=$2 ;;
@@ -4654,7 +4653,7 @@ L_log_level_to_int_to() {
 # @arg $1 str|int loglevel or log string
 L_log_is_enabled_for() {
 	local v
-	L_log_level_to_int_to v "$1"
+	L_log_level_to_int_into v "$1"
 	_L_log_is_enabled_for "$v"
 }
 
@@ -4701,7 +4700,7 @@ L_log_format_json() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
 	printf -v msg "$@"
 	L_date_vL_RET %Y-%m-%dT%H:%M:%S%z
-	L_bashpid_to pid
+	L_bashpid_into pid
 	for i in \
 		timestamp:"$L_RET" \
 		funcname:"$L_logline_funcname" \
@@ -4755,7 +4754,7 @@ L_log() {
 	while getopts :s:l: _L_opt; do
 		case "$_L_opt" in
 		s) _L_stacklevel=$((OPTARG + _L_stacklevel)) ;;
-		l) L_log_level_to_int_to L_logline_levelno "$OPTARG" ;;
+		l) L_log_level_to_int_into L_logline_levelno "$OPTARG" ;;
 		*) break ;;
 		esac
 	done
@@ -5453,7 +5452,7 @@ L_finally_handle_return() {
 # @description L_finally EXIT handler.
 L_finally_handle_exit() {
   local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_pid
-  L_bashpid_to _L_pid
+  L_bashpid_into _L_pid
   if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
 		# _L_finally_debug "${_L_finally_arr[@]}"
 		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
@@ -5477,7 +5476,7 @@ L_finally_handle_exit() {
 # @arg $2 The value of $?.
 L_finally_handle_signal() {
 	local _L_pid
-  L_bashpid_to _L_pid
+  L_bashpid_into _L_pid
   if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
   	# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
 		if [[ -n "${L_SIGNAL:-}" ]]; then
@@ -5591,7 +5590,7 @@ L_finally() {
   done
   shift "$((OPTIND-1))"
   #
-  L_bashpid_to _L_pid
+  L_bashpid_into _L_pid
   if [[ "${_L_finally_pid:-}" != "$_L_pid" ]]; then
   	if [[ -n "${_L_finally_pid:-}" ]]; then
   		# Reset values inherited from parent shell.
@@ -5705,7 +5704,7 @@ L_finally_pop() {
 	shift "$((OPTIND-1))"
 	if (( $# != 0 )); then L_func_error "too many arguments"; return "$L_EX_USAGE"; fi
 	# Protect against invalid pid.
-	L_bashpid_to _L_pid
+	L_bashpid_into _L_pid
 	if [[ "$_L_finally_pid" != "$_L_pid" ]]; then
 		L_func_error "nothing to pop in subshell"; return 1
 	fi
@@ -5749,7 +5748,7 @@ L_finally_pop() {
 # @arg $@ Command to execute.
 L_finally_critical_section() {
 	local pid
-	L_bashpid_to pid
+	L_bashpid_into pid
 	if ((pid != ${_L_finally_pid:--1})); then
 		# Register the handlers.
 		L_finally
@@ -5782,7 +5781,7 @@ L_with_cd() {
 # Register RETURN trap for parent fuction that will remove the directory.
 # @arg $1 Variable to assign the temporary file to.
 # @arg $2 Optional stack offset to add to RETURN trap.
-L_with_tmpfile_to() {
+L_with_tmpfile_into() {
 	local _L_v &&
     L_mktemp -v _L_v "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX" &&
     L_finally -r -s "$((${2-}+1))" rm -f "$_L_v" &&
@@ -5793,7 +5792,7 @@ L_with_tmpfile_to() {
 # Register RETURN trap for parent fuction that will remove the directory.
 # @arg $1 Variable to assign the temporary directory location to.
 # @arg $2 Optional stack offset to add to RETURN trap.
-L_with_tmpdir_to() {
+L_with_tmpdir_into() {
   local _L_v &&
     _L_v=$(mktemp -d "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
     L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_to_callback "$_L_v" &&
@@ -5809,7 +5808,7 @@ _L_with_tmpdir_to_callback() {
 # @arg $2 Optional stack offset to add to RETURN trap.
 L_with_cd_tmpdir() {
   local tmpdir &&
-    L_with_tmpdir_to tmpdir "$((${1-}+1))" &&
+    L_with_tmpdir_into tmpdir "$((${1-}+1))" &&
     L_with_cd "$tmpdir" "$((${1-}+1))"
 }
 
@@ -5865,10 +5864,10 @@ _L_with_redirect_stdout_to_finally() {
 # Non-forking command substition for the poor.
 # @arg $1 Variable to capture stdout to.
 # @arg $2 Optional stack offset to add to RETURN trap.
-L_with_redirect_stdout_to() {
+L_with_redirect_stdout_into() {
   local _L_tmpf _L_savfd &&
-  	L_with_tmpfile_to _L_tmpf "$((${2:-}+1))" &&
-    L_get_free_fd_to _L_savfd &&
+  	L_with_tmpfile_into _L_tmpf "$((${2:-}+1))" &&
+    L_get_free_fd_into _L_savfd &&
     eval "exec $_L_savfd>&1 1>\$_L_tmpf" &&
     L_finally -r -s "$((${2:-}+1))" _L_with_redirect_stdout_to_finally "$1" "$_L_tmpf" "$_L_savfd"
 }
@@ -6272,7 +6271,7 @@ L_unittest_main() {
 		_L_u_testnames=("${_L_u_tests[@]}")
 	fi
 	# Create a temporary directory with our context.
-	L_with_tmpdir_to _L_u_tmpd
+	L_with_tmpdir_into _L_u_tmpd
 	L_finally -v _L_u_finally_idx eval 'echo "Exiting because received $L_SIGNAL"'
 	# echo "Using directory $_L_u_tmpd"
 	# Execute the tests.
@@ -7373,7 +7372,7 @@ L_argparse_print_help() {
 			local _L_opti
 			for _L_opti in ${_L_parser__optionsi[_L_parseri]:-}; do
 				local _L_required=""
-				L_exit_to_10 _L_required L_is_true "${_L_opt_required[_L_opti]:-0}"
+				L_exit_into_10 _L_required L_is_true "${_L_opt_required[_L_opti]:-0}"
 				if ((_L_required == loop_required)); then
 					if _L_argparse_optspec_get_help _L_opthelp; then
 						local first_option=${_L_opt__options[_L_opti]%% *} option usagearg=""
@@ -9382,7 +9381,7 @@ L_argparse() {
 
 # @description Get bashpid in a way compatible with Bash before 4.0.
 # @arg $1 Variable to store the result to.
-L_bashpid_to() {
+L_bashpid_into() {
 	printf -v "$1" "%s" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"
 }
 
@@ -9390,7 +9389,7 @@ L_bashpid_to() {
 # @arg $@ Kill arguments. See kill --help.
 L_raise() {
 	local pid
-	L_bashpid_to pid
+	L_bashpid_into pid
 	kill "$@" "$pid"
 }
 
@@ -9418,11 +9417,11 @@ L_get_all_childs() { L_handle_v_array "$@"; }
 L_get_all_childs_vL_RET() {
 	local _L_toppid=${1:-} IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx
 	if [[ -z "$_L_toppid" ]]; then
-		L_bashpid_to _L_toppid
+		L_bashpid_into _L_toppid
 	fi
 	#
 	L_hash ps && _L_ps_output=$(
-			L_bashpid_to _L_pid
+			L_bashpid_into _L_pid
 			echo "$_L_pid"
 			exec ps -e -o pid= -o ppid=
 	) && {
@@ -9474,7 +9473,7 @@ L_is_fd_open() {
 if ((L_HAS_VARIABLE_FD)); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
-L_get_free_fd_to() {
+L_get_free_fd_into() {
 	local _L_f_fd _L_f_v
 	for _L_f_v in "$@"; do
 		exec {_L_f_fd}>/dev/null
@@ -9487,7 +9486,7 @@ _L_pipe_opener() {
 	exec {_L_tmp}<>"$_L_file" {_L_0}<"$_L_file" {_L_1}>"$_L_file" {_L_tmp}>&-
 }
 else
-	L_get_free_fd_to() {
+	L_get_free_fd_into() {
 		local _L_f_fd
 		for _L_f_fd in {18..1023}; do
 			if ! L_is_fd_open "$_L_f_fd"; then
@@ -9502,7 +9501,7 @@ else
 	}
 	# shellcheck disable=SC2094
 	_L_pipe_opener() {
-		L_get_free_fd_to _L_tmp _L_0 _L_1 &&
+		L_get_free_fd_into _L_tmp _L_0 _L_1 &&
 		eval "exec ${_L_tmp}<>\"\$_L_file\" ${_L_0}<\"\$_L_file\" ${_L_1}>\"\$_L_file\" ${_L_tmp}>&-"
 	}
 fi
@@ -9588,7 +9587,7 @@ L_mkstemp() {
 		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
 		exec {_L_m_fd1}<>"$_L_m_file" {_L_m_fd2}<>"$_L_m_file" {_L_m_fd3}<>"$_L_m_file"
 	else
-		L_get_free_fd_to _L_m_fd1 _L_m_fd2 _L_m_fd3
+		L_get_free_fd_into _L_m_fd1 _L_m_fd2 _L_m_fd3
 		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
 		eval "exec $_L_m_fd1<>\"\$_L_m_file\" $_L_m_fd2<>\"\$_L_m_file\" $_L_m_fd3<>\"\$_L_m_file\""
 	fi
@@ -10824,7 +10823,7 @@ _L_xargs_run() {
 			"${_L_cmdready[@]}"
 			_L_i=$?
 		else
-			L_exit_to _L_i "${_L_cmdready[@]}"
+			L_exit_into _L_i "${_L_cmdready[@]}"
 		fi
 		_L_xargs_handle_return "$_L_i"
 		_L_x_rets+=("$_L_i")

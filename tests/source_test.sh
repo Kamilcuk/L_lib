@@ -3,7 +3,7 @@ set -euo pipefail
 . "${BASH_SOURCE[0]%/*}/../bin/L_lib.sh"
 
 p() {
-  L_exit_to v L_not "$@"
+  L_exit_into v L_not "$@"
   echo -n "$1=$v "
 }
 
