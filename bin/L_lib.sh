@@ -4948,40 +4948,8 @@ L_shuf() {
 	fi
 }
 
-# shellcheck disable=SC2030,SC2031,SC2035
-# @see L_sort_bash
-_L_sort_bash_in() {
-	local _L_sort_start="$1" _L_sort_end="$2" _L_sort_left _L_sort_right _L_sort_pivot _L_sort_tmp
-	if (( _L_sort_start < _L_sort_end )); then
-		_L_sort_right=$_L_sort_end \
-			_L_sort_pivot=${_L_array[_L_sort_left = _L_sort_start + 1, _L_sort_start]}
-		while (( _L_sort_left < _L_sort_right )); do
-			if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
-				(( ++_L_sort_left, 1 ))
-			elif "${_L_sort_compare[@]}" "${_L_array[_L_sort_right]}" "$_L_sort_pivot"; then
-				(( --_L_sort_right, 1 ))
-			else
-				_L_sort_tmp=${_L_array[_L_sort_left]} \
-					_L_array[_L_sort_left]=${_L_array[_L_sort_right]} \
-					_L_array[_L_sort_right]=$_L_sort_tmp
-			fi
-		done
-		if "${_L_sort_compare[@]}" "$_L_sort_pivot" "${_L_array[_L_sort_left]}"; then
-			_L_sort_tmp=${_L_array[_L_sort_left]} \
-				_L_array[_L_sort_left--]=${_L_array[_L_sort_start]} \
-				_L_array[_L_sort_start]=$_L_sort_tmp
-		else
-			_L_sort_tmp=${_L_array[--_L_sort_left]} \
-				_L_array[_L_sort_left]=${_L_array[_L_sort_start]} \
-				_L_array[_L_sort_start]=$_L_sort_tmp
-		fi
-		_L_sort_bash_in "$_L_sort_start" "$_L_sort_left"
-		_L_sort_bash_in "$_L_sort_right" "$_L_sort_end"
-	fi
-}
-
 # @description Default nonnumeric compare function.
-_L_sort_compare() { [[ "$1" > "$2" ]]; }
+_L_sort_compare_strings() { [[ "$1" > "$2" ]]; }
 # @description Default numeric compare function.
 _L_sort_compare_numeric() {
 	if L_is_integer "$1"; then
@@ -4999,6 +4967,41 @@ _L_sort_compare_numeric() {
 	fi
 }
 
+# shellcheck disable=SC2030,SC2031,SC2035
+# @see L_sort_bash
+_L_sort_bash_in() {
+	_L_Sr=$2 _L_Sp=${_L_Sa[_L_Sl = $1 + 1, $1]}
+	while (( _L_Sl < _L_Sr )); do
+		if "${_L_Scmp[@]}" "$_L_Sp" "${_L_Sa[_L_Sl]}"; then
+			(( ++_L_Sl ))
+		elif "${_L_Scmp[@]}" "${_L_Sa[_L_Sr]}" "$_L_Sp"; then
+			(( _L_Sr-- ))
+		else
+			_L_St=${_L_Sa[_L_Sl]} _L_Sa[_L_Sl++]=${_L_Sa[_L_Sr]} _L_Sa[_L_Sr--]=$_L_St
+		fi
+	done
+	if "${_L_Scmp[@]}" "$_L_Sp" "${_L_Sa[_L_Sl]}"; then
+		_L_St=${_L_Sa[_L_Sl]} _L_Sa[_L_Sl--]=${_L_Sa[$1]} _L_Sa[$1]=$_L_St
+	else
+		_L_St=${_L_Sa[--_L_Sl]} _L_Sa[_L_Sl]=${_L_Sa[$1]} _L_Sa[$1]=$_L_St
+	fi
+	if (( $1 < _L_Sl )); then
+		# Save state (start, end, and current right-side index) to positional parameters.
+		# This protects them from being overwritten by the recursive call which
+		# modifies the same parent-local variables (_L_Sl, _L_Sr, etc.).
+		set -- "$1" "$2" "$_L_Sr"
+		_L_sort_bash_in "$1" "$_L_Sl"
+		if (( $3 < $2 )); then
+			_L_sort_bash_in "$3" "$2"
+		fi
+	else
+		# Only the right side needs sorting, no need to save state.
+		if (( $_L_Sr < $2 )); then
+			_L_sort_bash_in "$_L_Sr" "$2"
+		fi
+	fi
+}
+
 # @description Quicksort an array in place in pure bash.
 # @see L_sort
 # @option -z ignored. Always zero sorting.
@@ -5009,14 +5012,21 @@ _L_sort_compare_numeric() {
 # @option -h Print this help and return 0.
 # @arg $1 array nameref
 L_sort_bash() {
-	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_array _L_sort_compare=() _L_sort_reverse=0
+	# _L_Sa - array
+	# _L_Scmp - comparison function
+	# _L_Sp - pivot
+	# _L_St - temporary variable for swap
+	# _L_Sl - left
+	# _L_Sr - right
+	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_Sa _L_Scmp=() _L_sort_reverse=0 _L_St _L_Sp
+	local -i _L_Sl _L_Sr
 	while getopts znrc:E:h _L_c; do
 		case $_L_c in
 			z) ;;
 			n) _L_sort_numeric=1 ;;
 			r) _L_sort_reverse=1 ;;
-			c) _L_sort_compare+=("$OPTARG") ;;
-			E) eval "_L_sort_temp() { $OPTARG; }"; _L_sort_compare=_L_sort_temp ;;
+			c) _L_Scmp=("$OPTARG") ;;
+			E) _L_Scmp=(L_eval "$OPTARG") ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -5026,28 +5036,29 @@ L_sort_bash() {
 		L_func_usage_error "wrong number of positional arguments: array name expected"
 		return "$L_EX_USAGE"
 	fi
-	if (( _L_sort_numeric )); then
-		if (( ${#_L_sort_compare[*]} != 0 )); then
-			L_func_usage_error "-c option conflicts with -n option"
-			return "$L_EX_USAGE"
-		fi
-		_L_sort_compare=(_L_sort_compare_numeric)
-	elif (( ${#_L_sort_compare[*]} == 0 )); then
-		_L_sort_compare=(_L_sort_compare)
-	fi
-	if (( _L_sort_reverse )); then
-		_L_sort_compare=(L_not "${_L_sort_compare[@]}")
-	fi
-	#
 	if ((!L_HAS_NAMEREF)); then
 		_L_c="$1[@]"
-		_L_array=(${!_L_c+"${!_L_c}"})
+		_L_Sa=(${!_L_c+"${!_L_c}"})
 	else
-		local -n _L_array="$1" || return "$L_EX_USAGE"
+		local -n _L_Sa="$1" || return "$L_EX_USAGE"
 	fi
-	_L_sort_bash_in 0 "$((${#_L_array[@]}-1))"
-	if ((!L_HAS_NAMEREF)); then
-		L_array_assign "$1" ${_L_array[@]+"${_L_array[@]}"}
+	if (( ${#_L_Sa[@]} )); then
+		if (( _L_sort_numeric )); then
+			if (( ${#_L_Scmp[*]} != 0 )); then
+				L_func_usage_error "-c option conflicts with -n option"
+				return "$L_EX_USAGE"
+			fi
+			_L_Scmp=(_L_sort_compare_numeric)
+		elif (( ${#_L_Scmp[*]} == 0 )); then
+			_L_Scmp=(_L_sort_compare_strings)
+		fi
+		if (( _L_sort_reverse )); then
+			_L_Scmp=(L_not "${_L_Scmp[@]}")
+		fi
+		_L_sort_bash_in 0 "$((${#_L_Sa[@]}-1))"
+		if (( !L_HAS_NAMEREF )); then
+			L_array_assign "$1" ${_L_Sa[@]+"${_L_Sa[@]}"}
+		fi
 	fi
 }
 
@@ -5073,19 +5084,29 @@ L_sort_cmd() {
 }
 
 # @description Sort a bash array.
-# If sort command exists, use L_sort_cmd, otherwise use L_sort_bash.
-# If you have a custom sorter, use L_sort_bash, otherwise prefer L_sort_cmd for speed.
-# @option -z Use zero separated stream with sort -z
+# Dispatches to L_sort_bash if array length < 300 or a custom comparison (-c, -E) is provided.
+# Otherwise, it uses L_sort_cmd for performance (calling the system sort command).
+# @option -z Use zero separated stream with sort -z (forwarded to sort command)
 # @option -n numeric sort
 # @option -r reverse sort
-# @arg $1 <var> array nameref
+# @option -c <compare> Custom compare function (uses L_sort_bash)
+# @option -E <eval> Custom expression to evaluate (uses L_sort_bash)
+# @arg $1 array nameref
 # @see L_sort_bash
 # @see L_sort_cmd
 L_sort() {
-	if L_hash sort; then
-		L_sort_cmd "$@"
-	else
+	local _L_c _L_cust=0 _L_len OPTIND OPTARG OPTERR
+	while getopts znrc:E:h _L_c; do
+		case "$_L_c" in
+			c|E) _L_cust=1 ;;
+			h) L_func_help; return 0 ;;
+		esac
+	done
+	L_array_len -v _L_len "${!OPTIND}"
+	if (( _L_cust || _L_len < 300 )) || ! L_hash sort; then
 		L_sort_bash "$@"
+	else
+		L_sort_cmd "$@"
 	fi
 }
 
