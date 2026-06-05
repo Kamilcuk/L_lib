@@ -719,7 +719,7 @@ L_func_comment() {
 				;;
 			s) _L_up=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -1101,7 +1101,7 @@ L_getopts_in() {
     	*"$_L_opt::"*) L_array_append "$_L_prefix$_L_opt" "$OPTARG" ;;
     	*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
     	*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
-    	h) L_func_usage "$_L_up"; return 0 ;;
+    	h) L_func_help "$_L_up"; return 0 ;;
     	*) L_func_usage_error "$_L_up"; return "$L_EX_USAGE" ;;
     esac
   done
@@ -1225,7 +1225,7 @@ L_cache() {
         ;;
       L) _L_flock=$OPTARG ;;
       h) L_func_help; return 0 ;;
-      *) L_func_usage; return "$L_EX_USAGE" ;;
+      *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -1727,7 +1727,7 @@ L_regex_replace() {
 		c) _L_countmax=$OPTARG ;;
 		n) _L_count_v=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -2381,30 +2381,40 @@ L_usec_to_sec_vL_RET() {
 # @arg $1 Variable to assign with the timeout value in usec.
 # @arg $2 Timeout in seconds. May be a fraction.
 # @see L_epochrealtime_usec
-L_timeout_set_to() {
-	local _L__now L_RET
-	L_epochrealtime_usec -v _L__now &&
-	L_sec_to_usec_vL_RET "$2" &&
-	printf -v "$1" "%s" "$(( ${_L__now//.} + 10#${L_RET//.} ))"
+L_timeout_init_into() {
+	local L_RET
+	L_duration_to_usec_vL_RET "$2" && L_timeout_init_usec_into "$1" "$L_RET"
+}
+
+# @description Initialize a timer with a timeout in microseconds.
+# @arg $1 Variable to assign with the timeout value in usec.
+# @arg $2 Timeout in microseconds.
+L_timeout_init_usec_into() {
+	local L_RET
+	L_epochrealtime_usec_vL_RET && printf -v "$1" "%s" "$(( L_RET + $2 ))"
 }
 
 # @description Is the timeout expired?
-# @arg $1 timeout value
-L_timeout_expired() {
+# @arg $1 timeout value in usec.
+L_timeout_is_expired() {
 	local L_RET
-	L_epochrealtime_usec_vL_RET &&
-	(( ${L_RET//.} >= $1 ))
+	L_epochrealtime_usec_vL_RET && (( L_RET >= $1 ))
+}
+
+# @description Get the number of microseconds left in the timer.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 timeout value in usec.
+L_timeout_left_usec() { L_handle_v_scalar "$@"; }
+L_timeout_left_usec_vL_RET() {
+	L_epochrealtime_usec_vL_RET && (( (L_RET = $1 - L_RET) > 0 ))
 }
 
 # @description Get the number of seconds left in the timer.
-# @option -v <var>
-# @arg $1 timeout value
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 timeout value in usec.
 L_timeout_left() { L_handle_v_scalar "$@"; }
 L_timeout_left_vL_RET() {
-	L_epochrealtime_usec_vL_RET &&
-	(( ${L_RET//.} < $1 )) &&
-	L_RET=$(( $1 - ${L_RET//.} )) &&
-	L_usec_to_sec_vL_RET "$L_RET"
+	L_timeout_left_usec_vL_RET "$@" && L_usec_to_sec_vL_RET "$L_RET"
 }
 
 # ]]]
@@ -3359,7 +3369,7 @@ L_string_unquote() {
 			A) _L_ansic1="" _L_ansic2="" ;;
 			q) _L_q=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -3413,7 +3423,7 @@ L_string_unquote() {
 				  		_L_input='\'$_L_input
 				  		;;
 				  	'') ;;
-				  	*) L_func_error "INTERNAL ERROR 1: ${BASH_REMATCH[2]}"; return "$L_EX_SOFTWARE"
+				  	*) L_func_usage_error "INTERNAL ERROR 1: ${BASH_REMATCH[2]}"; return "$L_EX_SOFTWARE"
 				  esac
 			  fi
 			else
@@ -3467,7 +3477,7 @@ L_string_unquote() {
 				return "$L_EX_DATAERR"
 			fi
 			;;
-		*) L_func_error "INTERNAL ERROR #4 _L_mode=$_L_mode"; return "$L_EX_SOFTWARE"
+		*) L_func_usage_error "INTERNAL ERROR #4 _L_mode=$_L_mode"; return "$L_EX_SOFTWARE"
 		esac
 	done
 	if [[ -n "$_L_mode" ]]; then
@@ -3774,7 +3784,7 @@ L_readarray() {
 		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
 		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4079,7 +4089,7 @@ L_table() {
 		o) _L_o=$OPTARG ;;
 		R) _L_R=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4192,7 +4202,7 @@ L_pretty_print() {
 			c) _L_pp_compact=1 ;;
 			C) _L_pp_compact=0 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4336,7 +4346,7 @@ L_argskeywords() {
 			E) _L_errorexit=1 ;;
 			e) _L_errorprefix=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -4606,7 +4616,7 @@ L_log_configure() {
 					esac
 				fi
 				;;
-			*) L_func_error; return "$L_EX_USAGE"; ;;
+			*) L_func_usage_error; return "$L_EX_USAGE"; ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4860,7 +4870,7 @@ L_ok() {
 		case $o in
 			s) a+=(-s "$OPTARG") ;;
 			l) a+=(-l "$OPTARG") ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -4889,7 +4899,7 @@ L_run() {
 			l) _L_logargs+=(-l "$OPTARG") ;;
 			s) _L_logargs+=(-s "$OPTARG") ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -5698,7 +5708,7 @@ L_finally_pop() {
 			n) _L_run=0 ;;
 			i) _L_idx=$OPTARG ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -5814,34 +5824,31 @@ L_with_cd_tmpdir() {
 
 _L_with_process_finally() {
 	if (( $2 )); then
-		L_log "L_with_process: kill and wait 30 seconds for process $1"
+		L_log "L_with_process_into: kill and wait 30 seconds for process $1"
 	fi
-	kill "$1" || :
-	local rc
-	L_wait -t 30 "$1" || rc=$?
-	if (( rc == L_EX_TIMEOUT )); then
+	kill "$1" 2>/dev/null || :
+	if L_wait -t 30 "$1"; (( $? == L_EX_TIMEOUT )); then
 		# timeout
 		if (( $2 )); then
-			L_log "L_with_process: kill -s 9 and wait for process $1"
+			L_log "L_with_process_into: kill -s 9 and wait for process $1"
 		fi
 		kill -s 9 "$1"
 		wait "$1"
 	fi
 }
 
-# @description
 # @description Run command in background and store its PID in variable.
 # Register RETURN trap that will kill process on return from parent function.
 # @option -v Be verbose.
 # @option -h Show help.
 # @arg $1 Variable to store the PID of the background process.
 # @arg $@ Command to execute in the background.
-L_with_process() {
+L_with_process_into() {
 	local OPTIND OPTARG OPTERR i v=0
 	while getopts vh i; do
 		case "$i" in
 			v) v=1 ;;
-			h) L_func_usage; return 0 ;;
+			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
@@ -5851,8 +5858,8 @@ L_with_process() {
 		1) L_func_usage_error "missing command to execute"; return "$L_EX_USAGE" ;;
 	esac
 	"${@:2}" &
-	L_finally -r -s 1 _L_with_process_finally "$!" "$v"
 	printf -v "$1" "%s" "$!"
+	L_finally -r -s 1 _L_with_process_finally "${!1}" "$v"
 }
 
 _L_with_redirect_stdout_to_finally() {
@@ -6463,7 +6470,7 @@ L_unittest_cmd() {
 		e) _L_uopt_exitcode=$OPTARG ;;
 		s) _L_uopt_up=$OPTARG ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -7289,7 +7296,7 @@ L_argparse_print_help() {
 				u|s) _L_short=1 ;;
 				e) _L_err=1 ;;
 				h) L_func_help; return 0 ;;
-				*) L_func_error; return "$L_EX_USAGE" ;;
+				*) L_func_usage_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
@@ -9630,7 +9637,7 @@ _L_proc_init_setup_redirs() {
 			L_printf_append _L_redirs "%q" "$val"
 			;;
 		fd) L_printf_append _L_redirs "&%d" "$val" ;;
-		*) L_func_error "Invalid argument $arg $mode" 1; return "$L_EX_USAGE"; ;;
+		*) L_func_usage_error "Invalid argument $arg $mode" 1; return "$L_EX_USAGE"; ;;
 		esac
 		printf -v "$4" "%s" "$ret" || return "$L_EX_USAGE"
 	fi
@@ -9703,7 +9710,7 @@ L_proc_popen() {
 		W) _L_cleanup=$1 ;;
 		n) _L_dryrun=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10046,7 +10053,7 @@ L_wait() {
 			n) _L_all=0 ;;
 			b) _L_bashonly=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10128,7 +10135,7 @@ L_wait() {
 			fi
 		fi
 		# Busy loop.
-		L_timeout_set_to _L_timeout "$_L_timeout"
+		L_timeout_init_into _L_timeout "$_L_timeout"
 		while
 			_L_wait_collect_any_pids || return "$?"
 			# Are there any still running pids?
@@ -10136,7 +10143,7 @@ L_wait() {
 				# If waiting for any pid, are no pids finished?
 				(( _L_all || ${_L_rets[@]+${#_L_rets[@]}}+0 == 0 )) &&
 				# Has timeout not expired?
-				! L_timeout_expired "$_L_timeout"
+				! L_timeout_is_expired "$_L_timeout"
 		do
 			sleep "$_L_polltime"
 		done
@@ -10162,7 +10169,7 @@ L_proc_wait() {
 		v) _L_v="$OPTARG" ;;
 		c) _L_close=1 ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10208,14 +10215,14 @@ L_read_fds() {
 		_L_timeout="" _L_poll=0.05 IFS="" _L_v="" _L_once=0 _L_delim="" _L_opt_i=""
 	while getopts t:p:v:i:d:nh _L_i; do
 		case "$_L_i" in
-			t) if ! L_timeout_set_to _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return "$L_EX_USAGE"; fi ;;
+			t) if ! L_timeout_init_into _L_timeout "$OPTARG"; then L_func_usage_error "invalid timeout: $OPTARG"; return "$L_EX_USAGE"; fi ;;
 			p) _L_poll="$OPTARG" ;;
 			v) _L_v="$OPTARG"; printf -v "$_L_v" "%s" "" || return "$L_EX_USAGE" ;;
 			i) _L_opt_i=$OPTARG; printf -v "$_L_opt_i" "%s" "" || return "$L_EX_USAGE" ;;
 			d) _L_delim=$OPTARG ;;
 			n) _L_once=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10241,26 +10248,23 @@ L_read_fds() {
 		fi
 	fi
 	while (( ${#_L_fds[@]} )); do
-		if [[ -n "$_L_timeout" ]]; then
+		if (( ${#_L_fds[@]} == 1 )); then
 			# If this is last file descriptor, the read timeout is equal to global timeout.
-			if ((${#_L_fds[@]} == 1)); then
-				L_timeout_left -v _L_poll "$_L_timeout"
-				if (( !L_HAS_BASH4_0 )); then
-					_L_poll=${_L_poll%.*}
-					if ((_L_poll <= 0)); then
-						_L_poll=1
+			if [[ -n "$_L_timeout" ]]; then
+				if L_timeout_left -v _L_poll "$_L_timeout"; then
+					if (( !L_HAS_BASH4_0 )); then
+						_L_poll=${_L_poll%.*}
+						if ((_L_poll <= 0)); then
+							_L_poll=1
+						fi
 					fi
+				else
+					return "$L_EX_TIMEOUT"
 				fi
-			fi
-			# This check is done after calculation, so we know _L_poll is positive above.
-			if L_timeout_expired "$_L_timeout"; then
-				return "$L_EX_TIMEOUT"
 			fi
 		else
 			# If this is last single file descriptor, do not timeout the read.
-			if ((${#_L_fds[@]} == 1)); then
-				_L_poll=""
-			fi
+			_L_poll=""
 		fi
 		#
 		local _L_ok=0
@@ -10331,7 +10335,7 @@ L_proc_communicate() {
 		k) _L_kill=1 ;;
 		v) _L_v="$OPTARG" ;;
 		h) L_func_help; return 0 ;;
-		*) L_func_error; return "$L_EX_USAGE" ;;
+		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
@@ -10538,7 +10542,7 @@ L_foreach() {
       c) _L_opt_c=$OPTARG ;;
       e) _L_opt_e=$OPTARG; L_array_clear "$_L_opt_e" ;;
       h) L_func_help; return 0 ;;
-      *) L_func_error; return "$L_EX_USAGE" ;;
+      *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -10992,7 +10996,7 @@ L_xargs() {
 			X) _L_x_preserve_set_e=1 ;;
 			T) _L_x_template=1 ;;
 			h) L_func_help; return 0 ;;
-			*) L_func_error "L_xargs: invalid option: -$_L_i"; return "$L_EX_USAGE" ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
