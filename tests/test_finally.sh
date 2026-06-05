@@ -414,7 +414,7 @@ _L_test_finally_subshells() {
 		local i
 		for i in $(L_trap_names); do
 			case "$i" in
-			SIGRT*) ;;
+			SIGRT*|SIGHUP) ;;
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT|SIGINT) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT func "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) func "$i" ;;
@@ -442,7 +442,7 @@ _L_test_finally_proc() {
 		for i in $(L_trap_names); do
 			case "$i" in
 			EXIT|ERR|RETURN|DEBUG|SIGKILL|SIGCONT|SIGSTOP|SIGTSTP|SIGTTIN|SIGTTOU|SIGPIPE|SIGQUIT|SIGSTKFLT) ;;
-			SIGSTKFLT|SIGINT|SIGRT*) ;;
+			SIGSTKFLT|SIGINT|SIGRT*|SIGHUP) ;;
 			SIGINFO|SIGWINCH|SIGURG|SIGCHLD|SIGCLD) L_unittest_cmd -o EXIT script "$i" ;;
 			*) L_unittest_cmd -o EXIT -e $(( 128 + $(L_trap_to_number "$i") )) script "$i" ;;
 			esac
@@ -470,7 +470,7 @@ _L_test_finally_interrupt() {
 		L_info "test interrupting error handling"
 		f() {
 			L_finally waiter 0.5
-			L_bashpid_to bashpid
+			L_bashpid_into bashpid
 			sleep 0.2 && kill -USR1 "$bashpid" || : &
 			case "$1" in
 				pop) L_finally_pop ;;
@@ -493,7 +493,7 @@ _L_test_finally_interrupt() {
 		L_info "test interrupting error handling twice"
 		f2() {
 			L_finally waiter 10
-			L_bashpid_to bashpid
+			L_bashpid_into bashpid
 			sleep 0.2 && kill -USR1 "$bashpid" &
 			sleep 0.4 && kill -USR1 "$bashpid" &
 			case "$1" in

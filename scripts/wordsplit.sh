@@ -40,7 +40,7 @@ for ((i=0;i<repeat;++i)); do
 	#
 	echo
 	/bin/printf "INPUT: %q\n" "$data"
-	L_exit_to myexit L_str_split -v tmp "$data"
+	L_exit_into myexit L_str_split -v tmp "$data"
 	if ((myexit == 0)); then
 		my=$(L_quote_bin_printf "${tmp[@]}")
 	else

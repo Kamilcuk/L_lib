@@ -113,8 +113,8 @@ Below is a selection of the library's features. The library contains much more.
     [`$L_EX_USAGE`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_USAGE)
     [`$L_EX_TIMEOUT`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_TIMEOUT)
 - Simplify storing exit status of a command into a variable
-    [`L_exit_to`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to)
-    [`L_exit_to_10`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to_10)
+    [`L_exit_into`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into)
+    [`L_exit_into_10`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into_10)
 - Help with path operations, with `PATH` or `PYTHONPATH` manipulation
     [`L_path_stem`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_stem)
     [`L_dir_is_empty`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_dir_is_empty)
