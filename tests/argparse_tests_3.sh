@@ -5,8 +5,8 @@ _L_test_z_argparse29_dir_types() {
 		return
 	fi
 	local tmpd1 tmpd2 tmp
-	L_with_tmpdir_to tmpd1
-	L_with_tmpdir_to tmpd2
+	L_with_tmpdir_into tmpd1
+	L_with_tmpdir_into tmpd2
 	L_unittest_cmd -- L_argparse -- --dir type=dir_r ---- --dir "$tmpd1"
 	L_unittest_cmd -- L_argparse -- --dir type=dir_w ---- --dir "$tmpd2"
 	chmod -x "$tmpd1"

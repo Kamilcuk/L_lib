@@ -368,20 +368,37 @@ _L_test_list_functions() {
 	unset aaa_func1 aaa_func2 aaa_
 }
 
-_L_test_exit_to_1null() {
+_L_test_exit_into_1null() {
 	{
 		local var='blabla'
-		L_unittest_success L_exit_to_1null var true
+		L_unittest_success L_exit_into_1null var true
 		L_unittest_eq "$var" 1
 		L_unittest_eq "${var:+SUCCESS}" "SUCCESS"
 		L_unittest_eq "${var:-0}" "1"
 		L_unittest_eq "$((var))" "1"
 		local var='blabla'
-		L_unittest_success L_exit_to_1null var false
+		L_unittest_success L_exit_into_1null var false
 		L_unittest_eq "$var" ""
 		L_unittest_eq "${var:+SUCCESS}" ""
 		L_unittest_eq "${var:-0}" "0"
 		L_unittest_eq "$((var))" "0"
+	}
+}
+
+_L_test_exit_into_bool() {
+	{
+		local var
+		L_unittest_success L_exit_into_10 var true
+		L_unittest_vareq var 1
+		L_unittest_success L_exit_into_10 var false
+		L_unittest_vareq var 0
+	}
+	{
+		local var='old'
+		L_unittest_success L_exit_into_1unset var true
+		L_unittest_vareq var 1
+		L_unittest_success L_exit_into_1unset var false
+		L_unittest_failure L_var_is_set var
 	}
 }
 
@@ -1282,17 +1299,17 @@ _L_test_log() {
 	}
 	{
 		local i
-		L_log_level_to_int_to i INFO
+		L_log_level_to_int_into i INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i ERR
+		L_log_level_to_int_into i ERR
 		L_unittest_eq "$i" "$L_LOGLEVEL_ERROR"
-		L_log_level_to_int_to i WARN
+		L_log_level_to_int_into i WARN
 		L_unittest_eq "$i" "$L_LOGLEVEL_WARNING"
-		L_log_level_to_int_to i L_LOGLEVEL_INFO
+		L_log_level_to_int_into i L_LOGLEVEL_INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i info
+		L_log_level_to_int_into i info
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i "$L_LOGLEVEL_INFO"
+		L_log_level_to_int_into i "$L_LOGLEVEL_INFO"
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
 	}
 }
@@ -1860,7 +1877,7 @@ _L_test_L_proc() {
 	{
 		# Choose a temporary TMPDIR so that L_proc_popen creates temporary fifo there so we can check all are removed.
 		local tmpdir
-		L_with_tmpdir_to tmpdir
+		L_with_tmpdir_into tmpdir
 		local -x TMPDIR="$tmpdir"
 		local proc exitcode line
 		local beforefiles=(${TMPDIR:-/tmp}/L_*)
@@ -1898,9 +1915,9 @@ _L_test_L_proc() {
 		L_log 'test sleep timeout, takes about 3 seconds'
 		local proc tmp exitcode
 		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
+		L_exit_into tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 124
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
+		L_exit_into tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 0
 		L_unittest_vareq exitcode 123
 	}
@@ -2064,24 +2081,24 @@ _L_test_bashpid() {
 	}
 	#
 	(
-		L_bashpid_to a
+		L_bashpid_into a
 		(
-			L_bashpid_to b
+			L_bashpid_into b
 			(
-				L_bashpid_to c
-				L_bashpid_to d
+				L_bashpid_into c
+				L_bashpid_into d
 				L_unittest_eq "$c" "$d"
 				check "$a" "$b" "$c"
 			)
 			(
-				L_bashpid_to c
+				L_bashpid_into c
 				check "$a" "$b" "$c"
 			)
 		)
 		(
-			L_bashpid_to b
+			L_bashpid_into b
 			(
-				L_bashpid_to c
+				L_bashpid_into c
 				check "$a" "$b" "$c"
 			)
 		)
@@ -2091,14 +2108,14 @@ _L_test_bashpid() {
 
 wait_interrupt() {
 	local mypid
-	L_bashpid_to mypid
+	L_bashpid_into mypid
 	sleep ${1:-0.1} && kill -USR$((1+RANDOM%2)) "$mypid" 2>/dev/null || : &
 	allchilds+=($!)
 }
 
 wait_test_prepare_with_3_childs() {
 	local mypid
-	L_bashpid_to mypid
+	L_bashpid_into mypid
 	L_assert '' L_var_is_array childs
 	exec 1001>&2
 	trap 'echo "received USR1 all ok $((++USR1_CNT))" >&1001' USR1
@@ -2153,7 +2170,7 @@ wait_test_finish() {
 wait_sleep_exit() {
 	local pid start stop=0 end i lived
 	trap 'stop=1' USR1
-	L_bashpid_to pid
+	L_bashpid_into pid
 	L_epochrealtime_usec -v start
 	for ((i=0; i<1000 && !stop; ++i)); do sleep 0.05; done
 	L_epochrealtime_usec -v end
@@ -2337,13 +2354,13 @@ _L_test_all_childs() {
 		tmpf=$(mktemp)
 		bg() {
 			local pid
-			L_bashpid_to pid
+			L_bashpid_into pid
 			echo "$pid" >> "$tmpf"
 			exec sleep 5
 		}
 		mypstree() {
 			local pid
-			L_bashpid_to pid
+			L_bashpid_into pid
 			# Handle busybox pstree
 			if [[ "$(pstree --help 2>&1)" == *-a* ]]; then
 				pstree -pa "$pid" >&2
