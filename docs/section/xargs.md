@@ -77,13 +77,13 @@ L_xargs -S -a my_items -n 1 echo
 
 #### Input from a Callback Function (-c)
 
-The `-c` option allows you to provide a string that will be `eval`ed to generate input Records. The evaluated string must populate the `L_v` variable (as an array) and return 0 for success. A non-zero return code signals the end of input.
+The `-c` option allows you to provide a string that will be `eval`ed to generate input Records. The evaluated string must populate the `L_RET` variable (as an array) and return 0 for success. A non-zero return code signals the end of input.
 
 ```bash
 i=0
 generate_items() {
     if (( i < 3 )); then
-        L_v="item_$((++i))"
+        L_RET="item_$((++i))"
         return 0
     fi
     return 1

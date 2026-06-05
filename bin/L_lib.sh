@@ -586,12 +586,12 @@ L_panic() {
 L_assert() {
 	if ! "${@:2}"; then
 		set +x
-		local L_v
-		L_quote_printf_v "${@:2}"
+		local L_RET
+		L_quote_printf_vL_RET "${@:2}"
 		if [[ "${1:-}" =~ ^(-[0-9]+)[$' \t\r\n']*(.*)$ ]]; then
-			L_panic "${BASH_REMATCH[1]}" "$L_NAME: ERROR: assertion [$L_v] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
+			L_panic "${BASH_REMATCH[1]}" "$L_NAME: ERROR: assertion [$L_RET] failed${BASH_REMATCH[2]:+: ${BASH_REMATCH[2]}}"
 		else
-			L_panic "$L_NAME: ERROR: assertion [$L_v] failed${1:+: $1}"
+			L_panic "$L_NAME: ERROR: assertion [$L_RET] failed${1:+: $1}"
 		fi
 	fi
 }
@@ -678,10 +678,10 @@ _L_func_line_is_function_definition_with_comment() {
 # @option -v <var> Variable is assigned an array of two elements: the file path of where the function was defined and line number.
 # @arg $1 Function name to inspect.
 L_func_get_source() { L_handle_v_array "$@"; }
-L_func_get_source_v() {
-	L_v=$(shopt -s extdebug && declare -F "$1") &&
-		L_v=( "${L_v#"$1" [0-9]* }" "${L_v:${#1}+1}" ) &&
-			L_v[1]=${L_v[1]%% *}
+L_func_get_source_vL_RET() {
+	L_RET=$(shopt -s extdebug && declare -F "$1") &&
+		L_RET=( "${L_RET#"$1" [0-9]* }" "${L_RET:${#1}+1}" ) &&
+			L_RET[1]=${L_RET[1]%% *}
 }
 
 # @description Extract the comment above the function.
@@ -705,7 +705,7 @@ L_func_get_source_v() {
 #    L_func_comment -f somefunc
 L_func_comment() {
 	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
-		_L_f="" _L_usebash=0 L_v="" _L_up=0 _L_funcname_escaped
+		_L_f="" L_RET="" _L_up=0 _L_funcname_escaped
 	while getopts v:f:s:h _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
@@ -734,8 +734,8 @@ L_func_comment() {
 	L_regex_escape -v _L_funcname_escaped "$_L_funcname"
 	_L_content=$(< "$_L_source") || return 2
 	[[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?(($'\n'\#[^$'\n']*)+)$'\n'(function[[:space:]]+"$_L_funcname"|"$_L_funcname"[[:space:]]*\()  ]] || return 1
-	L_v=${BASH_REMATCH[2]##$'\n'}
-	[[ -n "$L_v" ]] && printf -v "$_L_v" "%s\n" "${L_v%$'\n'}"
+	L_RET=${BASH_REMATCH[2]##$'\n'}
+	[[ -n "$L_RET" ]] && printf -v "$_L_v" "%s\n" "${L_RET%$'\n'}"
 }
 
 # @description Print function comment as usage message.
@@ -850,13 +850,13 @@ L_func_usage_error() {
 #    }
 L_func_assert() {
 	if ! "${@:2}"; then
-		L_quote_printf_v "${@:2}"
+		L_quote_printf_vL_RET "${@:2}"
 		if [[ "$1" =~ ^-([0-9]+)[$' \t\r\n']*(.*)$ ]]; then
 			set -- "${BASH_REMATCH[2]}" "${BASH_REMATCH[1]}"
 		else
 			set -- "$1" 1
 		fi
-		L_func_error "assertion [$L_v] failed${1:+: $1}" "$2"
+		L_func_error "assertion [$L_RET] failed${1:+: $1}" "$2"
 		return "$L_EX_USAGE"
 	fi
 }
@@ -968,23 +968,23 @@ L_time() {
 # @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
 L_duration_to_usec() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2211,SC2035,SC2035,SC1102
-L_duration_to_usec_v() {
+L_duration_to_usec_vL_RET() {
   [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
   #           123          45          67          89          01          23          45           67            8        9   0
   # convert year, week, day, ... into <seconds><microseconds>
-    printf -v L_v "%s%06d" \
+    printf -v L_RET "%s%06d" \
     	"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18] + (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
       ))" \
       "$(( BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) } ))" &&
     # Remove leading zeros.
-    L_v=$(( 10#$L_v ))
+    L_RET=$(( 10#$L_RET ))
 }
 
-# @description Convert microseconds to Prometheus duration string using L_v.
+# @description Convert microseconds to Prometheus duration string using L_RET.
 # @option -v <var>
 # @arg $1 Microseconds (integer).
 L_usec_to_duration() { L_handle_v_scalar "$@"; }
-L_usec_to_duration_v() {
+L_usec_to_duration_vL_RET() {
     # Time unit calculation
     # Year: 31536000000000 us (365d)
     # Week: 604800000000 us (7d)
@@ -1002,7 +1002,7 @@ L_usec_to_duration_v() {
     	s=$((  ($1 / 1000000) % 60 )) \
     	ms=$(( ($1 / 1000) % 1000 )) \
     	us=$((  $1 % 1000 ))
-    printf -v L_v "%.*s%.*s%.*s%.*s%.*s%.*s%.*s%.*s" \
+    printf -v L_RET "%.*s%.*s%.*s%.*s%.*s%.*s%.*s%.*s" \
     	"$(( y > 0 ? ${#y}+1 : 0 ))" "${y}y" \
     	"$(( w > 0 ? ${#w}+1 : 0 ))" "${w}w" \
     	"$(( d > 0 ? ${#d}+1 : 0 ))" "${d}d" \
@@ -1011,7 +1011,7 @@ L_usec_to_duration_v() {
     	"$(( s > 0 ? ${#s}+1 : 0 ))" "${s}s" \
     	"$(( ms > 0 ? ${#ms}+2 : 0 ))" "${ms}ms" \
     	"$(( us > 0 ? ${#us}+2 : 0 ))" "${us}us"
-    L_v="${L_v:-0s}"
+    L_RET="${L_RET:-0s}"
 }
 
 _L_getopts_in_initer() {
@@ -1393,73 +1393,73 @@ _L_getopts_forward() {
 if ((!L_HAS_NAMEREF)); then
 
 # @description Wrapper function for handling -v arguments to other functions.
-# It calls a function called `<caller>_v` with arguments, but without `-v <var>`.
-# The function `<caller>_v` should set the variable nameref L_v to the returned value.
-# When the caller function is called without -v, the value of L_v is printed to stdout with a newline.
+# It calls a function called `<caller>_vL_RET` with arguments, but without `-v <var>`.
+# The function `<caller>_vL_RET` should set the variable nameref L_RET to the returned value.
+# When the caller function is called without -v, the value of L_RET is printed to stdout with a newline.
 # Otherwise, the value is a nameref to user requested variable and nothing is printed.
 #
-# The fucntion L_handle_v_scalar handles only scalar value of `L_v` or 0-th index of `L_v` array.
+# The fucntion L_handle_v_scalar handles only scalar value of `L_RET` or 0-th index of `L_RET` array.
 # To assign an array, prefer L_handle_v_array.
 #
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arbitrary function arguments
-# @exitcode Whatever exitcode does the `<caller>_v` funtion exits with.
+# @exitcode Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
 # @example:
 #    L_hello() { L_handle_v_arr "$@"; }
-#    L_hello_v() { L_v="hello world"; }
+#    L_hello_vL_RET() { L_RET="hello world"; }
 #    L_hello          # outputs 'hello world'
 #    L_hello -v var   # assigns var="hello world"
 # @see L_handle_v_array
 # shellcheck disable=SC2317
 L_handle_v_scalar() {
-	local L_v
+	local L_RET
 	case "${1:-}" in
 	-v?*)
 		if
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 		then
-			printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
+			printf -v "${1##-v}" "%s" "${L_RET:-}" || return "$?"
 		else
 			local _L_r=$?
-			printf -v "${1##-v}" "%s" "${L_v:-}" || return "$?"
+			printf -v "${1##-v}" "%s" "${L_RET:-}" || return "$?"
 			return "$_L_r"
 		fi
 		;;
 	-v)
 		if
 			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:4}"
+				"${FUNCNAME[1]}"_vL_RET "${@:4}"
 			else
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			fi
 		then
-			printf -v "$2" "%s" "${L_v:-}" || return "$?"
+			printf -v "$2" "%s" "${L_RET:-}" || return "$?"
 		else
 			local _L_r=$?
-			printf -v "$2" "%s" "${L_v:-}" || return "$?"
+			printf -v "$2" "%s" "${L_RET:-}" || return "$?"
 			return "$_L_r"
 		fi
 		;;
 	--)
-		if "${FUNCNAME[1]}"_v "${@:2}"; then
-			printf "%s" "${L_v+$L_v$'\n'}" || return "$?"
+		if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
+			printf "%s" "${L_RET+$L_RET$'\n'}" || return "$?"
 		else
 			local _L_r=$?
-			printf "%s" "${L_v+$L_v$'\n'}" || return "$?"
+			printf "%s" "${L_RET+$L_RET$'\n'}" || return "$?"
 			return "$_L_r"
 		fi
 		;;
 	-h) L_func_help 1; return 0 ;;
 	*)
-		if "${FUNCNAME[1]}"_v "$@"; then
-			printf "%s" "${L_v+$L_v$'\n'}" || return "$?"
+		if "${FUNCNAME[1]}"_vL_RET "$@"; then
+			printf "%s" "${L_RET+$L_RET$'\n'}" || return "$?"
 		else
 			local _L_r=$?
-			printf "%s" "${L_v+$L_v$'\n'}" || return "$?"
+			printf "%s" "${L_RET+$L_RET$'\n'}" || return "$?"
 			return "$_L_r"
 		fi
 	esac
@@ -1480,13 +1480,13 @@ L_handle_v_scalar() {
 #
 # @example:
 #    L_hello() { L_handle_v_arr "$@"; }
-#    L_hello_v() { L_v=(hello world); }
+#    L_hello_vL_RET() { L_RET=(hello world); }
 #    L_hello          # outputs two lines 'hello' and 'world'
 #    L_hello -v var   # assigns var=(hello world)
 # @see L_handle_v_scalar.
 # shellcheck disable=SC2317
 L_handle_v_array() {
-	local L_v
+	local L_RET
 	case "${1:-}" in
 	-v?*)
 		if ! L_is_valid_variable_name "${1##-v}"; then
@@ -1494,15 +1494,15 @@ L_handle_v_array() {
 		fi
 		if
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 		then
-			eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return "$?"
 		else
 			local _L_r=$?
-			eval "${1##-v}"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return "$?"
 			return "$_L_r"
 		fi
 		;;
@@ -1512,34 +1512,34 @@ L_handle_v_array() {
 		fi
 		if
 			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:4}"
+				"${FUNCNAME[1]}"_vL_RET "${@:4}"
 			else
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			fi
 		then
-			eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return "$?"
 		else
 			local _L_r=$?
-			eval "$2"'=(${L_v[@]+"${L_v[@]}"})' || return "$?"
+			eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return "$?"
 			return "$_L_r"
 		fi
 		;;
 	--)
-		if "${FUNCNAME[1]}"_v "${@:2}"; then
-			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+		if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 		else
 			local _L_r=$?
-			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			return "$_L_r"
 		fi
 		;;
 	-h) L_func_help 1; return 0 ;;
 	*)
-		if "${FUNCNAME[1]}"_v "$@"; then
-			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+		if "${FUNCNAME[1]}"_vL_RET "$@"; then
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 		else
 			local _L_r=$?
-			printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			return "$_L_r"
 		fi
 	esac
@@ -1549,49 +1549,49 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_scalar() {
 		case "${1:-}" in
-		-vL_v)
+		-vL_vL_RET)
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 			;;
 		-v?*)
-			local -n L_v="${1##-v}" || return "$L_EX_USAGE"
+			local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 			;;
 		-v)
-			if [[ "$2" != L_v ]]; then
-				local -n L_v="$2" || return "$L_EX_USAGE"
+			if [[ "$2" != L_RET ]]; then
+				local -n L_RET="$2" || return "$L_EX_USAGE"
 			fi
 			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:4}"
+				"${FUNCNAME[1]}"_vL_RET "${@:4}"
 			else
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			fi
 			;;
 		--)
-			local L_v
-			if "${FUNCNAME[1]}"_v "${@:2}"; then
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			local L_RET
+			if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			else
 				local _L_r=$?
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 				return "$_L_r"
 			fi
 			;;
 		-h) L_func_help 1; return 0 ;;
 		*)
-			local L_v
-			if "${FUNCNAME[1]}"_v "$@"; then
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			local L_RET
+			if "${FUNCNAME[1]}"_vL_RET "$@"; then
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			else
 				local _L_r=$?
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 				return "$_L_r"
 			fi
 		esac
@@ -1599,49 +1599,49 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_array() {
 		case "${1:-}" in
-		-vL_v)
+		-vL_vL_RET)
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 			;;
 		-v?*)
-			local -n L_v="${1##-v}" || return "$L_EX_USAGE"
+			local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_v "${@:2}"
+				"${FUNCNAME[1]}"_vL_RET "${@:2}"
 			fi
 			;;
 		-v)
-			if [[ "$2" != L_v ]]; then
-				local -n L_v="$2" || return "$L_EX_USAGE"
+			if [[ "$2" != L_RET ]]; then
+				local -n L_RET="$2" || return "$L_EX_USAGE"
 			fi
 			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_v "${@:4}"
+				"${FUNCNAME[1]}"_vL_RET "${@:4}"
 			else
-				"${FUNCNAME[1]}"_v "${@:3}"
+				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			fi
 			;;
 		--)
-			local L_v
-			if "${FUNCNAME[1]}"_v "${@:2}"; then
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			local L_RET
+			if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			else
 				local _L_r=$?
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 				return "$_L_r"
 			fi
 			;;
 		-h) L_func_help 1; return 0 ;;
 		*)
-			local L_v
-			if "${FUNCNAME[1]}"_v "$@"; then
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+			local L_RET
+			if "${FUNCNAME[1]}"_vL_RET "$@"; then
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 			else
 				local _L_r=$?
-				printf "%s" "${L_v[@]+${L_v[@]/%/$'\n'}}" || return "$?"
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return "$?"
 				return "$_L_r"
 			fi
 		esac
@@ -1666,24 +1666,24 @@ L_regex_match() { [[ "$1" =~ $2 ]]; }
 # @see https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_04
 # @see https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap09.html#tag_09_03
 L_regex_escape() { L_handle_v_scalar "$@"; }
-L_regex_escape_v() {
+L_regex_escape_vL_RET() {
 	# ERE . [ \ ( * + ? { | ^ $
 	# BRE . [ \   *         ^ $
 	# Most of the time there are none of these characters, so it makes sense to speed up.
 	if [[ "$*" == *[".[\\(*+?{|^$"]* ]]; then
-		L_v=${*//\\/\\\\}
-		L_v=${L_v//\[/[\[]}  # ]]
-		L_v=${L_v//\./\\\.}
-		L_v=${L_v//\+/[\+]}
-		L_v=${L_v//\*/\\\*}
-		L_v=${L_v//\?/[\?]}
-		L_v=${L_v//\^/\\\^}
-		L_v=${L_v//\$/\\\$}
-		L_v=${L_v//\(/[\(]}
-		L_v=${L_v//\{/[\{]}
-		L_v=${L_v//\|/[\|]}
+		L_RET=${*//\\/\\\\}
+		L_RET=${L_RET//\[/[\[]}  # ]]
+		L_RET=${L_RET//\./\\\.}
+		L_RET=${L_RET//\+/[\+]}
+		L_RET=${L_RET//\*/\\\*}
+		L_RET=${L_RET//\?/[\?]}
+		L_RET=${L_RET//\^/\\\^}
+		L_RET=${L_RET//\$/\\\$}
+		L_RET=${L_RET//\(/[\(]}
+		L_RET=${L_RET//\{/[\{]}
+		L_RET=${L_RET//\|/[\|]}
 	else
-		L_v=$*
+		L_RET=$*
 	fi
 }
 
@@ -1692,10 +1692,10 @@ L_regex_escape_v() {
 # @arg $1 string to match
 # @arg $2 regex to match
 L_regex_findall() { L_handle_v_array "$@"; }
-L_regex_findall_v() {
-	L_v=()
+L_regex_findall_vL_RET() {
+	L_RET=()
 	while L_regex_match "$1" "($2)(.*)"; do
-		L_v+=("${BASH_REMATCH[1]}")
+		L_RET+=("${BASH_REMATCH[1]}")
 		set -- "${BASH_REMATCH[2]}" "$2"
 	done
 }
@@ -1772,7 +1772,7 @@ L_return() { return "$1"; }
 # @arg $@ Command to execute
 L_shopt_extglob() {
 	if shopt -p extglob >/dev/null; then "$@"
-	else shopt -s extglob; "$@"; eval "shopt -u extglob; return $?"; fi
+	else shopt -s extglob; "$@"; eval "shopt -u extglob; return \"$?\""; fi
 }
 
 # @description Runs the command with the specified shopt option enabled temporarily.
@@ -1780,7 +1780,7 @@ L_shopt_extglob() {
 # @arg $@ command to execute
 L_shopt() {
 	if shopt -p "$1" >/dev/null; then "${@:2}"
-	else shopt -s "$1"; "${@:2}"; eval "shopt -u \$1; return $?"; fi
+	else shopt -s "$1"; "${@:2}"; eval "shopt -u \$1; return \"$?\""; fi
 }
 
 if ((L_HAS_LOCAL_DASH)); then
@@ -1827,16 +1827,16 @@ else
 		# Case is faster then ifs and getopts. Getopts is almost as fast.
 		case "$1/$-/:$SHELLOPTS:" in
 			-o/*/*:"$2":*) "${@:3}" ;;
-			-o/*/*) set -o "$2" && "${@:3}"; eval "set +o \"$2\" && return $?" ;;
-			+o/*/*:"$2":*) set +o "$2" && "${@:3}"; eval "set -o \"$2\" && return $?" ;;
+			-o/*/*) set -o "$2" && "${@:3}"; eval "set +o \"$2\" && return \"$?\"" ;;
+			+o/*/*:"$2":*) set +o "$2" && "${@:3}"; eval "set -o \"$2\" && return \"$?\"" ;;
 			+o/*/*) "${@:3}" ;;
 			-o*/*/*:"${1:2}":*) "${@:2}" ;;
-			-o*/*/*) set "$1" && "${@:2}"; eval "set +o \"${1:2}\" && return $?" ;;
-			+o*/*/*:"${1:2}":*) set "$1" && "${@:2}"; eval "set -o \"${1:2}\" && return $?" ;;
+			-o*/*/*) set "$1" && "${@:2}"; eval "set +o \"${1:2}\" && return \"$?\"" ;;
+			+o*/*/*:"${1:2}":*) set "$1" && "${@:2}"; eval "set -o \"${1:2}\" && return \"$?\"" ;;
 			+o*/*/*) "${@:2}" ;;
 			"-${1:1}"/*"${1:1}"*/*) "${@:2}" ;;
-			"-${1:1}"/*) set "$1" && "${@:2}"; eval "set +${1:1} && return $?" ;;
-			"+${1:1}"/*"${1:1}"*/*) set "$1" && "${@:2}"; eval "set -${1:1} && return $?" ;;
+			"-${1:1}"/*) set "$1" && "${@:2}"; eval "set +${1:1} && return \"$?\"" ;;
+			"+${1:1}"/*"${1:1}"*/*) set "$1" && "${@:2}"; eval "set -${1:1} && return \"$?\"" ;;
 			"+${1:1}"/*) "${@:2}" ;;
 			*) "$@" ;;
 		esac
@@ -1845,12 +1845,12 @@ else
 	L_setx() {
 		case $- in
 			*x*) "$@" ;;
-			*) set -x; "$@"; eval "set +x;return $?" ;;
+			*) set -x; "$@"; eval "set +x;return \"$?\"" ;;
 		esac
 	}
 	L_unsetx() {
 		case $- in
-			*x*) set +x; "$@"; eval "set -x;return $?" ;;
+			*x*) set +x; "$@"; eval "set -x;return \"$?\"" ;;
 			*) "$@" ;;
 		esac
 	}
@@ -1861,14 +1861,14 @@ else
 		else
 			set -o posix
 			"$@"
-			eval "set +o posix;return $?"
+			eval "set +o posix;return \"$?\""
 		fi
 	}
 	L_unsetposix() {
 		if [[ -o posix ]]; then
 			set +o posix
 			"$@"
-			eval "set -o posix;return $?"
+			eval "set -o posix;return \"$?\""
 		else
 			"$@"
 		fi
@@ -1903,11 +1903,11 @@ fi
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ string to escape
 L_glob_escape() { L_handle_v_scalar "$@"; }
-L_glob_escape_v() {
-	L_v=${*//\\/\\\\}
-	L_v=${L_v//\?/\\\?}
-	L_v=${L_v//\*/\\\*}
-	L_v=${L_v//\(/\\\(}
+L_glob_escape_vL_RET() {
+	L_RET=${*//\\/\\\\}
+	L_RET=${L_RET//\?/\\\?}
+	L_RET=${L_RET//\*/\\\*}
+	L_RET=${L_RET//\(/\\\(}
 }
 
 # @description Execute source with arguments.
@@ -2109,21 +2109,21 @@ if (( L_HAS_QEPAa_EXPANSIONS )); then
 	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
 	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
 
-	L_var_to_string_v() {
+	L_var_to_string_vL_RET() {
 		local -; set +u
 		if [[ ${!1@a} == *[aA]* ]]; then
 			# Indirect expansion with @A does not work in Bash5.0
 			# We know $1 is a sane valid variable name, becuase above worked.
-			eval "L_v=\"\${$1[@]@A}\""
+			eval "L_RET=\"\${$1[@]@A}\""
 			# @A does not print =() empty arrays assignment. Fix that.
-			if [[ "$L_v" != *" $1=("* ]]; then
-				L_v="()"
+			if [[ "$L_RET" != *" $1=("* ]]; then
+				L_RET="()"
 			else
-				L_v="${L_v#*=}"
+				L_RET="${L_RET#*=}"
 			fi
 		else
 			# Non array variable.
-			printf -v L_v "%q" "${!1}"
+			printf -v L_RET "%q" "${!1}"
 		fi
 	}
 else
@@ -2152,23 +2152,23 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
 
-L_var_to_string_v() {
-	L_v=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
+L_var_to_string_vL_RET() {
+	L_RET=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
 	# If it is an array or associative array.
-	if [[ "${L_v::10}" == declare\ -[aA] ]]; then
+	if [[ "${L_RET::10}" == declare\ -[aA] ]]; then
 		# Bash before4.4 which is used here prints declare output of arrays in quotes.
 		if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
 			# There is space, tab or newline in the keys of an associative array on Bash4.0.
 			L_panic "Not possible to serialize an associative array with keys containing space, tab or newline on Bash 4.0. Such keys are just improperly stored in the first place and this is a bug in Bash. Consider moving to a newer bash version"
 		fi
   	# Remove one level of quoting.
-  	eval "L_v=${L_v#*=}"
+  	eval "L_RET=${L_RET#*=}"
 		# Fix erroneus \001 in front of every \177 and \001.
-  	L_v=${L_v//$'\001\001'/$'\001'}
-  	L_v=${L_v//$'\001\177'/$'\177'}
+  	L_RET=${L_RET//$'\001\001'/$'\001'}
+  	L_RET=${L_RET//$'\001\177'/$'\177'}
   else
   	# Non array variable.
-		printf -v L_v "%q" "${!1}"
+		printf -v L_RET "%q" "${!1}"
   fi
 }
 
@@ -2180,15 +2180,15 @@ fi
 # @arg $1 variable nameref
 # @see L_var_is_nameref
 L_var_get_nameref() { L_handle_v_scalar "$@"; }
-L_var_get_nameref_v() {
+L_var_get_nameref_vL_RET() {
 	[[ "$(LC_ALL=C declare -p "$1")" =~ ^declare\ -n\ [^=]+=\"?([^=\"]+)\"?$ ]] &&
-		L_v=${BASH_REMATCH[1]}
+		L_RET=${BASH_REMATCH[1]}
 }
 
 # @description Return 0 if the variable is a namereference.
 # @arg $1 variable nameref
 # @see L_var_get_nameref
-L_var_is_nameref() { local L_v; L_var_get_nameref_v -- "$@"; }
+L_var_is_nameref() { local L_RET; L_var_get_nameref_vL_RET -- "$@"; }
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # shellcheck disable=SC2059
@@ -2234,7 +2234,7 @@ fi
 # @option -v <var> Store the output in variable instead of printing it.
 # @see https://digitalbunker.dev/understanding-how-uuids-are-generated/
 L_uuid4() { L_handle_v_scalar "$@"; }
-L_uuid4_v() {
+L_uuid4_vL_RET() {
 	# Generate 128 random bits
 	# RANDOM has 16 bits. 128/16=8
 	# SRANDOM has 32 bits. 128/32=4
@@ -2243,17 +2243,17 @@ L_uuid4_v() {
 	# Next, take the 9th byte and perform an AND operation with 0x3F and then OR it with 0x80.
 	# Convert the 128 bits to hexadecimal representation and insert the hyphens to achieve the canonical text representation.
 	if ((L_HAS_SRANDOM)); then
-		printf -v L_v "%08x%08x%08x%08x" \
+		printf -v L_RET "%08x%08x%08x%08x" \
 			"$SRANDOM" "$(( SRANDOM & 0x3FFFFFFF | 0x40000000 ))" "$SRANDOM" "$SRANDOM"
 	elif L_hash uuidgen; then
-		L_v=$(uuidgen)
+		L_RET=$(uuidgen)
 		return
 	else
-		printf -v L_v "%04x%04x%04x%04x""%04x%04x%04x%04x" \
+		printf -v L_RET "%04x%04x%04x%04x""%04x%04x%04x%04x" \
 			"$RANDOM" "$RANDOM" "$(( RANDOM & 0x3FFF | 0x4000 ))" "$RANDOM" \
 			"$RANDOM" "$RANDOM" "$RANDOM" "$RANDOM"
 	fi
-	L_v=${L_v::8}-${L_v:8:4}-4${L_v:13:3}-${L_v:16:4}-${L_v:20}
+	L_RET=${L_RET::8}-${L_RET:8:4}-4${L_RET:13:3}-${L_RET:16:4}-${L_RET:20}
 }
 
 # @description Print date in the format.
@@ -2264,9 +2264,9 @@ L_uuid4_v() {
 # @arg $1 Format string, without leading +.
 # @arg [$2] Optional timepoint in seconds with optional digit or any date understood format.
 L_date() { L_handle_v_scalar "$@"; }
-L_date_v() {
+L_date_vL_RET() {
 	# Support python %f.
-	L_v="${1//%f/%6N}"
+	L_RET="${1//%f/%6N}"
 	if [[
 		# If we have print %T
 		"$L_HAS_PRINTF_T" == 1 && (
@@ -2275,7 +2275,7 @@ L_date_v() {
 				# And we have EPOCHREALTIME, which we can use to fill %N
 				"$L_HAS_EPOCHREALTIME" == 1 ||
 				# Or the format string has no %N, so there is no need to fill %N.
-				( ! "$L_v" =~ %([0-9]*)N )
+				( ! "$L_RET" =~ %([0-9]*)N )
 			) ||
 			# Or the timepoint is the number of seconds optionally with a decimal point.
 			# Or the timepoint is number of seconds with initial @ - ^@[0-9]*.?[0-9]*
@@ -2286,7 +2286,7 @@ L_date_v() {
 			# Default the timestamp to EPOCHREALTIME.
 			local _L_d_ts="${2:-${EPOCHREALTIME:--1}}" _L_d_tmp
 			_L_d_ts="${_L_d_ts#@}"
-			if [[ "$L_v" =~ (^|.*[^%])%([0-9]*)N(.*) ]]; then
+			if [[ "$L_RET" =~ (^|.*[^%])%([0-9]*)N(.*) ]]; then
 				# If we have any %N in the format string, we can replace them ourselves.
 				if [[ "$_L_d_ts" == *.* ]]; then
 					# If the timestamp has seconds, use them.
@@ -2295,9 +2295,9 @@ L_date_v() {
 					# Otherwise fill with just zeros.
 					printf -v _L_d_tmp "%0*d" "${BASH_REMATCH[2]:-9}" 0
 				fi
-				L_v=${BASH_REMATCH[1]}${_L_d_tmp::${BASH_REMATCH[2]:-9}}${BASH_REMATCH[3]}
+				L_RET=${BASH_REMATCH[1]}${_L_d_tmp::${BASH_REMATCH[2]:-9}}${BASH_REMATCH[3]}
 			fi
-			printf -v L_v "%($L_v)T" "${_L_d_ts%.*}"
+			printf -v L_RET "%($L_RET)T" "${_L_d_ts%.*}"
 	else
 		# Otherwise,
 		# - when printf %T is not supported,
@@ -2305,7 +2305,7 @@ L_date_v() {
 		# - the timestamp is now, but we do not have EPOCHREALTIME
 		# - the timestamp is now, but there is %N in the format string
 		# use date command.
-		L_v=$(date ${2:+"-d$2"} +"$L_v")
+		L_RET=$(date ${2:+"-d$2"} +"$L_RET")
 	fi
 }
 
@@ -2326,32 +2326,32 @@ _L_has_date_N() {
 # In older Bash tries GNU date, gdate, perl, /proc/uptime, python, busybox adjtimex.
 # @option -v <var>
 L_epochrealtime_usec() { L_handle_v_scalar "$@"; }
-L_epochrealtime_usec_v() {
+L_epochrealtime_usec_vL_RET() {
 	# Pick the best method available.
 	if ((L_HAS_EPOCHREALTIME)); then
-		L_epochrealtime_usec_v() { L_v=${EPOCHREALTIME//[,.]}; }
+		L_epochrealtime_usec_vL_RET() { L_RET=${EPOCHREALTIME//[,.]}; }
 	elif _L_has_date_N; then
-		L_epochrealtime_usec_v() { L_v=$(date +%s%6N); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(date +%s%6N); }
 	elif L_hash gdate; then
-		L_epochrealtime_usec_v() { L_v=$(gdate +%s%6N); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(gdate +%s%6N); }
 	elif L_hash perl; then
-		L_epochrealtime_usec_v() { L_v=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
 	elif [[ -r /proc/uptime ]]; then
-		L_epochrealtime_usec_v() { L_v=$(< /proc/uptime) && L_sec_to_usec_v "${L_v// *}"; }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(< /proc/uptime) && L_sec_to_usec_vL_RET "${L_RET// *}"; }
 	elif L_hash busybox; then
-		L_epochrealtime_usec_v() {
+		L_epochrealtime_usec_vL_RET() {
 			# https://elixir.bootlin.com/busybox/1.37.0/source/miscutils/adjtimex.c#L123
-			L_v=$(busybox adjtimex)
+			L_RET=$(busybox adjtimex)
 			# https://github.com/torvalds/linux/blob/50c19e20ed2ef359cf155a39c8462b0a6351b9fa/include/uapi/linux/timex.h#L187
-			local status=${L_v##*status:} sec=${L_v##*time.tv_sec:} usec=${L_v##*time.tv_usec:} STA_NANO=0x2000
-			L_lstrip_v "$sec"; sec=$L_v
-			L_lstrip_v "$usec"; usec=$L_v
-			L_lstrip_v "$status"; status=$L_v
+			local status=${L_RET##*status:} sec=${L_RET##*time.tv_sec:} usec=${L_RET##*time.tv_usec:} STA_NANO=0x2000
+			L_lstrip_vL_RET "$sec"; sec=$L_RET
+			L_lstrip_vL_RET "$usec"; usec=$L_RET
+			L_lstrip_vL_RET "$status"; status=$L_RET
 			sec=${sec%%[$' \t\n']*} usec=${usec%%[$' \t\n']*} status=${status%%[$' \t\n']*}
-			printf -v "L_v" "%d%06d" "$sec" "$(( (status & STA_NANO) ? ( usec / 1000 ) : usec ))"
+			printf -v "L_RET" "%d%06d" "$sec" "$(( (status & STA_NANO) ? ( usec / 1000 ) : usec ))"
 		}
 	elif L_hash python3; then
-		L_epochrealtime_usec_v() { L_v=$(python -c 'import time; print(int(time.time() * 1000000))'); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(python -c 'import time; print(int(time.time() * 1000000))'); }
 	else
 		return 1
 	fi
@@ -2362,18 +2362,18 @@ L_epochrealtime_usec_v() {
 # @option -v <var>
 # @example  L_sec_to_usec 1.5 -> 1500000
 L_sec_to_usec() { L_handle_v_scalar "$@"; }
-L_sec_to_usec_v() {
+L_sec_to_usec_vL_RET() {
 	case "$1" in
-	*.*) printf -v L_v "%s%.6s" "${1%%.*}" "${1##*.}000000" && L_v=$(( 10#$L_v )) ;;
-	*) L_v="$(( 10#${1}000000 ))" ;;
+	*.*) printf -v L_RET "%s%.6s" "${1%%.*}" "${1##*.}000000" && L_RET=$(( 10#$L_RET )) ;;
+	*) L_RET="$(( 10#${1}000000 ))" ;;
 	esac
 }
 
 # @description Convert microseconds to seconds with 6 digits after comma.
 # @option -v <var>
 L_usec_to_sec() { L_handle_v_scalar "$@"; }
-L_usec_to_sec_v() {
-	printf -v L_v "%d.%06d" "$(( $1 / 1000000 ))" "$(( $1 % 1000000 ))"
+L_usec_to_sec_vL_RET() {
+	printf -v L_RET "%d.%06d" "$(( $1 / 1000000 ))" "$(( $1 % 1000000 ))"
 }
 
 # @description Calculate timeout value.
@@ -2383,29 +2383,29 @@ L_usec_to_sec_v() {
 # @see L_epochrealtime_usec
 # @note should this be L_timeout_assign -v ?
 L_timeout_set_to() {
-	local _L__now L_v
+	local _L__now L_RET
 	L_epochrealtime_usec -v _L__now &&
-	L_sec_to_usec_v "$2" &&
-	printf -v "$1" "%s" "$(( ${_L__now//.} + 10#${L_v//.} ))"
+	L_sec_to_usec_vL_RET "$2" &&
+	printf -v "$1" "%s" "$(( ${_L__now//.} + 10#${L_RET//.} ))"
 }
 
 # @description Is the timeout expired?
 # @arg $1 timeout value
 L_timeout_expired() {
-	local L_v
-	L_epochrealtime_usec_v &&
-	(( ${L_v//.} >= $1 ))
+	local L_RET
+	L_epochrealtime_usec_vL_RET &&
+	(( ${L_RET//.} >= $1 ))
 }
 
 # @description Get the number of seconds left in the timer.
 # @option -v <var>
 # @arg $1 timeout value
 L_timeout_left() { L_handle_v_scalar "$@"; }
-L_timeout_left_v() {
-	L_epochrealtime_usec_v &&
-	(( ${L_v//.} < $1 )) &&
-	L_v=$(( $1 - ${L_v//.} )) &&
-	L_usec_to_sec_v "$L_v"
+L_timeout_left_vL_RET() {
+	L_epochrealtime_usec_vL_RET &&
+	(( ${L_RET//.} < $1 )) &&
+	L_RET=$(( $1 - ${L_RET//.} )) &&
+	L_usec_to_sec_vL_RET "$L_RET"
 }
 
 # ]]]
@@ -2471,18 +2471,18 @@ L_exit_to_10() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 L_path_basename() { L_handle_v_scalar "$@"; }
-L_path_basename_v() { L_v=${*##*/}; }
+L_path_basename_vL_RET() { L_RET=${*##*/}; }
 
 # @description parent of the path
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
 L_path_dirname() { L_handle_v_scalar "$@"; }
-L_path_dirname_v() {
+L_path_dirname_vL_RET() {
 	case "$*" in
-	..) L_v=. ;;
-	?*/*) L_v=${*%/*} ;;
-	/*) L_v=/ ;;
-	*) L_v=. ;;
+	..) L_RET=. ;;
+	?*/*) L_RET=${*%/*} ;;
+	/*) L_RET=/ ;;
+	*) L_RET=. ;;
 	esac
 }
 
@@ -2491,12 +2491,12 @@ L_path_dirname_v() {
 # @arg $1 path
 # @see https://en.cppreference.com/w/cpp/filesystem/path/extension.html
 L_path_extension() { L_handle_v_scalar "$@"; }
-L_path_extension_v() {
-	L_path_basename_v "$*"
-	case $L_v in
-	.|..) L_v="" ;;
-	?*.*) L_v=.${L_v##*.} ;;
-	*) L_v="" ;;
+L_path_extension_vL_RET() {
+	L_path_basename_vL_RET "$*"
+	case $L_RET in
+	.|..) L_RET="" ;;
+	?*.*) L_RET=.${L_RET##*.} ;;
+	*) L_RET="" ;;
 	esac
 }
 
@@ -2505,20 +2505,20 @@ L_path_extension_v() {
 # @arg $1 path
 # @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.suffixes
 L_path_extensions() { L_handle_v_array "$@"; }
-L_path_extensions_v() {
-	L_path_basename_v "$*"
-	case $L_v in
-	.|..) L_v=() ;;
+L_path_extensions_vL_RET() {
+	L_path_basename_vL_RET "$*"
+	case $L_RET in
+	.|..) L_RET=() ;;
 	?*.*)
-		IFS=. read -r -d '' -a L_v <<<"$L_v" || :
+		IFS=. read -r -d '' -a L_RET <<<"$L_RET" || :
 		# Remove additional newline from <<< from last element.
-		L_v[${#L_v[@]}-1]=${L_v[${#L_v[@]}-1]%$'\n'}
+		L_RET[${#L_RET[@]}-1]=${L_RET[${#L_RET[@]}-1]%$'\n'}
 		# Remove basename.
-		unset -v 'L_v[0]'
+		unset -v 'L_RET[0]'
 		# Add dots
-		L_v=("${L_v[@]/#/.}")
+		L_RET=("${L_RET[@]/#/.}")
 		;;
-	*) L_v=() ;;
+	*) L_RET=() ;;
 	esac
 }
 
@@ -2527,11 +2527,11 @@ L_path_extensions_v() {
 # @arg $1 path
 # @see https://en.cppreference.com/w/cpp/filesystem/path/stem
 L_path_stem() { L_handle_v_scalar "$@"; }
-L_path_stem_v() {
-	L_path_basename_v "$*"
-	case $L_v in
+L_path_stem_vL_RET() {
+	L_path_basename_vL_RET "$*"
+	case $L_RET in
 	.|..) ;;
-	?*.*) L_v=${L_v%.*} ;;
+	?*.*) L_RET=${L_RET%.*} ;;
 	esac
 }
 
@@ -2540,12 +2540,12 @@ L_path_stem_v() {
 # @arg $1 path
 # @arg $1 new name
 L_path_with_name() { L_handle_v_scalar "$@"; }
-L_path_with_name_v() {
+L_path_with_name_vL_RET() {
 	case "$1" in
-	..) L_v=$2 ;;
-	?*/*) L_v=${1%/*}/$2 ;;
-	/*) L_v=/$2 ;;
-	*) L_v=$2 ;;
+	..) L_RET=$2 ;;
+	?*/*) L_RET=${1%/*}/$2 ;;
+	/*) L_RET=/$2 ;;
+	*) L_RET=$2 ;;
 	esac
 }
 
@@ -2555,9 +2555,9 @@ L_path_with_name_v() {
 # @arg $2 new stem
 L_path_with_stem() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2179
-L_path_with_stem_v() {
-	L_path_extension_v "$1"
-	L_path_with_name_v "$1" "$2$L_v"
+L_path_with_stem_vL_RET() {
+	L_path_extension_vL_RET "$1"
+	L_path_with_name_vL_RET "$1" "$2$L_RET"
 }
 
 # @description Return a new path with the suffix changed.
@@ -2566,9 +2566,9 @@ L_path_with_stem_v() {
 # @arg $2 new suffix
 L_path_with_suffix() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2179
-L_path_with_suffix_v() {
-	L_path_stem_v "$1"
-	L_path_with_name_v "$1" "$L_v${2:+.${2#.}}"
+L_path_with_suffix_vL_RET() {
+	L_path_stem_vL_RET "$1"
+	L_path_with_name_vL_RET "$1" "$L_RET${2:+.${2#.}}"
 }
 
 # @description Return whether the path is absolute or not.
@@ -2579,7 +2579,7 @@ L_path_is_absolute() { [[ "${1::1}" == / ]]; }
 # @arg $1 path
 L_path_normalize() { L_shopt_extglob L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2064
-L_path_normalize_v() { L_v=${1//\/+(\/)/\/}; }
+L_path_normalize_vL_RET() { L_RET=${1//\/+(\/)/\/}; }
 
 # @description Compute a version of the original path relative to the path represented by other path.
 # This method is string-based.
@@ -2590,7 +2590,7 @@ L_path_normalize_v() { L_v=${1//\/+(\/)/\/}; }
 # @see https://stackoverflow.com/a/12498485/9072753
 L_path_relative_to() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2179
-L_path_relative_to_v() {
+L_path_relative_to_vL_RET() {
 	if (($# != 2)); then
 		L_func_error "invalid number of arguments" 2
 		return "$L_EX_USAGE"
@@ -2609,20 +2609,20 @@ L_path_relative_to_v() {
 		_L_current="/${_L_current##/}"
 	fi
 	local _L_appendix="${_L_target##/}"
-	L_v=''
+	L_RET=''
 	while
 		_L_appendix="${_L_target#"$_L_current"/}"
 		[[ "$_L_current" != '/' && "$_L_appendix" == "$_L_target" ]]
 	do
 		if [ "$_L_current" = "$_L_appendix" ]; then
-			L_v="${L_v:-.}"
-			L_v="${L_v#/}"
+			L_RET="${L_RET:-.}"
+			L_RET="${L_RET#/}"
 			return 0
 		fi
 		_L_current="${_L_current%/*}"
-		L_v+="${L_v:+/}.."
+		L_RET+="${L_RET:+/}.."
 	done
-	L_v+="${L_v:+${_L_appendix:+/}}${_L_appendix#/}"
+	L_RET+="${L_RET:+${_L_appendix:+/}}${_L_appendix#/}"
 }
 
 # @description Check if a path is relative to other path.
@@ -2885,13 +2885,13 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE."
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_setx() { L_handle_v_scalar "$@"; }
-L_quote_setx_v() {
-	L_v=$(
+L_quote_setx_vL_RET() {
+	L_RET=$(
 		{ BASH_XTRACEFD=2 PS4='+ '; set -x; } 2>/dev/null >&2
 		{ : "$@"; } 2>&1
 	)
-	L_v=${L_v#* }
-	L_v=${L_v:2}
+	L_RET=${L_RET#* }
+	L_RET=${L_RET:2}
 }
 
 # @description Output a string with the same quotating style as does bash with printf
@@ -2900,30 +2900,30 @@ L_quote_setx_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_printf() { L_handle_v_scalar "$@"; }
-L_quote_printf_v() { printf -v L_v " %q" "$@"; L_v=${L_v:1}; }
+L_quote_printf_vL_RET() { printf -v L_RET " %q" "$@"; L_RET=${L_RET:1}; }
 
 # @description Output a string with the same quotating style as does /bin/printf
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote_bin_printf() { L_handle_v_scalar "$@"; }
-L_quote_bin_printf_v() { L_v=$(exec printf " %q" "$@"); L_v=${L_v:1}; }
+L_quote_bin_printf_vL_RET() { L_RET=$(exec printf " %q" "$@"); L_RET=${L_RET:1}; }
 
 # @description Convert a string to a number.
 # @option -v <var> Store the output in variable instead of printing it.
 L_strhash() { L_handle_v_scalar "$@"; }
-L_strhash_v() {
+L_strhash_vL_RET() {
 	if L_hash cksum; then
-		L_v=$(cksum <<<"$*")
-		L_v=${L_v%% *}
+		L_RET=$(cksum <<<"$*")
+		L_RET=${L_RET%% *}
 	elif L_hash sum; then
-		L_v=$(sum <<<"$*")
-		L_v=${L_v%% *}
+		L_RET=$(sum <<<"$*")
+		L_RET=${L_RET%% *}
 	elif L_hash shasum; then
-		L_v=$(shasum <<<"$*")
-		L_v=${L_v::15}
-		L_v=$((0x1$L_v))
+		L_RET=$(shasum <<<"$*")
+		L_RET=${L_RET::15}
+		L_RET=$((0x1$L_RET))
 	else
-		L_strhash_bash -v L_v "$*"
+		L_strhash_bash -v L_RET "$*"
 	fi
 }
 
@@ -2931,12 +2931,12 @@ L_strhash_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 string
 L_strhash_bash() { L_handle_v_scalar "$@"; }
-L_strhash_bash_v() {
+L_strhash_bash_vL_RET() {
 	local _L_c
-	L_v=0
+	L_RET=0
 	while IFS= read -r -d '' -n 1 _L_c; do
 		printf -v _L_c "%d" "'$_L_c"
-		L_v=$(( _L_c + 31 * L_v ))
+		L_RET=$(( _L_c + 31 * L_RET ))
 	done <<<"$1"
 }
 
@@ -2968,69 +2968,69 @@ L_capitalize() { L_handle_v_scalar "$@"; }
 L_uncapitalize() { L_handle_v_scalar "$@"; }
 
 if ((L_HAS_LOWERCASE_UPPERCASE_EXPANSION)); then
-	L_strupper_v() { L_v=${1^^}; }
-	L_strlower_v() { L_v=${1,,}; }
-	L_capitalize_v() { L_v=${1^[a-z]}; }
-	L_uncapitalize_v() { L_v=${1,[A-Z]}; }
+	L_strupper_vL_RET() { L_RET=${1^^}; }
+	L_strlower_vL_RET() { L_RET=${1,,}; }
+	L_capitalize_vL_RET() { L_RET=${1^[a-z]}; }
+	L_uncapitalize_vL_RET() { L_RET=${1,[A-Z]}; }
 else
-	L_strupper_v() {
-		L_v=${1//a/A}
-		L_v=${L_v//b/B}
-		L_v=${L_v//c/C}
-		L_v=${L_v//d/D}
-		L_v=${L_v//e/E}
-		L_v=${L_v//f/F}
-		L_v=${L_v//g/G}
-		L_v=${L_v//h/H}
-		L_v=${L_v//i/I}
-		L_v=${L_v//j/J}
-		L_v=${L_v//k/K}
-		L_v=${L_v//l/L}
-		L_v=${L_v//m/M}
-		L_v=${L_v//n/N}
-		L_v=${L_v//o/O}
-		L_v=${L_v//p/P}
-		L_v=${L_v//q/Q}
-		L_v=${L_v//r/R}
-		L_v=${L_v//s/S}
-		L_v=${L_v//t/T}
-		L_v=${L_v//u/U}
-		L_v=${L_v//v/V}
-		L_v=${L_v//w/W}
-		L_v=${L_v//x/X}
-		L_v=${L_v//y/Y}
-		L_v=${L_v//z/Z}
+	L_strupper_vL_RET() {
+		L_RET=${1//a/A}
+		L_RET=${L_RET//b/B}
+		L_RET=${L_RET//c/C}
+		L_RET=${L_RET//d/D}
+		L_RET=${L_RET//e/E}
+		L_RET=${L_RET//f/F}
+		L_RET=${L_RET//g/G}
+		L_RET=${L_RET//h/H}
+		L_RET=${L_RET//i/I}
+		L_RET=${L_RET//j/J}
+		L_RET=${L_RET//k/K}
+		L_RET=${L_RET//l/L}
+		L_RET=${L_RET//m/M}
+		L_RET=${L_RET//n/N}
+		L_RET=${L_RET//o/O}
+		L_RET=${L_RET//p/P}
+		L_RET=${L_RET//q/Q}
+		L_RET=${L_RET//r/R}
+		L_RET=${L_RET//s/S}
+		L_RET=${L_RET//t/T}
+		L_RET=${L_RET//u/U}
+		L_RET=${L_RET//v/V}
+		L_RET=${L_RET//w/W}
+		L_RET=${L_RET//x/X}
+		L_RET=${L_RET//y/Y}
+		L_RET=${L_RET//z/Z}
 	}
-	L_strlower_v() {
-		L_v=${1//A/a}
-		L_v=${L_v//B/b}
-		L_v=${L_v//C/c}
-		L_v=${L_v//D/d}
-		L_v=${L_v//E/e}
-		L_v=${L_v//F/f}
-		L_v=${L_v//G/g}
-		L_v=${L_v//H/h}
-		L_v=${L_v//I/i}
-		L_v=${L_v//J/j}
-		L_v=${L_v//K/k}
-		L_v=${L_v//L/l}
-		L_v=${L_v//M/m}
-		L_v=${L_v//N/n}
-		L_v=${L_v//O/o}
-		L_v=${L_v//P/p}
-		L_v=${L_v//Q/q}
-		L_v=${L_v//R/r}
-		L_v=${L_v//S/s}
-		L_v=${L_v//T/t}
-		L_v=${L_v//U/u}
-		L_v=${L_v//V/v}
-		L_v=${L_v//W/w}
-		L_v=${L_v//X/x}
-		L_v=${L_v//Y/y}
-		L_v=${L_v//Z/z}
+	L_strlower_vL_RET() {
+		L_RET=${1//A/a}
+		L_RET=${L_RET//B/b}
+		L_RET=${L_RET//C/c}
+		L_RET=${L_RET//D/d}
+		L_RET=${L_RET//E/e}
+		L_RET=${L_RET//F/f}
+		L_RET=${L_RET//G/g}
+		L_RET=${L_RET//H/h}
+		L_RET=${L_RET//I/i}
+		L_RET=${L_RET//J/j}
+		L_RET=${L_RET//K/k}
+		L_RET=${L_RET//L/l}
+		L_RET=${L_RET//M/m}
+		L_RET=${L_RET//N/n}
+		L_RET=${L_RET//O/o}
+		L_RET=${L_RET//P/p}
+		L_RET=${L_RET//Q/q}
+		L_RET=${L_RET//R/r}
+		L_RET=${L_RET//S/s}
+		L_RET=${L_RET//T/t}
+		L_RET=${L_RET//U/u}
+		L_RET=${L_RET//V/v}
+		L_RET=${L_RET//W/w}
+		L_RET=${L_RET//X/x}
+		L_RET=${L_RET//Y/y}
+		L_RET=${L_RET//Z/z}
 	}
-	L_capitalize_v() { L_strupper_v "${1:0:1}"; L_v="$L_v${1:1}"; }
-	L_uncapitalize_v() { L_strlower_v "${1:0:1}"; L_v="$L_v${1:1}"; }
+	L_capitalize_vL_RET() { L_strupper_vL_RET "${1:0:1}"; L_RET="$L_RET${1:1}"; }
+	L_uncapitalize_vL_RET() { L_strlower_vL_RET "${1:0:1}"; L_RET="$L_RET${1:1}"; }
 fi
 
 # @description Remove characters from IFS from begining and end of string
@@ -3039,9 +3039,9 @@ fi
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_strip() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2295
-L_strip_v() {
-	L_v=${1#"${1%%[!${2:-[:space:]}]*}"}
-	L_v="${L_v%"${L_v##*[!${2:-[:space:]}]}"}"
+L_strip_vL_RET() {
+	L_RET=${1#"${1%%[!${2:-[:space:]}]*}"}
+	L_RET="${L_RET%"${L_RET##*[!${2:-[:space:]}]}"}"
 }
 
 # @description Remove characters from IFS from begining of string
@@ -3050,8 +3050,8 @@ L_strip_v() {
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_lstrip() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2295
-L_lstrip_v() {
-	L_v="${1#"${1%%[!${2:-[:space:]}]*}"}"
+L_lstrip_vL_RET() {
+	L_RET="${1#"${1%%[!${2:-[:space:]}]*}"}"
 }
 
 # @description Remove characters from IFS from begining of string
@@ -3060,9 +3060,9 @@ L_lstrip_v() {
 # @arg [$2] <str> Optional glob to strip, default is [:space:]
 L_rstrip() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2295
-L_rstrip_v() {
+L_rstrip_vL_RET() {
 	# shellcheck disable=SC2295
-	L_v="${1%"${1##*[!${2:-[:space:]}]}"}"
+	L_RET="${1%"${1##*[!${2:-[:space:]}]}"}"
 }
 
 # @description list functions with prefix
@@ -3070,8 +3070,8 @@ L_rstrip_v() {
 # @arg $1 prefix
 L_list_functions_with_prefix() { L_handle_v_array "$@"; }
 
-L_list_functions_with_prefix_v() {
-	L_compgen -V L_v -A function -- "$1"
+L_list_functions_with_prefix_vL_RET() {
+	L_compgen -V L_RET -A function -- "$1"
 }
 
 # @description list functions with prefix and remove the prefix
@@ -3079,13 +3079,13 @@ L_list_functions_with_prefix_v() {
 # @arg $1 prefix
 # @see L_list_functions_with_prefix
 L_list_functions_with_prefix_removed() { L_handle_v_array "$@"; }
-L_list_functions_with_prefix_removed_v() {
-	L_list_functions_with_prefix_v "$1"
-	local _L_len=${L_v:+${#L_v[@]}}
+L_list_functions_with_prefix_removed_vL_RET() {
+	L_list_functions_with_prefix_vL_RET "$1"
+	local _L_len=${L_RET:+${#L_RET[@]}}
 	# Fix a bug on Bash4.0
-	L_v=(${L_v[@]+"${L_v[@]/#"$1"}"})
-	if ((_L_len != ${#L_v[@]})); then
-		L_v+=("")
+	L_RET=(${L_RET[@]+"${L_RET[@]/#"$1"}"})
+	if ((_L_len != ${#L_RET[@]})); then
+		L_RET+=("")
 	fi
 }
 
@@ -3094,18 +3094,18 @@ L_list_functions_with_prefix_removed_v() {
 # @arg $1 prefix
 # @arg $@ elements
 L_abbreviation() { L_handle_v_array "$@"; }
-L_abbreviation_v() {
+L_abbreviation_vL_RET() {
 	local _L_cur=$1
 	shift
 	if [[ "${*//[$' \t\n'"\"'"]}" == "$*" ]]; then
-		if ! L_compgen -V L_v -W "$*" -- "$_L_cur"; then
-			L_v=()
+		if ! L_compgen -V L_RET -W "$*" -- "$_L_cur"; then
+			L_RET=()
 		fi
 	else
-		L_v=()
+		L_RET=()
 		while (($#)); do
 			if [[ "$1" == "$_L_cur"* ]]; then
-				L_v+=("$1")
+				L_RET+=("$1")
 			fi
 			shift
 		done
@@ -3165,7 +3165,7 @@ L_float() {
 #   L_percent_format "Hello, %(name)s! You are %(age[John])10s years old.\n"
 L_percent_format() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2059
-L_percent_format_v() {
+L_percent_format_vL_RET() {
 	local _L_fmt=$1 _L_args=("")
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
 		#                                    12     3            4   5         6                     7
@@ -3181,7 +3181,7 @@ L_percent_format_v() {
 			_L_args+=("${!BASH_REMATCH[5]}")
 		fi
 	done
-	printf -v L_v "${_L_args[@]}"
+	printf -v L_RET "${_L_args[@]}"
 }
 
 # @description print a string with f-string format
@@ -3195,7 +3195,7 @@ L_percent_format_v() {
 #  L_fstring 'Hello, {name}! You are {age[John]:10s} years old.\n'
 L_fstring() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2059
-L_fstring_v() {
+L_fstring_vL_RET() {
 	local _L_fmt="$*" _L_args=("") _L_tmp
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
 		#                                    12      3                        4   5       6 7             8
@@ -3218,21 +3218,21 @@ L_fstring_v() {
 			_L_args+=("${!BASH_REMATCH[5]}")
 		fi
 	done
-	printf -v L_v "${_L_args[@]}"
+	printf -v L_RET "${_L_args[@]}"
 }
 
 # @description Convert a string to hex dump.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 L_hexdump() { L_handle_v_scalar "$@"; }
-L_hexdump_v() {
+L_hexdump_vL_RET() {
 	if L_hash xxd; then
-		L_v=$(printf "%s" "$*" | xxd -p)
+		L_RET=$(printf "%s" "$*" | xxd -p)
 	else
 		local _L_i _L_a="$*" LC_ALL=C
-		L_v=""
+		L_RET=""
 		for ((_L_i=0;_L_i<${#_L_a};++_L_i)); do
-			printf -v L_v "%s%x" "$L_v" "'${_L_a:$_L_i:1}"
+			printf -v L_RET "%s%x" "$L_RET" "'${_L_a:$_L_i:1}"
 		done
 	fi
 }
@@ -3241,14 +3241,14 @@ L_hexdump_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 L_urlencode() { L_handle_v_scalar "$@"; }
-L_urlencode_v() {
+L_urlencode_vL_RET() {
 	local _L_i _L_a="$*" LC_ALL=C _L_c
-	L_v=""
+	L_RET=""
 	for ((_L_i=0;_L_i<${#_L_a};++_L_i)); do
 		_L_c=${_L_a:$_L_i:1}
 		case "$_L_c" in
-		[A-Za-z0-9_~-]) L_v+=$_L_c ;;
-		*) printf -v L_v "%s%%%02x" "$L_v" "'$_L_c" ;;
+		[A-Za-z0-9_~-]) L_RET+=$_L_c ;;
+		*) printf -v L_RET "%s%%%02x" "$L_RET" "'$_L_c" ;;
 		esac
 	done
 }
@@ -3257,14 +3257,14 @@ L_urlencode_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 L_urldecode() { L_handle_v_scalar "$@"; }
-L_urldecode_v() {
+L_urldecode_vL_RET() {
 	local _L_a="$*" LC_ALL=C
-	L_v=""
+	L_RET=""
 	while [[ -n "$_L_a" ]]; do
 		case "$_L_a" in
-		%[0-9a-fA-Z][0-9a-fA-Z]*) printf -v L_v "%s\x${_L_a:1:2}" "$L_v"; _L_a="${_L_a:3}" ;;
-		%%*) L_v+="%"; _L_a="${_L_a:2}" ;;
-		*) L_v+="${_L_a:0:1}"; _L_a="${_L_a:1}" ;;
+		%[0-9a-fA-Z][0-9a-fA-Z]*) printf -v L_RET "%s\x${_L_a:1:2}" "$L_RET"; _L_a="${_L_a:3}" ;;
+		%%*) L_RET+="%"; _L_a="${_L_a:2}" ;;
+		*) L_RET+="${_L_a:0:1}"; _L_a="${_L_a:1}" ;;
 		esac
 	done
 }
@@ -3273,13 +3273,13 @@ L_urldecode_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 L_html_escape() { L_handle_v_scalar "$@"; }
-L_html_escape_v() {
-	L_v="$*"
-	L_v=${L_v//"&"/"&amp;"}
-	L_v=${L_v//"<"/"&lt;"}
-	L_v=${L_v//">"/"&gt;"}
-	L_v=${L_v//'"'/"&qout;"}
-	L_v=${L_v//"'"/"&#39;"}
+L_html_escape_vL_RET() {
+	L_RET="$*"
+	L_RET=${L_RET//"&"/"&amp;"}
+	L_RET=${L_RET//"<"/"&lt;"}
+	L_RET=${L_RET//">"/"&gt;"}
+	L_RET=${L_RET//'"'/"&qout;"}
+	L_RET=${L_RET//"'"/"&#39;"}
 }
 
 # @description Replace multiple characters in a string in order.
@@ -3293,11 +3293,11 @@ L_html_escape_v() {
 # @example L_string_replace -v string "$string" "&" "&amp;" "<" "&lt;"
 # @see L_html_escape
 L_string_replace() { L_handle_v_scalar "$@"; }
-L_string_replace_v() {
-	L_v="$1"
+L_string_replace_vL_RET() {
+	L_RET="$1"
 	shift
 	while (($# > 2)); do
-		L_v="${L_v//"$1"/$2}"
+		L_RET="${L_RET//"$1"/$2}"
 		shift 2
 	done
 }
@@ -3308,10 +3308,10 @@ L_string_replace_v() {
 # @arg $1 String.
 # @arg $2 Character to count in string.
 L_string_count() { L_handle_v_scalar "$@"; }
-L_string_count_v() {
+L_string_count_vL_RET() {
 	# This method is _MUCH_ faster then using [^"$2"].
-	L_v="${1//"$2"}"
-	L_v="$(( ${#1} - ${#L_v} ))"
+	L_RET="${1//"$2"}"
+	L_RET="$(( ${#1} - ${#L_RET} ))"
 }
 
 # @description Count lines in a string.
@@ -3320,11 +3320,11 @@ L_string_count_v() {
 # @arg $1 String.
 # @arg [$2] Line characters. Default: newline.
 L_string_count_lines() { L_handle_v_scalar "$@"; }
-L_string_count_lines_v() {
-	L_string_count_v "$1" "${2:-$'\n'}"
+L_string_count_lines_vL_RET() {
+	L_string_count_vL_RET "$1" "${2:-$'\n'}"
 	# If there is anything after the last newline.
 	if [[ -n "$1" && "${1: -1}" != "${2:-$'\n'}" ]]; then
-		L_v=$((L_v+1))
+		L_RET=$((L_RET+1))
 	fi
 }
 
@@ -3493,18 +3493,18 @@ L_string_unquote() {
 	fi
 }
 
-# @description Fuzzy search a key in a list of strings, returning matches in L_v.
+# @description Fuzzy search a key in a list of strings, returning matches in L_RET.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 Key to search for
 # @arg $@ Candidate strings
 L_fuzzy() { L_handle_v_array "$@"; }
-L_fuzzy_v() {
+L_fuzzy_vL_RET() {
   local _L_target=$1 _L_p_target="*" _L_cand _L_i
   shift
-  L_v=()
+  L_RET=()
   if [[ -z "$_L_target" ]]; then
     for _L_cand in "$@"; do
-      [[ -z "$_L_cand" ]] && L_v+=("")
+      [[ -z "$_L_cand" ]] && L_RET+=("")
     done
     return 0
   fi
@@ -3518,7 +3518,7 @@ L_fuzzy_v() {
     # 2. Candidate fits target pattern (deletion: target="verbose", cand="vrbose")
     # 3. Target fits candidate pattern (addition: target="helpp", cand="help")
     if [[ "$_L_cand" == "$_L_target" || "$_L_cand" == $_L_p_target || "$_L_target" == $_L_p_cand ]]; then
-      L_v+=("$_L_cand")
+      L_RET+=("$_L_cand")
     fi
   done
   return 0
@@ -3538,47 +3538,47 @@ L_fuzzy_v() {
 #    L_json_escape -v tmp "some string"
 #    echo "{\"key\":$tmp}" | jq .
 L_json_escape() { L_handle_v_array "$@"; }
-L_json_escape_v() {
+L_json_escape_vL_RET() {
 	# This can't be $*, because \x01\x01 bug in bash<=4.4
-	L_v=$1
-	if [[ "$L_v" == *[$'\\\"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f']* ]]; then
-		L_v=${L_v//\\/\\\\}
-		L_v=${L_v//\"/\\\"}
-		# L_v=${L_v//\//\\\/}
-		L_v=${L_v//$'\x01'/\\u0001}
-		L_v=${L_v//$'\x02'/\\u0002}
-		L_v=${L_v//$'\x03'/\\u0003}
-		L_v=${L_v//$'\x04'/\\u0004}
-		L_v=${L_v//$'\x05'/\\u0005}
-		L_v=${L_v//$'\x06'/\\u0006}
-		L_v=${L_v//$'\x07'/\\u0007}
-		L_v=${L_v//$'\b'/\\b}
-		L_v=${L_v//$'\t'/\\t}
-		L_v=${L_v//$'\n'/\\n}
-		L_v=${L_v//$'\x0b'/\\u000b}
-		L_v=${L_v//$'\f'/\\f}
-		L_v=${L_v//$'\r'/\\r}
-		L_v=${L_v//$'\x0e'/\\u000e}
-		L_v=${L_v//$'\x0f'/\\u000f}
-		L_v=${L_v//$'\x10'/\\u0010}
-		L_v=${L_v//$'\x11'/\\u0011}
-		L_v=${L_v//$'\x12'/\\u0012}
-		L_v=${L_v//$'\x13'/\\u0013}
-		L_v=${L_v//$'\x14'/\\u0014}
-		L_v=${L_v//$'\x15'/\\u0015}
-		L_v=${L_v//$'\x16'/\\u0016}
-		L_v=${L_v//$'\x17'/\\u0017}
-		L_v=${L_v//$'\x18'/\\u0018}
-		L_v=${L_v//$'\x19'/\\u0019}
-		L_v=${L_v//$'\x1a'/\\u001a}
-		L_v=${L_v//$'\x1b'/\\u001b}
-		L_v=${L_v//$'\x1c'/\\u001c}
-		L_v=${L_v//$'\x1d'/\\u001d}
-		L_v=${L_v//$'\x1e'/\\u001e}
-		L_v=${L_v//$'\x1f'/\\u001f}
-		L_v=${L_v//$'\x7f'/\\u007f}
+	L_RET=$1
+	if [[ "$L_RET" == *[$'\\\"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x7f']* ]]; then
+		L_RET=${L_RET//\\/\\\\}
+		L_RET=${L_RET//\"/\\\"}
+		# L_RET=${L_RET//\//\\\/}
+		L_RET=${L_RET//$'\x01'/\\u0001}
+		L_RET=${L_RET//$'\x02'/\\u0002}
+		L_RET=${L_RET//$'\x03'/\\u0003}
+		L_RET=${L_RET//$'\x04'/\\u0004}
+		L_RET=${L_RET//$'\x05'/\\u0005}
+		L_RET=${L_RET//$'\x06'/\\u0006}
+		L_RET=${L_RET//$'\x07'/\\u0007}
+		L_RET=${L_RET//$'\b'/\\b}
+		L_RET=${L_RET//$'\t'/\\t}
+		L_RET=${L_RET//$'\n'/\\n}
+		L_RET=${L_RET//$'\x0b'/\\u000b}
+		L_RET=${L_RET//$'\f'/\\f}
+		L_RET=${L_RET//$'\r'/\\r}
+		L_RET=${L_RET//$'\x0e'/\\u000e}
+		L_RET=${L_RET//$'\x0f'/\\u000f}
+		L_RET=${L_RET//$'\x10'/\\u0010}
+		L_RET=${L_RET//$'\x11'/\\u0011}
+		L_RET=${L_RET//$'\x12'/\\u0012}
+		L_RET=${L_RET//$'\x13'/\\u0013}
+		L_RET=${L_RET//$'\x14'/\\u0014}
+		L_RET=${L_RET//$'\x15'/\\u0015}
+		L_RET=${L_RET//$'\x16'/\\u0016}
+		L_RET=${L_RET//$'\x17'/\\u0017}
+		L_RET=${L_RET//$'\x18'/\\u0018}
+		L_RET=${L_RET//$'\x19'/\\u0019}
+		L_RET=${L_RET//$'\x1a'/\\u001a}
+		L_RET=${L_RET//$'\x1b'/\\u001b}
+		L_RET=${L_RET//$'\x1c'/\\u001c}
+		L_RET=${L_RET//$'\x1d'/\\u001d}
+		L_RET=${L_RET//$'\x1e'/\\u001e}
+		L_RET=${L_RET//$'\x1f'/\\u001f}
+		L_RET=${L_RET//$'\x7f'/\\u007f}
 	fi
-	L_v=\"$L_v\"
+	L_RET=\"$L_RET\"
 }
 
 # @description Very simple function to create JSON.
@@ -3596,12 +3596,12 @@ L_json_escape_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
 L_json_create() { L_handle_v_scalar "$@"; }
-L_json_create_v() {
+L_json_create_vL_RET() {
   local _L_escape=0 _L_o=""
   while (($#)); do
     if ((_L_escape++ % 2)); then
-      L_json_escape_v "$1"
-      _L_o+="$L_v"
+      L_json_escape_vL_RET "$1"
+      _L_o+="$L_RET"
     else
       if [[ "${1:${#1}-1}" == ["]}"] ]]; then
         _L_escape=$((_L_escape+1))
@@ -3610,7 +3610,7 @@ L_json_create_v() {
     fi
     shift
   done
-  L_v="$_L_o"
+  L_RET="$_L_o"
 }
 
 # ]]]
@@ -3633,9 +3633,9 @@ L_array_keys() { L_handle_v_array "$@"; }
 
 if ((L_HAS_NAMEREF)); then
 
-L_array_len_v() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_v=${#_L_arr[@]}; }
+L_array_len_vL_RET() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_RET=${#_L_arr[@]}; }
 
-L_array_keys_v() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_v=("${!_L_arr[@]}"); }
+L_array_keys_vL_RET() { local -n _L_arr="$1" || return "$L_EX_USAGE"; L_RET=("${!_L_arr[@]}"); }
 
 # @description Set elements of array.
 # @arg $1 <var> array nameref
@@ -3690,8 +3690,8 @@ L_array_copy() {
 }
 
 else  # L_HAS_NAMEREF
-	L_array_len_v() { L_is_valid_variable_name "$1" && eval "L_v=\${#$1[@]}"; }
-	L_array_keys_v() { L_is_valid_variable_name "$1" && eval "L_v=(\"\${!$1[@]}\")"; }
+	L_array_len_vL_RET() { L_is_valid_variable_name "$1" && eval "L_RET=\${#$1[@]}"; }
+	L_array_keys_vL_RET() { L_is_valid_variable_name "$1" && eval "L_RET=(\"\${!$1[@]}\")"; }
 	L_array_assign() { L_is_valid_variable_name "$1" && eval "$1=(\"\${@:2}\")"; }
 	L_array_set() { L_is_valid_variable_name "$1" && eval "$1[\"\$2\"]=\"\$3\""; }
 	L_array_append() { L_is_valid_variable_name "$1" && eval "$1+=(\"\${@:2}\")"; }
@@ -3892,13 +3892,13 @@ L_array_filter_eval() {
 # @arg $1 array nameref
 # @arg $2 element to find
 L_array_index() { L_handle_v_scalar "$@"; }
-L_array_index_v() {
+L_array_index_vL_RET() {
 	local _L_i _L_k
-	L_array_keys_v "$1" || return "$L_EX_USAGE"
-	for _L_k in ${L_v[@]+"${L_v[@]}"}; do
+	L_array_keys_vL_RET "$1" || return "$L_EX_USAGE"
+	for _L_k in ${L_RET[@]+"${L_RET[@]}"}; do
 		_L_i="$1[$_L_k]"
 		if [[ "$2" == "${!_L_i}" ]]; then
-			L_v=$_L_k
+			L_RET=$_L_k
 			return 0
 		fi
 	done
@@ -3916,9 +3916,9 @@ L_array_index_v() {
 #   L_array_join -v res arr ", "
 #   echo "$res"  # prints Hello, World
 L_array_join() { L_handle_v_scalar "$@"; }
-L_array_join_v() {
+L_array_join_vL_RET() {
 	local _L_arr="$1[@]"
-	L_args_join_v "$2" ${!_L_arr:+"${!_L_arr}"}
+	L_args_join_vL_RET "$2" ${!_L_arr:+"${!_L_arr}"}
 }
 
 # @description
@@ -3927,9 +3927,9 @@ L_array_join_v() {
 # @arg $1 <var> array nameref
 # @see L_args_andjoin
 L_array_andjoin() { L_handle_v_scalar "$@"; }
-L_array_andjoin_v() {
+L_array_andjoin_vL_RET() {
 	local _L_arr="$1[@]"
-	L_args_andjoin_v ${!_L_arr+"${!_L_arr}"}
+	L_args_andjoin_vL_RET ${!_L_arr+"${!_L_arr}"}
 }
 
 # ]]]
@@ -3946,22 +3946,22 @@ L_array_andjoin_v() {
 #   L_args_join -v res ", " "Hello" "World"
 #   echo "$res"  # prints Hello, World
 L_args_join() { L_handle_v_scalar "$@"; }
-L_args_join_v() {
-	printf -v L_v "${1//%/%%}%s" "${@:2}"
-	L_v=${L_v:${#1}}
+L_args_join_vL_RET() {
+	printf -v L_RET "${1//%/%%}%s" "${@:2}"
+	L_RET=${L_RET:${#1}}
 }
 
 # @description Join arguments with ", " and last with " and "
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to join
 L_args_andjoin() { L_handle_v_scalar "$@"; }
-L_args_andjoin_v() {
+L_args_andjoin_vL_RET() {
 	case "$#" in
-	0) L_v="" ;;
-	1) L_v=$1 ;;
+	0) L_RET="" ;;
+	1) L_RET=$1 ;;
 	*)
-		printf -v L_v ", %s" "${@:1:$#-1}"
-		L_v="${L_v#, }"" and ""${*:$#}"
+		printf -v L_RET ", %s" "${@:1:$#-1}"
+		L_RET="${L_RET#, }"" and ""${*:$#}"
 		;;
 	esac
 }
@@ -3994,20 +3994,20 @@ L_args_contain() {
 #   L_args_index -v res "World" "Hello" "World"
 #   echo "$res"  # prints 1
 L_args_index() { L_handle_v_scalar "$@"; }
-L_args_index_v() {
+L_args_index_vL_RET() {
 	local _L_needle="$1" _L_start="$#" IFS=$'\x1D'
 	(( $# > 1 )) && {
 		if [[ "${*//"$IFS"}" == "$*" ]]; then
-			L_v="$IFS${*:2}$IFS"
-			L_v="${L_v%%"$IFS$1$IFS"*}"
-			L_v="${L_v//[^$IFS]}"
-			L_v=${#L_v}
-			[[ "$L_v" -lt "$#" ]]
+			L_RET="$IFS${*:2}$IFS"
+			L_RET="${L_RET%%"$IFS$1$IFS"*}"
+			L_RET="${L_RET//[^$IFS]}"
+			L_RET=${#L_RET}
+			[[ "$L_RET" -lt "$#" ]]
 		else
 			shift
 			while (($#)); do
 				if [[ "$1" == "$_L_needle" ]]; then
-					L_v=$((_L_start-1-$#))
+					L_RET=$((_L_start-1-$#))
 					return 0
 				fi
 				shift
@@ -4023,13 +4023,13 @@ L_args_index_v() {
 # @example L_max -v max 1 2 3 4
 L_max() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC1105,SC2094,SC2035
-# @set L_v
-L_max_v() {
-	L_v=$1
+# @set L_RET
+L_max_vL_RET() {
+	L_RET=$1
 	shift
 	while (($#)); do
-		if (("$1" > L_v)); then
-			L_v="$1"
+		if (("$1" > L_RET)); then
+			L_RET="$1"
 		fi
 		shift
 	done
@@ -4041,13 +4041,13 @@ L_max_v() {
 # @example L_min -v min 1 2 3 4
 L_min() { L_handle_v_scalar "$@"; }
 # shellcheck disable=1105,2094,2035
-# @set L_v
-L_min_v() {
-	L_v=$1
+# @set L_RET
+L_min_vL_RET() {
+	L_RET=$1
 	shift
 	while (($#)); do
-		if (($1 < L_v)); then
-			L_v="$1"
+		if (($1 < L_RET)); then
+			L_RET="$1"
 		fi
 		shift
 	done
@@ -4147,12 +4147,12 @@ L_table() {
 #     $ if L_args_contain 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     no
 L_parse_range_list() { L_handle_v_array "$@"; }
-L_parse_range_list_v() {
+L_parse_range_list_vL_RET() {
 	local _L_max=$1 _L_list _L_i _L_j _L_k _L_t
 	shift
 	L_assert 'not enough argumenst' test "$#" -gt 0
 	IFS=$' \t\n' read -r -a _L_list <<<"${*//[^0-9-]/ }"
-	L_v=()
+	L_RET=()
 	for _L_i in ${_L_list[@]+"${_L_list[@]}"}; do
 		if [[ $_L_i == *-* ]]; then
 			_L_j=${_L_i%-*}
@@ -4165,10 +4165,10 @@ L_parse_range_list_v() {
 				_L_k=$_L_t
 			fi
 			for ((_L_t = _L_j; _L_t <= _L_k; _L_t++)); do
-				L_v[_L_t]=$_L_t
+				L_RET[_L_t]=$_L_t
 			done
 		else
-			L_v[_L_i]=$_L_i
+			L_RET[_L_i]=$_L_i
 		fi
 	done
 }
@@ -4631,23 +4631,23 @@ L_log_level_dec() {
 # @arg $1 str variable name
 # @arg $2 int|str loglevel like `INFO` `info` or `30`
 L_log_level_to_int_to() {
-	local L_v=${2##*_}
-	case "$L_v" in
-	[0-9]*) L_v=$2 ;;
-	*[Cc][Rr][Ii][Tt]*) L_v=$L_LOGLEVEL_CRITICAL ;;
-	*[Ee][Rr][Rr]*) L_v=$L_LOGLEVEL_ERROR ;;
-	*[Ww][Aa][Rr][Nn]*) L_v=$L_LOGLEVEL_WARNING ;;
-	*[Nn][Oo][Tt][Ii][Cc][Ee]) L_v=$L_LOGLEVEL_NOTICE ;;
-	*[Ii][Nn][Ff][Oo]) L_v=$L_LOGLEVEL_INFO ;;
-	*[Dd][Ee][Bb][Uu][Gg]) L_v=$L_LOGLEVEL_DEBUG ;;
-	*[Tt][Rr][Aa][Cc][Ee]) L_v=$L_LOGLEVEL_TRACE ;;
+	local L_RET=${2##*_}
+	case "$L_RET" in
+	[0-9]*) L_RET=$2 ;;
+	*[Cc][Rr][Ii][Tt]*) L_RET=$L_LOGLEVEL_CRITICAL ;;
+	*[Ee][Rr][Rr]*) L_RET=$L_LOGLEVEL_ERROR ;;
+	*[Ww][Aa][Rr][Nn]*) L_RET=$L_LOGLEVEL_WARNING ;;
+	*[Nn][Oo][Tt][Ii][Cc][Ee]) L_RET=$L_LOGLEVEL_NOTICE ;;
+	*[Ii][Nn][Ff][Oo]) L_RET=$L_LOGLEVEL_INFO ;;
+	*[Dd][Ee][Bb][Uu][Gg]) L_RET=$L_LOGLEVEL_DEBUG ;;
+	*[Tt][Rr][Aa][Cc][Ee]) L_RET=$L_LOGLEVEL_TRACE ;;
 	*)
-		L_strupper_v "$L_v"
-		L_v=L_LOGLEVEL_$L_v
-		L_v=${!L_v:-$L_LOGLEVEL_INFO}
+		L_strupper_vL_RET "$L_RET"
+		L_RET=L_LOGLEVEL_$L_RET
+		L_RET=${!L_RET:-$L_LOGLEVEL_INFO}
 		;;
 	esac
-	printf -v "$1" "%d" "$L_v"
+	printf -v "$1" "%d" "$L_RET"
 }
 
 # @description Check if log of such level is enabled to log.
@@ -4683,10 +4683,10 @@ L_log_format_default() {
 # @arg $@ any log line printf arguments
 L_log_format_long() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
-	local L_v
-	L_date_v %Y-%m-%dT%H:%M:%S.%3N%z
+	local L_RET
+	L_date_vL_RET %Y-%m-%dT%H:%M:%S.%3N%z
 	printf -v L_logline "%s %q:%s:%d %s $1" \
-		"$L_v" \
+		"$L_RET" \
 		"$L_NAME" \
 		"$L_logline_funcname" \
 		"$L_logline_lineno" \
@@ -4697,13 +4697,13 @@ L_log_format_long() {
 # @description Output logs in json format.
 # shellcheck disable=SC2059
 L_log_format_json() {
-	local msg out="" ts L_v i pid
+	local msg out="" ts L_RET i pid
 	if (($# == 1)); then set -- "%s" "$*"; fi
 	printf -v msg "$@"
-	L_date_v %Y-%m-%dT%H:%M:%S%z
+	L_date_vL_RET %Y-%m-%dT%H:%M:%S%z
 	L_bashpid_to pid
 	for i in \
-		timestamp:"$L_v" \
+		timestamp:"$L_RET" \
 		funcname:"$L_logline_funcname" \
 		\"lineno\":"$L_logline_lineno" \
 		source:"$L_logline_source" \
@@ -4718,8 +4718,8 @@ L_log_format_json() {
 			out+=",$i"
 		else
 			out+=",\"${i%%:*}\":"
-			L_json_escape_v "${i#*:}"
-			out+="$L_v"
+			L_json_escape_vL_RET "${i#*:}"
+			out+="$L_RET"
 		fi
 	done
 	printf -v L_logline "%s" "{${out#,}}"
@@ -5091,6 +5091,7 @@ L_sort_cmd() {
 # @option -r reverse sort
 # @option -c <compare> Custom compare function (uses L_sort_bash)
 # @option -E <eval> Custom expression to evaluate (uses L_sort_bash)
+# @option -h Print this help and return 0.
 # @arg $1 array nameref
 # @see L_sort_bash
 # @see L_sort_cmd
@@ -5277,11 +5278,11 @@ _L_TRAPS_init() {
 # @description Return an array of all trap names. Index is the trap name number.
 # @option -v <var>
 L_trap_names() { L_handle_v_array "$@"; }
-L_trap_names_v() {
+L_trap_names_vL_RET() {
 	_L_TRAPS_init
-	L_v="${_L_TRAPS// [0-9] / }"
-	L_v="${L_v// [0-9][0-9] / }"
-	eval "L_v=($L_v)"
+	L_RET="${_L_TRAPS// [0-9] / }"
+	L_RET="${L_RET// [0-9][0-9] / }"
+	eval "L_RET=($L_RET)"
 }
 
 # @description Convert trap name to number.
@@ -5290,13 +5291,13 @@ L_trap_names_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 trap name or trap number
 L_trap_to_number() { L_handle_v_scalar "$@"; }
-L_trap_to_number_v() {
+L_trap_to_number_vL_RET() {
 	if [[ "$1" == [0-9]* ]]; then
-		kill -l "$1" >/dev/null && L_v=$1
+		kill -l "$1" >/dev/null && L_RET=$1
 	else
-		L_v=$(kill -l "$1" 2>&1) || {
+		L_RET=$(kill -l "$1" 2>&1) || {
 			_L_TRAPS_init
-			[[ "$_L_TRAPS" =~ " "([0-9]+)" $1 " ]] && L_v=${BASH_REMATCH[1]}
+			[[ "$_L_TRAPS" =~ " "([0-9]+)" $1 " ]] && L_RET=${BASH_REMATCH[1]}
 		}
 	fi
 }
@@ -5306,17 +5307,17 @@ L_trap_to_number_v() {
 # @arg $1 signal name or signal number
 # @example L_trap_to_name -v var 0 && L_assert '' test "$var" = EXIT
 L_trap_to_name() { L_handle_v_scalar "$@"; }
-L_trap_to_name_v() {
+L_trap_to_name_vL_RET() {
 	case "$1" in
-	0) L_v=EXIT ;;
-	EXIT|DEBUG|ERR|RETURN) L_v=$1 ;;
+	0) L_RET=EXIT ;;
+	EXIT|DEBUG|ERR|RETURN) L_RET=$1 ;;
 	[0-9]*)
-		L_v=SIG$(kill -l "$1" 2>/dev/null) || {
+		L_RET=SIG$(kill -l "$1" 2>/dev/null) || {
 			_L_TRAPS_init
-			[[ "$_L_TRAPS" =~ " $1 "([^ ]+)" " ]] && L_v=${BASH_REMATCH[1]}
+			[[ "$_L_TRAPS" =~ " $1 "([^ ]+)" " ]] && L_RET=${BASH_REMATCH[1]}
 		}
 		;;
-	*) kill -l "$1" >/dev/null && L_v="SIG${1/#SIG}" ;;
+	*) kill -l "$1" >/dev/null && L_RET="SIG${1/#SIG}" ;;
 	esac
 }
 
@@ -5329,14 +5330,14 @@ L_trap_to_name_v() {
 #   L_assert '' test "$var" = 'echo hi'
 L_trap_get() { L_handle_v_scalar "$@"; }
 if ((L_HAS_TRAP_P)); then
-L_trap_get_v() {
-	L_v=$(trap -P "$1")
+L_trap_get_vL_RET() {
+	L_RET=$(trap -P "$1")
 }
 else
-	L_trap_get_v() {
-		L_v=$(trap -p "$1") &&
-			local -a _L_tmp="($L_v)" &&
-			L_v=${_L_tmp[2]:-}
+	L_trap_get_vL_RET() {
+		L_RET=$(trap -p "$1") &&
+			local -a _L_tmp="($L_RET)" &&
+			L_RET=${_L_tmp[2]:-}
 	}
 fi
 
@@ -5346,10 +5347,10 @@ fi
 # @see L_trap_pop
 # shellcheck disable=SC2064
 L_trap_push() {
-	local L_v i
+	local L_RET i
 	for i in "${@:2}"; do
-		L_trap_get_v "$i" &&
-			trap "${L_v:+"$L_v"$'\n'}$1" "$i" ||
+		L_trap_get_vL_RET "$i" &&
+			trap "${L_RET:+"$L_RET"$'\n'}$1" "$i" ||
 			return 1
 	done
 }
@@ -5359,10 +5360,10 @@ L_trap_push() {
 # @see L_trap_push
 # shellcheck disable=SC2064
 L_trap_pop() {
-	local L_v &&
-	L_trap_get_v "$1" &&
-		if [[ "$L_v" == *$'\n'* ]]; then
-			trap "${L_v%$'\n'*}" "$1"
+	local L_RET &&
+	L_trap_get_vL_RET "$1" &&
+		if [[ "$L_RET" == *$'\n'* ]]; then
+			trap "${L_RET%$'\n'*}" "$1"
 		else
 			trap - "$1"
 		fi
@@ -5574,7 +5575,7 @@ L_finally_list() {
 # shellcheck disable=SC2089,SC2090
 L_finally() {
   local OPTIND OPTARG OPTERR _L_i _L_onreturn=0 _L_up=1 _L_last=0 _L_pid _L_v="" \
-  	_L_register=0 L_v _L_idx _L_elem _L_first=0
+  	_L_register=0 L_RET _L_idx _L_elem _L_first=0
   # Parse arguments.
   while getopts rs:lfRv:h _L_i; do
     case "$_L_i" in
@@ -6209,7 +6210,7 @@ L_unittest_main() {
 				;;
 			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
 			E) L_unittest_exit_on_error=1 ;;
-			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_u_nproc=$L_v; else _L_u_nproc=$OPTARG; fi ;;
+			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_u_nproc=$L_RET; else _L_u_nproc=$OPTARG; fi ;;
 			l) _L_u_list=1 ;;
 			q) _L_u_quiet=1 ;;
 			d) _L_u_durations=$OPTARG ;;
@@ -6446,7 +6447,7 @@ L_unittest_cmd() {
 		local _L_uopt_setx=0
 	fi
 	local OPTIND OPTARG OPTERR _L_uc _L_uopt_invert=0 _L_uopt_capture=0 _L_uopt_regex='' _L_uopt_output='' _L_uopt_exitcode=0 _L_uopt_invert=0 _L_uret=0 _L_uout _L_uopt_curenv=0 _L_utrap=0 _L_uopt_v='' _L_uopt_stdjoin=0 _L_uopt_devnull=0  \
-		_L_uopt_closestdin=1 _L_uopt_up=0 L_v _L_u_a _L_u_b
+		_L_uopt_closestdin=1 _L_uopt_up=0 L_RET _L_u_a _L_u_b
 	while getopts cifINjxXv:r:o:e:s:h _L_uc; do
 		case $_L_uc in
 		c) _L_uopt_curenv=1 ;;
@@ -6529,19 +6530,19 @@ L_unittest_cmd() {
 		# For nice output
 		set -- "!" "$@"
 	fi
-	L_quote_printf_v "$@"
-	printf -v _L_u_a "[%s] exited with %d =~ %d" "$L_v" "$_L_uret" "$_L_uopt_exitcode"
+	L_quote_printf_vL_RET "$@"
+	printf -v _L_u_a "[%s] exited with %d =~ %d" "$L_RET" "$_L_uret" "$_L_uopt_exitcode"
 	printf -v _L_u_b "${_L_uout+output %q}%s" "${_L_uout+$_L_uout}" ""
 	_L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "$_L_u_b" [ "$_L_uret" -eq "$_L_uopt_exitcode" ]
 	if [[ -n $_L_uopt_regex ]]; then
-		printf -v _L_u_a "[%s] output %q matches %q" "$L_v" "$_L_uout" "$_L_uopt_regex"
+		printf -v _L_u_a "[%s] output %q matches %q" "$L_RET" "$_L_uout" "$_L_uopt_regex"
 		if ! _L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "" L_regex_match "$_L_uout" "$_L_uopt_regex"; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_regex"
 			return 1
 		fi
 	fi
 	if [[ -n $_L_uopt_output ]]; then
-		printf -v _L_u_a "[%s] output %q equal %q" "$L_v" "$_L_uout" "$_L_uopt_output"
+		printf -v _L_u_a "[%s] output %q equal %q" "$L_RET" "$_L_uout" "$_L_uopt_output"
 		if ! _L_unittest_internal -s "$_L_uopt_up" "$_L_u_a" "" [ "$_L_uout" = "$_L_uopt_output" ]; then
 			_L_unittest_showdiff "$_L_uout" "$_L_uopt_output"
 			return 1
@@ -6749,22 +6750,22 @@ L_map_set_noremove() {
 #    L_map_get -v tmp var a
 #    echo "$tmp"  # outputs: 1
 L_map_get() { L_handle_v_scalar "$@"; }
-L_map_get_v() {
-	printf -v L_v "%q" "$2"
+L_map_get_vL_RET() {
+	printf -v L_RET "%q" "$2"
 	# Remove anything in front of the newline followed by key followed by space.
 	# Because the key can't have newline not space, it's fine.
-	L_v=${!1##*$'\n'"$L_v"$'\t'}
+	L_RET=${!1##*$'\n'"$L_RET"$'\t'}
 	# If nothing was removed, then the key does not exists.
-	if [[ "$L_v" == "${!1}" ]]; then
+	if [[ "$L_RET" == "${!1}" ]]; then
 		if (($# >= 3)); then
-			L_v="${*:3}"
+			L_RET="${*:3}"
 		else
 			return 1
 		fi
 	else
 		# Remove from the newline until the end and print with eval.
 		# The key was inserted with printf %q, so it has to go through eval now.
-		eval "L_v=${L_v%%$'\n'*}"
+		eval "L_RET=${L_RET%%$'\n'*}"
 	fi
 }
 
@@ -6799,9 +6800,9 @@ L_map_setdefault() {
 # @arg $2 str key
 # @arg $3 str value to append
 L_map_append() {
-	local L_v
-	if L_map_get_v "$1" "$2"; then
-		L_map_set "$1" "$2" "$L_v${*:3}"
+	local L_RET
+	if L_map_get_vL_RET "$1" "$2"; then
+		L_map_set "$1" "$2" "$L_RET${*:3}"
 	else
 		L_map_set "$1" "$2" "$3"
 	fi
@@ -6817,12 +6818,12 @@ L_map_append() {
 #   L_map_keys -v tmp var
 #   echo "${tmp[@]}"  # outputs: 'a b'
 L_map_keys() { L_handle_v_array "$@"; }
-L_map_keys_v() {
+L_map_keys_vL_RET() {
 	local _L_map
 	_L_map=${!1}
 	_L_map=${_L_map//$'\t'/ # }$'\n'
 	local -a _L_tmp="($_L_map)"
-	L_v=(${_L_tmp[@]+"${_L_tmp[@]}"})
+	L_RET=(${_L_tmp[@]+"${_L_tmp[@]}"})
 }
 
 # @description List all values in the map.
@@ -6835,13 +6836,13 @@ L_map_keys_v() {
 #    L_map_values -v tmp var
 #    echo "${tmp[@]}"  # outputs: '1 2'
 L_map_values() { L_handle_v_array "$@"; }
-L_map_values_v() {
+L_map_values_vL_RET() {
 	local _L_map
 	_L_map=${!1}
 	_L_map=${_L_map//$'\n'/ # }
 	_L_map=${_L_map//$'\t'/$'\n'}
 	local -a _L_tmp="($_L_map)"
-	L_v=(${_L_tmp[@]+"${_L_tmp[@]}"})
+	L_RET=(${_L_tmp[@]+"${_L_tmp[@]}"})
 }
 
 # @description List items on newline separated key value pairs.
@@ -6854,9 +6855,9 @@ L_map_values_v() {
 #   L_map_items -v tmp var
 #   echo "${tmp[@]}"  # outputs: 'a 1 b 2'
 L_map_items() { L_handle_v_array "$@"; }
-L_map_items_v() {
+L_map_items_vL_RET() {
 	local -a _L_tmp="(${!1})"
-	L_v=("${_L_tmp[@]}")
+	L_RET=("${_L_tmp[@]}")
 	((${#_L_tmp[@]} % 2 == 0))
 }
 
@@ -6919,9 +6920,9 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 #   local -A mapcopy=()
 #   L_asa_copy map mapcopy
 L_asa_copy() {
-	local L_v
-	L_var_to_string_v "$1" || return "$L_EX_USAGE"
-	eval "$2=$L_v"
+	local L_RET
+	L_var_to_string_vL_RET "$1" || return "$L_EX_USAGE"
+	eval "$2=$L_RET"
 }
 
 # @description check if associative array has key
@@ -6936,13 +6937,13 @@ L_asa_has() { L_var_is_set "$1[$2]"; }
 # @arg [$3] optional default value
 # @exitcode 1 if no key found and no default value
 L_asa_get() { L_handle_v_scalar "$@"; }
-L_asa_get_v() {
+L_asa_get_vL_RET() {
 	if L_var_is_set "$1[$2]"; then
-		eval "L_v=\${$1[\"\$2\"]}"
+		eval "L_RET=\${$1[\"\$2\"]}"
 	elif (($# >= 3)); then
-		L_v=$3
+		L_RET=$3
 	else
-		L_v=
+		L_RET=
 		return 1
 	fi
 }
@@ -6951,13 +6952,13 @@ L_asa_get_v() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_len() { L_handle_v_scalar "$@"; }
-L_asa_len_v() { L_array_len_v "$@"; }
+L_asa_len_vL_RET() { L_array_len_vL_RET "$@"; }
 
 # @description get keys of an associative array
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 associative array nameref
 L_asa_keys() { L_handle_v_array "$@"; }
-L_asa_keys_v() { L_array_keys_v "$@"; }
+L_asa_keys_vL_RET() { L_array_keys_vL_RET "$@"; }
 
 if ((L_HAS_PRINTF_V_ARRAY)); then
 # @description assign value to associative array
@@ -7001,10 +7002,10 @@ L_asa_cmp() {
 			[[ "${_L_asa_a[$_L_asa_k]+${_L_asa_a[$_L_asa_k]}A}" == "${_L_asa_b[$_L_asa_k]+${_L_asa_b[$_L_asa_k]}A}" ]] || return 1
 		done
 	else
-		local _L_asa L_v
+		local _L_asa L_RET
 		L_var_to_string -v _L_asa "$1" || return "$L_EX_USAGE"
-		L_var_to_string_v "$2" || return "$L_EX_USAGE"
-		[[ "$_L_asa" == "$L_v" ]]
+		L_var_to_string_vL_RET "$2" || return "$L_EX_USAGE"
+		[[ "$_L_asa" == "$L_RET" ]]
 	fi
 }
 
@@ -7037,21 +7038,21 @@ L_argparse_fatal() {
 # @arg $1 maximum terminal width
 # @arg $2 string to format
 _L_argparse_fmt() { L_handle_v_scalar "$@"; }
-_L_argparse_fmt_v() {
+_L_argparse_fmt_vL_RET() {
 	local _L_line _L_ws=$'\t\n ' IFS=""
-	L_v=""
+	L_RET=""
 	if [[ -n "$2" ]]; then
 		while read -r _L_line; do
 			while [[ "${#_L_line}" -gt $1 ]]; do
 				if [[ "$_L_line" =~ ^(.{,$(($1-1))}[^$_L_ws])[$_L_ws]+(.*)$ ]]; then
-					L_v+=${L_v:+$'\n'}${BASH_REMATCH[1]}
+					L_RET+=${L_RET:+$'\n'}${BASH_REMATCH[1]}
 					_L_line=${BASH_REMATCH[2]}
 				else
-					L_v+=${L_v:+$'\n'}${_L_line::$1}
+					L_RET+=${L_RET:+$'\n'}${_L_line::$1}
 					_L_line=${_L_line:$1}
 				fi
 			done
-			L_v+=${L_v:+$'\n'}$_L_line
+			L_RET+=${L_RET:+$'\n'}$_L_line
 		done <<<"$2"
 	fi
 }
@@ -7154,15 +7155,15 @@ _L_argparse_percent_format_help() {
 # @arg $1 <var> variable to assign
 # @env _L_parser
 _L_argparse_optspec_get_help() {
-	local L_v=${_L_opt_help[_L_opti]:-}
-	if [[ "$L_v" == "SUPPRESS" ]]; then
+	local L_RET=${_L_opt_help[_L_opti]:-}
+	if [[ "$L_RET" == "SUPPRESS" ]]; then
 		return 1
 	fi
-	_L_argparse_percent_format_help L_v 1
+	_L_argparse_percent_format_help L_RET 1
 	if L_is_true "${_L_opt_show_default[_L_opti]:-${_L_parser_show_default[_L_parseri]:-0}}" && L_var_is_set "_L_opt_default[_L_opti]"; then
-		printf -v "$1" "%s(default: %q)" "$L_v${L_v:+ }" "${_L_opt_default[_L_opti]}"
+		printf -v "$1" "%s(default: %q)" "$L_RET${L_RET:+ }" "${_L_opt_default[_L_opti]}"
 	else
-		printf -v "$1" "%s" "$L_v"
+		printf -v "$1" "%s" "$L_RET"
 	fi
 }
 
@@ -7171,24 +7172,24 @@ _L_argparse_optspec_get_help() {
 # @arg $1 <var> variable to assign
 # @env _L_parser
 _L_argparse_optspec_get_metavar() {
-	local L_v=${_L_opt_metavar[_L_opti]:-}
-	if [[ -z "$L_v" ]]; then
+	local L_RET=${_L_opt_metavar[_L_opti]:-}
+	if [[ -z "$L_RET" ]]; then
 		local -a _L_choices="(${_L_opt_choices[_L_opti]:-})"
 		if ((${#_L_choices[@]})); then
 			# infer metavar from choices
 			local IFS=","
-			L_v="{${_L_choices[*]}}"
+			L_RET="{${_L_choices[*]}}"
 		else
-			L_v=${_L_opt_dest[_L_opti]}
+			L_RET=${_L_opt_dest[_L_opti]}
 			# Remove _L_parser_dest_dict and _L_parser_dest_prefix if any from dest variable.
-			L_v=${L_v##"${_L_parser_dest_dict[_L_parseri]:+${_L_parser_dest_dict[_L_parseri]}[}${_L_parser_dest_prefix[_L_parseri]:-}"}
-			L_v=${L_v%%]}
+			L_RET=${L_RET##"${_L_parser_dest_dict[_L_parseri]:+${_L_parser_dest_dict[_L_parseri]}[}${_L_parser_dest_prefix[_L_parseri]:-}"}
+			L_RET=${L_RET%%]}
 		fi
 		if [[ -n "${_L_opt__options[_L_opti]:-}" ]]; then
-			L_strupper_v "$L_v"
+			L_strupper_vL_RET "$L_RET"
 		fi
 	fi
-	printf -v "$1" "%s" "$L_v"
+	printf -v "$1" "%s" "$L_RET"
 }
 
 # @description Get description for error message for a particular _L_optspec
@@ -7309,11 +7310,11 @@ L_argparse_print_help() {
 	_L_argparse_parser_get_full_program_name _L_prog
 	{
 		# stores all the stuff after usage
-		local _L_help_help="" L_v="${_L_parser_description[_L_parseri]:-${_L_parser_help[_L_parseri]:-}}"
-		if [[ -n "${L_v}" ]]; then
-			L_strip_v "$L_v"
-			_L_argparse_percent_format_help L_v
-			_L_help_help+=$'\n'"$L_v"$'\n'
+		local _L_help_help="" L_RET="${_L_parser_description[_L_parseri]:-${_L_parser_help[_L_parseri]:-}}"
+		if [[ -n "${L_RET}" ]]; then
+			L_strip_vL_RET "$L_RET"
+			_L_argparse_percent_format_help L_RET
+			_L_help_help+=$'\n'"$L_RET"$'\n'
 		fi
 		local _L_opthelp _L_notrequired _L_metavar
 	}
@@ -7424,11 +7425,11 @@ L_argparse_print_help() {
 			_L_out+="${_L_options_usage}${_L_args_usage}"
 		fi
 		if ((!_L_short)); then
-			local L_v="${_L_parser_epilog[_L_parseri]:-}"
-			if [[ -n "${L_v}" ]]; then
-				L_strip_v "$L_v"
-				_L_argparse_percent_format_help L_v
-				_L_help_help+=$'\n'"$L_v"
+			local L_RET="${_L_parser_epilog[_L_parseri]:-}"
+			if [[ -n "${L_RET}" ]]; then
+				L_strip_vL_RET "$L_RET"
+				_L_argparse_percent_format_help L_RET
+				_L_help_help+=$'\n'"$L_RET"
 			fi
 			_L_out+=$'\n'"${_L_help_help%%$'\n'}"
 		fi
@@ -7697,9 +7698,9 @@ _L_argparse_sub_function_get_help() {
 # @arg $1 <var> array to append with parser and help string separated by a newline
 # @arg $2 <str> additional filter function on this prefix
 _L_argparse_sub_function_get_helps() {
-	local L_v i _L_help
-	L_list_functions_with_prefix_removed_v "${_L_opt_prefix[_L_opti]}${2:-}"
-	for i in ${L_v[@]+"${L_v[@]}"}; do
+	local L_RET i _L_help
+	L_list_functions_with_prefix_removed_vL_RET "${_L_opt_prefix[_L_opti]}${2:-}"
+	for i in ${L_RET[@]+"${L_RET[@]}"}; do
 		i=${2:-}$i
 		_L_argparse_sub_function_get_help _L_help "$i" || return "$?"
 		L_array_append "$1" "${i//$'\n'}"$'\n'"${_L_help//$'\n'/ }"
@@ -7878,9 +7879,9 @@ _L_argparse_spec_call_parameter() {
 			user) default=_L_argparse_validator_user ;;
 			group) default=_L_argparse_validator_group ;;
 			*)
-				local L_v=()
-				L_list_functions_with_prefix_removed_v "_L_argparse_validator_"
-				_L_argparse_spec_fatal "L_argparse: invalid type=$_L_type for option. Available types: ${L_v[*]}"
+				local L_RET=()
+				L_list_functions_with_prefix_removed_vL_RET "_L_argparse_validator_"
+				_L_argparse_spec_fatal "L_argparse: invalid type=$_L_type for option. Available types: ${L_RET[*]}"
 				;;
 			esac
 			: "${_L_opt_validate[_L_opti]:=\"$default\" \"\$1\"}"
@@ -9414,7 +9415,7 @@ L_wait_all_jobs() {
 # @arg [$1] Pid of the parent. Default: $BASHPID.
 # @see https://stackoverflow.com/a/52544126/9072753
 L_get_all_childs() { L_handle_v_array "$@"; }
-L_get_all_childs_v() {
+L_get_all_childs_vL_RET() {
 	local _L_toppid=${1:-} IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx
 	if [[ -z "$_L_toppid" ]]; then
 		L_bashpid_to _L_toppid
@@ -9435,16 +9436,16 @@ L_get_all_childs_v() {
 			fi
 		done <<<"$_L_ps_output"
 		# Add children to the list of pids until all descendants are found
-		L_v=("$_L_toppid")
+		L_RET=("$_L_toppid")
 		_L_unproc_idx=0    # Index of first process whose children have not been added
-		while (( ${L_v[@]+${#L_v[@]}}+0 > _L_unproc_idx )) ; do
-			_L_pid=${L_v[_L_unproc_idx++]}     # Get first unprocessed, and advance
+		while (( ${L_RET[@]+${#L_RET[@]}}+0 > _L_unproc_idx )) ; do
+			_L_pid=${L_RET[_L_unproc_idx++]}     # Get first unprocessed, and advance
 			# shellcheck disable=SC2206
- 			L_v+=(${_L_children_of[_L_pid]-})  # Add child pids (ignore ShellCheck)
+ 			L_RET+=(${_L_children_of[_L_pid]-})  # Add child pids (ignore ShellCheck)
 		done
-		# ( echo "${L_v[@]}"; pstree -p "$_L_toppid" ) | sed 's/^/init /' >&100
+		# ( echo "${L_RET[@]}"; pstree -p "$_L_toppid" ) | sed 's/^/init /' >&100
 		# I do not want to return _L_toppid of itself.
-		unset -v 'L_v[0]'
+		unset -v 'L_RET[0]'
 	}
 }
 
@@ -9452,14 +9453,14 @@ L_get_all_childs_v() {
 # @arg -sigspec Signal to use.
 # @arg [$1] Pid of the process to kill all childs of. Defualt: $BASHPID
 L_kill_all_childs() {
-	local L_v sig
+	local L_RET sig
 	while [[ "${1:-}" == -* ]]; do
 		sig="$1"
 		shift
 	done
-	L_get_all_childs_v "$@"
-	if (( ${L_v[*]:+${#L_v[*]}}+0 )); then
-		kill ${sig:+"$sig"} "${L_v[@]}"
+	L_get_all_childs_vL_RET "$@"
+	if (( ${L_RET[*]:+${#L_RET[*]}}+0 )); then
+		kill ${sig:+"$sig"} "${L_RET[@]}"
 	fi
 }
 
@@ -9518,7 +9519,7 @@ fi
 #   echo "data" > "$tmp"
 #   rm "$tmp"
 L_mktemp() { L_handle_v_scalar "$@"; }
-L_mktemp_v() {
+L_mktemp_vL_RET() {
 	local _L_i _L_file _L_tpl="${1:-${TMPDIR:-/tmp}/L_mktemp.XXXXXXXXXX}" _L_old_opts="$(set +o)"
 	for _L_i in {1..10}; do
 		if [[ "$_L_tpl" == *XXXXXXXXXX ]]; then
@@ -9529,7 +9530,7 @@ L_mktemp_v() {
 		set -C
 		if : > "$_L_file" 2>/dev/null; then
 			eval "$_L_old_opts"
-			L_v="$_L_file"
+			L_RET="$_L_file"
 			return 0
 		fi
 	done
@@ -9745,41 +9746,41 @@ L_proc_popen() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_exitcode() { L_handle_v_scalar "$@"; }
-L_proc_get_exitcode_v() { L_v=${_L_PROC_EXIT[$1]}; }
+L_proc_get_exitcode_vL_RET() { L_RET=${_L_PROC_EXIT[$1]}; }
 
 # @description Get PID from L_proc_popen of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_pid() { L_handle_v_scalar "$@"; }
-L_proc_get_pid_v() { L_v=$1; }
+L_proc_get_pid_vL_RET() { L_RET=$1; }
 
 # @description Get file descriptor for stdin of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_stdin() { L_handle_v_scalar "$@"; }
-L_proc_get_stdin_v() { L_v=${_L_PROC_FD0[$1]}; }
+L_proc_get_stdin_vL_RET() { L_RET=${_L_PROC_FD0[$1]}; }
 
 # @description Get file descriptor for stdout of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_stdout() { L_handle_v_scalar "$@"; }
-L_proc_get_stdout_v() { L_v=${_L_PROC_FD1[$1]}; }
+L_proc_get_stdout_vL_RET() { L_RET=${_L_PROC_FD1[$1]}; }
 
 # @description Get file descriptor for stderr of L_proc.
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_stderr() { L_handle_v_scalar "$@"; }
-L_proc_get_stderr_v() { L_v=${_L_PROC_FD2[$1]}; }
+L_proc_get_stderr_vL_RET() { L_RET=${_L_PROC_FD2[$1]}; }
 
 # @description Get command of L_proc.
 # @option -v <var> Store the output in the array variable instead of printing it.
 # @arg $1 PID from L_proc_popen
 L_proc_get_cmd() { L_handle_v_array "$@"; }
-L_proc_get_cmd_v() { eval "L_v=(${_L_PROC_CMD[$1]})"; }
+L_proc_get_cmd_vL_RET() { eval "L_RET=(${_L_PROC_CMD[$1]})"; }
 
-_L_proc_get_fd_v() {
-	L_v="_L_PROC_FD$2[$1]"
-	L_v=${!L_v}
+_L_proc_get_fd_vL_RET() {
+	L_RET="_L_PROC_FD$2[$1]"
+	L_RET=${!L_RET}
 }
 
 _L_proc_rm_fd() { eval "_L_PROC_FD$2[$1]="; }
@@ -9819,19 +9820,19 @@ L_proc_popen_finally() {
 # @arg $1 PID from L_proc_popen
 # @arg $@ any printf arguments
 L_proc_printf() {
-	local L_v
-	L_proc_get_stdin_v "$1"
+	local L_RET
+	L_proc_get_stdin_vL_RET "$1"
 	# shellcheck disable=SC2059
-	printf "${@:2}" >&"$L_v"
+	printf "${@:2}" >&"$L_RET"
 }
 
 # @description Exec read bultin with -u file descriptor of stdout of coproc.
 # @arg $1 PID from L_proc_popen
 # @arg $@ any builtin read options
 L_proc_read() {
-	local L_v
-	L_proc_get_stdout_v "$1"
-	read -r -u "$L_v" "${@:2}"
+	local L_RET
+	L_proc_get_stdout_vL_RET "$1"
+	read -r -u "$L_RET" "${@:2}"
 }
 
 # @description Exec read bultin with -u file descriptor of stderr of coproc.
@@ -9839,9 +9840,9 @@ L_proc_read() {
 # @arg $@ any builtin read options
 # @see L_proc_read
 L_proc_read_stderr() {
-	local L_v
-	L_proc_get_stderr_v "$1"
-	read -r -u "$L_v" "${@:2}"
+	local L_RET
+	L_proc_get_stderr_vL_RET "$1"
+	read -r -u "$L_RET" "${@:2}"
 }
 
 # @description Close stdin, stdout and stderr of L_proc
@@ -9877,14 +9878,14 @@ L_proc_close_stderr() {
 # @arg $1 PID from L_proc_popen
 # @arg $2 file descriptor index
 _L_proc_close_fd() {
-	local L_v
-	_L_proc_get_fd_v "$1" "$2"
-	if [[ -n "$L_v" ]]; then
-		if ! [[ "$L_v" =~ ^[0-9]+$ ]]; then
-			L_func_error "internal error: is not a file descriptor $2: $L_v"
+	local L_RET
+	_L_proc_get_fd_vL_RET "$1" "$2"
+	if [[ -n "$L_RET" ]]; then
+		if ! [[ "$L_RET" =~ ^[0-9]+$ ]]; then
+			L_func_error "internal error: is not a file descriptor $2: $L_RET"
 			return "$L_EX_USAGE"
 		fi
-		eval "exec $L_v>&-"
+		eval "exec $L_RET>&-"
 		_L_proc_rm_fd "$1" "$2"
 	fi
 }
@@ -9893,16 +9894,16 @@ _L_proc_close_fd() {
 # @arg $1 PID from L_proc_popen
 # @exitcode 0 if L_proc is running, 1 otherwise
 L_proc_poll() {
-	local L_v
-	L_proc_get_exitcode_v "$1"
-	if [[ -n "$L_v" ]]; then
+	local L_RET
+	L_proc_get_exitcode_vL_RET "$1"
+	if [[ -n "$L_RET" ]]; then
 		return 1
 	else
-		L_proc_get_pid_v "$1"
-		if kill -0 "$L_v" 2>/dev/null; then
+		L_proc_get_pid_vL_RET "$1"
+		if kill -0 "$L_RET" 2>/dev/null; then
 			return 0
 		else
-			if wait "$L_v"; then
+			if wait "$L_RET"; then
 				_L_proc_set_exitcode "$1" 0
 			else
 				_L_proc_set_exitcode "$1" $?
@@ -10155,7 +10156,7 @@ L_wait() {
 # @exitcode 0 if L_proc has finished
 #           124 ($L_EX_TIMEOUT) if timeout expired
 L_proc_wait() {
-	local L_v _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
+	local L_RET _L_v="" _L_timeout="" _L_opt _L_ret OPTIND OPTARG OPTERR _L_close=0
 	while getopts t:v:ch _L_opt; do
 		case "$_L_opt" in
 		t) _L_timeout="$OPTARG" ;;
@@ -10169,14 +10170,14 @@ L_proc_wait() {
 	if ((_L_close)); then
 		L_proc_close "$1"
 	fi
-	L_proc_get_exitcode_v "$1"
-	if [[ -z "$L_v" ]]; then
-		L_proc_get_pid_v "$1"
-		L_wait -t "$_L_timeout" -v L_v "$L_v" || return "$?"
-		_L_proc_set_exitcode "$1" "$L_v"
+	L_proc_get_exitcode_vL_RET "$1"
+	if [[ -z "$L_RET" ]]; then
+		L_proc_get_pid_vL_RET "$1"
+		L_wait -t "$_L_timeout" -v L_RET "$L_RET" || return "$?"
+		_L_proc_set_exitcode "$1" "$L_RET"
 	fi
 	if [[ -n "$_L_v" ]]; then
-		printf -v "$_L_v" "%s" "$L_v"
+		printf -v "$_L_v" "%s" "$L_RET"
 	fi
 }
 
@@ -10321,7 +10322,7 @@ L_read_fds() {
 #   64 ($L_EX_USAGE) on usage error.
 #   124 ($L_EX_TIMEOUT) on timeout.
 L_proc_communicate() {
-	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_v _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
+	local OPTIND OPTARG OPTERR _L_tmp=() _L_opt _L_input="" _L_output="" _L_error="" _L_timeout="" L_RET _L_stdin _L_stdout _L_stderr _L_pid _L_kill=0 IFS="" _L_v
 	while getopts i:o:e:t:kv:h _L_opt; do
 		case "$_L_opt" in
 		i) _L_input="$OPTARG" ;;
@@ -10341,17 +10342,17 @@ L_proc_communicate() {
 	L_proc_close_stdin "$1"
 	# Collect stdout and stderr to read from.
 	if [[ -n "$_L_output" ]]; then
-		L_proc_get_stdout_v "$1"
-		if [[ -n "$L_v" ]]; then
-			_L_tmp+=("$L_v" "$_L_output")
+		L_proc_get_stdout_vL_RET "$1"
+		if [[ -n "$L_RET" ]]; then
+			_L_tmp+=("$L_RET" "$_L_output")
 		fi
 	else
 		L_proc_close_stdout "$1"
 	fi
 	if [[ -n "$_L_error" ]]; then
-		L_proc_get_stderr_v "$1"
-		if [[ -n "$L_v" ]]; then
-			_L_tmp+=("$L_v" "$_L_error")
+		L_proc_get_stderr_vL_RET "$1"
+		if [[ -n "$L_RET" ]]; then
+			_L_tmp+=("$L_RET" "$_L_error")
 		fi
 	else
 		L_proc_close_stderr "$1"
@@ -10372,9 +10373,9 @@ L_proc_communicate() {
 # @arg $1 PID from L_proc_popen
 # @arg $2 signal to send
 L_proc_send_signal() {
-	local L_v
-	L_proc_get_pid_v "$1"
-	kill -"$2" "$L_v"
+	local L_RET
+	L_proc_get_pid_vL_RET "$1"
+	kill -"$2" "$L_RET"
 }
 
 # @description Terminate L_proc.
@@ -10522,7 +10523,7 @@ L_foreach() {
     _L_opt_R=0 _L_opt_i="" _L_opt_v="" _L_opt_k="" _L_opt_f="" \
     _L_opt_l="" _L_opt_c="" _L_opt_e="" \
     _L_s_keys=() _L_s_loopidx=0 _L_s_colon=1 _L_s_arridx=0 _L_s_idx=0 \
-    _L_i IFS=' ' _L_vidx="" L_v _L_arr _L_elem _L_key _L_count=0
+    _L_i IFS=' ' _L_vidx="" L_RET _L_arr _L_elem _L_key _L_count=0
   while getopts srnVR:i:v:k:f:l:c:e:h _L_i; do
     case "$_L_i" in
       s) _L_opt_s=1 ;;
@@ -10578,8 +10579,8 @@ L_foreach() {
   	if (( _L_s_loopidx == 0 )); then
     	# If -k option and this is the first loop, accumulate all keys into one set.
     	for _L_arr in "${_L_arrs[@]}"; do
-      	L_array_keys_v "$_L_arr"
-      	for _L_key in "${L_v[@]}"; do
+      	L_array_keys_vL_RET "$_L_arr"
+      	for _L_key in "${L_RET[@]}"; do
         	if ! L_array_contains _L_s_keys "$_L_key"; then
           	_L_s_keys+=("$_L_key")
         	fi
@@ -10670,8 +10671,8 @@ L_foreach() {
         # Or when on the next loop we would finish. Which means we have to calculate all remaining elements.
         local _L_todo=-$_L_s_idx  # Substract the count processed in the current array.
         for (( _L_i = _L_s_arridx; _L_i < _L_arrslen; ++_L_i )); do
-          L_array_len_v "${_L_arrs[_L_i]}"
-          if (( ( _L_todo += L_v ) > 0 )); then
+          L_array_len_vL_RET "${_L_arrs[_L_i]}"
+          if (( ( _L_todo += L_RET ) > 0 )); then
             break
           fi
         done
@@ -10730,9 +10731,9 @@ _L_xargs_handle_return() {
 		if ((128 < $1 && $1 <= 128 + 64)); then
 			_L_x_done=1
 			if (( !_L_x_quiet )); then
-				local L_v
-				L_trap_to_name_v "$(($1-128))"
-				printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_v" >&2
+				local L_RET
+				L_trap_to_name_vL_RET "$(($1-128))"
+				printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_RET" >&2
 			fi
 			if ((_L_x_return < 125)); then
 				_L_x_return=125
@@ -10872,36 +10873,36 @@ _L_xargs_trap() {
 # @option -v <var>
 # @option -h
 L_nproc() { L_handle_v_scalar "$@"; }
-L_nproc_v() {
+L_nproc_vL_RET() {
 	if L_hash nproc; then
-		L_v=$(nproc)
+		L_RET=$(nproc)
 	elif [[ -r /proc/cpuinfo ]]; then
 		if L_hash grep; then
-			L_v=$(grep -c ^processor /proc/cpuinfo)
+			L_RET=$(grep -c ^processor /proc/cpuinfo)
 		else
-			L_v=0
+			L_RET=0
 			local line
 			while IFS= read -r line; do
 				if [[ "$line" == processor* ]]; then
-					(( ++L_v ))
+					(( ++L_RET ))
 				fi
 			done </proc/cpuinfo
 		fi
 	elif [[ -r /proc/sys/hw/ncpu ]]; then
-		L_v=$(cat /proc/sys/hw/ncpu)
+		L_RET=$(cat /proc/sys/hw/ncpu)
 	else
-		L_v=1
+		L_RET=1
 	fi
 }
 
 _L_xargs_callback_array() {
-	(( _L_x_a_index < (${_L_x_a[*]+${#_L_x_a[*]}}+0) )) && L_v=("${_L_x_a[_L_x_a_index++]}")
+	(( _L_x_a_index < (${_L_x_a[*]+${#_L_x_a[*]}}+0) )) && L_RET=("${_L_x_a[_L_x_a_index++]}")
 }
 _L_xargs_callback_read() {
-	IFS= read -u "$_L_x_fd" -d "$_L_x_d" -r L_v || [[ -n "$L_v" ]]
+	IFS= read -u "$_L_x_fd" -d "$_L_x_d" -r L_RET || [[ -n "$L_RET" ]]
 }
 _L_xargs_handle_eof_str() {
-	"$@" && [[ "$L_v" != "$_L_x_eof_str" ]]
+	"$@" && [[ "$L_RET" != "$_L_x_eof_str" ]]
 }
 
 # @description A high-performance Bash implementation of the `xargs` utility designed for seamless
@@ -10921,7 +10922,7 @@ _L_xargs_handle_eof_str() {
 #
 # @option -0 Use the null character (\0) as the Record separator.
 # @option -a <var> Read Records from the specified Bash array variable instead of STDIN.
-# @option -c <callback> Execute an eval string to fetch the next Record. Must populate L_v=() and return 0.
+# @option -c <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
 # @option -d <delimiter> Set the Record separator to the specified character.
 # @option -s Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
 # @option -S Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
@@ -10955,7 +10956,7 @@ _L_xargs_handle_eof_str() {
 #         127 if the command is not found
 # @env L_XARGS_INDEX The index of the job being executed.
 L_xargs() {
-	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_v \
+	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
 			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
 			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd=0 _L_x_a _L_x_a_index=0 _L_x_split="" \
 			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
@@ -10981,7 +10982,7 @@ L_xargs() {
 			L) _L_records_limit=$OPTARG ;;
 			l) _L_records_limit=1 ;;
 			r) _L_x_r=1 ;;
-			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_x_maxprocs=$L_v; else _L_x_maxprocs=$OPTARG; fi ;;
+			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
 			t) _L_x_verbose=1 ;;
 			O) _L_x_dobuf=$(( _L_x_dobuf + 1 )) ;;
 			^) _L_x_prefix=1 ;;
@@ -11001,17 +11002,17 @@ L_xargs() {
 		_L_x_callback=(_L_xargs_handle_eof_str "${_L_x_callback[@]}")
 	fi
 	# Start the loop over records.
-	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 L_v _L_cur_records=0
+	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 L_RET _L_cur_records=0
 	# _L_x_done is set when any command exits wtih 255.
-	while (( !_L_x_done )) && L_v=() && "${_L_x_callback[@]}"; do
+	while (( !_L_x_done )) && L_RET=() && "${_L_x_callback[@]}"; do
 		(( ++_L_cur_records ))
 		if (( ${_L_x_split:-1} )); then
 			# Record -> Multiple Atoms
 			# shellcheck disable=SC2048
-			L_string_unquote -v L_v "${L_v[*]+${L_v[*]}}" || return 1
+			L_string_unquote -v L_RET "${L_RET[*]+${L_RET[*]}}" || return 1
 		fi
-		# Accumulate atoms (L_v is 1 atom in Solid mode, 1+ in Split mode)
-		_L_atoms+=(${L_v[@]+"${L_v[@]}"})
+		# Accumulate atoms (L_RET is 1 atom in Solid mode, 1+ in Split mode)
+		_L_atoms+=(${L_RET[@]+"${L_RET[@]}"})
 		# Dual-threshold trigger logic - on number of atoms and number of records.
 		if (( _L_atoms_limit > 0 )); then
 			while (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 >= _L_atoms_limit )); do

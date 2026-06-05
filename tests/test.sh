@@ -9,7 +9,7 @@ L_log_configure -L
 
 get_all_variables() {
 	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
-	unset -v L_v IFS LC_ALL _L_TRAPS
+	unset -v IFS LC_ALL _L_TRAPS
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
@@ -161,7 +161,7 @@ _L_test_a_handle_v() {
 		local i
 		for i in L_handle_v_scalar L_handle_v_array; do
 			return_123() { "$i" "$@"; }
-			return_123_v() { return 123; }
+			return_123_vL_RET() { return 123; }
 			L_unittest_cmd -ce 123 return_123
 			L_unittest_cmd -ce 123 return_123 --
 			L_unittest_cmd -ce 123 return_123 a
@@ -196,7 +196,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper() { set_scalar "$@"; echo "END"; }
 		set_scalar() { L_handle_v_scalar "$@"; }
-		set_scalar_v() { L_v=123; }
+		set_scalar_vL_RET() { L_RET=123; }
 		L_unittest_cmd -co $'123\nEND' wrapper
 		L_unittest_cmd -co $'123\nEND' wrapper --
 		L_unittest_cmd -co $'123\nEND' wrapper a
@@ -229,7 +229,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper_set_one() { set_one "$@"; echo "END"; }
 		set_one() { L_handle_v_array "$@"; }
-		set_one_v() { L_v=(123); }
+		set_one_vL_RET() { L_RET=(123); }
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one --
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one a
@@ -262,7 +262,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper() { set_arr "$@"; echo "END"; }
 		set_arr() { L_handle_v_array "$@"; }
-		set_arr_v() { L_v=(456 789); }
+		set_arr_vL_RET() { L_RET=(456 789); }
 		L_unittest_cmd -co $'456\n789\nEND' wrapper
 		L_unittest_cmd -co $'456\n789\nEND' wrapper --
 		L_unittest_cmd -co $'456\n789\nEND' wrapper a
@@ -526,8 +526,8 @@ _L_test_other() {
 		local -a a
 		L_abbreviation -va ev evaler shooter
 		L_unittest_arreq a evaler
-		L_abbreviation_v e evaler eshooter
-		L_unittest_arreq L_v evaler eshooter
+		L_abbreviation_vL_RET e evaler eshooter
+		L_unittest_arreq L_RET evaler eshooter
 		L_abbreviation -v a none evaler eshooter
 		L_unittest_arreq a
 	}
