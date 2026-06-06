@@ -3526,6 +3526,7 @@ L_fuzzy_vL_RET() {
     # 1. Exact match
     # 2. Candidate fits target pattern (deletion: target="verbose", cand="vrbose")
     # 3. Target fits candidate pattern (addition: target="helpp", cand="help")
+		# shellcheck disable=SC2053
     if [[ "$_L_cand" == "$_L_target" || "$_L_cand" == $_L_p_target || "$_L_target" == $_L_p_cand ]]; then
       L_RET+=("$_L_cand")
     fi
@@ -5005,7 +5006,7 @@ _L_sort_bash_in() {
 		fi
 	else
 		# Only the right side needs sorting, no need to save state.
-		if (( $_L_Sr < $2 )); then
+		if (( _L_Sr < $2 )); then
 			_L_sort_bash_in "$_L_Sr" "$2"
 		fi
 	fi
@@ -5108,8 +5109,10 @@ L_sort() {
 	local _L_c _L_cust=0 _L_len OPTIND OPTARG OPTERR
 	while getopts znrc:E:h _L_c; do
 		case "$_L_c" in
+			z|n|r) ;;
 			c|E) _L_cust=1 ;;
 			h) L_func_help; return 0 ;;
+    	*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	L_array_len -v _L_len "${!OPTIND}"
@@ -5506,6 +5509,7 @@ L_finally_handle_signal() {
 			fi
 		else
   		trap - EXIT  # _L_finally_arr executed below, no need for EXIT trap.
+  		# shellcheck disable=SC2155
   		local L_SIGNAL="$1" L_SIGNUM="$(kill -l "$1")" L_SIGRET="${2:-}"
 			# _L_finally_debug "${_L_finally_arr[@]}"
 			${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
@@ -9528,23 +9532,23 @@ fi
 #   echo "data" > "$tmp"
 #   rm "$tmp"
 L_mktemp() { L_handle_v_scalar "$@"; }
-L_mktemp_vL_RET() {
-	local _L_i _L_file _L_tpl="${1:-${TMPDIR:-/tmp}/L_mktemp.XXXXXXXXXX}" _L_old_opts="$(set +o)"
+L_mktemp_vL_RET() { L_set -C _L_mktemp_vL_RET "$@"; }
+_L_mktemp_vL_RET() {
+	local _L_i _L_file _L_tpl="${1:-L_mktemp.XXX}"
+	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
+		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
+	else
+		L_func_error "L_mktemp template has to contain at least three XXX"
+		return "$L_EX_USAGE"
+	fi
 	for _L_i in {1..10}; do
-		if [[ "$_L_tpl" == *XXXXXXXXXX ]]; then
-			_L_file="${_L_tpl%XXXXXXXXXX}${HOSTNAME:-h}.$$.${BASHPID:-0}.$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))"
-		else
-			_L_file="$_L_tpl"
-		fi
-		set -C
+		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
 		if : > "$_L_file" 2>/dev/null; then
-			eval "$_L_old_opts"
 			L_RET="$_L_file"
 			return 0
 		fi
 	done
-	eval "$_L_old_opts"
-	return 1
+	return "$L_EX_TEMPFAIL"
 }
 
 # @description Open two connected file descriptors.
@@ -9565,19 +9569,21 @@ L_mktemp_vL_RET() {
 #   exec "$out"<&-
 L_pipe() {
 	local _L_i _L_file _L_1 _L_0 _L_tmp _L_tpl="${2:-${TMPDIR:-/tmp}/L_pipe.XXXXXXXXXX}"
+	if [[ ! "$_L_tpl" == *XXX* ]]; then
+		_L_tpl+=XXX
+	fi
+	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
+		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
+	fi
 	for _L_i in {1..10}; do
-		if [[ "$_L_tpl" == *XXXXXXXXXX ]]; then
-			_L_file="${_L_tpl%XXXXXXXXXX}${HOSTNAME:-h}.$$.${BASHPID:-0}.$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))"
-		else
-			_L_file="$_L_tpl"
-		fi
+		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
 		if mkfifo "$_L_file" 2>/dev/null; then
 			if _L_pipe_opener; then
-				rm "$_L_file" || return "$?"
-				L_array_assign "$1" "$_L_0" "$_L_1" || return "$?"
+				rm "$_L_file" || return
+				L_array_assign "$1" "$_L_0" "$_L_1" || return
 				return 0
 			else
-				rm "$_L_file" || return "$?"
+				rm "$_L_file" || return
 			fi
 		fi
 	done
