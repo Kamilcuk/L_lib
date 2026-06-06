@@ -1794,8 +1794,8 @@ if ((L_HAS_LOCAL_DASH)); then
 # @arg $@ The command and its arguments to execute.
 # @example
 #    # Chain multiple options by nesting:
-#    L_with_set -o pipefail L_with_set -x my_command arg1
-L_with_set() {
+#    L_set -o pipefail L_set -x my_command arg1
+L_set() {
 	local -
 	if [[ "$1" == [+-]o ]]; then
 		set "$1" "$2" && "${@:3}"
@@ -1823,7 +1823,7 @@ L_unsetposix() { local -; set +o posix; "$@"; }
 
 else
 
-	L_with_set() {
+	L_set() {
 		# Case is faster then ifs and getopts. Getopts is almost as fast.
 		case "$1/$-/:$SHELLOPTS:" in
 			-o/*/*:"$2":*) "${@:3}" ;;
@@ -5437,18 +5437,21 @@ L_trap() {
 # @arg $2 The value of $BASH_COMMAND.
 L_finally_handle_return() {
 	# Not checking if the return handler exists. It is done with :+ expansion straight in RETURN trap.
-  local L_SIGNAL=RETURN L_SIGRET="$1" _L_BASH_COMMAND="${2:-}"
-  if [[ "$_L_BASH_COMMAND" == ". "* || "$_L_BASH_COMMAND" == "source "* ]]; then
+  local L_SIGNAL=RETURN L_SIGRET="$1"
+	case "${2:-}" in
+	". "*|"source "*)
   	# https://stackoverflow.com/a/79783255/9072753
   	# Handle it up the stack.
 		# _L_finally_debug "${_L_finally_return[${#BASH_LINENO[*]}]:-}"
 		eval "${_L_finally_return["${#BASH_LINENO[*]}"]:-}"
 		unset -v "_L_finally_return[${#BASH_LINENO[*]}]"
-	else
+		;;
+	*)
 		# _L_finally_debug "${_L_finally_return[$((${#BASH_LINENO[*]}-1))]}"
 		eval "${_L_finally_return["${#BASH_LINENO[*]}-1"]:-}"
 		unset -v "_L_finally_return[$((${#BASH_LINENO[*]}-1))]"
-	fi
+		;;
+	esac
 	#
 	if (( ${_L_finally_pending[@]:+1} )); then
 		# Execute any pending signals.
@@ -5623,12 +5626,12 @@ L_finally() {
 		elif (( _L_last )); then
 			# Add element to be executed last. Start from 10B.
 			# If there are already elements, find the largest one and increment.
-			(( _L_idx = ${_L_idx[${#_L_idx[@]}-1]:-10000000000} , _L_idx < 5000 && ( _L_idx = 10000000000 ) , ++_L_idx ))
+			(( _L_idx = ${_L_idx[${_L_idx[@]:+${#_L_idx[@]}-}1]:-10000000000} , _L_idx < 5000 && ( _L_idx = 10000000000 ) , ++_L_idx ))
 		else
 			# Add element to be executed first. Start from 10B and go down.
 			# But ignore indices < 5000 (the "strictly first" range).
 			local _L_min=10000000000
-			for _L_i in "${_L_idx[@]}"; do
+			for _L_i in ${_L_idx[@]:+"${_L_idx[@]}"}; do
 				(( _L_i >= 5000 && ( _L_min = _L_i ) )) && break
 			done
 			_L_idx=$(( _L_min - 1 ))

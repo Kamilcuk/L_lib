@@ -1,9 +1,7 @@
 
 _L_test_sort() {
-	export LC_ALL=C
-	if ((L_HAS_BASH4_0)); then
-		local IFS='1'
-	fi
+	local IFS=' '
+	local -x LC_ALL=C
 	{
 		local var=(1 2 3)
 		L_sort_bash -n var

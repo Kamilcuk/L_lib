@@ -644,7 +644,8 @@ _L_test_finally_fix_signum() {
         (
             . bin/L_lib.sh
             L_finally :
-            kill -USR1 $BASHPID
+      			L_bashpid_into pid
+            kill -USR1 $pid
         )
     }
     local e=$(( 128 + $(L_trap_to_number USR1) ))
