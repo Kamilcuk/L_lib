@@ -87,18 +87,33 @@ jobs:
           run: |
             ./tests/citest.sh
 
-  build_pages:
+  docs:
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'
-    timeout-minutes: 3
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: make docs_build
-      - uses: actions/upload-artifact@v4
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          name: site-docs
-          path: site
+          folder: site
+          branch: gh-pages
+          clean-exclude: pr-preview/
+          force: false
+      - name: Deploy preview
+        if: github.event_name == 'pull_request'
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: site
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: deploy
 
   build_basher:
     runs-on: ubuntu-latest
@@ -136,7 +151,7 @@ jobs:
   deploy_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip, test_freebsd]
+    needs: [test, test_ubuntu, shellcheck, docs, build_basher, test_pip, test_freebsd]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -176,56 +191,6 @@ jobs:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
-
-  deploy_pages:
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    needs: [build_pages]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    permissions:
-      contents: write
-    environment:
-      name: github-pages
-      url: https://kamilcuk.github.io/L_lib
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: site-docs
-          path: site
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4
-        with:
-          folder: site
-          branch: gh-pages
-          clean-exclude: pr-preview/
-          force: false
-
-  preview_pages:
-    runs-on: ubuntu-latest
-    timeout-minutes: 3
-    needs: [build_pages]
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    permissions:
-      contents: write
-      pull-requests: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: site-docs
-          path: site
-      - name: Deploy preview
-        uses: rossjrw/pr-preview-action@v1
-        with:
-          source-dir: site
-          preview-branch: gh-pages
-          umbrella-dir: pr-preview
-          action: deploy
 
   preview_cleanup:
     runs-on: ubuntu-latest

@@ -29,3 +29,14 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = []
 script-files = ["bin/L_lib.sh"]
+
+[dependency-groups]
+docs = [
+    "mkdocs==1.6.1 ; python_version >= '3.10'",
+    "mkdocstrings==1.0.2 ; python_version >= '3.10'",
+    "mkdocstrings-sh==0.1.0 ; python_version >= '3.10'",
+    "mkdocs-autorefs==1.4.3 ; python_version >= '3.10'",
+    "mkdocs-section-index==0.3.10 ; python_version >= '3.10'",
+    "mkdocs-material==9.7.0 ; python_version >= '3.10'",
+    "mkdocs-git-revision-date-localized-plugin==1.5.1 ; python_version >= '3.10'",
+]
