@@ -1,6 +1,7 @@
 ---
 on:
   pull_request:
+    types: [opened, reopened, synchronize, closed]
   push:
     branches:
       - main
@@ -18,6 +19,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     strategy:
       fail-fast: false
@@ -47,6 +49,7 @@ jobs:
 
   test_ubuntu:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
@@ -54,6 +57,7 @@ jobs:
 
   shellcheck:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
@@ -61,6 +65,7 @@ jobs:
 
   test_pip:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
@@ -71,17 +76,20 @@ jobs:
 
   build_pages:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v7
       - run: make docs_build
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
+          name: site-docs
           path: site
 
   build_basher:
     runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
     timeout-minutes: 3
     permissions:
       contents: read
@@ -117,7 +125,6 @@ jobs:
     timeout-minutes: 3
     needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    # Sets the permissions granted to the `GITHUB_TOKEN` for the actions in this job.
     permissions:
       contents: read
       packages: write
@@ -160,19 +167,69 @@ jobs:
   deploy_pages:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, build_pages, build_basher, test_pip]
+    needs: [build_pages]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
-      pages: write      # to deploy to Pages
-      id-token: write   # to verify the deployment originates from an appropriate source
-    # Deploy to the github-pages environment
+      contents: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://kamilcuk.github.io/L_lib
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-docs
+          path: site
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: site
+          branch: gh-pages
+          clean-exclude: pr-preview/
+          force: false
+
+  preview_pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    needs: [build_pages]
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site-docs
+          path: site
+      - name: Deploy preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: site
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: deploy
+
+  preview_cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Remove preview
+        uses: rossjrw/pr-preview-action@v1
+        with:
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          action: remove
 
   pypi-publish:
     name: Upload release to PyPI
@@ -184,7 +241,7 @@ jobs:
       name: pypi
       url: https://pypi.org/p/L_lib
     permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
     steps:
       - name: checkout
         uses: actions/checkout@v6
