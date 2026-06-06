@@ -12,7 +12,14 @@ _L_test_L_xargs_callback_option() {
     }
     local i=0
     local output
-    output=$(L_xargs -c 'callback_func' echo)
+    output=$(
+        # On bash version 4.0 the set -e is NOT disabled in a while loop condition, which makes
+        # the callback returning 1 trigger trap ERR, which makes it exit because L_trap_err exits.
+        if (( L_BASH_VERSION / 0x100 == 0x400 )); then
+            trap - ERR
+        fi
+        L_xargs -c 'callback_func' echo
+    )
     L_unittest_eq "$output" "item1 item2 item3"
 }
 
