@@ -39,6 +39,7 @@ nav:
     - unittest: section/unittest.md
     - map: section/map.md
     - asa: section/asa.md
+    - xargs: section/xargs.md
     - argparse: section/argparse.md
     - proc: section/proc.md
     - lib: section/lib.md
