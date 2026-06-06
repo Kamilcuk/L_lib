@@ -648,7 +648,6 @@ L_func_get_source_v() {
 # @option -v <var> Assign result to this variable.
 # @option -f <funcname> Print the comment of given function instead of the calling function.
 # @option -s <int> Consider the calling function this many stackframes above. Default: 0
-# @option -b Use Bash, do not use sed. For testing.
 # @option -h Print this help and return 0.
 # @return 0 if extracted an non-empty comment above the function definition.
 # @example
@@ -666,7 +665,7 @@ L_func_get_source_v() {
 L_func_comment() {
 	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
 		_L_f="" _L_usebash=0 L_v="" _L_up=0 _L_funcname_escaped
-	while getopts v:f:bs:h _L_i; do
+	while getopts v:f:s:h _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
 			f)
@@ -677,7 +676,6 @@ L_func_comment() {
 					L_func_error "Could not get function $OPTARG location"; return 2
 				fi
 				;;
-			b) _L_usebash=1 ;;
 			s) _L_up=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error; return 2 ;;
@@ -692,50 +690,10 @@ L_func_comment() {
 	_L_lineno=${_L_lineno:-${BASH_LINENO[_L_up]}}
 	_L_source=${_L_source:-${BASH_SOURCE[1+_L_up]}}
 	#
-	if ! {
-		# Try using sed.
-		((!_L_usebash)) &&
-		L_hash sed &&
-		L_regex_escape -v _L_funcname_escaped "$_L_funcname" &&
-		L_v=$(
-		  sed -n '/^#/{H;d;}; /^[[:space:]]*\(function[[:space:]]\+'"$_L_funcname_escaped"'\([[:space:](]\|$\)\|'"$_L_funcname_escaped"'[[:space:]]*(\)/{x;s/^\n//;p;x;}; {x;s/.*//;x;}' "$_L_source"
-		)
-	}; then
-		# If there is no sed or sed failed, try to use Bash.
-		L_readarray _L_lines <"$_L_source" || return 1
-		#
-		_L_i=$((_L_lineno-1))
-		if ! _L_func_line_is_function_definition_with_comment; then
-			# In interactive shells, BASH_LINENO is all wrong. extdebug is fast and works.
-			if
-				if [[ -z "$_L_f" ]]; then
-          ! {
-          	_L_f=$(shopt -s extdebug && declare -F "$_L_funcname") &&
-          	IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f" &&
-          	_L_i=$((_L_lineno-1)) &&
-          	_L_func_line_is_function_definition_with_comment
-          }
-				fi
-			then
-				# Still couldn't find it. Traverse the whole file to find the function.
-				for ((_L_i = ${#_L_lines[@]} - 1; _L_i >= 0; --_L_i)); do
-					# Does line _L_i look like a definition of the function?
-					if _L_func_line_is_function_definition_with_comment; then
-						break
-					fi
-				done
-			fi
-		fi
-		# Assign the result, read comment lines.
-		for ((--_L_i; _L_i >= 0; --_L_i)); do
-			if [[ "${_L_lines[_L_i]}" == "#"* ]]; then
-				L_v="${_L_lines[_L_i]}"$'\n'$L_v
-			else
-				break
-			fi
-		done
-	fi
-	#
+	L_regex_escape -v _L_funcname_escaped "$_L_funcname"
+	_L_content=$(< "$_L_source") || return 2
+	[[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?(($'\n'\#[^$'\n']*)+)$'\n'(function[[:space:]]+"$_L_funcname"|"$_L_funcname"[[:space:]]*\()  ]] || return 1
+	L_v=${BASH_REMATCH[2]##$'\n'}
 	[[ -n "$L_v" ]] && printf -v "$_L_v" "%s\n" "${L_v%$'\n'}"
 }
 
@@ -10747,7 +10705,7 @@ _L_xargs_trap() {
 	fi
 }
 
-# @description1
+# @description Returns the number of CPU cores.
 # @option -v <var>
 # @option -h
 L_nproc() { L_handle_v_scalar "$@"; }
