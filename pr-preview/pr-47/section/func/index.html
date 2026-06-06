@@ -1,0 +1,3619 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Collection of Bash usefull functions and features.">
+      
+      
+        <meta name="author" content="Kamil Cukrowski">
+      
+      
+        <link rel="canonical" href="https://kamilcuk.github.io/L_lib/section/func/">
+      
+      
+        <link rel="prev" href="../assert/">
+      
+      
+        <link rel="next" href="../stdlib/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>func - L_lib</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#usage-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="L_lib" class="md-header__button md-logo" aria-label="L_lib" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            L_lib
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              func
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/kamilcuk/L_lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kamilcuk/L_lib
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="L_lib" class="md-nav__button md-logo" aria-label="L_lib" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    L_lib
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/kamilcuk/L_lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kamilcuk/L_lib
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sections documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sections documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../globals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    globals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    colors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ansi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ansi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../has/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    has
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assert/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    assert
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    func
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    func
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#usage-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#self-documenting-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-Documenting Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printing-help-l_func_help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Printing Help (L_func_help)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printing-usage-l_func_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Printing Usage (L_func_usage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-errors-l_func_error-l_func_usage_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling Errors (L_func_error, L_func_usage_error)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions-l_func_assert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions (L_func_assert)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--func" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> func
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="func">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_get_source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_get_source_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_usage_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_assert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_assert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_log
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_function_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_function_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_function_modify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_function_modify
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_decorate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_decorate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_getopts_in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_getopts_in
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_handle_v_scalar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_handle_v_scalar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_handle_v_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_handle_v_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stdlib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stdlib
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exit_to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    exit_to
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../string/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    string
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../array/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    array
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../foreach/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    foreach
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../args/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    args
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sort/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sort
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    trap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../finally/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    finally
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../with/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    with
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unittest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    asa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../xargs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    xargs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../argparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    argparse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    proc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lib
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../all/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    all
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Miscellaneous
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Miscellaneous
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../expansions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bash expansions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bash_bugs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bash bugs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../measurements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measurements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#usage-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#self-documenting-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-Documenting Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printing-help-l_func_help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Printing Help (L_func_help)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#printing-usage-l_func_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Printing Usage (L_func_usage)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-errors-l_func_error-l_func_usage_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling Errors (L_func_error, L_func_usage_error)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assertions-l_func_assert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assertions (L_func_assert)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--func" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> func
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="func">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_get_source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_get_source_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_comment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_comment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_usage_error" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage_error
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_assert" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_assert
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_log
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_function_copy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_function_copy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_function_modify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_function_modify
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_decorate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_decorate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_getopts_in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_getopts_in
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_cache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_handle_v_scalar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_handle_v_scalar
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_handle_v_array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_handle_v_array
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../globals/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Sections documentation
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/kamilcuk/L_lib/edit/main/docs/section/func.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/kamilcuk/L_lib/raw/main/docs/section/func.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+  <h1>func</h1>
+
+<p>Functions that are useful for writing utility functions that use <code>getopts</code> or similar and want to print simple error messages in the terminal.</p>
+<p>The idea is to print a usable message to the user while spending no time creating it manually.</p>
+<h2 id="usage-guide">Usage Guide<a class="headerlink" href="#usage-guide" title="Permanent link">&para;</a></h2>
+<h3 id="self-documenting-functions">Self-Documenting Functions<a class="headerlink" href="#self-documenting-functions" title="Permanent link">&para;</a></h3>
+<p>The core feature of this module is extracting documentation from comments directly above the function definition. This allows you to maintain the help message and the code in one place.</p>
+<p>The comments should follow a specific format compatible with <code>mkdocstrings-sh</code>:</p>
+<ul>
+<li><code># @option -o &lt;var&gt; description</code>: Describes a short option taking an argument.</li>
+<li><code># @option -o description</code>: Describes a short option not taking an argument.</li>
+<li><code># @arg name description</code>: Describes a positional argument.</li>
+<li><code># @usage description</code>: (Optional) Specifies a custom usage line.</li>
+</ul>
+<h3 id="example-implementation">Example Implementation<a class="headerlink" href="#example-implementation" title="Permanent link">&para;</a></h3>
+<p>Here is a complete example of a function using <code>L_func</code> utilities:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># @description Deploys an artifact to a server.</span>
+<span class="c1"># @option -v        Enable verbose mode.</span>
+<span class="c1"># @option -u &lt;user&gt; User to deploy as. Default: current user.</span>
+<span class="c1"># @option -h        Print this help and return 0.</span>
+<span class="c1"># @arg file         The file to deploy.</span>
+<span class="c1"># @arg [dest]       The destination path. Default: /tmp.</span>
+deploy_artifact<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>OPTIND<span class="w"> </span>OPTARG<span class="w"> </span>OPTERR<span class="w"> </span>opt<span class="w"> </span><span class="nv">verbose</span><span class="o">=</span><span class="m">0</span><span class="w"> </span><span class="nv">user</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$USER</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">while</span><span class="w"> </span><span class="nb">getopts</span><span class="w"> </span>vu:h<span class="w"> </span>opt<span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="k">case</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$opt</span><span class="s2">&quot;</span><span class="w"> </span><span class="k">in</span>
+<span class="w">            </span>v<span class="o">)</span><span class="w"> </span><span class="nv">verbose</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="p">;;</span>
+<span class="w">            </span>u<span class="o">)</span><span class="w"> </span><span class="nv">user</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$OPTARG</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">;;</span>
+<span class="w">            </span>h<span class="o">)</span><span class="w"> </span>L_func_help<span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="p">;;</span>
+<span class="w">            </span>*<span class="o">)</span><span class="w"> </span>L_func_usage<span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">;;</span>
+<span class="w">        </span><span class="k">esac</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="w">    </span><span class="nb">shift</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$((</span><span class="nv">OPTIND</span><span class="o">-</span><span class="m">1</span><span class="k">))</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="c1"># Assertions simplify error checking</span>
+<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File argument is required&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$#</span><span class="s2">&quot;</span><span class="w"> </span>-ge<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File does not exist: </span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span><span class="nv">file</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">dest</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">2</span><span class="k">:-</span><span class="p">/tmp</span><span class="si">}</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="c1"># ... logic ...</span>
+<span class="o">}</span>
+</code></pre></div>
+<h3 id="printing-help-l_func_help">Printing Help (<code>L_func_help</code>)<a class="headerlink" href="#printing-help-l_func_help" title="Permanent link">&para;</a></h3>
+<p>Calling <code>L_func_help</code> inside your function parses the comments above the function and prints a formatted help message to stderr.</p>
+<div class="highlight"><pre><span></span><code>deploy_artifact<span class="w"> </span>-h
+<span class="c1"># Output:</span>
+<span class="c1"># your_script.sh: deploy_artifact: Deploys an artifact to a server.</span>
+<span class="c1"># @option -v        Enable verbose mode.</span>
+<span class="c1"># @option -u &lt;user&gt; User to deploy as. Default: current user.</span>
+<span class="c1"># @option -h        Print this help and return 0.</span>
+<span class="c1"># @arg file         The file to deploy.</span>
+<span class="c1"># @arg [dest]       The destination path. Default: /tmp.</span>
+</code></pre></div>
+<h3 id="printing-usage-l_func_usage">Printing Usage (<code>L_func_usage</code>)<a class="headerlink" href="#printing-usage-l_func_usage" title="Permanent link">&para;</a></h3>
+<p><code>L_func_usage</code> parses the comments to automatically generate a standard usage line. This is useful for <code>getopts</code> <code>*)</code> case.</p>
+<div class="highlight"><pre><span></span><code>deploy_artifact<span class="w"> </span>-x
+<span class="c1"># Output:</span>
+<span class="c1"># your_script.sh: illegal option -- x</span>
+<span class="c1"># your_script.sh: usage: deploy_artifact [-vh] [-u user] file [dest]</span>
+</code></pre></div>
+<h3 id="handling-errors-l_func_error-l_func_usage_error">Handling Errors (<code>L_func_error</code>, <code>L_func_usage_error</code>)<a class="headerlink" href="#handling-errors-l_func_error-l_func_usage_error" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>L_func_error "message"</code>: Prints an error message prefixed with the function name.</li>
+<li><code>L_func_usage_error "message"</code>: Prints the error message followed by the usage line.</li>
+</ul>
+<div class="highlight"><pre><span></span><code>L_func_error<span class="w"> </span><span class="s2">&quot;Connection failed&quot;</span>
+<span class="c1"># Output: your_script.sh: deploy_artifact: error: Connection failed</span>
+
+L_func_usage_error<span class="w"> </span><span class="s2">&quot;Invalid argument&quot;</span>
+<span class="c1"># Output:</span>
+<span class="c1"># your_script.sh: deploy_artifact: error: Invalid argument</span>
+<span class="c1"># your_script.sh: usage: deploy_artifact [-vh] [-u user] file [dest]</span>
+</code></pre></div>
+<h3 id="assertions-l_func_assert">Assertions (<code>L_func_assert</code>)<a class="headerlink" href="#assertions-l_func_assert" title="Permanent link">&para;</a></h3>
+<p><code>L_func_assert</code> allows you to write concise checks. It runs a command (usually <code>test</code> or <code>[[ ... ]]</code>). If the command fails, it prints an error message and returns 2.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Explicit check</span>
+<span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>!<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span>L_func_error<span class="w"> </span><span class="s2">&quot;File not found: </span><span class="nv">$file</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+<span class="k">fi</span>
+
+<span class="c1"># Equivalent using L_func_assert</span>
+L_func_assert<span class="w"> </span><span class="s2">&quot;File not found: </span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+</code></pre></div>
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<h2 id="L_lib.sh--func">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
+    func
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L663"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--func" class="headerlink" title="Permanent link">&para;</a></h2>
+      <p>
+            Function for writing function programs.
+
+    </p>
+
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+<h3 id="L_lib.sh--L_func_get_source">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_get_source
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L679"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_get_source" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Get location of where the function was defined.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    Variable is assigned an array of two elements: the file path of where the function was defined and line number.
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Function name to inspect.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_func_get_source_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_get_source_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L680"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_get_source_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_func_comment">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_comment
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L705"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_comment" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Extract the comment above the function.</p>
+<p>By default, get the comment of the calling function.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code># some unrelated comment followed by an empty line
+
+# some comment
+somefunc() {
+   L_func_comment
+}
+
+somefunc  # outputs '# some comment'
+
+L_func_comment -f somefunc
+</code></pre>
+</div>
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Assign result to this variable.
+
+</li><li>                <strong><code>-f &lt;funcname&gt;</code></strong>
+    Print the comment of given function instead of the calling function.
+
+</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
+    Consider the calling function this many stackframes above. Default: 0
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
+
+</li></ul>    </p>
+
+  
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            0 if extracted an non-empty comment above the function definition.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_func_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_help
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L770"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_help" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print function comment as usage message.
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">:</p>
+<pre><code># @option -t this is an option
+# @option -g &lt;arg&gt; this is an option with an argument
+# @option -h Print this help and return 0.
+# @arg arg This is an argument
+utility() {
+  local OPTIND OPTARG OPTERR opt t g
+  while getopts tg:h opt; do
+    case "$opt" in
+      t) t=1 ;;
+      g) g=$OPTARG ;;
+      h) L_func_help; return 0 ;;
+      *) L_func_usage_error; return "$L_EX_USAGE" ;;
+    esac
+  done
+  shift "$((OPTARG-1))"
+  L_func_assert "one positional argument required" test "$#" -eq 1 || return "$L_EX_USAGE"
+  #
+  : utility logic
+}
+
+utility -h        # prints the comment above the function
+utility -invalid  # prints 'Usage: utility [-th] [-g arg] arg'
+</code></pre>
+</div>
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>[int]</code></strong>
+    How many stack frames up.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            0
+
+    </p>
+
+  
+  
+      <p>
+        <strong>See:</strong>
+<ul><li>                <a href="#L_lib.sh--L_func_comment">L_func_comment</a>
+
+</li><li>                <a href="#L_lib.sh--L_func_error">L_func_error</a>
+
+</li></ul>    </p>
+
+
+
+<h3 id="L_lib.sh--L_func_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_usage
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L792"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_usage" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print funtion usage to stderr.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>[$1]</code></strong>
+    How many stack frames up.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_func_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_error
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L824"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_error" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print function error to stderr.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>[$1]</code></strong>
+    Message.
+
+</li><li>                <strong><code>[$2]</code></strong>
+    How many stack frames up.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_func_help">L_func_help</a> for example
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_func_usage_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_usage_error
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L834"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_usage_error" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print function error with usage.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>[$1]</code></strong>
+    Message.
+
+</li><li>                <strong><code>[$2]</code></strong>
+    How many stack frames up.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_func_help">L_func_help</a> for example
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_func_assert">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_assert
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L850"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_assert" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Assert that the command exits with 0.</p>
+<p>If it does not, call L_func_error and return 64 ($L_EX_USAGE).
+If the message starts with -[0-9]+, the number is used as the number of stackframes up the message is about.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>utility() {
+  local num="$1"
+  L_func_assert "not a number: $num" L_is_integer "$num" || return "$L_EX_USAGE"
+}
+</code></pre>
+</div>
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    Message to print, may be empty.
+
+</li><li>                <strong><code>$@</code></strong>
+    Arguments to test.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            64 ($L_EX_USAGE) if the expression failed.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_func_log">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_log
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L865"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_log" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print a line prefixed by the calling function name.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$@</code></strong>
+    line to print
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_function_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_function_copy
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L874"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_function_copy" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Make a copy of a function.</p>
+<p>Currently there is no sanitization done in the function.
+The second argument allows for execution under eval.</p>
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    existing function
+
+</li><li>                <strong><code>$2</code></strong>
+    new function name
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_function_modify">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_function_modify
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L884"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_function_modify" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Add a script on the top or the end of a function.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    The function to modify
+
+</li><li>                <strong><code>$2</code></strong>
+    Script to put in front of the function body.
+
+</li><li>                <strong><code>$3</code></strong>
+    Script to put on the end of the function body.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_decorate">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_decorate
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L932"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_decorate" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Apply a decorator on a function.</p>
+<p>The next call on a function will call the decorator with arguments followed by function name with arguments.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>func() { echo something; }
+print_and_call() {
+    echo "CALLING: $@" &gt;&amp;2
+    "$@"
+}
+func  # outputs something
+func  # outputs something
+L_decorate print_and_call func
+func  # outputs "CALLING func" and then "something"
+func  # outputs "CALLING func" and then "something"
+</code></pre>
+</div>
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>func() { L_print_traceback; }
+L_decorate L_setx func
+L_decorate time func
+L_decorate L_setx time func
+func arg  # calls: [L_setx time func arg]
+          # which calls [time func arg]
+          # which calls L_setx func arg
+</code></pre>
+</div>
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$@</code></strong>
+    Decorator to apply with arguments.
+
+</li><li>                <strong><code>$#-1</code></strong>
+    Function.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_time">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_time
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L959"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_time" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Measure time with the command, but include the command in the time message output and use %6l format.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$@</code></strong>
+    command to measure.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_duration_to_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_duration_to_usec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L968"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_duration_to_usec" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Duration string.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file">https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
+</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_duration_to_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_duration_to_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L970"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2211">SC2211</a>
+        <a href="https://www.shellcheck.net/wiki/SC2035">SC2035</a>
+        <a href="https://www.shellcheck.net/wiki/SC2035">SC2035</a>
+        <a href="https://www.shellcheck.net/wiki/SC1102">SC1102</a>
+    </p>
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_usec_to_duration">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_duration
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L985"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_usec_to_duration" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert microseconds to Prometheus duration string using L_RET.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Microseconds (integer).
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_usec_to_duration_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_duration_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L986"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_getopts_in">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_getopts_in
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1064"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_getopts_in" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Wrapper around getopts that executes subcommand with local-ed variables.</p>
+<p>The frist argument defines a getopts specification, which is like getopts with modifications.
+Sequence of character followed by : represents an option with required argument, just like in getopts.
+Sequence of a character followed by :: represents an option that arguments are collected into an array.
+Otherwise, the characters represent short options on the command line.</p>
+<p>Each option in getopts specification translated to a variable named like the option.
+The set variables are optionally prefixed with -p argument.</p>
+<p>Options variables are initalized with 0, and are incremented each time encountered.
+Array options variables are initialized with empty array.
+Argument options variables are unset if not specified by the user!</p>
+<p>Option -h is always added and calls L_func_help function and returns 0.</p>
+<p>Invalid option triggers L_func_usage_error and returns 64 ($L_EX_USAGE).</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+myfunc_in() {
+  echo "
+}
+</code></pre>
+</div>
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-p &lt;str&gt;</code></strong>
+    Add prefix to assigned variables.
+
+</li><li>                <strong><code>-n &lt;str&gt;</code></strong>
+    Check positional arguments count. Can be a number or one of "<em>", "+", "?". Default: "</em>".
+
+</li><li>                <strong><code>-s &lt;num&gt;</code></strong>
+    Call L_func_help and L_func_usage_error for function number stack up. Default: 1, the calling function.
+
+</li><li>                <strong><code>-e &lt;letter=action&gt;</code></strong>
+    Evaluate this string when specified letter option is encountered.
+
+</li><li>                <strong><code>-g</code></strong>
+    Declare variables globally with <code>declare -g</code>.
+
+</li><li>                <strong><code>-w</code></strong>
+    Just set variables, without <code>local</code> or <code>declare -g</code>.
+
+</li><li>                <strong><code>-E</code></strong>
+    eval the command.
+
+</li><li>                <strong><code>-h</code></strong>
+    Show this help and return 0.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    The getopts spec.
+
+</li><li>                <strong><code>$2</code></strong>
+    Function to call.
+
+</li><li>                <strong><code>$@</code></strong>
+    Arguments to parse.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            <p>Sub-function return status,</p>
+<p>70 ($L_EX_SOFTWARE) on itself usage error,
+0 if -h option was given,
+64 ($L_EX_USAGE) on child usage error.</p>
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_cache">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_cache
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1206"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_cache" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Cache the execution of a command.</p>
+<p>The command execution is cached in _L_CACHE global variable or in file when -f option is present.
+The second execution of the command will result in a cached execution.
+On cached execution the exit status of the command will be extracted from the cache.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>L_cache -T 10m -O output -f /tmp/cache.L_cache curl -sS https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html
+
+myfunc() {
+   var=$(( 1 + 2 ))
+}
+L_decorate L_cache -v var -k myfunc myfunc
+myfunc
+myfunc
+</code></pre>
+</div>
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-o</code></strong>
+    <p>Cache the stdout of the command.</p>
+<p>It will run the command in a process substitution.</p>
+
+</li><li>                <strong><code>-O &lt;var&gt;</code></strong>
+    <p>Cache the stdout of the command and store it in variable <var> instead of printing.</p>
+<p>It will run the command in a process substitution.</p>
+
+</li><li>                <strong><code>-s &lt;var&gt;</code></strong>
+    Add this variable to the cache. All cache variables will be restored on cached execution.
+
+</li><li>                <strong><code>-f &lt;file&gt;</code></strong>
+    <p>Use the file as cache.</p>
+<p>The file has a header with version number.
+The file stores internal cache state from declare -p _L_cache variable.
+The file content is eval-ed upon loading.</p>
+
+</li><li>                <strong><code>-r</code></strong>
+    Instead of executing, remove the cache entry associated with the command.
+
+</li><li>                <strong><code>-l</code></strong>
+    Instead of executing, only list the entires in the cache.
+
+</li><li>                <strong><code>-T &lt;ttl&gt;</code></strong>
+    Set time to live in duration string. Default: infinity.
+
+</li><li>                <strong><code>-L &lt;01&gt;</code></strong>
+    Lock the file with flock. Default: use flock if available.
+
+</li><li>                <strong><code>-k &lt;key&gt;</code></strong>
+    Use this key to index the cache. Default: %q quoted command with arguments.
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    Command to execute.
+
+</li><li>                <strong><code>$@</code></strong>
+    Arguments.
+
+</li></ul>    </p>
+
+
+
+      <p>
+        <strong>
+Sets variable:
+        </strong>
+            <strong><code>_L_CACHE</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Uses environment variable:
+        </strong>
+            <strong><code>_L_CACHE</code></strong>
+    
+
+    </p>
+
+
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2094">SC2094</a>
+    </p>
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            <p>64 ($L_EX_USAGE) or other error code on invalid usage or error</p>
+<p>otherwise returns the exit status of the cached command.</p>
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_handle_v_scalar">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_handle_v_scalar
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1413"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_handle_v_scalar" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Wrapper function for handling -v arguments to other functions.</p>
+<p>It calls a function called <code>&lt;caller&gt;_vL_RET</code> with arguments, but without <code>-v &lt;var&gt;</code>.
+The function <code>&lt;caller&gt;_vL_RET</code> should set the variable nameref L_RET to the returned value.
+When the caller function is called without -v, the value of L_RET is printed to stdout with a newline.
+Otherwise, the value is a nameref to user requested variable and nothing is printed.</p>
+<p>The fucntion L_handle_v_scalar handles only scalar value of <code>L_RET</code> or 0-th index of <code>L_RET</code> array.
+To assign an array, prefer L_handle_v_array.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">:</p>
+<pre><code>L_hello() { L_handle_v_arr "$@"; }
+L_hello_vL_RET() { L_RET="hello world"; }
+L_hello          # outputs 'hello world'
+L_hello -v var   # assigns var="hello world"
+</code></pre>
+</div>
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    Store the output in variable instead of printing it.
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$@</code></strong>
+    arbitrary function arguments
+
+    </p>
+
+
+
+  
+  
+
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2317">SC2317</a>
+    </p>
+
+  
+  
+  
+      <p>
+        <strong>
+Exit:
+        </strong>
+            Whatever exitcode does the <code>&lt;caller&gt;_vL_RET</code> funtion exits with.
+
+    </p>
+
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_handle_v_array">L_handle_v_array</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_handle_v_array">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_handle_v_array
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1487"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_handle_v_array" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Version of L_handle_v_scalar for arrays.</p>
+<p>The options and arguments and exitcode is the same as L_handle_v_scalar.</p>
+<p>This additionally supports assignment to arrays. This is not possible with L_handle_v_scalar.</p>
+<p>The function L_handle_v_scalar is slightly faster and uses <code>printf -v</code> to assign the result.
+On newer Bash, <code>printf -v</code> can assign to array and associative arrays variable indexes.</p>
+<p>In constract, <code>L_handle_v_array</code> has to first assert if the string is a valid variable name.
+Only then it uses <code>eval</code> with an array assignment syntax to assign the result to the user requsted variable.</p>
+<p>Currently array indexes are not preserved. This could be worked on in the future when needed.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">:</p>
+<pre><code>L_hello() { L_handle_v_arr "$@"; }
+L_hello_vL_RET() { L_RET=(hello world); }
+L_hello          # outputs two lines 'hello' and 'world'
+L_hello -v var   # assigns var=(hello world)
+</code></pre>
+</div>
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2317">SC2317</a>
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_handle_v_scalar">L_handle_v_scalar</a>.
+
+    </p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 6, 2026 16:52:09 UTC">June 6, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+  
+
+
+
+  <form class="md-feedback" name="feedback" hidden>
+    <fieldset>
+      <legend class="md-feedback__title">
+        Was this page helpful?
+      </legend>
+      <div class="md-feedback__inner">
+        <div class="md-feedback__list">
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page was helpful" data-md-value="1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m7 0c0 .8-.7 1.5-1.5 1.5S14 10.3 14 9.5 14.7 8 15.5 8s1.5.7 1.5 1.5m-5 7.73c-1.75 0-3.29-.73-4.19-1.81L9.23 14c.45.72 1.52 1.23 2.77 1.23s2.32-.51 2.77-1.23l1.42 1.42c-.9 1.08-2.44 1.81-4.19 1.81"/></svg>
+            </button>
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page could be improved" data-md-value="0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-6.5-4c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5.7-1.5 1.5-1.5M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m2 4.5c1.75 0 3.29.72 4.19 1.81l-1.42 1.42C14.32 16.5 13.25 16 12 16s-2.32.5-2.77 1.23l-1.42-1.42C8.71 14.72 10.25 14 12 14"/></svg>
+            </button>
+          
+        </div>
+        <div class="md-feedback__note">
+          
+            <div data-md-value="1" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Thanks for your feedback!
+            </div>
+          
+            <div data-md-value="0" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Let us know how we can improve this page.
+            </div>
+          
+        </div>
+      </div>
+    </fieldset>
+  </form>
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../assert/" class="md-footer__link md-footer__link--prev" aria-label="Previous: assert">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                assert
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../stdlib/" class="md-footer__link md-footer__link--next" aria-label="Next: stdlib">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                stdlib
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Kamil Cukrowski
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/kamilcuk" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.instant", "navigation.instant.preview", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tracking", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
