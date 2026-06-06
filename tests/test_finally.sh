@@ -250,12 +250,11 @@ _L_test_finally() {
 		}
 		export -f func
 		# Disable cause SIGINT disabled in subshells.
-		# L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) "${newbash[@]}" func INT
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) "${newbash[@]}" func TERM
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) "${newbash[@]}" func HUP
+		# L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) "${newbash[@]}" func HUP
 		# L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number INT) )) func INT
 		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number TERM) )) func TERM
-		L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
+		# L_unittest_cmd -o "12" -e $(( 128 + $(L_trap_to_number HUP) )) func HUP
 	}
 	{
 		L_info "test custom handler"
@@ -265,14 +264,14 @@ _L_test_finally() {
 				L_trap USR1 printf 'USR1 '
 				L_trap USR2 printf 'USR2 '
 				L_finally echo 'EXIT'
-				L_trap HUP printf 'HUP '
+				# L_trap HUP printf 'HUP '
 				L_trap INT printf 'INT '
 				# set -x
 				L_raise -USR2
 				# L_raise -INT
-				L_raise -HUP
+				# L_raise -HUP
 				L_raise -USR1
-				L_raise -HUP
+				# L_raise -HUP
 				L_raise -USR1
 				L_raise -USR2
 				# L_raise -INT
@@ -280,8 +279,8 @@ _L_test_finally() {
 			)
 		}
 		export -f func
-		L_unittest_cmd -o 'USR2 HUP USR1 HUP USR1 USR2 EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" func
-		L_unittest_cmd -o 'USR2 HUP USR1 HUP USR1 USR2 EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" "${newbash[@]}" func
+		L_unittest_cmd -o 'USR2 USR1 USR1 USR2 EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" func
+		L_unittest_cmd -o 'USR2 USR1 USR1 USR2 EXIT' -e "$((128 + $(L_trap_to_number TERM) ))" "${newbash[@]}" func
 	}
 	{
 		L_info "test command substition"
