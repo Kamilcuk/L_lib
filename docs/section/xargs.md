@@ -51,7 +51,7 @@ process_item() {
   (( counter++ ))
 }
 
-printf "A\nB\nC" | L_xargs -n 1 process_item
+L_xargs -n 1 process_item <<<$'A\nB\nC'
 
 echo "Total items processed: $counter"
 # Output:
@@ -131,8 +131,20 @@ printf "1\n2\n3\n4" | L_xargs -P 4 -n 1 sleep
 When running in parallel with `-P`, output from different commands can be interleaved. The `-O` option ensures that the output from each command is buffered and printed atomically once the command completes. This prevents interleaving but may result in output order not matching the input order.
 
 ```bash
-# Without -O, output can be mixed. With -O, each command's output is grouped.
-printf "A\nB" | L_xargs -P 2 -n 1 -O -- bash -c 'echo "start $1"; sleep 0.1; echo "end $1"' --
+# Without -O, output can be mixed.
+printf "A\nB" | L_xargs -P 2 -n 1 -- bash -c 'echo "start $1"; sleep 0.1; echo "end $1"' --
+# Output:
+# start A
+# start B
+# end B
+# end A
+# With -O, each command's output is grouped.
+printf "A\nB" | L_xargs -O -P 2 -n 1 -- bash -c 'echo "start $1"; sleep 0.1; echo "end $1"' --
+# Output:
+# start A
+# end A
+# start B
+# end B
 ```
 
 #### Controlling Command Execution (-n, -L)
@@ -158,12 +170,12 @@ printf "A B\nC" | L_xargs -s -n 2 -L 3 echo
 The `-^` option prepends the arguments used for the command, followed by a colon, to each line of the command's output.
 
 ```bash
-printf "A\nB" | L_xargs -n 1 -^ -- bash -c 'echo "Line 1"; echo "Line 2"' --
+printf "A\nB" | L_xargs -n 1 -^ -- L_eval 'echo "Line 1 of $1"; echo "Line 2 of $1"'
 # Output:
-# A: Line 1
-# A: Line 2
-# B: Line 1
-# B: Line 2
+# A: Line 1 of A
+# A: Line 2 of A
+# B: Line 1 of B
+# B: Line 2 of B
 ```
 
-::: scripts/xargs.sh L_xargs
+::: bin/L_lib.sh xargs
