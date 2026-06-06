@@ -1,0 +1,2422 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Collection of Bash usefull functions and features.">
+      
+      
+        <meta name="author" content="Kamil Cukrowski">
+      
+      
+        <link rel="canonical" href="https://kamilcuk.github.io/L_lib/section/xargs/">
+      
+      
+        <link rel="prev" href="../asa/">
+      
+      
+        <link rel="next" href="../argparse/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>xargs - L_lib</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+  
+
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#xargs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="L_lib" class="md-header__button md-logo" aria-label="L_lib" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            L_lib
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              xargs
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="purple"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="lime"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/kamilcuk/L_lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kamilcuk/L_lib
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="L_lib" class="md-nav__button md-logo" aria-label="L_lib" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    L_lib
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/kamilcuk/L_lib" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    kamilcuk/L_lib
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sections documentation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Sections documentation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../globals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    globals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../colors/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    colors
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ansi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ansi
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../has/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    has
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assert/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    assert
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../func/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    func
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stdlib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    stdlib
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exit_to/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    exit_to
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../path/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    path
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../string/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    string
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../array/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    array
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../foreach/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    foreach
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../args/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    args
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../log/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    log
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sort/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sort
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../trap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    trap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../finally/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    finally
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../with/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    with
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    unittest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    map
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../asa/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    asa
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    xargs
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    xargs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#user-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-processing-pipeline-records-and-atoms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Processing Pipeline: Records and Atoms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-features-and-differences-from-gnu-xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Features and Differences from GNU xargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options-and-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options and Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options and Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-shell-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executing a Shell Function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-from-an-array-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input from an Array (-a)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-from-a-callback-function-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input from a Callback Function (-c)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delimiter-and-record-handling-d-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delimiter and Record Handling (-d, -0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parallel-execution-p" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel Execution (-P)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ordered-parallel-output-o" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordered Parallel Output (-O)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlling-command-execution-n-l" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlling Command Execution (-n, -L)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefixing-output-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefixing Output (-^)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> xargs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="xargs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_nproc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_nproc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_nproc_v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_nproc_v
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_xargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../argparse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    argparse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../proc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    proc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lib/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lib
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../all/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    all
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Miscellaneous
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Miscellaneous
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../expansions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bash expansions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../bash_bugs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bash bugs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../measurements/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Measurements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#user-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="User Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-processing-pipeline-records-and-atoms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Processing Pipeline: Records and Atoms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-features-and-differences-from-gnu-xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Features and Differences from GNU xargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#options-and-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Options and Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Options and Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#executing-a-shell-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executing a Shell Function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-from-an-array-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input from an Array (-a)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input-from-a-callback-function-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Input from a Callback Function (-c)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#delimiter-and-record-handling-d-0" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delimiter and Record Handling (-d, -0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parallel-execution-p" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallel Execution (-P)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ordered-parallel-output-o" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ordered Parallel Output (-O)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#controlling-command-execution-n-l" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlling Command Execution (-n, -L)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prefixing-output-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefixing Output (-^)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> xargs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="xargs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_nproc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_nproc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_nproc_v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_nproc_v
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_xargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_xargs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../globals/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Sections documentation
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/kamilcuk/L_lib/edit/main/docs/section/xargs.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+    
+      
+    
+    <a href="https://github.com/kamilcuk/L_lib/raw/main/docs/section/xargs.md" title="View source of this page" class="md-content__button md-icon">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
+    </a>
+  
+
+
+<h1 id="xargs">Xargs<a class="headerlink" href="#xargs" title="Permanent link">&para;</a></h1>
+<p><code>L_xargs</code> is a high-performance, pure-Bash implementation of the <code>xargs</code> utility, designed for seamless integration with local shell environments.</p>
+<h2 id="user-guide">User Guide<a class="headerlink" href="#user-guide" title="Permanent link">&para;</a></h2>
+<p>Unlike the standard GNU <code>xargs</code> which is a compiled binary, <code>L_xargs</code> runs within the current shell context. This allows it to directly execute Bash functions, use aliases, and access shell variables without needing to export them. It is a powerful tool for building complex data-processing pipelines directly in Bash.</p>
+<h3 id="the-processing-pipeline-records-and-atoms">The Processing Pipeline: Records and Atoms<a class="headerlink" href="#the-processing-pipeline-records-and-atoms" title="Permanent link">&para;</a></h3>
+<p><code>L_xargs</code> operates on two levels of input units:</p>
+<ol>
+<li><strong>Records:</strong> These are the primary chunks of input, separated by a delimiter. By default, the delimiter is a newline character (<code>\n</code>), so each line of input is one record. You can change this with the <code>-d</code> (delimiter) or <code>-0</code> (null character) options.</li>
+<li><strong>Atoms:</strong> These are the final arguments that are passed to the command being executed. By default, each Record is treated as a single, solid Atom. However, if you use the <code>-s</code> (split mode) option, <code>L_xargs</code> will parse the Record using shell-like quoting rules, potentially splitting one Record into multiple Atoms.</li>
+</ol>
+<p>The command is executed when either the number of accumulated Atoms reaches the limit set by <code>-n</code>, or the number of Records reaches the limit set by <code>-L</code>.</p>
+<h3 id="key-features-and-differences-from-gnu-xargs">Key Features and Differences from GNU xargs<a class="headerlink" href="#key-features-and-differences-from-gnu-xargs" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Shell Integration:</strong> The most significant advantage. <code>L_xargs</code> can call shell functions and aliases directly, which is impossible with standard <code>xargs</code> without using <code>export -f</code>.</li>
+<li><strong>Advanced Input Sources:</strong> <code>L_xargs</code> can read items from a Bash array (<code>-a &lt;array_name&gt;</code>) or a custom callback function (<code>-c &lt;callback_eval_string&gt;</code>), in addition to <code>stdin</code>.</li>
+<li><strong>Performance:</strong> While highly optimized for shell environments, <code>L_xargs</code> is a pure Bash implementation and will generally be slower than the native C-based GNU <code>xargs</code>. For most scripting tasks, its flexibility and integration are more valuable.</li>
+<li><strong>Granular Return Codes:</strong> Provides specific return codes (123, 124, 125, etc.) to indicate different failure modes, allowing for more robust error handling.</li>
+</ul>
+<h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reads newline-separated items from stdin and passes them as arguments to echo</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;item1\nitem2\nitem3&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output: item1 item2 item3</span>
+</code></pre></div>
+<h3 id="options-and-examples">Options and Examples<a class="headerlink" href="#options-and-examples" title="Permanent link">&para;</a></h3>
+<h4 id="executing-a-shell-function">Executing a Shell Function<a class="headerlink" href="#executing-a-shell-function" title="Permanent link">&para;</a></h4>
+<p>This is a primary use case for <code>L_xargs</code>. The function does not need to be exported. Because <code>L_xargs</code> operates within the same shell, the function can also access any variables or other functions from your script.</p>
+<p>Crucially, if the <code>-P</code> (parallel) option is <strong>not</strong> used, the function is executed in the <em>current shell execution environment</em>. This means any modifications to variables made by the function will persist after <code>L_xargs</code> has finished.</p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/usr/bin/env bash</span>
+.<span class="w"> </span>L_lib.sh<span class="w"> </span>-s
+
+<span class="nv">my_prefix</span><span class="o">=</span><span class="s2">&quot;Item&quot;</span>
+<span class="nv">counter</span><span class="o">=</span><span class="m">0</span>
+
+<span class="c1"># This function can access and modify variables from the script</span>
+process_item<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Processing </span><span class="nv">$my_prefix</span><span class="s2">: </span><span class="nv">$1</span><span class="s2">&quot;</span>
+<span class="w">  </span><span class="o">((</span><span class="w"> </span>counter++<span class="w"> </span><span class="o">))</span>
+<span class="o">}</span>
+
+L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>process_item<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="s1">$&#39;A\nB\nC&#39;</span>
+
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Total items processed: </span><span class="nv">$counter</span><span class="s2">&quot;</span>
+<span class="c1"># Output:</span>
+<span class="c1"># Processing Item: A</span>
+<span class="c1"># Processing Item: B</span>
+<span class="c1"># Processing Item: C</span>
+<span class="c1"># Total items processed: 3</span>
+</code></pre></div>
+<h4 id="input-from-an-array-a">Input from an Array (-a)<a class="headerlink" href="#input-from-an-array-a" title="Permanent link">&para;</a></h4>
+<p>Use the <code>-a</code> option to read input directly from a Bash array.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">my_items</span><span class="o">=(</span><span class="s2">&quot;First item&quot;</span><span class="w"> </span><span class="s2">&quot;Second item&quot;</span><span class="w"> </span><span class="s2">&quot;Third item&quot;</span><span class="o">)</span>
+<span class="c1"># -S ensures each element is a single argument</span>
+L_xargs<span class="w"> </span>-S<span class="w"> </span>-a<span class="w"> </span>my_items<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output:</span>
+<span class="c1"># First item</span>
+<span class="c1"># Second item</span>
+<span class="c1"># Third item</span>
+</code></pre></div>
+<h4 id="input-from-a-callback-function-c">Input from a Callback Function (-c)<a class="headerlink" href="#input-from-a-callback-function-c" title="Permanent link">&para;</a></h4>
+<p>The <code>-c</code> option allows you to provide a string that will be <code>eval</code>ed to generate input Records. The evaluated string must populate the <code>L_v</code> variable (as an array) and return 0 for success. A non-zero return code signals the end of input.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">i</span><span class="o">=</span><span class="m">0</span>
+generate_items<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span>i<span class="w"> </span>&lt;<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="nv">L_v</span><span class="o">=</span><span class="s2">&quot;item_</span><span class="k">$((</span><span class="o">++</span><span class="nv">i</span><span class="k">))</span><span class="s2">&quot;</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="m">0</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="m">1</span>
+<span class="o">}</span>
+
+L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;generate_items&#39;</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output:</span>
+<span class="c1"># item_1</span>
+<span class="c1"># item_2</span>
+<span class="c1"># item_3</span>
+</code></pre></div>
+<h4 id="delimiter-and-record-handling-d-0">Delimiter and Record Handling (-d, -0)<a class="headerlink" href="#delimiter-and-record-handling-d-0" title="Permanent link">&para;</a></h4>
+<p>By default, <code>L_xargs</code> uses a newline to separate records. <code>-d</code> changes the delimiter. <code>-0</code> is a shorthand for <code>-d ''</code>, using the null character, which is useful for working with <code>find -print0</code>.</p>
+<p>The default behavior is to treat each record as a single "solid" atom. This is equivalent to <code>-S</code>. If you need to split records based on whitespace and shell quoting, use <code>-s</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Default behavior (Solid mode)</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output:</span>
+<span class="c1"># A B</span>
+<span class="c1"># C</span>
+
+<span class="c1"># Split mode</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-s<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output:</span>
+<span class="c1"># A</span>
+<span class="c1"># B</span>
+<span class="c1"># C</span>
+</code></pre></div>
+<h4 id="parallel-execution-p">Parallel Execution (-P)<a class="headerlink" href="#parallel-execution-p" title="Permanent link">&para;</a></h4>
+<p>Use <code>-P</code> to run commands in parallel. <code>-P nproc</code> is a convenient shortcut to use all available CPU cores.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Run up to 4 sleep commands in parallel</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;1\n2\n3\n4&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-P<span class="w"> </span><span class="m">4</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>sleep
+</code></pre></div>
+<h4 id="ordered-parallel-output-o">Ordered Parallel Output (-O)<a class="headerlink" href="#ordered-parallel-output-o" title="Permanent link">&para;</a></h4>
+<p>When running in parallel with <code>-P</code>, output from different commands can be interleaved. The <code>-O</code> option ensures that the output from each command is buffered and printed atomically once the command completes. This prevents interleaving but may result in output order not matching the input order.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Without -O, output can be mixed.</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A\nB&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-P<span class="w"> </span><span class="m">2</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;echo &quot;start $1&quot;; sleep 0.1; echo &quot;end $1&quot;&#39;</span><span class="w"> </span>--
+<span class="c1"># Output:</span>
+<span class="c1"># start A</span>
+<span class="c1"># start B</span>
+<span class="c1"># end B</span>
+<span class="c1"># end A</span>
+<span class="c1"># With -O, each command&#39;s output is grouped.</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A\nB&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-O<span class="w"> </span>-P<span class="w"> </span><span class="m">2</span><span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;echo &quot;start $1&quot;; sleep 0.1; echo &quot;end $1&quot;&#39;</span><span class="w"> </span>--
+<span class="c1"># Output:</span>
+<span class="c1"># start A</span>
+<span class="c1"># end A</span>
+<span class="c1"># start B</span>
+<span class="c1"># end B</span>
+</code></pre></div>
+<h4 id="controlling-command-execution-n-l">Controlling Command Execution (-n, -L)<a class="headerlink" href="#controlling-command-execution-n-l" title="Permanent link">&para;</a></h4>
+<p><code>-n</code> (max-atoms) and <code>-L</code> (max-records) control how many items are processed before the command is executed. The command is triggered as soon as <em>either</em> limit is reached.</p>
+<ul>
+<li><strong><code>-n 2</code></strong>: Executes the command for every 2 atoms collected.</li>
+<li><strong><code>-L 2</code></strong>: Executes the command for every 2 records read.</li>
+<li><strong><code>-n 2 -L 3</code></strong>: If 2 atoms are collected <em>before</em> 3 records are read, the command runs. If 3 records are read <em>before</em> 2 atoms are collected, the command runs.</li>
+</ul>
+<p>Example:
+<div class="highlight"><pre><span></span><code><span class="c1"># -s splits &quot;A B&quot; into two atoms. The -n 2 limit is hit after the first line.</span>
+<span class="c1"># The command runs, and the limits are reset. Then &quot;C&quot; is processed.</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-s<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>-L<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># Output:</span>
+<span class="c1"># A B</span>
+<span class="c1"># C</span>
+</code></pre></div></p>
+<h4 id="prefixing-output-">Prefixing Output (-^)<a class="headerlink" href="#prefixing-output-" title="Permanent link">&para;</a></h4>
+<p>The <code>-^</code> option prepends the arguments used for the command, followed by a colon, to each line of the command's output.</p>
+<div class="highlight"><pre><span></span><code><span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A\nB&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>-^<span class="w"> </span>--<span class="w"> </span>L_eval<span class="w"> </span><span class="s1">&#39;echo &quot;Line 1 of $1&quot;; echo &quot;Line 2 of $1&quot;&#39;</span>
+<span class="c1"># Output:</span>
+<span class="c1"># A: Line 1 of A</span>
+<span class="c1"># A: Line 2 of A</span>
+<span class="c1"># B: Line 1 of B</span>
+<span class="c1"># B: Line 2 of B</span>
+</code></pre></div>
+<h2 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
+    xargs
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10543"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--xargs" class="headerlink" title="Permanent link">&para;</a></h2>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+<h3 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_nproc
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10710"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_nproc" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Returns the number of CPU cores.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+</li><li>                <strong><code>-h</code></strong>
+    
+
+</li></ul>    </p>
+
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_nproc_v">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_nproc_v
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10711"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_nproc_v" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_xargs
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10793"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_xargs" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>A high-performance Bash implementation of the <code>xargs</code> utility designed for seamless</p>
+<p>integration with local shell environments. Unlike binary <code>xargs</code>, <code>L_xargs</code> executes within
+the current shell context, enabling the direct use of unexported Bash functions,
+aliases, and variables without requiring <code>expor</code> or <code>export -f</code>.</p>
+<p>The tool operates on a dual-unit architecture:
+1. Records: Discrete segments of input defined by a delimiter (default: <code>\n</code>).
+2. Atoms: The individual arguments passed to the command.</p>
+<p>By default, <code>L_xargs</code> operates in <code>-s -0</code> mode. If <code>-d</code> <code>-0</code> <code>-a</code> options are specified without <code>-s -S</code>, <code>-S</code> is implied.</p>
+<p>Execution follows a first-to-threshold trigger system: the command is dispatched as
+soon as either the Atom limit (-n) or the Record limit (-L) is reached. If no
+limits are specified, the command executes exactly once upon reaching EOF.</p>
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-0</code></strong>
+    Use the null character (\0) as the Record separator.
+
+</li><li>                <strong><code>-a &lt;var&gt;</code></strong>
+    Read Records from the specified Bash array variable instead of STDIN.
+
+</li><li>                <strong><code>-c &lt;callback&gt;</code></strong>
+    Execute an eval string to fetch the next Record. Must populate L_v=() and return 0.
+
+</li><li>                <strong><code>-d &lt;delimiter&gt;</code></strong>
+    Set the Record separator to the specified character.
+
+</li><li>                <strong><code>-s</code></strong>
+    Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
+
+</li><li>                <strong><code>-S</code></strong>
+    Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
+
+</li><li>                <strong><code>-u &lt;fd&gt;</code></strong>
+    Read the input stream from the specified file descriptor.
+
+</li><li>                <strong><code>-I &lt;replace-str&gt;</code></strong>
+    Replace occurrences of replace-str in the command. Sets -n 1.
+
+</li><li>                <strong><code>-i</code></strong>
+    Shorthand for -I{}.
+
+</li><li>                <strong><code>-L &lt;max-records&gt;</code></strong>
+    Trigger execution once <max-records> have been accumulated.
+
+</li><li>                <strong><code>-l</code></strong>
+    Shorthand for -L1.
+
+</li><li>                <strong><code>-n &lt;max-atoms&gt;</code></strong>
+    Trigger execution once <max-atoms> have been accumulated.
+
+</li><li>                <strong><code>-r</code></strong>
+    If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
+
+</li><li>                <strong><code>-P &lt;max-procs&gt;</code></strong>
+    Concurrent process limit. Supports an integer or 'nproc' for CPU count.
+
+</li><li>                <strong><code>-O</code></strong>
+    Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
+
+</li><li>                <strong><code>-t</code></strong>
+    Verbose: Print each command to STDERR before execution.
+
+</li><li>                <strong><code>-^</code></strong>
+    Prefix Mode: Prepends the command arguments and a colon to each line of output.
+
+</li><li>                <strong><code>-q</code></strong>
+    Be quiet.
+
+</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
+
+</li><li>                <strong><code>-E &lt;eof-str&gt;</code></strong>
+    Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
+
+</li><li>                <strong><code>-e &lt;eof-str&gt;</code></strong>
+    Like -E, compatibility wtih GNU xargs, use -E.
+
+</li><li>                <strong><code>-X</code></strong>
+    Exit on error when set -e flag is set. Capture the command exit status with "cmd; rc=$?", preserving set -e flag effect during the duration of cmd.
+
+</li><li>                <strong><code>-T</code></strong>
+    <p>Use the command as a template: {} is replaced by all arguments,</p>
+<p>{1} {2} ... {N} are replaced by the corresponding argument.</p>
+
+</li><li>                <strong><code>-h</code></strong>
+    Display this help documentation and exit.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$@</code></strong>
+    Command to execute. Default: L_quote_printf.
+
+    </p>
+
+
+
+  
+      <p>
+        <strong>
+Uses environment variable:
+        </strong>
+            <strong><code>L_XARGS_INDEX</code></strong>
+    The index of the job being executed.
+
+    </p>
+
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            <p>0 on success</p>
+<p>1 on some other error
+2 on invalid usage
+123 if any invocation oft he command exited with status 1-125 and 192-254
+124 if the command exited with status 255
+125 if the command exited with the status 128-192
+126 if the command cannot be run
+127 if the command is not found</p>
+
+    </p>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 6, 2026 11:39:09 UTC">June 6, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+  
+
+
+
+  <form class="md-feedback" name="feedback" hidden>
+    <fieldset>
+      <legend class="md-feedback__title">
+        Was this page helpful?
+      </legend>
+      <div class="md-feedback__inner">
+        <div class="md-feedback__list">
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page was helpful" data-md-value="1">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m7 0c0 .8-.7 1.5-1.5 1.5S14 10.3 14 9.5 14.7 8 15.5 8s1.5.7 1.5 1.5m-5 7.73c-1.75 0-3.29-.73-4.19-1.81L9.23 14c.45.72 1.52 1.23 2.77 1.23s2.32-.51 2.77-1.23l1.42 1.42c-.9 1.08-2.44 1.81-4.19 1.81"/></svg>
+            </button>
+          
+            <button class="md-feedback__icon md-icon" type="submit" title="This page could be improved" data-md-value="0">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 0-8-8 8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8m2 0a10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2a10 10 0 0 1 10 10m-6.5-4c.8 0 1.5.7 1.5 1.5s-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5.7-1.5 1.5-1.5M10 9.5c0 .8-.7 1.5-1.5 1.5S7 10.3 7 9.5 7.7 8 8.5 8s1.5.7 1.5 1.5m2 4.5c1.75 0 3.29.72 4.19 1.81l-1.42 1.42C14.32 16.5 13.25 16 12 16s-2.32.5-2.77 1.23l-1.42-1.42C8.71 14.72 10.25 14 12 14"/></svg>
+            </button>
+          
+        </div>
+        <div class="md-feedback__note">
+          
+            <div data-md-value="1" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Thanks for your feedback!
+            </div>
+          
+            <div data-md-value="0" hidden>
+              
+              
+                
+              
+              
+              
+                
+                
+              
+              Let us know how we can improve this page.
+            </div>
+          
+        </div>
+      </div>
+    </fieldset>
+  </form>
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../asa/" class="md-footer__link md-footer__link--prev" aria-label="Previous: asa">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                asa
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../argparse/" class="md-footer__link md-footer__link--next" aria-label="Next: argparse">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                argparse
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2025 Kamil Cukrowski
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/kamilcuk" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.action.edit", "content.action.view", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.instant", "navigation.instant.preview", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tracking", "navigation.top", "search.highlight", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
