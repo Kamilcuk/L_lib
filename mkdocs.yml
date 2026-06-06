@@ -17,6 +17,7 @@ nav:
   - Introduction: index.md
   - Sections documentation:
     - globals: section/globals.md
+    - sysexits: section/sysexits.md
     - colors: section/colors.md
     - ansi: section/ansi.md
     - has: section/has.md

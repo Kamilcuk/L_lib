@@ -11,7 +11,7 @@ func() {
   while getopts h o; do
     case "$o" in
       h) L_func_help; return 0 ;;
-      *) L_func_error; return 2 ;;
+      *) L_func_error; return "$L_EX_USAGE" ;;
     esac
   done
 }

@@ -3,7 +3,7 @@ set -euo pipefail
 . "${BASH_SOURCE[0]%/*}/../bin/L_lib.sh"
 
 p() {
-  L_exit_to v L_not "$@"
+  L_exit_into v L_not "$@"
   echo -n "$1=$v "
 }
 
@@ -12,7 +12,7 @@ SCRIPT='
 echo
 
 case "${SCOPE[0]}" in
-main) is_sourced=1 has_sourced_arguments=? ;;
+main) is_sourced=1 has_sourced_arguments=$L_EX_USAGE ;;
 args*) is_sourced=0 has_sourced_arguments=0 ;;
 noargs*) is_sourced=0 has_sourced_arguments=1 ;;
 *) echo "ERROROOR: ${SCOPE[*]}"; exit 123 ;;

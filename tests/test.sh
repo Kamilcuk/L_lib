@@ -9,7 +9,7 @@ L_log_configure -L
 
 get_all_variables() {
 	unset -v SUPER _ FUNCNAME SUPER2 VARIABLES_BEFORE L_logrecord_loglevel SECONDS
-	unset -v L_v IFS LC_ALL _L_TRAPS
+	unset -v IFS LC_ALL _L_TRAPS
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
@@ -34,6 +34,7 @@ USR2_CNT=0
 . "$dir"/test_var_to_string.sh
 . "$dir"/test_finally.sh
 . "$dir"/test_pretty_print.sh
+. "$dir"/test_fuzzy.sh
 
 _L_test_color() {
 	{
@@ -160,7 +161,7 @@ _L_test_a_handle_v() {
 		local i
 		for i in L_handle_v_scalar L_handle_v_array; do
 			return_123() { "$i" "$@"; }
-			return_123_v() { return 123; }
+			return_123_vL_RET() { return 123; }
 			L_unittest_cmd -ce 123 return_123
 			L_unittest_cmd -ce 123 return_123 --
 			L_unittest_cmd -ce 123 return_123 a
@@ -195,7 +196,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper() { set_scalar "$@"; echo "END"; }
 		set_scalar() { L_handle_v_scalar "$@"; }
-		set_scalar_v() { L_v=123; }
+		set_scalar_vL_RET() { L_RET=123; }
 		L_unittest_cmd -co $'123\nEND' wrapper
 		L_unittest_cmd -co $'123\nEND' wrapper --
 		L_unittest_cmd -co $'123\nEND' wrapper a
@@ -228,7 +229,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper_set_one() { set_one "$@"; echo "END"; }
 		set_one() { L_handle_v_array "$@"; }
-		set_one_v() { L_v=(123); }
+		set_one_vL_RET() { L_RET=(123); }
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one --
 		L_unittest_cmd -co $'123\nEND' wrapper_set_one a
@@ -261,7 +262,7 @@ _L_test_a_handle_v() {
 	{
 		wrapper() { set_arr "$@"; echo "END"; }
 		set_arr() { L_handle_v_array "$@"; }
-		set_arr_v() { L_v=(456 789); }
+		set_arr_vL_RET() { L_RET=(456 789); }
 		L_unittest_cmd -co $'456\n789\nEND' wrapper
 		L_unittest_cmd -co $'456\n789\nEND' wrapper --
 		L_unittest_cmd -co $'456\n789\nEND' wrapper a
@@ -367,20 +368,37 @@ _L_test_list_functions() {
 	unset aaa_func1 aaa_func2 aaa_
 }
 
-_L_test_exit_to_1null() {
+_L_test_exit_into_1null() {
 	{
 		local var='blabla'
-		L_unittest_success L_exit_to_1null var true
+		L_unittest_success L_exit_into_1null var true
 		L_unittest_eq "$var" 1
 		L_unittest_eq "${var:+SUCCESS}" "SUCCESS"
 		L_unittest_eq "${var:-0}" "1"
 		L_unittest_eq "$((var))" "1"
 		local var='blabla'
-		L_unittest_success L_exit_to_1null var false
+		L_unittest_success L_exit_into_1null var false
 		L_unittest_eq "$var" ""
 		L_unittest_eq "${var:+SUCCESS}" ""
 		L_unittest_eq "${var:-0}" "0"
 		L_unittest_eq "$((var))" "0"
+	}
+}
+
+_L_test_exit_into_bool() {
+	{
+		local var
+		L_unittest_success L_exit_into_10 var true
+		L_unittest_vareq var 1
+		L_unittest_success L_exit_into_10 var false
+		L_unittest_vareq var 0
+	}
+	{
+		local var='old'
+		L_unittest_success L_exit_into_1unset var true
+		L_unittest_vareq var 1
+		L_unittest_success L_exit_into_1unset var false
+		L_unittest_failure L_var_is_set var
 	}
 }
 
@@ -525,8 +543,8 @@ _L_test_other() {
 		local -a a
 		L_abbreviation -va ev evaler shooter
 		L_unittest_arreq a evaler
-		L_abbreviation_v e evaler eshooter
-		L_unittest_arreq L_v evaler eshooter
+		L_abbreviation_vL_RET e evaler eshooter
+		L_unittest_arreq L_RET evaler eshooter
 		L_abbreviation -v a none evaler eshooter
 		L_unittest_arreq a
 	}
@@ -1281,17 +1299,17 @@ _L_test_log() {
 	}
 	{
 		local i
-		L_log_level_to_int_to i INFO
+		L_log_level_to_int_into i INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i ERR
+		L_log_level_to_int_into i ERR
 		L_unittest_eq "$i" "$L_LOGLEVEL_ERROR"
-		L_log_level_to_int_to i WARN
+		L_log_level_to_int_into i WARN
 		L_unittest_eq "$i" "$L_LOGLEVEL_WARNING"
-		L_log_level_to_int_to i L_LOGLEVEL_INFO
+		L_log_level_to_int_into i L_LOGLEVEL_INFO
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i info
+		L_log_level_to_int_into i info
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
-		L_log_level_to_int_to i "$L_LOGLEVEL_INFO"
+		L_log_level_to_int_into i "$L_LOGLEVEL_INFO"
 		L_unittest_eq "$i" "$L_LOGLEVEL_INFO"
 	}
 }
@@ -1324,115 +1342,7 @@ _L_test_setx() {
 	unset aaa_1 aaa_2
 }
 
-_L_test_sort() {
-	export LC_ALL=C
-	if ((L_HAS_BASH4_0)); then
-		local IFS='1'
-	fi
-	{
-		local var=(1 2 3)
-		L_sort_bash -n var
-		L_unittest_arreq var 1 2 3
-	}
-	{
-		local data opt
-		for opt in "-n" "" "-z" "-n -z"; do
-			for data in "1 2 3" "3 2 1" "1 3 2" "2 3 1" "6 5 4 3 2 1" "6 1 5 2 4 3" "-1 -2 4 6 -4"; do
-				local -a sort_bash="($data)" sort="($data)" optarr="($opt)"
-				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
-				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
-				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-			done
-		done
-		for opt in "" "-z"; do
-			for data in "a b" "b a" "a b c" "c b a" "a c b" "b c a" "f d s a we r t gf d fg vc s"; do
-				local -a sort_bash="($data)" sort="($data)" optarr="($opt)"
-				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
-				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
-				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-			done
-		done
-	}
-	{
-		L_log "test bash sorting of an array"
-		local arr=(9 4 1 3 4 5)
-		L_sort_bash -n arr
-		L_unittest_arreq arr 1 3 4 4 5 9
-		local arr=(g s b a c o)
-		L_sort_bash arr
-		L_unittest_arreq arr a b c g o s
-	}
-	{
-		L_log "test sorting of an array"
-		local arr=(9 4 1 3 4 5)
-		L_sort_cmd -n arr
-		L_unittest_arreq arr 1 3 4 4 5 9
-		local arr=(g s b a c o)
-		L_sort_cmd arr
-		L_unittest_arreq arr a b c g o s
-	}
-	{
-		L_log "test sorting of an array with zero separated stream"
-		local arr=(9 4 1 3 4 5)
-		L_sort_cmd -z -n arr
-		L_unittest_arreq arr 1 3 4 4 5 9
-		local arr=(g s b a c o)
-		L_sort_cmd -z arr
-		L_unittest_arreq arr a b c g o s
-	}
-	{
-		local -a nums=(
-			10 99 7 33 97 68 100 83 80 51 74 24 85 71 64 36 72 67 60 73 54 5 63
-			50 40 27 30 44 1 37 86 14 52 15 81 78 46 90 39 79 65 47 28 77 62 22
-			98 76 41 49 89 48 32 21 92 70 11 96 58 55 56 45 17 66 57 42 31 23 26
-			35 3 6 13 25 8 82 84 61 75 12 2 9 53 94 69 93 38 87 59 16 20 95 43 34
-			91 88 4 18 19 29 -52444  46793   63644   23950   -24008  -8219 -34362
-			59930 -13817 -30880 59270 43982 -1901 53069 -24481 -21592 811 -4132
-			65052 -5629 19149 17827 17051 -22462 8842 53592 -49750 -18064 -8324
-			-23371 42055 -24291 -54302 3207 4580 -10132 -33922 -14613 41633 36787
-		)
-		for opt in "" "-n" "-z" "-n -z"; do
-			local -a sort_bash=("${nums[@]}") sort=("${nums[@]}") optarr="($opt)"
-			L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
-			L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
-			L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-			(
-				L_HAS_MAPFILE_D=0
-				local -a sort_bash=("${nums[@]}") sort=("${nums[@]}")
-				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
-				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
-				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-			)
-			(
-				L_HAS_MAPFILE_D=0
-				L_HAS_MAPFILE=0
-				local -a sort_bash=("${nums[@]}") sort=("${nums[@]}")
-				L_sort_bash ${optarr[@]+"${optarr[@]}"} sort_bash
-				L_sort_cmd ${optarr[@]+"${optarr[@]}"} sort
-				L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-			)
-		done
-	}
-	{
-		local -a words=(
-			"curl moor" "knowing glossy" $'lick\npen' "hammer languid"
-			pigs available gainful black-and-white grateful
-			fetch screw sail marked seed delicious tenuous bow
-			plants loaf handsome page ice misty innate slip
-		)
-		local sort_bash=("${words[@]}") sort=("${words[@]}")
-		L_sort_bash -z sort_bash
-		L_sort_cmd -z sort
-		L_unittest_eq "${sort[*]}" "${sort_bash[*]}"
-	}
-	{
-		local -a words=()
-		L_sort_bash words
-		L_unittest_arreq words
-		L_sort_cmd words
-		L_unittest_arreq words
-	}
-}
+. ./tests/sort_tests.sh
 
 _L_test_L_trap() {
 	{
@@ -1967,7 +1877,7 @@ _L_test_L_proc() {
 	{
 		# Choose a temporary TMPDIR so that L_proc_popen creates temporary fifo there so we can check all are removed.
 		local tmpdir
-		L_with_tmpdir_to tmpdir
+		L_with_tmpdir_into tmpdir
 		local -x TMPDIR="$tmpdir"
 		local proc exitcode line
 		local beforefiles=(${TMPDIR:-/tmp}/L_*)
@@ -2005,9 +1915,9 @@ _L_test_L_proc() {
 		L_log 'test sleep timeout, takes about 3 seconds'
 		local proc tmp exitcode
 		L_proc_popen proc bash -c 'sleep 2.5; exit 123'
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
+		L_exit_into tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 124
-		L_exit_to tmp L_proc_wait -t 2 -v exitcode "$proc"
+		L_exit_into tmp L_proc_wait -t 2 -v exitcode "$proc"
 		L_unittest_vareq tmp 0
 		L_unittest_vareq exitcode 123
 	}
@@ -2171,24 +2081,24 @@ _L_test_bashpid() {
 	}
 	#
 	(
-		L_bashpid_to a
+		L_bashpid_into a
 		(
-			L_bashpid_to b
+			L_bashpid_into b
 			(
-				L_bashpid_to c
-				L_bashpid_to d
+				L_bashpid_into c
+				L_bashpid_into d
 				L_unittest_eq "$c" "$d"
 				check "$a" "$b" "$c"
 			)
 			(
-				L_bashpid_to c
+				L_bashpid_into c
 				check "$a" "$b" "$c"
 			)
 		)
 		(
-			L_bashpid_to b
+			L_bashpid_into b
 			(
-				L_bashpid_to c
+				L_bashpid_into c
 				check "$a" "$b" "$c"
 			)
 		)
@@ -2198,14 +2108,14 @@ _L_test_bashpid() {
 
 wait_interrupt() {
 	local mypid
-	L_bashpid_to mypid
+	L_bashpid_into mypid
 	sleep ${1:-0.1} && kill -USR$((1+RANDOM%2)) "$mypid" 2>/dev/null || : &
 	allchilds+=($!)
 }
 
 wait_test_prepare_with_3_childs() {
 	local mypid
-	L_bashpid_to mypid
+	L_bashpid_into mypid
 	L_assert '' L_var_is_array childs
 	exec 1001>&2
 	trap 'echo "received USR1 all ok $((++USR1_CNT))" >&1001' USR1
@@ -2260,7 +2170,7 @@ wait_test_finish() {
 wait_sleep_exit() {
 	local pid start stop=0 end i lived
 	trap 'stop=1' USR1
-	L_bashpid_to pid
+	L_bashpid_into pid
 	L_epochrealtime_usec -v start
 	for ((i=0; i<1000 && !stop; ++i)); do sleep 0.05; done
 	L_epochrealtime_usec -v end
@@ -2423,10 +2333,10 @@ _L_test_timeout() {
 	L_unittest_cmd -o   0.000000  L_usec_to_sec 0
 	#
 	local tt
-	L_timeout_set_to tt 0.1
-	L_unittest_cmd ! L_timeout_expired "$tt"
+	L_timeout_init_into tt 0.1
+	L_unittest_cmd ! L_timeout_is_expired "$tt"
 	sleep 0.2
-	L_unittest_cmd L_timeout_expired "$tt"
+	L_unittest_cmd L_timeout_is_expired "$tt"
 }
 
 ###############################################################################
@@ -2444,13 +2354,13 @@ _L_test_all_childs() {
 		tmpf=$(mktemp)
 		bg() {
 			local pid
-			L_bashpid_to pid
+			L_bashpid_into pid
 			echo "$pid" >> "$tmpf"
 			exec sleep 5
 		}
 		mypstree() {
 			local pid
-			L_bashpid_to pid
+			L_bashpid_into pid
 			# Handle busybox pstree
 			if [[ "$(pstree --help 2>&1)" == *-a* ]]; then
 				pstree -pa "$pid" >&2

@@ -8,7 +8,7 @@ _L_ini_args() {
   while getopts _L_i; do
     case "$_L_i" in
       h) L_func_help 1; return 0 ;;
-      *) L_func_error "" 1; return 2; ;;
+      *) L_func_error "" 1; return "$L_EX_USAGE"; ;;
     esac
   done
   shift "$((OPTIND-1))"

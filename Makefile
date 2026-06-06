@@ -32,7 +32,7 @@ test_parallel:
 	if ! $(MAKE) -O -j $(NPROC) test > >(tee build/output >&2) 2>&1; then \
 		grep -B500 '^make\[.*\]:.*Makefile.*\] Error' build/output; \
 		grep '^make\[.*\]:.*Makefile.*\] Error' build/output; \
-		exit 2; \
+		exit 64; \
 	fi
 test_parallel2:
 	@mkdir -vp build
@@ -150,9 +150,5 @@ docs_serve2:
 docs_docker:
 	$(DOCKER) build --target doc --output type=local,dest=./public .
 
-K ?= 2
 llm:
-	,llm --no-hide -k $(K) gemini --model gemini-2.5-pro -r
-
-llm2:
-	GOOGLE_GEMINI_BASE_URL=http://localhost:8990/gemini ,llm --no-hide -k $(K) gemini --model my -r
+	,llm --podman -H gemini
