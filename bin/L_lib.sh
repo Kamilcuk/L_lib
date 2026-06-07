@@ -705,7 +705,7 @@ L_func_get_source_vL_RET() {
 #    L_func_comment -f somefunc
 L_func_comment() {
 	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
-		_L_f="" L_RET="" _L_up=0 _L_funcname_escaped
+		_L_f="" L_RET="" _L_up=0 _L_funcname_escaped _L_content
 	while getopts v:f:s:h _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
