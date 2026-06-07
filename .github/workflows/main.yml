@@ -87,6 +87,16 @@ jobs:
           run: |
             ./tests/citest.sh
 
+  test_windows:
+    runs-on: windows-latest
+    if: github.event.action != 'closed'
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - shell: bash
+        run: |
+          ./tests/citest.sh
+
   docs:
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'
@@ -151,7 +161,7 @@ jobs:
   deploy_docker:
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [test, test_ubuntu, shellcheck, docs, build_basher, test_pip, test_freebsd]
+    needs: [test, test_ubuntu, shellcheck, docs, build_basher, test_pip, test_freebsd, test_windows]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -211,7 +221,7 @@ jobs:
 
   pypi-publish:
     name: Upload release to PyPI
-    needs: [test, test_ubuntu, shellcheck, test_pip, test_freebsd]
+    needs: [test, test_ubuntu, shellcheck, test_pip, test_freebsd, test_windows]
     if: github.event_name == 'push' && contains(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 5

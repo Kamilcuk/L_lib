@@ -47,6 +47,13 @@ test: $(TESTS)
 test_local:
 	./tests/test.sh $(ARGS)
 
+test_windows:
+	@if [ ! -f "/mnt/c/Program Files/Git/bin/bash.exe" ]; then \
+		echo "Error: Git Bash not found at /mnt/c/Program Files/Git/bin/bash.exe"; \
+		exit 1; \
+	fi
+	"/mnt/c/Program Files/Git/bin/bash.exe" ./tests/citest.sh $(ARGS)
+
 test_pip: venv
 	./venv/bin/pip install .
 	./venv/bin/L_lib.sh -h
