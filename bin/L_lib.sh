@@ -1955,7 +1955,7 @@ else
 		-V)
 			local _L_tmp
 			if _L_tmp=$(set +e; compgen "${@:3}"); then
-				L_readarray "$2" <<<"$_L_tmp"
+				L_readarray -t "$2" <<<"$_L_tmp"
 			else
 				return "$?"
 			fi
@@ -1963,7 +1963,7 @@ else
 		-V*)
 			local _L_tmp
 			if _L_tmp=$(set +e; compgen "${@:2}"); then
-				L_readarray "${1#-V}" <<<"$_L_tmp"
+				L_readarray -t "${1#-V}" <<<"$_L_tmp"
 			else
 				return "$?"
 			fi
@@ -3773,47 +3773,45 @@ L_array_reverse() {
 # @option -d <delim> separator to use, default: newline
 # @option -u <fd> file descriptor to read from
 # @option -s <count> skip first n lines
+# @option -n <count> read at most n lines
 # @option -h Print this help and return 0.
 # @arg $1 <var> array nameref
 # @example L_readarray arr <file
 L_readarray() {
-	local OPTIND OPTARG OPTERR _L_d=$'\n' _L_t=0 _L_c _L_read=(read -r) _L_mapfile=(mapfile -t) _L_s=0 _L_i=0
-	while getopts td:u:sh _L_c; do
-		case $_L_c in
-		t) _L_t=1 ;;
-		d) _L_d=$OPTARG ;;
-		u) _L_read+=(-u"$OPTARG"); _L_mapfile+=(-u"$OPTARG") ;;
-		s) _L_s=$OPTARG; _L_mapfile+=(-s"$_L_s") ;;
-		h) L_func_help; return 0 ;;
-		*) L_func_usage_error; return "$L_EX_USAGE" ;;
-		esac
-	done
-	shift "$((OPTIND-1))"
-	if ((L_HAS_MAPFILE_D)); then
-		"${_L_mapfile[@]}" -d "$_L_d" "$1"
-	elif ((L_HAS_MAPFILE)) && [[ "$_L_d" == $'\n' ]]; then
-		"${_L_mapfile[@]}" "$1"
+	if (( L_HAS_MAPFILE_D )); then
+		L_readarray() { mapfile "$@"; }
+		mapfile "$@";
 	else
-		while ((_L_s--)); do
-			"${_L_read[@]}" -d "$_L_d" _L_c || return
+		local OPTIND OPTARG OPTERR _L_d=$'\n' _L_strip=0 _L_c _L_read=(read -r) _L_mapfile=(mapfile) _L_s=0 _L_i=0 _L_n=0 _L_res IFS=""
+		while getopts td:u:s:n:h _L_c; do
+			case $_L_c in
+			t) _L_strip=1; _L_mapfile+=(-t) ;;
+			d) _L_d=$OPTARG ;;
+			u) _L_read+=(-u "$OPTARG"); _L_mapfile+=(-u "$OPTARG") ;;
+			s) _L_s=$OPTARG; _L_mapfile+=(-s "$_L_s") ;;
+			n) _L_n=$OPTARG; _L_mapfile+=(-n "$_L_n") ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+			esac
 		done
-		if [[ -z "$_L_d" ]]; then
-			while IFS= "${_L_read[@]}" -d '' "$1[$((_L_i++))]"; do :; done
-			unset -v "$1[$((_L_i-1))]"
-		elif [[ $' \t\n' != *"$_L_d"* ]]; then
-			# POSIX specifies that multiple whitespaces in IFS are merged together.
-			# We do not want that.
-			if ((!L_HAS_BASH4_0)); then
-				IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1" || :
-			else
-				IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1"
-			fi
+		shift "$((OPTIND-1))"
+		local _L_t=""
+		if [[ $_L_strip -eq 0 ]]; then _L_t=$_L_d; fi
+		if (( L_HAS_MAPFILE )) && [[ "$_L_d" == $'\n' ]]; then
+			"${_L_mapfile[@]}" "$1"
 		else
-			_L_s=()
-			while IFS= "${_L_read[@]}" _L_c; do
-				_L_s+=("$_L_c")
+			while (( _L_s-- )); do
+				"${_L_read[@]}" -d "$_L_d" _L_c || return
 			done
-			L_array_assign "$1" "${_L_s[@]}"
+			L_array_clear "$1"
+			while (( _L_n <= 0 || _L_i < _L_n )) && "${_L_read[@]}" -d "$_L_d" "$1[$((_L_i++))]"; do
+				if [[ -n "$_L_t" ]]; then
+					eval "$1[$((_L_i-1))]+=\$_L_t"
+				fi
+			done
+			if ! L_var_is_notnull "$1[$((_L_i-1))]"; then
+				unset -v "$1[$((_L_i-1))]"
+			fi
 		fi
 	fi
 }
@@ -5149,50 +5147,26 @@ L_sort() {
 #   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
 L_print_traceback() {
 	L_color_detect
-	local i s l tmp offset=${1:-0} around=${2:-2}
+	local i file line offset=${1:-0} around=${2:-2} _L_p_lines _L_p_min _L_p_cnt _L_p_j _L_p_cur_l cur
 	echo "${L_CYAN:-}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET:-}"
-	for ((i = ${#BASH_SOURCE[@]} - 1; i > offset; --i)); do
-		s=${BASH_SOURCE[i]}
-		l=${BASH_LINENO[i - 1]}
+	for (( i = ${#BASH_SOURCE[@]} - 1; i > offset; --i )); do
+		file=${BASH_SOURCE[i]}
+		line=${BASH_LINENO[i - 1]}
 		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
-			"$L_CYAN" "$s" "$L_RESET" \
-			"${L_BLUE}${L_BOLD}" "$l" "$L_RESET" \
+			"$L_CYAN" "$file" "$L_RESET" \
+			"${L_BLUE}${L_BOLD}" "$line" "$L_RESET" \
 			"${FUNCNAME[i]}"
-		if ((around >= 0)) && [[ -r "$s" ]]; then
-			if ((L_HAS_MAPFILE)); then
-				local min j lines cur cnt
-				((min=l-around-1, min=min<0?0:min, cnt=around*2+1, cnt=cnt<0?0:cnt ,1))
-				if ((cnt)); then
-					mapfile -s "$min" -n "$cnt" -t lines <"$s"
-					for ((j= 0 ; j < cnt && j < ${#lines[@]}; ++j)); do
-						cur=
-						if ((min+j+1==l)); then
-							cur=yes
-						fi
-						printf "%s%-5d%s%3s%s%s\n" \
-							"$L_BLUE$L_BOLD" \
-							"$((min+j+1))" \
-							"$L_COLORRESET" \
-							"${cur:+">> $L_RED"}" \
-							"${lines[j]}" \
-							"${cur:+"$L_COLORRESET"}"
-					done
-				fi
-			elif L_hash awk; then
-				# shellcheck disable=1004
-				awk \
-					-v line="$l" \
-					-v around="$((around + 1))" \
-					-v RED="$L_RED" \
-					-v COLORLINE="${L_BLUE}${L_BOLD}" \
-					-v RESET="$L_RESET" \
-					'NR > line - around && NR < line + around {
-						printf "%s%-5d%s%3s%s%s\n", \
-							COLORLINE, NR, RESET, \
-							(NR == line ? ">> " RED : ""), \
-							$0, \
-							(NR == line ? RESET : "")
-					}' "$s"
+		# Do not read from pipes or temp sources that might hang or be gone
+		if [[ "$around" -gt 0 && -f "$file" && -r "$file" && "$file" != /dev/fd/* && "$file" != "/tmp/bash-source-"* ]]; then
+			(( _L_p_min = line - around - 1, _L_p_min = _L_p_min < 0 ? 0 : _L_p_min, _L_p_cnt = around * 2 + 1 ))
+			if L_readarray -t -s "$_L_p_min" -n "$_L_p_cnt" _L_p_lines <"$file"; then
+				for (( _L_p_j = 0; _L_p_j < ${#_L_p_lines[@]}; _L_p_j++ )); do
+					_L_p_cur_l=$(( _L_p_min + _L_p_j + 1 ))
+					if [[ $_L_p_cur_l -eq line ]]; then cur=yes; else cur=""; fi
+					printf "%s%-5d%s%3s%s%s\n" \
+						"$L_BLUE$L_BOLD" "$_L_p_cur_l" "$L_RESET" \
+						"${cur:+">> $L_RED"}" "${_L_p_lines[_L_p_j]}" "${cur:+"$L_RESET"}"
+				done
 			fi
 		fi
 	done
