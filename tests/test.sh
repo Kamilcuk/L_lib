@@ -2073,6 +2073,10 @@ _L_test_regex_escape() {
 }
 
 _L_test_bashpid() {
+	if ! L_hash pstree; then
+		L_unittest_skip "No pstree"
+		return
+	fi
 	check() {
 		shouldbe=$(pstree -p $$)
 		shouldbe=${shouldbe%---*}
