@@ -6,7 +6,7 @@ COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 
 FROM docker.io/library/bash:${VERSION} AS tester
-RUN apk add --no-cache jq
+RUN apk add --no-cache jq psmisc
 
 FROM tester AS test
 USER nobody:nogroup
@@ -47,7 +47,7 @@ RUN basher list -v
 RUN L_lib.sh --help
 
 FROM docker.io/library/bash:${VERSION} AS perfbash
-RUN apk add --no-cache perf bubblewrap bc coreutils util-linux
+RUN apk add --no-cache perf bubblewrap bc coreutils util-linux psmisc
 COPY . /app/
 WORKDIR /app
 CMD ["./scripts/perfbash"]

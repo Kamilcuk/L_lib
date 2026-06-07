@@ -83,7 +83,7 @@ jobs:
       - uses: vmactions/freebsd-vm@v1
         with:
           prepare: |
-            pkg install -y jq bash
+            pkg install -y jq bash pstree
           run: |
             ./tests/citest.sh
 
