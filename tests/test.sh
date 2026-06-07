@@ -709,14 +709,7 @@ _L_test_array() {
 	}
 }
 
-_L_test_readarray() {
-	local arr=(4 5 6)
-	L_readarray arr <<<$'1\n2\n3'
-	L_unittest_arreq arr 1 2 3
-	local arr=(4 5 6)
-	L_readarray -d '' arr < <(printf "1\x002\x003\x00")
-	L_unittest_arreq arr 1 2 3
-}
+. "$dir"/readarray_tests.sh
 
 _L_test_array_reverse() {
 	local array=(1 2 3 4 5)
@@ -2399,9 +2392,9 @@ _L_test_all_childs() {
 		tmpfpids=$(< "$tmpf")
 		rm "$tmpf"
 		#
-		L_readarray pids <<<"$tmp"
+		L_readarray -t pids <<<"$tmp"
 		L_sort -n pids
-		L_readarray realpids <<<"$tmpfpids"
+		L_readarray -t realpids <<<"$tmpfpids"
 		L_sort -n realpids
 		declare -p pids realpids
 		L_unittest_arreq pids "${realpids[@]}"

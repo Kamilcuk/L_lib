@@ -38,11 +38,11 @@ _L_test_xargs_extra_X() {
 
 	local out
 	L_unittest_cmd -e 1 -v out L_xargs -X -a a -n 1 f_xargs_X
-	L_readarray out <<<"$out"
+	L_readarray -t out <<<"$out"
 	L_unittest_arreq out 0 1 2 3 4
 
 	L_unittest_cmd -e 123 -v out L_xargs -X -a a -P 5 -n 1 f_xargs_X
-	L_readarray out <<<"$out"
+	L_readarray -t out <<<"$out"
 	L_sort_bash -n out
 	L_unittest_arreq out 0 1 2 3 4
 }
