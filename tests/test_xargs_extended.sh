@@ -85,6 +85,7 @@ proc:[0-9]+ val:[123]" "L_xargs -P nproc should run in parallel"
 }
 
 _L_test_L_xargs_process_killing() {
+    L_command_exists pgrep || L_unittest_skip "pgrep not found"
     # Test that child processes are killed when L_xargs is killed
     # and that it happens quickly.
     local pid start end duration dur=1023491 before after beforelines afterlines
