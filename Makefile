@@ -47,12 +47,11 @@ test: $(TESTS)
 test_local:
 	./tests/test.sh $(ARGS)
 
-test_windows:
-	@if [ ! -f "/mnt/c/Program Files/Git/bin/bash.exe" ]; then \
-		echo "Error: Git Bash not found at /mnt/c/Program Files/Git/bin/bash.exe"; \
-		exit 1; \
-	fi
-	"/mnt/c/Program Files/Git/bin/bash.exe" ./tests/citest.sh $(ARGS)
+test_windows_rsync:
+	rsync -aivxs --progress --no-p --checksum --exclude={build,log.txt,github,tmp,site,.venv} ./ /mnt/c/Users/kamil/myprojects/L_lib/
+test_windows_run:
+	"/mnt/c/Program Files/Git/bin/bash.exe" -c "cd /c/Users/kamil/myprojects/L_lib && ./tests/test.sh $(ARGS)"
+test_windows: test_windows_rsync test_windows_run
 
 test_pip: venv
 	./venv/bin/pip install .

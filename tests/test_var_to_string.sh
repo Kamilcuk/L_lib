@@ -69,6 +69,21 @@ _L_test_var_to_string_assoc_space() {
 	L_unittest_eq "${#b[@]}" 1
 	L_unittest_eq "${a["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
 	L_unittest_eq "${b["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
+}
+
+_L_test_var_to_string_assoc_all() {
+	if (( !L_HAS_ASSOCIATIVE_ARRAY )); then
+		L_unittest_skip "No associative array"
+		return
+	fi
+	if (( !L_HAS_BASH4_1 )); then
+		L_unittest_skip "requires Bash4.1"
+		return
+	fi
+	if [[ "$OSTYPE" == cygwin ]]; then
+		L_unittest_skip "disabled on cygwin"
+		return
+	fi
 	#
 	local -A a=(["$L_ALLCHARS"]="$L_ALLCHARS") b=([1]=2 [3]=4)
 	L_var_to_string -v tmp a
