@@ -94,6 +94,8 @@ jobs:
     needs: [test, test_ubuntu]
     if: github.event.action != 'closed'
     timeout-minutes: 10
+    env:
+      MSYS_NO_PATHCONV: 1
     steps:
       - uses: actions/checkout@v6
       - shell: bash
