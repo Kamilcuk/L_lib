@@ -2299,11 +2299,14 @@ _L_test_wait_n() {
 _L_test_wait_err() {
 	local opt _L_tmp=12345
 	L_unittest_cmd L_wait
+	: &
+	local inexistingpid=$!
+	wait "$inexistingpid"
 	for opt in "" "-b"; do
-		L_unittest_cmd -e 1 L_wait $opt -t 1 999
-		L_unittest_cmd -e 1 L_wait $opt 999
-		L_unittest_cmd -e 1 L_wait $opt -n 999
-		L_unittest_cmd -e 1 L_wait $opt -n -t 1 999
+		L_unittest_cmd -e 1 L_wait $opt -t 1 "$inexistingpid"
+		L_unittest_cmd -e 1 L_wait $opt "$inexistingpid"
+		L_unittest_cmd -e 1 L_wait $opt -n "$inexistingpid"
+		L_unittest_cmd -e 1 L_wait $opt -n -t 1 "$inexistingpid"
 	done
 }
 
