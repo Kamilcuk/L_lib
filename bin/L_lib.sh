@@ -3836,17 +3836,17 @@ L_array_pipe() {
 			while IFS= read -d '' -r "$_L_arr[$((_L_i++))]"; do :; done
 			unset -v "$_L_arr[$((_L_i-1))]"
 		fi < <(
-			printf ""${!_L_arrpnt:+"%s\0"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:3}"
+			if [[ ${!_L_arrpnt+x} ]]; then printf "%s\0" "${!_L_arrpnt}"; fi | "${@:3}"
 		)
 	else
 		local _L_arr="$1" _L_arrpnt="$1[@]"
 		if ((L_HAS_MAPFILE)); then
 			mapfile -t "$_L_arr" < <(
-				printf ""${!_L_arrpnt:+"%s\n"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:2}"
+				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | "${@:2}"
 			)
 		else
 			IFS=$'\n' read -d '' -r -a "$_L_arr" < <(
-				printf ""${!_L_arrpnt:+"%s\n"} ${!_L_arrpnt:+"${!_L_arrpnt}"} | "${@:2}"
+				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | "${@:2}"
 				printf "\0"
 			)
 		fi
@@ -5086,11 +5086,13 @@ L_sort_bash() {
 #    L_sort_cmd -n arr
 #    echo "${arr[@]}"  # 1 2 5 5
 L_sort_cmd() {
-	if L_args_contain -z "${@:1:$#-1}" || L_args_contain --zero-terminated "${@:1:$#-1}"; then
-		L_array_pipe -z "${*: -1}" sort "${@:1:$#-1}"
-	else
-		L_array_pipe "${*: -1}" sort "${@:1:$#-1}"
-	fi
+	local _L_z="" _L_i
+	for _L_i in "${@:1:$#-1}"; do
+		case "$_L_i" in
+			-z|--zero-terminated) _L_z="-z"; break ;;
+		esac
+	done
+	L_array_pipe $_L_z "${@:$#}" sort "${@:1:$#-1}"
 }
 
 # @description Sort a bash array.
@@ -5903,6 +5905,12 @@ L_with_redirect_stdout_into() {
 # @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
 # L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 
+_L_unittest_error_on_github() {
+	if [[ -n "${CI:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then
+		echo "::error $*"
+	fi
+}
+
 # @description internal unittest function
 # @env L_unittest_fails
 # @set L_unittest_fails
@@ -5942,7 +5950,11 @@ _L_unittest_internal() {
 		echo "${L_GREEN}OK${L_COLORRESET}"
 	else
 		(( ++L_unittest_fails ))
-		echo "command [$(L_quote_printf "${@:3}")] FAILED!${2:+ }${2:-}${L_COLORRESET}"
+		local L_RET
+		L_quote_printf_vL_RET "${@:3}"
+		L_RET="command [$L_RET] FAILED!${2:+ }${2:-}"
+		echo "$L_RET${L_COLORRESET}"
+		_L_unittest_error_on_github "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${1:-}::$L_RET"
 		if (( ${L_unittest_exit_on_error:-1} )); then
 			exit 1
 		else
@@ -6276,11 +6288,11 @@ L_unittest_main() {
 	# Re-index tests array, we need it to associated rets with test name later.
 	_L_u_tests=("${_L_u_tests[@]}")
 	# Extract the path:lineno of definitions of tests functions.
-	local _L_u_testnames=() _L_u_a _L_u_b _L_u_f
-	if _L_u_a=$(shopt -s extdebug && declare -F "${_L_u_tests[@]}"); then
-		while IFS=' ' read -r _L_u_f _L_u_a _L_u_b; do
-			_L_u_testnames+=("$_L_u_b:$_L_u_a:$_L_u_f")
-		done <<<"$_L_u_a"
+	local _L_u_testnames=() _L_u_l _L_u_b _L_u_f
+	if _L_u_l=$(shopt -s extdebug && declare -F "${_L_u_tests[@]}"); then
+		while IFS=' ' read -r _L_u_f _L_u_l _L_u_b; do
+			_L_u_testnames+=("$_L_u_b:$_L_u_l:$_L_u_f")
+		done <<<"$_L_u_l"
 	else
 		_L_u_testnames=("${_L_u_tests[@]}")
 	fi
@@ -6366,9 +6378,12 @@ L_unittest_main() {
 			_L_unittest_main_print_line "=" "short summary" "$L_CYAN"
 			for i in "${!_L_u_tests[@]}"; do
 				if (( _L_u_rets[i] )); then
-					local line
+					local line _L_u_b _L_u_l _L_u_f
 					line=$(tail -n 1 "$_L_u_tmpd/${_L_u_tests[i]}.log" || echo "??")
 					printf "%s %s%s\n" "${_L_u_testnames[i]}" "$line" "$L_RESET" >&2
+					if IFS=: read -r _L_u_b _L_u_l _L_u_f <<<"${_L_u_testnames[i]}"; then
+						_L_unittest_error_on_github "file=$_L_u_f,line=$_L_u_l,title=$_L_u_b::$line"
+					fi
 				fi
 			done
 		fi
