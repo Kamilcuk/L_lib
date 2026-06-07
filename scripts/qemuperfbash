@@ -27,7 +27,7 @@ get_insn_count_to() {
     local _var=$1
     local _cmd_str=$2
     local log_file
-    L_with_tmpfile_to log_file
+    L_with_tmpfile_into log_file
     
     local final_cmd=()
     if ((arg_bwrap)); then
