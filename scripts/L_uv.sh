@@ -72,7 +72,9 @@ L_uv_current_remove() { L_uv_remove "" "$L_UV_CURRENT"; }
 # @description Internal cleanup for L_uv_run.
 _L_uv_run_finally() {
   trap - SIGCHLD
-  eval "exec $1>&- $2>&-"
+  if [[ -n "${_L_uv_pipe[0]:-}" ]]; then
+    eval "exec ${_L_uv_pipe[0]}>&- ${_L_uv_pipe[1]}>&-"
+  fi
   if (( ${#_L_uv_childs[*]} )); then
     kill "${!_L_uv_childs[@]}" 2>/dev/null || :
     wait "${!_L_uv_childs[@]}" 2>/dev/null || :
@@ -86,18 +88,23 @@ _L_uv_run_fifo_reader() {
   # - we have read a line (optionally with the timeout)
   # - and the line is not empty
   # execute the line.
-  while
-    L_is_fd_open "${_L_uv_pipe[0]}" &&
-    if [[ -n "${L_UV[1073741820-1]:-}" ]]; then
-      L_timeout_left -v _L_opt "${L_UV[1073741820-1]}" || return "$L_EX_TIMEOUT"
-      IFS= read -r -t "$_L_opt" -u "${_L_uv_pipe[0]}" _L_uv_line
-    else
-      IFS= read -r -u "${_L_uv_pipe[0]}" _L_uv_line
-    fi &&
-    [[ -n "$_L_uv_line" ]]
-  do
-    eval "$_L_uv_line" || return
-  done
+  if (( _L_uv_events )); then
+    (( _L_uv_events-- ))
+  else
+    while
+      [[ -n "${_L_uv_pipe[0]:-}" ]] &&
+      L_is_fd_open "${_L_uv_pipe[0]}" &&
+      if [[ -n "${L_UV[1073741820-1]:-}" ]]; then
+        L_timeout_left -v _L_opt "${L_UV[1073741820-1]}" || return "$L_EX_TIMEOUT"
+        IFS= read -r -t "$_L_opt" -u "${_L_uv_pipe[0]}" _L_uv_line
+      else
+        IFS= read -r -u "${_L_uv_pipe[0]}" _L_uv_line
+      fi &&
+      [[ -n "$_L_uv_line" ]]
+    do
+      eval "$_L_uv_line" || return
+    done
+  fi
   L_UV[1073741820-1]=""
 }
 
@@ -120,7 +127,8 @@ _L_uv_run_sleeper() {
 # @example L_uv_add_timer loop 1 echo "hello"; L_uv_run loop
 L_uv_run() {
   local OPTIND OPTARG OPTERR _L_opt _L_uv_sleep_time="" L_UV_TIMEOUT="" _L_uv_break=0 _L_uv_pipe \
-  L_UV_USES_SIGCHLD=0 _L_uv_childs _L_uv_line="" L_UV_CURRENT _L_uv_waiter_cb=_L_uv_run_sleeper
+  L_UV_USES_SIGCHLD=0 _L_uv_childs _L_uv_line="" L_UV_CURRENT _L_uv_waiter_cb=_L_uv_run_sleeper \
+  _L_uv_events=0 _L_uv_pid=$BASHPID
   while getopts s:1cCt:h _L_opt; do
     case "$_L_opt" in
       s) _L_uv_sleep_time=$OPTARG ;;
@@ -135,15 +143,14 @@ L_uv_run() {
   shift $((OPTIND - 1))
   if [[ "${1:-}" != "" && "$1" != "L_UV" ]]; then local -n L_UV=$1; fi
   if (( L_UV_USES_SIGCHLD )); then
-    L_pipe _L_uv_pipe
-    L_finally -r _L_uv_run_finally "${_L_uv_pipe[0]}" "${_L_uv_pipe[1]}"
-    trap "echo >&${_L_uv_pipe[1]}" SIGCHLD
+    L_finally -r _L_uv_run_finally
+    trap "(( ++_L_uv_events ))" SIGCHLD
     _L_uv_waiter_cb=_L_uv_run_fifo_reader
   fi
   eval "${L_UV[@]:1073741820}"
   while
     (( !_L_uv_break )) && {
-      (( ${_L_uv_childs[@]:+${#_L_uv_childs[*]}}+0 )) || [[ -n "${L_UV[*]:1073741820:1}" ]] ||
+      (( ${_L_uv_childs[@]:+${#_L_uv_childs[*]}}+0 || _L_uv_events )) || [[ -n "${L_UV[*]:1073741820:1}" ]] ||
       { (( L_UV_USES_SIGCHLD )) && read -t 0 -u "${_L_uv_pipe[0]}" _; }
     }
   do
@@ -166,7 +173,11 @@ L_uv_current_on_remove() { L_uv_on_remove "" "$L_UV_CURRENT" "$@"; }
 # @arg $1 Format string
 # @arg $@ Arguments for the format string
 L_uv_notify() {
-  printf "${1:-}\n" "${@:2}" >&"${_L_uv_pipe[1]:-}"
+  if (( BASHPID != _L_uv_bashpid )); then
+    printf "${1:-}\n" "${@:2}" >&"${_L_uv_pipe[1]:-}"
+  else
+    "${@:2}"
+  fi
 }
 
 # @description Spawn a command in the background and track it as part of the current task.
@@ -174,6 +185,10 @@ L_uv_notify() {
 # @arg $@ Command and its arguments
 L_uv_current_to_background() {
   if (( L_UV_USES_SIGCHLD )); then
+    if [[ -z "${_L_uv_pipe[0]:-}" ]]; then
+      # Pipe is lazy opened when the first background process spawns.
+      L_pipe _L_uv_pipe
+    fi
     "$@" &
     _L_uv_childs["$!"]=""
     L_uv_current_on_remove "kill $! 2>/dev/null && wait $! 2>/dev/null || :"
