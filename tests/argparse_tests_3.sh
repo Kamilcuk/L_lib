@@ -1,5 +1,9 @@
 
 _L_test_z_argparse29_dir_types() {
+	if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" ]]; then
+		L_unittest_skip "chmod permissions don't work reliably on Windows"
+		return
+	fi
 	if (( UID == 0 )); then
 		L_unittest_skip "running as root user (its ok)"
 		return
