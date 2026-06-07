@@ -462,7 +462,7 @@ _L_test_json_escape() {
 	t() {
 		local tmp input="$1"
 		L_json_escape -v tmp "$1"
-		L_unittest_cmd -o "$tmp" eval 'printf "%s" "$input" | jq -R -s .'
+		L_unittest_cmd -o "$tmp" jq -n --arg input "$input" '$input'
 	}
 	t $'1 hello\n\t\bworld'
 	t $'\1f'
