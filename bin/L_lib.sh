@@ -6001,7 +6001,7 @@ _L_unittest_main_print_line() {
 # Then filter tests with it.
 # @env _L_u_tests
 _L_unittest_main_handle_k() {
-	local ex=$1 elems v i next
+	local ex=$1 elems v i next IFS=$' \t\n' rgx=() rgxcnt=0
 		# Normalize whitespace and insert spaces around all operators/grouping tokens.
 	ex=${ex//[$'\v\r\t\n']/ }
 	ex=${ex//\!/ \! }
@@ -6013,37 +6013,29 @@ _L_unittest_main_handle_k() {
 	ex=${ex//|/\|\|}
 	ex=${ex//||||/\|\|}
 	ex=${ex//||/ \|\| }
-	IFS=' ' read -ra elems <<<"$ex"
-	if (( ${#elems[*]} == 1 )); then
-		# One element - no need to be fancy.
-		for i in "${!_L_u_tests[@]}"; do
-			# shellcheck disable=SC2076
-			[[ "${_L_u_tests[$i]}" =~ "${elems[0]}" ]] || unset -v "_L_u_tests[$i]"
-		done
-	else
-		# Compile the expression.
-		ex="[[ "
-		for v in "${elems[@]}"; do
-			case "$v" in
-				['!()']|'&&'|'||') ex+=" $v " ;;
-				[$'&|;{}()\n\t']) L_panic "Parsing -k expression in L_unittest_main failed: invalid token: $v" ;;
-				*) printf -v v "%q" "$v"; ex+=' "$v" =~'" $v " ;;
-			esac
-		done
-		ex+=" ]]"
-		# L_debug "-k compiled expression: $ex"
-		# Check for syntax errors.
-		local v="" rc=0
-		eval "$ex" || rc=$?
-		if (( rc > 1 )); then
-			L_panic "Parsing -k expression in L_unittest_main failed: syntax error in expression [$1] (compiled: [$ex]). Most probably the -k expression value is invalid. It might be the compilation process is faulty. If you want to advanced parsing, pass the tests to execute as positional arguments to L_unittest_main function."
-		fi
-		# Do the filtering.
-		for i in "${!_L_u_tests[@]}"; do
-			local v=${_L_u_tests[$i]}
-			eval "$ex" || unset -v "_L_u_tests[$i]"
-		done
+	read -r -a elems <<<"$ex"
+	# Compile the expression.
+	ex="[[ "
+	for v in "${elems[@]}"; do
+		case "$v" in
+			['!()']|'&&'|'||') ex+=" $v " ;;
+			[$'&|;{}()\n\t']) L_panic "Parsing -k expression in L_unittest_main failed: invalid token: $v" ;;
+			*) rgx+=("$v"); ex+=' "$v" =~ ${rgx['"$((rgxcnt++))"']} ' ;;
+		esac
+	done
+	ex+=" ]]"
+	# L_debug "-k compiled expression: $ex"
+	# Check for syntax errors.
+	local v="" rc=0
+	eval "$ex" || rc=$?
+	if (( rc > 1 )); then
+		L_panic "Parsing -k expression in L_unittest_main failed: syntax error in expression [$1] (compiled: [$ex]). Most probably the -k expression value is invalid. It might be the compilation process is faulty. If you want to advanced parsing, pass the tests to execute as positional arguments to L_unittest_main function."
 	fi
+	# Do the filtering.
+	for i in "${!_L_u_tests[@]}"; do
+		local v=${_L_u_tests[$i]}
+		eval "$ex" || unset -v "_L_u_tests[$i]"
+	done
 }
 
 # @option $1 Skipping reason.
@@ -6289,7 +6281,7 @@ L_unittest_main() {
 	_L_u_tests=("${_L_u_tests[@]}")
 	# Extract the path:lineno of definitions of tests functions.
 	local _L_u_testnames=() _L_u_l _L_u_b _L_u_f
-	if _L_u_l=$(shopt -s extdebug && declare -F "${_L_u_tests[@]}"); then
+	if _L_u_l=$(trap - ERR; shopt -s extdebug && declare -F "${_L_u_tests[@]}"); then
 		while IFS=' ' read -r _L_u_f _L_u_l _L_u_b; do
 			_L_u_testnames+=("$_L_u_b:$_L_u_l:$_L_u_f")
 		done <<<"$_L_u_l"
