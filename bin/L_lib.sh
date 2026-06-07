@@ -3836,17 +3836,17 @@ L_array_pipe() {
 			while IFS= read -d '' -r "$_L_arr[$((_L_i++))]"; do :; done
 			unset -v "$_L_arr[$((_L_i-1))]"
 		fi < <(
-			if [[ ${!_L_arrpnt+x} ]]; then printf "%s\0" "${!_L_arrpnt}"; fi | "${@:3}"
+			if [[ ${!_L_arrpnt+x} ]]; then printf "%s\0" "${!_L_arrpnt}"; fi | { shift 2; "$@"; }
 		)
 	else
 		local _L_arr="$1" _L_arrpnt="$1[@]"
 		if ((L_HAS_MAPFILE)); then
 			mapfile -t "$_L_arr" < <(
-				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | "${@:2}"
+				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | { shift; "$@"; }
 			)
 		else
 			IFS=$'\n' read -d '' -r -a "$_L_arr" < <(
-				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | "${@:2}"
+				if [[ ${!_L_arrpnt+x} ]]; then printf "%s\n" "${!_L_arrpnt}"; fi | { shift; "$@"; }
 				printf "\0"
 			)
 		fi
@@ -9330,7 +9330,7 @@ L_argparse() {
 			fi
 			# If no subparser is found, but we have a default and there are no arguments.
 			if (( _L_subparseri == -1 && _L_argsi == ${#_L_args[@]} )) && [[ -n "${_L_opt_default[_L_opti]:-}" ]]; then
-				_L_subparseri=$(L_array_find_index _L_subparsers "${_L_opt_default[_L_opti]}")
+				L_array_index -v _L_subparseri _L_subparsers "${_L_opt_default[_L_opti]}"
 			fi
 			# If no subparser is found.
 			if ((_L_subparseri == -1)); then

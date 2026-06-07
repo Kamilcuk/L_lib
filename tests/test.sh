@@ -2077,8 +2077,13 @@ _L_test_bashpid() {
 		L_unittest_skip "No pstree"
 		return
 	fi
+	if [[ "${OSTYPE:-}" == *bsd* ]]; then
+		L_unittest_skip "Skip on bsd because pstree output differs"
+		return
+	fi
 	check() {
 		shouldbe=$(pstree -p $$)
+		echo "$shouldbe"
 		shouldbe=${shouldbe%---*}
 		is="bash($1)---bash($2)---bash($3)"
 		L_unittest_cmd L_glob_match "$shouldbe" "*$is*"
@@ -2349,6 +2354,14 @@ _L_test_timeout() {
 ###############################################################################
 
 _L_test_all_childs() {
+	if ! L_hash pstree; then
+		L_unittest_skip "No pstree"
+		return
+	fi
+	if [[ "${OSTYPE:-}" == *bsd* ]]; then
+		L_unittest_skip "Skip on bsd because pstree output differs"
+		return
+	fi
 	(
 		L_log "Current childs, hopefully nothing:"
 		L_unittest_cmd -c -r '^$' L_get_all_childs
