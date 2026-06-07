@@ -387,6 +387,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../colors/" class="md-nav__link">
         
   
@@ -672,10 +700,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_get_source_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_get_source_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_vL_RET
       
     </span>
   </a>
@@ -815,10 +843,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_duration_to_usec_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
       
     </span>
   </a>
@@ -837,10 +865,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_usec_to_duration_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
       
     </span>
   </a>
@@ -1812,10 +1840,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_get_source_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_get_source_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_get_source_vL_RET
       
     </span>
   </a>
@@ -1955,10 +1983,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_duration_to_usec_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
       
     </span>
   </a>
@@ -1977,10 +2005,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_usec_to_duration_v" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_v
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
       
     </span>
   </a>
@@ -2146,14 +2174,14 @@ deploy_artifact<span class="o">()</span><span class="w"> </span><span class="o">
 <span class="w">            </span>v<span class="o">)</span><span class="w"> </span><span class="nv">verbose</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="p">;;</span>
 <span class="w">            </span>u<span class="o">)</span><span class="w"> </span><span class="nv">user</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$OPTARG</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">;;</span>
 <span class="w">            </span>h<span class="o">)</span><span class="w"> </span>L_func_help<span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="p">;;</span>
-<span class="w">            </span>*<span class="o">)</span><span class="w"> </span>L_func_usage<span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="p">;;</span>
+<span class="w">            </span>*<span class="o">)</span><span class="w"> </span>L_func_usage<span class="p">;</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">;;</span>
 <span class="w">        </span><span class="k">esac</span>
 <span class="w">    </span><span class="k">done</span>
 <span class="w">    </span><span class="nb">shift</span><span class="w"> </span><span class="s2">&quot;</span><span class="k">$((</span><span class="nv">OPTIND</span><span class="o">-</span><span class="m">1</span><span class="k">))</span><span class="s2">&quot;</span>
 
 <span class="w">    </span><span class="c1"># Assertions simplify error checking</span>
-<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File argument is required&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$#</span><span class="s2">&quot;</span><span class="w"> </span>-ge<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">2</span>
-<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File does not exist: </span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">2</span>
+<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File argument is required&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$#</span><span class="s2">&quot;</span><span class="w"> </span>-ge<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+<span class="w">    </span>L_func_assert<span class="w"> </span><span class="s2">&quot;File does not exist: </span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
 
 <span class="w">    </span><span class="nb">local</span><span class="w"> </span><span class="nv">file</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span><span class="w"> </span><span class="nv">dest</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">2</span><span class="k">:-</span><span class="p">/tmp</span><span class="si">}</span><span class="s2">&quot;</span>
 
@@ -2196,16 +2224,16 @@ L_func_usage_error<span class="w"> </span><span class="s2">&quot;Invalid argumen
 <div class="highlight"><pre><span></span><code><span class="c1"># Explicit check</span>
 <span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>!<span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
 <span class="w">    </span>L_func_error<span class="w"> </span><span class="s2">&quot;File not found: </span><span class="nv">$file</span><span class="s2">&quot;</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="m">2</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
 <span class="k">fi</span>
 
 <span class="c1"># Equivalent using L_func_assert</span>
-L_func_assert<span class="w"> </span><span class="s2">&quot;File not found: </span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="m">2</span>
+L_func_assert<span class="w"> </span><span class="s2">&quot;File not found: </span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="nb">test</span><span class="w"> </span>-f<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$file</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
 </code></pre></div>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--func">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     func
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L622"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L663"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2235,7 +2263,7 @@ L_func_assert<span class="w"> </span><span class="s2">&quot;File not found: </sp
 
 <h3 id="L_lib.sh--L_func_get_source">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_get_source
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L638"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L679"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2280,13 +2308,13 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_func_get_source_v">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_func_get_source_v
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L639"
+<h3 id="L_lib.sh--L_func_get_source_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_get_source_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L680"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_func_get_source_v" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_func_get_source_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
   
   
   
@@ -2309,7 +2337,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_func_comment">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_comment
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L664"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L705"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2377,7 +2405,7 @@ Return:
 
 <h3 id="L_lib.sh--L_func_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L729"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L770"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2400,11 +2428,11 @@ utility() {
       t) t=1 ;;
       g) g=$OPTARG ;;
       h) L_func_help; return 0 ;;
-      *) L_func_usage; return 2 ;;
+      *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTARG-1))"
-  L_func_assert "one positional argument required" test "$#" -eq 1 || return 2
+  L_func_assert "one positional argument required" test "$#" -eq 1 || return "$L_EX_USAGE"
   #
   : utility logic
 }
@@ -2456,7 +2484,7 @@ Return:
 
 <h3 id="L_lib.sh--L_func_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_usage
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L751"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L792"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2495,7 +2523,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_func_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_error
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L783"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L824"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2542,7 +2570,7 @@ See:
 
 <h3 id="L_lib.sh--L_func_usage_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_usage_error
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L793"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L834"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2589,14 +2617,14 @@ See:
 
 <h3 id="L_lib.sh--L_func_assert">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_assert
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L809"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L850"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_func_assert" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
             <p>Assert that the command exits with 0.</p>
-<p>If it does not, call L_func_error and return 2.
+<p>If it does not, call L_func_error and return 64 ($L_EX_USAGE).
 If the message starts with -[0-9]+, the number is used as the number of stackframes up the message is about.</p>
 
     </p>
@@ -2605,7 +2633,7 @@ If the message starts with -[0-9]+, the number is used as the number of stackfra
 <p class="admonition-title">Example</p>
 <pre><code>utility() {
   local num="$1"
-  L_func_assert "not a number: $num" L_is_integer "$num" || return 2
+  L_func_assert "not a number: $num" L_is_integer "$num" || return "$L_EX_USAGE"
 }
 </code></pre>
 </div>
@@ -2635,7 +2663,7 @@ If the message starts with -[0-9]+, the number is used as the number of stackfra
         <strong>
 Return:
         </strong>
-            2 if the expression failed.
+            64 ($L_EX_USAGE) if the expression failed.
 
     </p>
 
@@ -2646,7 +2674,7 @@ Return:
 
 <h3 id="L_lib.sh--L_func_log">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_log
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L824"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L865"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2685,7 +2713,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_function_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_function_copy
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L833"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L874"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2727,7 +2755,7 @@ The second argument allows for execution under eval.</p>
 
 <h3 id="L_lib.sh--L_function_modify">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_function_modify
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L843"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L884"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2770,7 +2798,7 @@ The second argument allows for execution under eval.</p>
 
 <h3 id="L_lib.sh--L_decorate">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_decorate
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L891"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L932"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2836,7 +2864,7 @@ func arg  # calls: [L_setx time func arg]
 
 <h3 id="L_lib.sh--L_time">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_time
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L918"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L959"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2875,7 +2903,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_duration_to_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_duration_to_usec
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L927"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L968"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2928,13 +2956,13 @@ See:
 
 
 
-<h3 id="L_lib.sh--L_duration_to_usec_v">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_duration_to_usec_v
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L929"
+<h3 id="L_lib.sh--L_duration_to_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_duration_to_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L970"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_duration_to_usec_v" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
   
   
   
@@ -2964,13 +2992,13 @@ See:
 
 <h3 id="L_lib.sh--L_usec_to_duration">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_usec_to_duration
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L944"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L985"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_usec_to_duration" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Convert microseconds to Prometheus duration string using L_v.
+            Convert microseconds to Prometheus duration string using L_RET.
 
     </p>
 
@@ -3009,13 +3037,13 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_usec_to_duration_v">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_usec_to_duration_v
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L945"
+<h3 id="L_lib.sh--L_usec_to_duration_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_duration_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L986"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_usec_to_duration_v" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
   
   
   
@@ -3038,7 +3066,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_getopts_in">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_getopts_in
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1023"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1064"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3055,7 +3083,7 @@ The set variables are optionally prefixed with -p argument.</p>
 Array options variables are initialized with empty array.
 Argument options variables are unset if not specified by the user!</p>
 <p>Option -h is always added and calls L_func_help function and returns 0.</p>
-<p>Invalid option triggers L_func_usage_error and returns 2.</p>
+<p>Invalid option triggers L_func_usage_error and returns 64 ($L_EX_USAGE).</p>
 
     </p>
 
@@ -3124,9 +3152,9 @@ myfunc_in() {
 Return:
         </strong>
             <p>Sub-function return status,</p>
-<p>3 on itself usage error,
+<p>70 ($L_EX_SOFTWARE) on itself usage error,
 0 if -h option was given,
-2 on child usage error.</p>
+64 ($L_EX_USAGE) on child usage error.</p>
 
     </p>
 
@@ -3137,7 +3165,7 @@ Return:
 
 <h3 id="L_lib.sh--L_cache">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_cache
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1165"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1206"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3246,7 +3274,7 @@ Uses environment variable:
         <strong>
 Return:
         </strong>
-            <p>222 on invalid usage or error</p>
+            <p>64 ($L_EX_USAGE) or other error code on invalid usage or error</p>
 <p>otherwise returns the exit status of the cached command.</p>
 
     </p>
@@ -3258,18 +3286,18 @@ Return:
 
 <h3 id="L_lib.sh--L_handle_v_scalar">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_handle_v_scalar
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1372"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1413"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_handle_v_scalar" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
             <p>Wrapper function for handling -v arguments to other functions.</p>
-<p>It calls a function called <code>&lt;caller&gt;_v</code> with arguments, but without <code>-v &lt;var&gt;</code>.
-The function <code>&lt;caller&gt;_v</code> should set the variable nameref L_v to the returned value.
-When the caller function is called without -v, the value of L_v is printed to stdout with a newline.
+<p>It calls a function called <code>&lt;caller&gt;_vL_RET</code> with arguments, but without <code>-v &lt;var&gt;</code>.
+The function <code>&lt;caller&gt;_vL_RET</code> should set the variable nameref L_RET to the returned value.
+When the caller function is called without -v, the value of L_RET is printed to stdout with a newline.
 Otherwise, the value is a nameref to user requested variable and nothing is printed.</p>
-<p>The fucntion L_handle_v_scalar handles only scalar value of <code>L_v</code> or 0-th index of <code>L_v</code> array.
+<p>The fucntion L_handle_v_scalar handles only scalar value of <code>L_RET</code> or 0-th index of <code>L_RET</code> array.
 To assign an array, prefer L_handle_v_array.</p>
 
     </p>
@@ -3277,7 +3305,7 @@ To assign an array, prefer L_handle_v_array.</p>
       <div class="admonition example">
 <p class="admonition-title">:</p>
 <pre><code>L_hello() { L_handle_v_arr "$@"; }
-L_hello_v() { L_v="hello world"; }
+L_hello_vL_RET() { L_RET="hello world"; }
 L_hello          # outputs 'hello world'
 L_hello -v var   # assigns var="hello world"
 </code></pre>
@@ -3321,7 +3349,7 @@ Argument:
         <strong>
 Exit:
         </strong>
-            Whatever exitcode does the <code>&lt;caller&gt;_v</code> funtion exits with.
+            Whatever exitcode does the <code>&lt;caller&gt;_vL_RET</code> funtion exits with.
 
     </p>
 
@@ -3337,7 +3365,7 @@ See:
 
 <h3 id="L_lib.sh--L_handle_v_array">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_handle_v_array
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1446"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1487"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3357,7 +3385,7 @@ Only then it uses <code>eval</code> with an array assignment syntax to assign th
       <div class="admonition example">
 <p class="admonition-title">:</p>
 <pre><code>L_hello() { L_handle_v_arr "$@"; }
-L_hello_v() { L_v=(hello world); }
+L_hello_vL_RET() { L_RET=(hello world); }
 L_hello          # outputs two lines 'hello' and 'world'
 L_hello -v var   # assigns var=(hello world)
 </code></pre>
@@ -3409,7 +3437,7 @@ See:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 6, 2026 03:06:47 UTC">April 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 7, 2026 11:56:25 UTC">June 7, 2026</span>
   </span>
 
     

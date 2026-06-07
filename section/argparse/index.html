@@ -387,6 +387,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../colors/" class="md-nav__link">
         
   
@@ -3217,7 +3245,7 @@ autoload<span class="w"> </span>-Uz<span class="w"> </span>compinit<span class="
 <p>This library was created as an alternative to tools like <code>argbash</code> that rely on code generation. The goal was a self-contained library that could be sourced and used directly as a single function call, without any build steps.</p>
 <h2 id="L_lib.sh--argparse">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     argparse
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6884"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7042"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3247,7 +3275,7 @@ autoload<span class="w"> </span>-Uz<span class="w"> </span>compinit<span class="
 
 <h3 id="L_lib.sh--L_argparse_fatal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_fatal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6891"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7049"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3294,7 +3322,7 @@ Exit:
 
 <h3 id="L_lib.sh--L_argparse_print_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_print_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7152"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7310"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3365,7 +3393,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_argparse_print_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_print_usage
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7330"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7488"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3400,7 +3428,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_argparse_template_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7361"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7519"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3443,7 +3471,7 @@ See:
 
 <h3 id="L_lib.sh--L_argparse_template_verbose">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_verbose
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7365"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7523"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3486,7 +3514,7 @@ See:
 
 <h3 id="L_lib.sh--L_argparse_template_quiet">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_quiet
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7369"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7527"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3529,7 +3557,7 @@ See:
 
 <h3 id="L_lib.sh--L_argparse_template_dryrun">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_dryrun
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7373"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7531"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3572,7 +3600,7 @@ See:
 
 <h3 id="L_lib.sh--L_argparse_compgen">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_compgen
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L8023"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L8181"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3620,7 +3648,7 @@ Argument:
         <strong>
 Exit:
         </strong>
-            0 if compgen returned 0 or 1, otherwise 2
+            0 if compgen returned 0 or 1, otherwise 64 ($L_EX_USAGE)
 
     </p>
 
@@ -3629,7 +3657,7 @@ Exit:
 
 <h3 id="L_lib.sh--L_argparse">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9035"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9193"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3667,7 +3695,7 @@ The last group of arguments are command line arguments passed to <code>_L_argpar
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 6, 2026 03:06:47 UTC">April 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 7, 2026 11:56:25 UTC">June 7, 2026</span>
   </span>
 
     

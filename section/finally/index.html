@@ -387,6 +387,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../colors/" class="md-nav__link">
         
   
@@ -1728,7 +1756,7 @@ increase_volume<span class="o">()</span><span class="w"> </span><span class="o">
 <h1 id="generated-documentation-from-source">Generated documentation from source:<a class="headerlink" href="#generated-documentation-from-source" title="Permanent link">&para;</a></h1>
 <h2 id="L_lib.sh--finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5292"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5398"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1791,7 +1819,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_return">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_return
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5336"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5442"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1831,7 +1859,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_exit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_exit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5361"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5470"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1862,7 +1890,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_signal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_signal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5385"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5494"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1883,7 +1911,7 @@ L_SIGNUM=""</p>
     The trap signal name to handle.
 
 </li><li>                <strong><code>$2</code></strong>
-    The trap signal number to handle.
+    The value of $?.
 
 </li></ul>    </p>
 
@@ -1902,7 +1930,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5419"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5530"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1933,7 +1961,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5480"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5593"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1988,6 +2016,10 @@ the nth position in the stack relative to the current position. Default: 0</p>
     <p>Add action to be executed last, not first of the stack.</p>
 <p>Calling L_finally_pop after registering such action is undefined.</p>
 
+</li><li>                <strong><code>-f</code></strong>
+    <p>Add action to be executed strictly first. 5000 such actions are allowed.</p>
+<p>This is not allowed with -r.</p>
+
 </li><li>                <strong><code>-R</code></strong>
     Force reregister all the traps. Unless this option, traps are only registered on the first call of a BASHPID.
 
@@ -2037,7 +2069,7 @@ See:
 
 <h3 id="L_lib.sh--L_finally_pop">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_pop
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5564"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5712"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2076,7 +2108,7 @@ See:
         <strong>
 Return:
         </strong>
-            <p>1 if nothing was popped, 2 on invalid usage,</p>
+            <p>1 if nothing was popped, 64 ($L_EX_USAGE) on invalid usage,</p>
 <p>otherwise return the exit status of the executed action.</p>
 
     </p>
@@ -2095,7 +2127,7 @@ See:
 
 <h3 id="L_lib.sh--L_finally_critical_section">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_critical_section
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5619"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5767"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2140,7 +2172,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 6, 2026 03:06:47 UTC">April 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 7, 2026 11:56:25 UTC">June 7, 2026</span>
   </span>
 
     

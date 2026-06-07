@@ -387,6 +387,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../colors/" class="md-nav__link">
         
   
@@ -1603,7 +1631,7 @@
 
 <h2 id="L_lib.sh--sort">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     sort
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4809"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4920"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1633,7 +1661,7 @@
 
 <h3 id="L_lib.sh--L_shuf_bash">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_shuf_bash
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4814"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4925"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1672,7 +1700,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_shuf_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_shuf_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4831"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4942"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1720,7 +1748,7 @@ Option:
 
 <h3 id="L_lib.sh--L_shuf">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_shuf
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4841"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4952"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1759,7 +1787,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_sort_bash">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort_bash
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4912"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5023"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1826,7 +1854,7 @@ See:
 
 <h3 id="L_lib.sh--L_sort_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4968"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5087"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1886,15 +1914,15 @@ echo "${arr[@]}"  # 1 2 5 5
 
 <h3 id="L_lib.sh--L_sort">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4985"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5109"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_sort" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
             <p>Sort a bash array.</p>
-<p>If sort command exists, use L_sort_cmd, otherwise use L_sort_bash.
-If you have a custom sorter, use L_sort_bash, otherwise prefer L_sort_cmd for speed.</p>
+<p>Dispatches to L_sort_bash if array length &lt; 300 or a custom comparison (-c, -E) is provided.
+Otherwise, it uses L_sort_cmd for performance (calling the system sort command).</p>
 
     </p>
 
@@ -1905,13 +1933,22 @@ If you have a custom sorter, use L_sort_bash, otherwise prefer L_sort_cmd for sp
       <p>
         <strong>Options:</strong>
 <ul><li>                <strong><code>-z</code></strong>
-    Use zero separated stream with sort -z
+    Use zero separated stream with sort -z (forwarded to sort command)
 
 </li><li>                <strong><code>-n</code></strong>
     numeric sort
 
 </li><li>                <strong><code>-r</code></strong>
     reverse sort
+
+</li><li>                <strong><code>-c &lt;compare&gt;</code></strong>
+    Custom compare function (uses L_sort_bash)
+
+</li><li>                <strong><code>-E &lt;eval&gt;</code></strong>
+    Custom expression to evaluate (uses L_sort_bash)
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
 
 </li></ul>    </p>
 
@@ -1920,7 +1957,7 @@ If you have a custom sorter, use L_sort_bash, otherwise prefer L_sort_cmd for sp
 Argument:
         </strong>
             <strong><code>$1</code></strong>
-    <var> array nameref
+    array nameref
 
     </p>
 
@@ -1961,7 +1998,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 6, 2026 03:06:47 UTC">April 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 7, 2026 11:56:25 UTC">June 7, 2026</span>
   </span>
 
     

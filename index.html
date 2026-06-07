@@ -393,6 +393,34 @@
   
   
     <li class="md-nav__item">
+      <a href="section/sysexits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sysexits
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="section/colors/" class="md-nav__link">
         
   
@@ -1436,9 +1464,13 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
     <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_WAIT_N"><code>$L_HAS_WAIT_N</code></a></li>
 <li>Waiting on multiple PIDs with a timeout ignoring signals and collecting all exit codes
     <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_wait"><code>L_wait</code></a></li>
+<li>Standard exit codes based on <code>sysexits.h</code>
+    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_OK"><code>$L_EX_OK</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_USAGE"><code>$L_EX_USAGE</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_TIMEOUT"><code>$L_EX_TIMEOUT</code></a></li>
 <li>Simplify storing exit status of a command into a variable
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to"><code>L_exit_to</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_to_10"><code>L_exit_to_10</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into"><code>L_exit_into</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into_10"><code>L_exit_into_10</code></a></li>
 <li>Help with path operations, with <code>PATH</code> or <code>PYTHONPATH</code> manipulation
     <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_stem"><code>L_path_stem</code></a>
     <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_dir_is_empty"><code>L_dir_is_empty</code></a>
@@ -1485,10 +1517,10 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
 <li>The option <code>-v &lt;var&gt;</code> is used to store the result in a variable instead of printing it.<ul>
 <li>This follows the convention of <code>printf -v &lt;var&gt;</code>.</li>
 <li>Without the <code>-v</code> option, the function outputs the elements on lines to standard output.</li>
-<li>Associated function with <code>_v</code> suffix store the result in a hardcoded scratch variable <code>L_v</code>.</li>
+<li>Associated function with <code>_vL_RET</code> suffix store the result in a hardcoded scratch variable <code>L_RET</code>.</li>
 </ul>
 </li>
-<li>Return 2 on usage error, return 124 on timeout.</li>
+<li>Return 64 ($L_EX_USAGE) on usage error, return 124 ($L_EX_TIMEOUT) on timeout.</li>
 </ul>
 <h1 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h1>
 <p><a href="LICENSE">GPL-3.0</a></p>
@@ -1512,7 +1544,7 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 6, 2026 03:06:47 UTC">April 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 7, 2026 11:56:25 UTC">June 7, 2026</span>
   </span>
 
     
