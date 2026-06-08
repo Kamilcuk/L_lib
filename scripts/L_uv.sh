@@ -176,7 +176,12 @@ L_uv_notify() {
   if (( BASHPID != _L_uv_bashpid )); then
     printf "${1:-}\n" "${@:2}" >&"${_L_uv_pipe[1]:-}"
   else
-    "${@:2}"
+    (( ++_L_uv_events ))
+    if (( $# )); then
+      local _L_tmp
+      printf -v _L_tmp "$1\n" "${@:2}"
+      eval "$_L_tmp"
+    fi
   fi
 }
 
@@ -204,12 +209,12 @@ L_uv_break() { _L_uv_break=1; }
 # @description Update the loop wakeup time if the provided time is sooner.
 # @arg $1 Time in microseconds since epoch
 L_uv_set_next_wakeup_us() {
-  L_UV[1073741820-1]=$(( ( L_UV[1073741820-1] == 0 || L_UV[1073741820-1] > $1 ) ? $1 : L_UV[1073741820-1] ))
+  (( ( L_UV[1073741820-1] == 0 || L_UV[1073741820-1] > $1 ) && L_UV[1073741820-1]=$1 , 1 ))
 }
 
 # @description Internal callback for timers.
 # @arg $1 Expiration time in microseconds
-# @arg $2 Repeat interval in milliseconds
+# @arg $2 Repeat interval in microseconds
 # @arg $@ Callback function and its arguments
 _L_uv_timer_callback() {
   local _L_now_us
@@ -245,12 +250,12 @@ _L_uv_timer_callback_init() {
 # @arg $1 Loop name (defaults to L_UV)
 # @arg $@ Callback function and its arguments
 L_uv_add_timer() {
-  local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_RET=_L_tmp _L_now_us _L_tmp
+  local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_v=_L_tmp _L_now_us _L_tmp
   while getopts r:d:v:h _L_opt; do
     case "$_L_opt" in
       r) L_duration_to_usec -v _L_r "$OPTARG" || return ;;
       d) L_duration_to_usec -v _L_d "$OPTARG" || return ;;
-      v) _L_RET=$OPTARG ;;
+      v) _L_v=$OPTARG ;;
       h) L_func_help; return 0 ;;
       *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
@@ -258,7 +263,7 @@ L_uv_add_timer() {
   shift $((OPTIND - 1))
   L_epochrealtime_usec -v _L_now_us
   local _L_next_us="$(( _L_now_us + _L_d ))"
-  L_uv_add -v "$_L_RET" "$1" _L_uv_timer_callback_init "$_L_next_us" "$_L_r" "${@:2}"
+  L_uv_add -v "$_L_v" "$1" _L_uv_timer_callback_init "$_L_next_us" "$_L_r" "${@:2}"
 }
 
 # @return 0 if current task is the only task.
@@ -340,10 +345,10 @@ _L_uv_wait_callback() {
 # @arg $@ PIDs to wait for
 # @arg $@ Callback function and its arguments.
 L_uv_add_wait() {
-  local OPTIND OPTARG OPTERR _L_opt _L_RET="" _L_pids="" _L_loop
+  local OPTIND OPTARG OPTERR _L_opt _L_v="" _L_pids="" _L_loop
   while getopts v:h _L_opt; do
     case "$_L_opt" in
-      v) _L_RET=$OPTARG ;;
+      v) _L_v=$OPTARG ;;
       h) L_func_help; return 0 ;;
       *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
@@ -366,7 +371,7 @@ L_uv_add_wait() {
     L_func_usage_error "Callback to call missing"
     return "$L_EX_USAGE"
   fi
-  L_uv_add -v "$_L_RET" "$_L_loop" _L_uv_wait_callback "$_L_pids" "${@:2}" && _L_uv_pids_add "$_L_loop" "$_L_pids"
+  L_uv_add -v "$_L_v" "$_L_loop" _L_uv_wait_callback "$_L_pids" "${@:2}" && _L_uv_pids_add "$_L_loop" "$_L_pids"
 }
 
 # @description Internal callback for once-run conditions.
@@ -385,11 +390,11 @@ _L_uv_once_callback() {
 # @arg $1 Loop name (defaults to L_UV)
 # @arg $@ Callback function and its arguments
 L_uv_add_once() {
-  local OPTIND OPTARG OPTERR _L_opt _L_c="" _L_RET=""
+  local OPTIND OPTARG OPTERR _L_opt _L_c="" _L_v=""
   while getopts c:v:h _L_opt; do
     case "$_L_opt" in
       c) _L_c=$OPTARG ;;
-      v) _L_RET=$OPTARG ;;
+      v) _L_v=$OPTARG ;;
       h) L_func_help; return 0 ;;
       *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
@@ -397,7 +402,7 @@ L_uv_add_once() {
   shift $((OPTIND - 1))
   if (( $# > 1 )); then
     # Otherwise, we handle the condition with a callback.
-    L_uv_add -v "$_L_RET" "$1" _L_uv_once_callback "$_L_c" "${@:2}"
+    L_uv_add -v "$_L_v" "$1" _L_uv_once_callback "$_L_c" "${@:2}"
   fi
 }
 
@@ -464,162 +469,289 @@ _L_uv_readline_callback_init() {
 # @arg $2 Target file descriptor
 # @arg $@ Callback function and its arguments
 L_uv_add_readline() {
-  local OPTIND OPTARG OPTERR _L_opt _L_d=$'\n' _L_RET=""
+  local OPTIND OPTARG OPTERR _L_opt _L_d=$'\n' _L_v=""
   while getopts d:v:h _L_opt; do
     case "$_L_opt" in
       d) _L_d=$OPTARG ;;
-      v) _L_RET=$OPTARG ;;
+      v) _L_v=$OPTARG ;;
       h) L_func_usage; return 0 ;;
       *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift $((OPTIND - 1))
-  L_uv_add -v "$_L_RET" "$1" _L_uv_readline_callback_init "$_L_d" "$2" "${@:3}"
+  L_uv_add -v "$_L_v" "$1" _L_uv_readline_callback_init "$_L_d" "$2" "${@:3}"
 }
 
 ###############################################################################
 
-_L_x_stdout_cb() {
-  if (( $# == 2 )); then
-    printf "OUT [%d]: %s\n" "$1" "$2"
+# @arg $1 pid
+_L_xargs_dobuf_end() {
+  # If the pipe of this pid has been closed.
+  if [[ -z "${_L_x_dobuf_pipe[$1]:-}" ]]; then
+    if (( _L_x_dobuf_mode == 1 )); then
+      # In single -O mode, we print ouptut in whatever order.
+      printf "%s" "${_L_x_dobuf_output[$1]}"
+      unset -v "_L_x_dobuf_output[$1]"
+    elif (( _L_x_dobuf_mode == 2 )); then
+      # In double -O -O mode, we need to print in order. Check if we are first.
+      if (( _L_x_dobuf_order[0] == "$1" )); then
+        printf "%s" "${_L_x_dobuf_output[$1]}"
+        unset -v "_L_x_dobuf_output[$1]"
+        _L_x_dobuf_order=("${_L_x_dobuf_order[@]:1}")
+        # After checking, print the next one, if possible.
+        if (( ${#_L_x_dobuf_order[@]} )); then
+          _L_xargs_dobuf_end "${_L_x_dobuf_order[0]}"
+        fi
+      fi
+    fi
   fi
 }
 
-_L_x_task_timeout_cb() { kill -9 "$1" 2>/dev/null; }
+# @arg $1 pid
+# @arg $2 file descriptor
+# @arg [$3] line
+_L_xargs_dobuf_stdout_cb() {
+  if (( $# == 3 )); then
+    _L_x_dobuf_output[$1]+="${_L_x_dobuf_prefix[$1]:-}$2"$'\n'
+  elif (( $# == 2 )); then
+    eval "exec $2>&-"
+    unset -v "_L_x_dobuf_pipe[$1]"
+    _L_xargs_dobuf_end "$1"
+  fi
+}
 
+# @option -9 signal number
+# @arg $2 pid to kill
+_L_x_task_timeout_cb() {
+  kill "$@" 2>/dev/null
+  # If we killing the first time, schedule a task to kill -9 after 3 seconds.
+  if (( $# == 1 )); then
+    L_uv_add_timer -d 3 _L_x_loop _L_x_task_timeout_cb -9 "$1"
+  fi
+}
+
+# @option -9 Signal o use
 _L_x_global_timeout_cb() {
-  _L_x_stopped=1
-  if (( ${#_L_x_pids[@]} )); then
-    kill -9 "${!_L_x_pids[@]}" 2>/dev/null
+  _L_x_done=1
+  _L_x_input_stopped=1
+  if (( ${#_L_x_running[@]} )); then
+    kill "$@" "${!_L_x_running[@]}" 2>/dev/null
+    # They have 3 seconds to cleanup, otherwise kill -9 .
+    L_uv_add_timer -d 3 _L_x_loop _L_x_global_timeout_cb -9
   fi
 }
 
-_L_x_reaper() {
-  # $1: task_timer_idx, $2: pid, $3: exit_code
-  (( _L_x_running-- ))
-  unset -v "_L_x_pids[$2]"
-  if [[ -n "${1:-}" ]]; then
-    L_uv_remove _L_x_loop "$1"
-  fi
-  # Always try to feed more jobs if we have atoms or input is still open
-  L_uv_add_once _L_x_loop _L_xargs_feeder
-}
+# Used by -^ mode to prefix each line from the task.
+_L_xargs_prefixer() { while IFS= read -r line; do printf "%s\n" "$1: $line"; done; }
 
+_L_xargs_dobuf_or_prefix_notify() {
+  case "$1" in
+    PREEXEC)
+      if (( _L_x_dobuf_mode == 0 )); then
+	      if (( _L_x_prefix )); then
+	        # Use > >(...) to prefix output from the task.
+		      local _L_prefix
+	        printf -v _L_prefix " %q" "${_L_x_atoms[@]::_L_atoms_limit}"
+	        L_RET=(L_eval "\"\$@\" > >(_L_xargs_prefixer$_L_prefix)" "${L_RET[@]}")
+        fi
+      else  # _L_x_dobus_mode > 0
+        if (( _L_x_prefix )); then
+          # Save prefix for later for stdout task handler to consume.
+		      local _L_prefix
+	        printf -v _L_prefix " %q" "${_L_x_atoms[@]::_L_atoms_limit}"
+	        _L_x_dobuf_prefix["$!"]=$_L_prefix
+	      fi
+        # Create pipe for read from the task.
+        local _L_pipe
+        L_pipe _L_pipe
+        _L_x_dobuf_pipe["$!"]="${_L_pipe[1]}"
+        L_RET=(L_eval "\"\$@\" ${_L_pipe[0]}>&- >&${_L_pipe[1]}" "${L_RET[@]}")
+      fi
+      ;;
+    POSTEXEC)
+      if  (( _L_x_dobuf_mode )); then
+        # Close writing side of pipe.
+        eval "exec ${_L_x_dobuf_pipe[$1]}>&-"
+        _L_x_dobuf_order+=("$!")
+        # Add a task to read stuff.
+        L_uv_add_readline _L_x_loop "${_L_pipe[0]}" _L_xargs_dobuf_stdout_cb "$!"
+      fi
+      ;;
+  esac
+}
+# Schedule new job from atoms.
 _L_xargs_run() {
-  local _L_current_args=()
-  if (( _L_x_atoms_limit > 0 )); then
-    _L_current_args=("${_L_x_atoms[@]:0:_L_x_atoms_limit}")
-    _L_x_atoms=("${_L_x_atoms[@]:_L_x_atoms_limit}")
-  else
-    _L_current_args=("${_L_x_atoms[@]}")
-    _L_x_atoms=()
+  local _L_atoms_limit=$(( _L_x_atoms_limit > 0 && _L_x_atoms_limit <= ${#_L_x_atoms[@]} ? _L_x_atoms_limit : ${#_L_x_atoms[@]} )) _L_t_idx="" L_RET _L_tmp _L_i _L_max
+  #
+  L_RET=("${_L_x_cmd[@]}")
+  #
+	if (( _L_x_template )); then
+		# Replace {} and {1} {2} ... {N}.
+		L_RET=("${L_RET[@]//\{\}/${_L_x_atoms[*]::_L_x_atoms_limit}}")
+		for (( _L_i = 1; _L_i <= $_L_x_atoms_limit; ++_L_i )); do
+		  L_RET=("${L_RET[@]//\{${_L_i}\}/${_L_x_atoms[*]:$_L_i-1:1}}")
+		done
+	elif [[ -n "$_L_x_replace" ]]; then
+		# Replace {}.
+		L_RET=("${L_RET[@]//"$_L_x_replace"/${_L_x_atoms[*]::_L_x_atoms_limit}}")
+	else
+	  # No templating - add arguments to execute.
+    L_RET+=("${_L_x_atoms[@]::_L_atoms_limit}")
+	fi
+	#
+  if (( _L_x_trace )); then
+    printf -v _L_tmp " %q" "${L_RET[@]}"
+    printf "+$_L_tmp" >&2
   fi
-  _L_x_cur_records=0
-  (( ++_L_x_running ))
-  local pipe _L_t_idx=""
-  if (( _L_x_dobuf )); then
-    L_pipe pipe
-    "${_L_x_cmd[@]}" "${_L_current_args[@]}" "${pipe[0]}">&- >&"${pipe[1]}" &
-    eval "exec ${pipe[1]}>&-"
-    L_uv_add_readline _L_x_loop "${pipe[0]}" _L_x_stdout_cb
-  else
-    "${_L_x_cmd[@]}" "${_L_current_args[@]}" &
-  fi
+  # Run PREEXEC callbacks.
+  for _L_i in "${_L_x_notify[@]}"; do
+    L_eval "$_L_i \"\$@\"" PREEXEC
+  done
+  # Actually run the job.
+  "${L_RET[@]}" &
   local _L_pid=$!
-  _L_x_pids[$_L_pid]=""
+  #
+  for _L_i in "${_L_x_notify[@]}"; do
+    L_eval "$_L_i \"\$@\"" POSTEXEC "$_L_pid" "${L_RET[@]}"
+  done
+  #
+  _L_x_running[_L_pid]=""
+  local _L_t_idx=""
   if [[ -n "$_L_x_task_timeout" ]]; then
     L_uv_add_timer -v _L_t_idx -d "$_L_x_task_timeout" _L_x_loop _L_x_task_timeout_cb "$_L_pid"
   fi
-  L_uv_add_wait _L_x_loop "$_L_pid" _L_x_reaper "$_L_t_idx" "$_L_pid"
-}
-
-_L_xargs_feeder() {
-  # Add input once if called asynchronously.
-  if (( $# )); then
-    _L_x_atoms+=("$@")
-    (( ++_L_x_cur_records ))
-  else
-    _L_x_input_stopped=1
-  fi
+  L_uv_add_wait _L_x_loop "$_L_pid" _L_xargs_reaper "$_L_pid" "$L_XARGS_INDEX" "$_L_t_idx"
   #
-  while (( _L_x_running < _L_x_maxprocs )); do
-    # If callback is present, read from the callback.
-    if (( ${#_L_x_callback[@]} )); then
-      local L_RET=()
-      if "${_L_x_callback[@]}"; then
-        _L_x_atoms+=(${L_RET[@]+"${L_RET[@]}"})
-        (( ++_L_x_cur_records ))
-      else
-        _L_x_input_stopped=1;
-      fi
-    fi
-    #
-		if (( _L_atoms_limit > 0 )); then
-			while (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 >= _L_atoms_limit && _L_x_running < _L_x_maxprocs )); do
-				_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}"
-				_L_atoms=("${_L_atoms[@]:_L_atoms_limit}")
-				_L_cur_records=0
-			done
-		fi
-
-    #
-    if (( _L_x_input_stopped )); then
-      # EOF call
-      if (( ${#_L_x_atoms[@]} )); then
-        
-      # If input is stopped, and we did not schedule anbything, means we need to get out.
-      break
-    fi
-  done
-
-
-    local _L_trigger=0
-    if (( _L_x_stopped )); then
-      if (( ${#_L_x_atoms[@]} > 0 )); then
-        _L_trigger=1
-      else
-        break
-      fi
-    elif (( _L_x_atoms_limit > 0 && ${#_L_x_atoms[@]} >= _L_x_atoms_limit )); then
-      _L_trigger=1
-    elif (( _L_x_records_limit > 0 && _L_x_cur_records >= _L_x_records_limit )); then
-      _L_trigger=1
-    elif (( _L_x_atoms_limit == 0 && _L_x_records_limit == 0 && ${#_L_x_atoms[@]} > 0 )); then
-      _L_trigger=1
-    else
-      # If not stopped, we might need to read more.
-      # If using callback (like -a), try reading more right now.
-      if [[ -n "${_L_x_feeder_pull:-}" ]]; then
-        local L_RET=()
-        if ! "${_L_x_callback[@]}"; then
-          _L_x_stopped=1
-          continue
-        fi
-        continue
-      fi
-      break
-    fi
-    if (( _L_trigger )); then
-      _L_xargs_run
-    elif (( _L_x_stopped )); then
-      break
-    fi
-  done
+  _L_x_atoms=("${_L_x_atoms[@]:_L_atoms_limit}")
 }
 
-_L_xargs_feeder_input_cb() {
-  # $1: fd, $2: line (if set)
-  if (( $# == 2 )); then
-    _L_x_atoms+=("$2")
-    (( ++_L_x_cur_records ))
-  else
-    _L_x_stopped=1
+# If everything is ok, try to schedule the next job from atoms.
+# @env L_RET
+_L_xargs_maybe_run() {
+  # Consume input from L_RET array.
+	if (( ${_L_x_split:-1} )); then
+		# Split one record -> Multiple Atoms
+		# shellcheck disable=SC2048
+		L_string_unquote -v L_RET "${L_RET[*]+${L_RET[*]}}" || return 1
+	fi
+	# Bookkeeping of input.
+  _L_x_atoms+=(${L_RET[@]+"${L_RET[@]}"})
+  (( ++_L_x_cur_records ))
+	# Dual-threshold trigger logic - on number of atoms and number of records.
+  if ((
+    ( ${#_L_x_running[@]} < _L_x_maxprocs && !_L_x_done ) && (
+		  ( _L_x_atoms_limit > 0 && ${_L_x_atoms[*]+${#_L_x_atoms[*]}}+0 >= _L_x_atoms_limit ) ||
+		  ( _L_x_records_limit > 0 && _L_cur_records >= _L_x_records_limit )
+		)
+	)); then
+		_L_xargs_run
+    _L_x_cur_records=0
+    (( ++L_XARGS_INDEX ))
+	fi
+}
+
+# @see https://github.com/jamesyoungman/findutils/blob/master/xargs/xargs.c#L1585
+# @see https://github.com/aixoss/findutils/blob/r4.4.2-aix/xargs/xargs.c#L1272
+_L_xargs_handle_return() {
+	case "$1" in
+	0) ;;
+	255)
+		_L_x_done=1
+		if (( _L_x_return < L_EX_TIMEOUT )); then
+			_L_x_return=$L_EX_TIMEOUT
+		fi
+		if (( !_L_x_quiet )); then
+			printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_x_cmd[0]}" >&2
+		fi
+		;;
+	126|127)
+		_L_x_done=1
+		if (( _L_x_return < $1 )); then
+			_L_x_return=$1
+		fi
+		;;
+	*)
+		if (( 128 < $1 && $1 <= 128 + 64 )); then
+			_L_x_done=1
+			if (( !_L_x_quiet )); then
+				local L_RET
+				L_trap_to_name_vL_RET "$(( $1 - 128 ))"
+				printf "L_xargs: %s: terminated by signal %s\n" "${_L_x_cmd[0]}" "$L_RET" >&2
+			fi
+			if (( _L_x_return < 125 )); then
+				_L_x_return=125
+			fi
+		else
+			_L_x_return=123
+		fi
+		;;
+	esac
+}
+
+
+# Function executed whena  kid stops running.
+# @arg $1 pid
+# @arg $2 L_XARGS_INDEX of the task
+# @arg $3 task timer idx
+# @arg $4 exit code
+_L_xargs_reaper() {
+  # Remove the pid from running list.
+  unset -v "_L_x_running[$1]"
+  _L_xargs_handle_return "$4"
+  if [[ -n "${3:-}" ]]; then
+    L_uv_remove _L_x_loop "$3"
   fi
-  _L_xargs_feeder
+  # Assign the exit status of the command.
+  if [[ -n "$_L_x_v" ]]; then
+    L_array_set "$_L_x_v" "$2" "$4"
+  fi
+  # Try to feed more jobs if we have atoms or input is still open.
+  _L_xargs_input_task
+}
+
+
+# L_uv task that reads data from callback.
+_L_xargs_input_task() {
+  if (( !_L_x_done && !_L_x_input_stopped && ${#_L_x_callback[@]} )); then
+    # Read new input from the user provided callback.
+    local L_RET=()
+    if "${_L_x_callback[@]}"; then
+      if [[ -n "$_L_x_eof_str" && "${L_RET[0]:-}" == "$_L_x_eof_str" ]]; then
+        _L_x_input_stopped=1
+      else
+        _L_xargs_maybe_run
+        # If there is space for more tasks, yield yourself for later.
+        if (( ${#_L_x_running[@]} < _L_x_maxprocs )); then
+          L_uv_notify
+        fi
+      fi
+    else
+      _L_x_input_stopped=1;
+    fi
+  fi
+}
+
+# Callback when a line was read from input file descriptor.
+# @arg $1 file descriptor
+# @arg [$2] optional line
+_L_xargs_feeder_input_cb() {
+  if (( !_L_x_done && !_L_x_input_stopped )); then
+    if (( $# == 2 )); then
+      if [[ -n "$_L_x_eof_str" && "$2" == "$_L_x_eof_str" ]]; then
+        _L_x_input_stopped=1
+      else
+        local L_RET
+        L_RET=("$2")
+        _L_xargs_maybe_run
+      fi
+    else
+      _L_x_input_stopped=1
+    fi
+  fi
 }
 
 _L_xargs_callback_array() {
-  (( _L_x_a_index < ${#_L_x_a[@]} )) && L_RET=("${_L_x_a[_L_x_a_index++]}")
+  (( _L_x_array_index < ${#_L_x_array[@]} )) && L_RET=("${_L_x_array[_L_x_array_index++]}")
 }
 
 # @description Bash implementation of the `xargs` utility designed for seamless
@@ -666,26 +798,38 @@ _L_xargs_callback_array() {
 # @return 0 on success
 #         1 on some other error
 #         64 ($L_EX_USAGE) on invalid usage
-#         123 if any invocation oft he command exited with status 1-125 and 192-254
-#         124 ($L_EX_TIMEOUT) if the command exited with status 255
+#         123 if any invocation of the command exited with status 1-125 and 192-254
+#         124 if the command exited with status 255
 #         125 if the command exited with the status 128-192
 #         126 if the command cannot be run
 #         127 if the command is not found
 # @env L_XARGS_INDEX The index of the job being executed.
 L_xargs2() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_limit=0 _L_x_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
-			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
-			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd=0 _L_x_a _L_x_a_index=0 _L_x_split="" \
-			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
+			_L_x_trace=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
+			_L_x_callback=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
+			_L_x_dobuf_mode="" _L_x_dobuf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 _L_x_dobuf_prefix=() \
 	    _L_x_eof_str="" _L_x_preserve_set_e=0 _L_x_template=0 _L_x_loop=() \
-	    _L_x_running=0 _L_x_stopped=0 _L_x_atoms=() _L_x_task_timeout=""
+	    _L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" \
+	    _L_x_forker=_L_xargs_forker _L_x_notify=() _L_x_return=0 _L_x_done=0 _L_x_cur_records=0
 	while getopts a:0c:d:g:sSu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
 		case "$_L_i" in
-			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=(${!_L_i+"${!_L_i}"}) _L_x_split=${_L_x_split:-0} _L_x_records_limit=${_L_x_records_limit:-1} ;;
-			0) _L_x_callback=(_L_xargs_callback_read) _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
+			a)
+			  _L_x_callback=(_L_xargs_callback_array)
+        if (( L_HAS_NAMEREF )); then
+          local -n _L_x_array=$OPTARG
+        else
+          _L_i="$OPTARG[@]"
+          _L_x_array=(${!_L_i+"${!_L_i}"})
+        fi
+        local _L_x_array_index=0
+        _L_x_split=${_L_x_split:-0}
+        _L_x_records_limit=${_L_x_records_limit:-1}
+        ;;
+			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
 			c) _L_x_callback=(eval "$OPTARG"); ;;
-			d) _L_x_callback=(_L_xargs_callback_read) _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
-      g) _L_x_task_timeout=$OPTARG; L_duration_to_usec "$_L_x_task_timeout" >/dev/null || return ;;
+			d) _L_x_callback=() _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
+      g) _L_x_task_timeout=$OPTARG; L_duration_to_usec_vL_RET "$_L_x_task_timeout" || return ;;
       G) L_uv_add_timer -d "$OPTARG" _L_x_loop _L_x_global_timeout_cb || return ;;
 			s) _L_x_split=1 ;;
 			S) _L_x_split=0 ;;
@@ -696,9 +840,9 @@ L_xargs2() {
 			L) _L_x_records_limit=$OPTARG ;;
 			l) _L_x_records_limit=1 ;;
 			r) _L_x_r=1 ;;
-			P) if [[ "$OPTARG" == n* ]]; then L_nproc_v; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
-			t) _L_x_verbose=1 ;;
-			O) _L_x_dobuf=$(( _L_x_dobuf + 1 )) ;;
+			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
+			t) _L_x_trace=1 ;;
+			O) _L_x_dobuf_mode=$(( _L_x_dobuf_mode + 1 )) ;;
 			^) _L_x_prefix=1 ;;
 			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
@@ -710,20 +854,18 @@ L_xargs2() {
 			*) L_func_error "L_xargs: invalid option: -$_L_i"; return "$L_EX_USAGE" ;;
 		esac
 	done
-	# When under -E or -e, exit when a line is exactly something.
-	if (( _L_x_eof_str )); then
-		_L_x_callback=(_L_xargs_handle_eof_str "${_L_x_callback[@]}")
-	fi
+  if (( _L_x_dobuf_mode || _L_x_prefix )); then
+    _L_x_notify+=(_L_xargs_dobuf_or_prefix_notify)
+  fi
+	local _L_x_cmd=("${@:-L_quote_printf}")
 	# Start the loop over records.
-	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 _L_x_cur_records=0
-	# _L_x_done is set when any command exits wtih 255.
-  if [[ "${_L_x_callback[*]}" == "_L_xargs_callback_read" ]]; then
-    L_uv_add_readline _L_x_loop "$_L_x_fd" _L_xargs_feeder_input_cb
+  if (( ${#_L_x_callback[@]} )); then
+    L_uv_add _L_x_loop _L_xargs_input_task
   else
-    local _L_x_feeder_pull=1
-    L_uv_add_once _L_x_loop _L_xargs_feeder
+    L_uv_add_readline -d "$_L_x_d" _L_x_loop "$_L_x_fd" _L_xargs_feeder_input_cb
   fi
   L_uv_run _L_x_loop
+  return "$_L_x_return"
 }
 
 ###############################################################################
