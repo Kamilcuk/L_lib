@@ -5516,7 +5516,7 @@ L_finally_list() {
 			frame=$(( ${#BASH_LINENO[@]}-frame ))
 			printf -v tmp "%q" "${BASH_SOURCE[frame]}"
 			tmp="#$frame $tmp:${BASH_LINENO[frame]}:${FUNCNAME[frame]}()"
-			data[idx]=$tmp${data[idx]}
+			data[idx]=$tmp${data[idx]:-}
 		done
 	done
 	# declare -p _L_finally_arr _L_finally_return data
@@ -5571,14 +5571,14 @@ L_finally() {
   # Parse arguments.
   while getopts rs:lfRv:h _L_i; do
     case "$_L_i" in
-    r) _L_onreturn=1 ;;
-    s) _L_up=$((OPTARG + _L_up)) ;;
-    l) _L_last=1 ;;
-    f) _L_first=1 ;;
-    R) _L_register=1 ;;
-    v) _L_v=$OPTARG ;;
-    h) L_func_help; return 0 ;;
-    *) L_func_usage_error; return "$L_EX_USAGE" ;;
+    	r) _L_onreturn=1 ;;
+    	s) _L_up=$((OPTARG + _L_up)) ;;
+    	l) _L_last=1 ;;
+    	f) _L_first=1 ;;
+    	R) _L_register=1 ;;
+    	v) _L_v=$OPTARG ;;
+    	h) L_func_help; return 0 ;;
+    	*) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -5591,30 +5591,29 @@ L_finally() {
 			_L_finally_arr=()
 			_L_finally_return=()
 			_L_finally_pending=()
+  		_L_finally_item_depth=()
 			_L_register=1
 		fi
-	fi
+  	_L_finally_idx_first=5000
+  	_L_finally_idx_std=10000000000
+  	_L_finally_idx_last=10000000000
+  fi
   # Add element to our array variable.
 	if (($#)); then
-		# Calculate new element index. This is getting slower, but we assume we will have small number of elements.
-		_L_idx=( ${_L_finally_arr[@]:+"${!_L_finally_arr[@]}"} )
 		if (( _L_first )); then
 			# The first 5000 elements for "first" callbacks.
-			(( _L_idx = ${_L_idx[0]:-5000} , _L_idx > 5000 && ( _L_idx = 5000 ) , _L_idx-- ))
-			if (( _L_onreturn )); then return "$L_EX_USAGE"; fi
-			if (( _L_idx < 0 )); then return "$L_EX_USAGE"; fi
+			_L_idx=$(( --_L_finally_idx_first ))
+			if (( _L_onreturn )); then L_func_error "-f is not allowed with -r"; return "$L_EX_USAGE"; fi
+			if (( _L_idx < 0 )); then L_func_error "too many -f actions"; return "$L_EX_USAGE"; fi
 		elif (( _L_last )); then
-			# Add element to be executed last. Start from 10B.
-			# If there are already elements, find the largest one and increment.
-			(( _L_idx = ${_L_idx[${_L_idx[@]:+${#_L_idx[@]}-}1]:-10000000000} , _L_idx < 5000 && ( _L_idx = 10000000000 ) , ++_L_idx ))
+			# Add element to be executed last.
+			_L_idx=$(( ++_L_finally_idx_last ))
+			if (( _L_idx > 20000000000 )); then L_func_error "too many -l actions"; return "$L_EX_SOFTWARE"; fi
 		else
 			# Add element to be executed first. Start from 10B and go down.
 			# But ignore indices < 5000 (the "strictly first" range).
-			local _L_min=10000000000
-			for _L_i in ${_L_idx[@]:+"${_L_idx[@]}"}; do
-				(( _L_i >= 5000 && ( _L_min = _L_i ) )) && break
-			done
-			_L_idx=$(( _L_min - 1 ))
+			_L_idx=$(( --_L_finally_idx_std ))
+			if (( _L_idx < 5000 )); then L_func_error "too many actions"; return "$L_EX_SOFTWARE"; fi
 		fi
   	# After calculating index, store it to the user, if he wants that.
   	if [[ -n "$_L_v" ]]; then
@@ -5636,8 +5635,10 @@ L_finally() {
 			fi
 			# declare -p BASH_LINENO FUNCNAME BASH_SOURCE _L_up >&2
 			# Add element to the return array. Index loop is unrolled for speed.
-  		_L_elem="${_L_elem% };unset -v \"_L_finally_arr[$_L_idx]\";"
-  		_L_finally_return[${#BASH_LINENO[@]}-_L_up]=$'\t'"$_L_elem${_L_finally_return[${#BASH_LINENO[@]}-_L_up]:-$'\t'}"
+			local _L_depth=$(( ${#BASH_LINENO[@]} - _L_up ))
+			_L_finally_item_depth[$_L_idx]=$_L_depth
+		_L_elem="${_L_elem% };unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
+		_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]:-$'\t'}"
 			# Register the trap.
 			# Use ${+} expansion to execute nothing when there is nothing to execute.
 			trap '${_L_finally_return[${#BASH_LINENO[*]}]+L_finally_handle_return} ${_L_finally_return[${#BASH_LINENO[*]}]+"$?"} ${_L_finally_return[${#BASH_LINENO[*]}]+"$BASH_COMMAND"}' RETURN
@@ -5712,26 +5713,27 @@ L_finally_pop() {
 			L_func_error "index not found: $_L_idx"; return "$L_EX_USAGE"
 		fi
 	fi
-	if ((_L_run)); then
+	local _L_depth="${_L_finally_item_depth[$_L_idx]:-}"
+	_L_elem="${_L_finally_arr[$_L_idx]}unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
+	if (( _L_run )); then
 		# shellcheck disable=SC2294
 		local L_SIGNAL=POP
 		eval "${_L_finally_arr[_L_idx]}" || _L_ret=$?
-		unset -v "_L_finally_arr[$_L_idx]" L_SIGNAL
-		if ((${_L_finally_pending[@]:+1})); then
+		# L_SIGNAL unset for nested detection hadnling.
+		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL
+		# Execute a signal that might hhave happened while the above eval was executing.
+		if (( ${_L_finally_pending[@]:+1} )); then
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$((128+_L_finally_pending[1]))"
+			exit "$(( 128 + _L_finally_pending[1] ))"
 		fi
 	else
-		unset -v "_L_finally_arr[$_L_idx]"
+		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[$_L_idx]'
 	fi
 	# Remove the index from _L_finally_return.
-	_L_elem=";unset -v \"_L_finally_arr[$_L_idx]\";"$'\t'
-	for _L_idx in ${_L_finally_return[@]:+"${!_L_finally_return[@]}"}; do
-		if [[ "${_L_finally_return[_L_idx]}" == *"$_L_elem"* ]]; then
-			_L_finally_return[_L_idx]=${_L_finally_return[_L_idx]#*$'\t'*"$_L_elem"}$'\t'${_L_finally_return[_L_idx]%$'\t'*"$_L_elem"*}
-			break
-		fi
-	done
+	if [[ -n "$_L_depth" ]]; then
+		_L_finally_return[_L_depth]="${_L_finally_return[_L_depth]/$'\t'"$_L_elem"$'\t'/$'\t'}"
+	fi
+	# declare -p _L_finally_arr _L_finally_return _L_elem >&2
 	return "$_L_ret"
 }
 
@@ -5788,10 +5790,10 @@ L_with_tmpfile_into() {
 L_with_tmpdir_into() {
   local _L_v &&
     _L_v=$(mktemp -d "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
-    L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_to_callback "$_L_v" &&
+    L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_into_callback "$_L_v" &&
     printf -v "$1" "%s" "$_L_v"
 }
-_L_with_tmpdir_to_callback() {
+_L_with_tmpdir_into_callback() {
 	rm -rf "$1" || L_critical "Could not remove directory $1"
 }
 
@@ -10700,6 +10702,32 @@ L_foreach() {
 # xargs [[[
 # @section xargs
 
+# @description Returns the number of CPU cores.
+# @option -v <var>
+# @option -h
+L_nproc() { L_handle_v_scalar "$@"; }
+L_nproc_vL_RET() {
+	if L_hash nproc; then
+		L_RET=$(nproc)
+	elif [[ -r /proc/cpuinfo ]]; then
+		if L_hash grep; then
+			L_RET=$(grep -c ^processor /proc/cpuinfo)
+		else
+			L_RET=0
+			local line
+			while IFS= read -r line; do
+				if [[ "$line" == processor* ]]; then
+					(( ++L_RET ))
+				fi
+			done </proc/cpuinfo
+		fi
+	elif [[ -r /proc/sys/hw/ncpu ]]; then
+		L_RET=$(cat /proc/sys/hw/ncpu)
+	else
+		L_RET=1
+	fi
+}
+
 # @see https://github.com/jamesyoungman/findutils/blob/master/xargs/xargs.c#L1585
 # @see https://github.com/aixoss/findutils/blob/r4.4.2-aix/xargs/xargs.c#L1272
 _L_xargs_handle_return() {
@@ -10859,32 +10887,6 @@ _L_xargs_trap() {
 			kill ${L_SIGNAL+-"$L_SIGNAL"} "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
 		fi
 		wait "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
-	fi
-}
-
-# @description Returns the number of CPU cores.
-# @option -v <var>
-# @option -h
-L_nproc() { L_handle_v_scalar "$@"; }
-L_nproc_vL_RET() {
-	if L_hash nproc; then
-		L_RET=$(nproc)
-	elif [[ -r /proc/cpuinfo ]]; then
-		if L_hash grep; then
-			L_RET=$(grep -c ^processor /proc/cpuinfo)
-		else
-			L_RET=0
-			local line
-			while IFS= read -r line; do
-				if [[ "$line" == processor* ]]; then
-					(( ++L_RET ))
-				fi
-			done </proc/cpuinfo
-		fi
-	elif [[ -r /proc/sys/hw/ncpu ]]; then
-		L_RET=$(cat /proc/sys/hw/ncpu)
-	else
-		L_RET=1
 	fi
 }
 
