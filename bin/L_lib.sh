@@ -5587,16 +5587,9 @@ L_finally() {
   if [[ "${_L_finally_pid:-}" != "$_L_pid" ]]; then
   	if [[ -n "${_L_finally_pid:-}" ]]; then
   		# Reset values inherited from parent shell.
-  		_L_finally_pid=""
-			_L_finally_arr=()
-			_L_finally_return=()
-			_L_finally_pending=()
-  		_L_finally_item_depth=()
-			_L_register=1
+  		_L_finally_pid="" _L_finally_arr=() _L_finally_return=() _L_finally_pending=() _L_finally_item_depth=() _L_register=1
 		fi
-  	_L_finally_idx_first=5000
-  	_L_finally_idx_std=10000000000
-  	_L_finally_idx_last=10000000000
+  	_L_finally_idx_first=5000 _L_finally_idx_std=10000000000 _L_finally_idx_last=10000000000
   fi
   # Add element to our array variable.
 	if (($#)); then
