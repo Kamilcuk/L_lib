@@ -164,6 +164,7 @@ L_uv_add() {
   done
   L_UV[8123000 + L_UV[1]]="L_UV_CURRENT=${L_UV[1]};${_L_cmd% };"
   if [[ -n "$_L_v" ]]; then printf -v "$_L_v" "%s" "${L_UV[1]}"; fi
+  L_UV[4]="${L_UV[*]:8623000}"
 }
 
 # @description Set a callback at a specific index in the loop.
@@ -173,6 +174,9 @@ L_uv_set() {
   local _L_cmd
   printf -v _L_cmd "%q " "${@:2}"
   L_UV[8123000 + $1]="L_UV_CURRENT=$1;${_L_cmd% };"
+  if (( $1 >= 500000 )); then
+    L_UV[4]="${L_UV[*]:8623000}"
+  fi
 }
 
 # @description Remove a callback from the loop by index.
@@ -187,6 +191,8 @@ L_uv_remove() {
     L_UV[3]=$1
   else
     L_UV[1]=$1
+    unset -v "L_UV[8123000 + $1]"
+    L_UV[4]="${L_UV[*]:8623000}"
   fi
   unset -v "L_UV[2123000 + $1]" "L_UV[4123000 + $1]" "L_UV[8123000 + $1]"
 }
@@ -239,9 +245,9 @@ L_uv_run() {
   # If SIGCHLD trap is not set, set it.
   L_trap_get_vL_RET SIGCHLD
   if [[ -z "$L_RET" ]]; then
-    trap : SIGCHLD
+    trap 'L_uv_poke' SIGCHLD
   fi
-  while [[ -n "${L_UV[*]:8123000:1}" ]] || (( L_UV[1123000] > 0 )); do
+  while [[ -n "${L_UV[4]:-}" ]] || (( L_UV[1123000] > 0 )); do
     # Process Timers (Top-only)
     while (( L_UV[1123000] > 0 )); do
       local _L_top="${L_UV[1123001]}"
@@ -273,18 +279,18 @@ L_uv_run() {
       fi
     done
     # Process Generic Tasks
-    eval "${L_UV[@]:8623000}"
+    eval "${L_UV[4]:-}"
     if (( _L_uv_break )); then break; fi
     # Sleep
     if (( !_L_uv_poked )); then
-      _L_uv_poked=0
       local _L_timeout=$_L_uv_sleep_time
       if _L_uv_timeout_left_vL_RET; then
          if (( $(L_eval '[[ "$1" < "$2" ]]' "$L_RET" "$_L_timeout") )); then
             _L_timeout=$L_RET
          fi
       fi
-      # L_sleep "$_L_timeout"
+      L_sleep "$_L_timeout"
+      _L_uv_poked=0
     fi
   done
   return "$_L_uv_return"
@@ -343,18 +349,9 @@ L_uv_add_timer() {
   if [[ -n "$_L_v" ]]; then printf -v "$_L_v" "%s" "$_L_timerid"; fi
 }
 
-# @return 0 if all callbacks match a regex.
-_L_uv_all_callbacks_match() {
-  local IFS=$'\n'
-  [[ "${L_UV[*]:8123000}"$'\n' =~ ^$'\n'(L_UV_CURRENT=[0-9]+;$1" "[^$'\n']*;$'\n')+$ ]]
-}
-
-# @description Internal callback for process waiting.
-# @arg $1 PID to wait for.
-# @arg $@ Callback function and its arguments
-_L_uv_wait_callback() {
+_L_uv_wait_nonblocking() {
   # If we are not using SIGCHLD and there are only pids and timers.
-  if [[ "${L_UV[2]:-}" == " $1 "* ]] && _L_uv_all_callbacks_match "_L_uv_wait_callback"; then
+  if [[ "${L_UV[2]:-}" == " $1 "* ]]; then
     local L_RET
     if [[ "${L_UV[2]}" == " $1 " ]]; then
       # Only one pid we are waiting for.
@@ -380,6 +377,12 @@ _L_uv_wait_callback() {
       fi
     fi
   fi
+}
+
+# @description Internal callback for process waiting.
+# @arg $1 PID to wait for.
+# @arg $@ Callback function and its arguments
+_L_uv_wait_callback() {
   # Check if our specific PID is done.
   if ! kill -0 "$1" 2>/dev/null; then
     L_uv_current_remove
@@ -407,8 +410,14 @@ L_uv_add_wait() {
     esac
   done
   shift $((OPTIND - 1))
-  L_uv_add -v "$_L_v" _L_uv_wait_callback "$@"
-  L_UV[2]+=" $1 "
+  local _L_pid=$1 _L_cmd
+  printf -v _L_cmd "%q " "${@:2}"
+  L_UV[9123000 + _L_pid]="${_L_cmd% }"
+  L_UV[2]+=" $_L_pid "
+  # Add the global reaper if not present.
+  if [[ "${L_UV[4]:-}" != *"_L_uv_reaper"* ]]; then
+    L_uv_add _L_uv_reaper
+  fi
 }
 
 # @description Internal callback for once-run conditions.
@@ -519,8 +528,9 @@ _L_xargs_dobuf_end() {
 # @arg $2 file descriptor
 # @arg [$3] line
 _L_xargs_dobuf_stdout_cb() {
+  # L_notice "DEBUG: stdout_cb pid=$1 fd=$2 line=${3:-EOF}"
   if (( $# == 3 )); then
-    _L_x_dobuf_output[$1]+="${_L_x_dobuf_prefix[$1]:-}$2"$'\n'
+    _L_x_dobuf_output[$1]+="${_L_x_dobuf_prefix[$1]:-}$3"$'\n'
   elif (( $# == 2 )); then
     eval "exec $2>&-"
     unset -v "_L_x_dobuf_pipe[$1]"
@@ -561,27 +571,36 @@ _L_xargs_dobuf_or_prefix_notify() {
 	        printf -v _L_prefix " %q" "${_L_x_atoms[@]::_L_atoms_limit}"
 	        L_RET=(L_eval "\"\$@\" > >(_L_xargs_prefixer$_L_prefix)" "${L_RET[@]}")
         fi
-      else  # _L_x_dobus_mode > 0
+      else  # _L_x_dobuf_mode > 0
+        local _L_prefix=""
         if (( _L_x_prefix )); then
           # Save prefix for later for stdout task handler to consume.
-		      local _L_prefix
 	        printf -v _L_prefix " %q" "${_L_x_atoms[@]::_L_atoms_limit}"
-	        _L_x_dobuf_prefix["$!"]=$_L_prefix
+	        _L_x_dobuf_prefix_idx[L_XARGS_INDEX]=$_L_prefix
 	      fi
         # Create pipe for read from the task.
         local _L_pipe
         L_pipe _L_pipe
-        _L_x_dobuf_pipe["$!"]="${_L_pipe[1]}"
+        _L_x_dobuf_pipe_idx[L_XARGS_INDEX]="${_L_pipe[1]}"
+        _L_x_dobuf_read_pipe_idx[L_XARGS_INDEX]="${_L_pipe[0]}"
         L_RET=(L_eval "\"\$@\" ${_L_pipe[0]}>&- >&${_L_pipe[1]}" "${L_RET[@]}")
       fi
       ;;
     POSTEXEC)
       if  (( _L_x_dobuf_mode )); then
+        local _L_pid=$2
+        _L_x_dobuf_pipe[_L_pid]=${_L_x_dobuf_pipe_idx[L_XARGS_INDEX]}
+        local _L_read_fd="${_L_x_dobuf_read_pipe_idx[L_XARGS_INDEX]}"
+        unset -v "_L_x_dobuf_pipe_idx[L_XARGS_INDEX]" "_L_x_dobuf_read_pipe_idx[L_XARGS_INDEX]"
+        if [[ -n "${_L_x_dobuf_prefix_idx[L_XARGS_INDEX]:-}" ]]; then
+          _L_x_dobuf_prefix[_L_pid]="${_L_x_dobuf_prefix_idx[L_XARGS_INDEX]}"
+          unset -v "_L_x_dobuf_prefix_idx[L_XARGS_INDEX]"
+        fi
         # Close writing side of pipe.
-        eval "exec ${_L_x_dobuf_pipe[$1]}>&-"
-        _L_x_dobuf_order+=("$!")
+        eval "exec ${_L_x_dobuf_pipe[$_L_pid]}>&-"
+        _L_x_dobuf_order+=("$_L_pid")
         # Add a task to read stuff.
-        L_uv_add_readline "${_L_pipe[0]}" _L_xargs_dobuf_stdout_cb "$!"
+        L_uv_add_readline "$_L_read_fd" _L_xargs_dobuf_stdout_cb "$_L_pid"
       fi
       ;;
   esac
@@ -611,16 +630,14 @@ _L_xargs_run() {
     printf "+$_L_tmp" >&2
   fi
   # Run PREEXEC callbacks.
-  for _L_i in "${_L_x_notify[@]}"; do
-    L_eval "$_L_i \"\$@\"" PREEXEC
-  done
+  set -- PREEXEC ""
+  eval "${_L_x_notify_cb:-}"
   # Actually run the job.
   "${L_RET[@]}" &
   local _L_pid=$!
-  #
-  for _L_i in "${_L_x_notify[@]}"; do
-    L_eval "$_L_i \"\$@\"" POSTEXEC "$_L_pid" "${L_RET[@]}"
-  done
+  # Run POSTEXEC callbacks.
+  set -- POSTEXEC "$_L_pid"
+  eval "${_L_x_notify_cb:-}"
   #
   _L_x_running[_L_pid]=""
   if [[ -n "$_L_x_task_timeout" ]]; then
@@ -635,14 +652,16 @@ _L_xargs_run() {
 # @env L_RET
 _L_xargs_maybe_run() {
   # Consume input from L_RET array.
-	if (( ${_L_x_split:-1} && ${#L_RET[@]} )); then
-		# Split one record -> Multiple Atoms
-		# shellcheck disable=SC2048
-		L_string_unquote -v L_RET "${L_RET[*]+${L_RET[*]}}" || return 1
-	fi
-	# Bookkeeping of input.
-  _L_x_atoms+=(${L_RET[@]+"${L_RET[@]}"})
-  (( ++_L_x_cur_records ))
+  if (( ${#L_RET[@]} )); then
+	  if (( ${_L_x_split:-1} )); then
+		  # Split one record -> Multiple Atoms
+		  # shellcheck disable=SC2048
+		  L_string_unquote -v L_RET "${L_RET[*]+${L_RET[*]}}" || return 1
+	  fi
+	  # Bookkeeping of input.
+    _L_x_atoms+=(${L_RET[@]+"${L_RET[@]}"})
+    (( ++_L_x_cur_records ))
+  fi
 	# Dual-threshold trigger logic - on number of atoms and number of records.
   while ((
     ( ${#_L_x_running[@]} < _L_x_maxprocs && !_L_x_done ) && (
@@ -717,7 +736,10 @@ _L_xargs_reaper() {
 
 # Check if L_RET content is eof string.
 _L_xargs_eof_check() {
-  [[ "${L_RET[0]:-}" != "$_L_x_eof_str" ]] || (( _L_x_input_stopped = 1 ))
+  if [[ "${L_RET[0]:-}" == "$_L_x_eof_str" ]]; then
+    (( _L_x_input_stopped = 1 ))
+    L_RET=()
+  fi
 }
 
 # Try to schedule more jobs.
@@ -829,10 +851,13 @@ L_xargs2() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_limit=0 _L_x_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
 			_L_x_trace=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
 			_L_x_callback=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
-			_L_x_dobuf_mode="" _L_x_dobuf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 _L_x_dobuf_prefix=() \
+			_L_x_dobuf_mode=0 _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
 	    _L_x_eof_str _L_x_eof_check_cb=: _L_x_preserve_set_e=0 _L_x_template=0 L_UV=() \
 	    _L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" _L_x_timers=() \
-	    _L_x_forker=_L_xargs_forker _L_x_notify=() _L_x_return=0 _L_x_done=0 _L_x_cur_records=0
+	    _L_x_forker=_L_xargs_forker _L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
+      _L_x_dobuf_order=() \
+      _L_x_dobuf_pipe=() _L_x_dobuf_prefix=() _L_x_dobuf_output=() _L_x_dobuf_read_pipe=() \
+      _L_x_dobuf_pipe_idx=() _L_x_dobuf_prefix_idx=() _L_x_dobuf_read_pipe_idx=()
 	while getopts a:0c:d:g:sSu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
 		case "$_L_i" in
 			a)
@@ -863,8 +888,12 @@ L_xargs2() {
 			r) _L_x_r=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
 			t) _L_x_trace=1 ;;
-			O) _L_x_dobuf_mode=$(( _L_x_dobuf_mode + 1 )) ;;
-			^) _L_x_prefix=1 ;;
+			O) _L_x_dobuf_mode=$(( _L_x_dobuf_mode + 1 ))
+         [[ "$_L_x_notify_cb" == *"_L_xargs_dobuf_or_prefix_notify"* ]] || _L_x_notify_cb+='_L_xargs_dobuf_or_prefix_notify "$@";'
+         ;;
+			^) _L_x_prefix=1
+         [[ "$_L_x_notify_cb" == *"_L_xargs_dobuf_or_prefix_notify"* ]] || _L_x_notify_cb+='_L_xargs_dobuf_or_prefix_notify "$@";'
+         ;;
 			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
 			[eE]) _L_x_eof_check_cb=_L_xargs_eof_check _L_x_eof_str=$OPTARG ;;
