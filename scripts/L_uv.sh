@@ -476,28 +476,26 @@ _L_uv_delayer_timer_indefinite() {
 }
 _L_uv_delayer_timer_capped() { _L_uv_delayer_timer_indefinite "$1" "_capped"; }
 
+# @arg $@ wait arguments that resulted in this exit code
+_L_wait_detect_err() {
+	local L_RET _L_ret=0
+	L_mktemp_vL_RET || return
+	{
+		rm "$L_RET" || :
+		wait "${@:2}" 2>&10 >&10 || _L_ret=$?
+		read -r -u 11 L_RET
+		if [[ -n "$L_RET" ]]; then
+			return "$_L_ret"
+		fi
+	} 10>"$L_RET" 11<"$L_RET"
+}
+
 # Internal function to monitor and reap child processes registered as waiters.
 _L_uv_manager_waiter_wait_n_p() {
-  local _L_rel _L_pid _L_cb _L_status=0 _L_w_done _L_pids="${L_UV[20000002]:-}"
-  [[ -z "$_L_pids" ]] && return 0
+  local _L_rel _L_pid _L_cb _L_status=0 _L_w_done _L_pids="${L_UV[20000002]}"
   wait -n -p _L_w_done $_L_pids 2>/dev/null || _L_status=$?
-  if (( _L_status > 128 )); then return 0; fi
-  if (( _L_status == 127 )) && ! L_var_is_set _L_w_done; then
-    # Prune stale PIDs from the loop to prevent deadlocks.
-    for _L_pid in $_L_pids; do
-      if ! kill -0 "$_L_pid" 2>/dev/null; then
-        # Found a stale PID. Locate its handle via the bucket map and remove it.
-        for _L_rel in ${L_UV[29000000 + _L_pid % 1000000]}; do
-          if [[ "${L_UV[21000000 + (_L_rel * 2) + 1]}" == "$_L_pid" ]]; then
-            L_uv_remove $(( 1000000 + _L_rel ))
-          fi
-        done
-      fi
-    done
-    return 0
-  fi
-  # Use the 29M bucket map for O(1) reverse lookup of the PID to handle
   if L_var_is_set _L_w_done; then
+    # Use the 29M bucket map for O(1) reverse lookup of the PID to handle
     for _L_rel in ${L_UV[29000000 + _L_w_done % 1000000]}; do
       _L_pid="${L_UV[21000000 + (_L_rel * 2) + 1]}"
       if [[ "$_L_pid" == "$_L_w_done" ]]; then
@@ -507,32 +505,51 @@ _L_uv_manager_waiter_wait_n_p() {
         _L_uv_poked=1
       fi
     done
+  else
+    # If wait was interrupted by a signal, yield.
+    if (( _L_status > 128 )); then return 0; fi
+    # If we received 127, means we have a pid we can't wait for. Fallback to iterate.
+    if (( _L_status != 127 )); then
+      L_error "Bash error: 'wait -n -p _L_w_done $_L_pids' exited with $_L_status"
+    fi
+    _L_uv_manager_waiter_wait_iterate
   fi
+}
+_L_uv_manager_waiter_wait_iterate() {
+  # Iterate over active Waiter IDs from the string cache
+  local _L_rel _L_pid _L_cb _L_status=0
+  for _L_rel in ${L_UV[20000001]}; do
+    _L_pid="${L_UV[21000000 + (_L_rel * 2) + 1]}"
+    if ! kill -0 "$_L_pid" 2>/dev/null; then
+      wait "$_L_pid" || _L_status=$?
+      if (( _L_status > 128 )); then
+        # Very unlucky signal if really received, lets just wait again to confirm.
+        wait "$_L_pid" && _L_status=0 || _L_status=$?
+      elif (( _L_status == 127 )); then
+        # The pid might be invalid for wait. Print error, and just forward status.
+        _L_wait_detect_err "$_L_pid" && _L_status=0 || _L_status=$?
+      fi
+      _L_cb="${L_UV[21000000 + (_L_rel * 2) + 0]}"
+      L_uv_remove $(( 1000000 + _L_rel ))
+      eval "$_L_cb $_L_pid $_L_status"
+      _L_uv_poked=1
+    fi
+  done
 }
 _L_uv_manager_waiter() {
   while [[ -n "${L_UV[20000002]}" ]] && ! kill -0 ${L_UV[20000002]} 2>/dev/null; do
-    if (( L_HAS_BASH5_1 )); then
+    if (( L_HAS_BASH5_2 )); then
+      # wait -n -p started working correctly from Bash 5.2 only.
       _L_uv_manager_waiter_wait_n_p
     else
-      # Iterate over active Waiter IDs from the string cache
-      local _L_rel _L_pid _L_cb _L_status=0
-      for _L_rel in ${L_UV[20000001]}; do
-        _L_pid="${L_UV[21000000 + (_L_rel * 2) + 1]}"
-        if ! kill -0 "$_L_pid" 2>/dev/null; then
-          wait "$_L_pid" || _L_status=$?
-          _L_cb="${L_UV[21000000 + (_L_rel * 2) + 0]}"
-          L_uv_remove $(( 1000000 + _L_rel ))
-          eval "$_L_cb $_L_pid $_L_status"
-          _L_uv_poked=1
-        fi
-      done
+      _L_uv_manager_waiter_wait_iterate
     fi
   done
 }
 _L_uv_delayer_waiter_indefinite() {
   local _L_pids="${L_UV[20000002]:-}"
   if [[ -n "$_L_pids" ]]; then
-    if (( L_HAS_BASH5_1 )); then
+    if (( L_HAS_BASH5_2 )); then
       _L_uv_manager_waiter_wait_n_p
     elif (( L_HAS_BASH4_3 )); then
       wait -n $_L_pids 2>/dev/null || :
@@ -886,17 +903,33 @@ _L_xargs_maybe_run() {
     # Run PREEXEC callbacks.
     set -- PREEXEC
     eval "${_L_x_notify_cb:-}"
-    # Actually run the job.
-    "${L_RET[@]}" &
-    # Post stuff.
-    _L_x_running[$!]=""
-    if [[ -n "$_L_x_task_timeout" ]]; then
-      L_uv_add_timer -v "_L_x_timers[$!]" -d "$_L_x_task_timeout" _L_x_task_timeout_cb "$!"
+    if (( _L_x_foreground )); then
+      "${L_RET[@]}"
+      local _L_exitcode=$?
+      # Run POSTEXEC callbacks.
+      set -- POSTEXEC
+      eval "${_L_x_notify_cb:-}"
+      _L_xargs_handle_return "$_L_exitcode"
+      # Assign the exit status of the command.
+      if [[ -n "$_L_x_v" ]]; then
+        L_array_set "$_L_x_v" "$L_XARGS_INDEX" "$_L_exitcode"
+      fi
+      # Disaptch exit notify
+      set -- EXIT "" "$_L_exitcode"
+      eval "${_L_x_notify_cb:-}"
+    else
+      # Actually run the job.
+      "${L_RET[@]}" &
+      # Post stuff.
+      _L_x_running[$!]=""
+      if [[ -n "$_L_x_task_timeout" ]]; then
+        L_uv_add_timer -v "_L_x_timers[$!]" -d "$_L_x_task_timeout" _L_x_task_timeout_cb "$!"
+      fi
+      L_uv_add_waiter "$!" _L_xargs_reaper "$L_XARGS_INDEX"
+      # Run POSTEXEC callbacks.
+      set -- POSTEXEC "$!"
+      eval "${_L_x_notify_cb:-}"
     fi
-    L_uv_add_waiter "$!" _L_xargs_reaper "$L_XARGS_INDEX"
-    # Run POSTEXEC callbacks.
-    set -- POSTEXEC "$!"
-    eval "${_L_x_notify_cb:-}"
     # Update state.
     (( _L_x_atoms_idx += _L_atoms_limit ))
     if (( L_XARGS_INDEX++ % 10 == 0 )); then
@@ -954,15 +987,18 @@ _L_xargs_handle_return() {
 _L_xargs_reaper() {
   # Remove the pid from running list.
   unset -v "_L_x_running[$2]"
-  _L_xargs_handle_return "$3"
   if [[ -n "${_L_x_timers[$2]:-}" ]]; then
     L_uv_remove "${_L_x_timers[$2]}"
     unset -v "_L_x_timers[$2]"
   fi
+  _L_xargs_handle_return "$3"
   # Assign the exit status of the command.
   if [[ -n "$_L_x_v" ]]; then
     L_array_set "$_L_x_v" "$1" "$3"
   fi
+  # Disaptch exit notify
+  set -- EXIT "$2" "$3"
+  eval "${_L_x_notify_cb:-}"
   # Try to feed more jobs if we have atoms or input is still open.
   _L_xargs_input_trigger
 }
@@ -1026,8 +1062,12 @@ _L_xargs_feeder_input_cb() {
   fi
 }
 
-_L_xargs_callback_array() {
+_L_xargs_callback_array_nameref() {
   (( _L_x_array_index < ${#_L_x_array[@]} )) && L_RET=("${_L_x_array[_L_x_array_index++]}")
+}
+_L_xargs_callback_array_indirect() {
+  local _L_tmp="$_L_x_array[$_L_x_array_index]"
+  L_var_is_set "$_L_tmp" && L_RET=("${!_L_tmp}")
 }
 
 # @description Bash implementation of the `xargs` utility designed for seamless
@@ -1039,18 +1079,22 @@ _L_xargs_callback_array() {
 # 1. Records: Discrete segments of input defined by a delimiter (default: `\n`).
 # 2. Atoms: The individual arguments passed to the command.
 #
-# By default, `L_xargs` operates in `-s -0` mode. If `-d` `-0` `-a` options are specified without `-s -S`, `-S` is implied.
+# By default, `L_xargs` operates in `-s -0` mode. If `-d` `-0` `-a` options are specified without `-z -Z`, `-Z` is implied.
 #
 # Execution follows a first-to-threshold trigger system: the command is dispatched as
 # soon as either the Atom limit (-n) or the Record limit (-L) is reached. If no
 # limits are specified, the command executes exactly once upon reaching EOF.
 #
 # @option -0 Use the null character (\0) as the Record separator.
-# @option -a <var> Read Records from the specified Bash array variable instead of STDIN.
-# @option -c <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
+# @option -a <file> Read records from the file.
+# @option -A <var> Read Records from the specified Bash array variable.
+# @option -C <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
 # @option -d <delimiter> Set the Record separator to the specified character.
-# @option -s Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
-# @option -S Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
+# @optino -s <max-chars> Use at most max-chars characters per command line.
+# @option -m <task-max-time> If a task is running longer then specified time, it is killed.
+# @option -M <global-max-time> If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+# @option -z Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
+# @option -Z Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
 # @option -u <fd> Read the input stream from the specified file descriptor.
 # @option -I <replace-str> Replace occurrences of replace-str in the command. Sets -n 1.
 # @option -i Shorthand for -I{}.
@@ -1069,6 +1113,7 @@ _L_xargs_callback_array() {
 # @option -X Exit on error when set -e flag is set. Capture the command exit status with "cmd; rc=$?", preserving set -e flag effect during the duration of cmd.
 # @option -T  Use the command as a template: {} is replaced by all arguments,
 #             {1} {2} ... {N} are replaced by the corresponding argument.
+# @option -F Run the command in current shell execution context. Do not fork.
 # @option -h Display this help documentation and exit.
 # @arg $@ Command to execute. Default: L_quote_printf.
 # @return 0 on success
@@ -1080,7 +1125,7 @@ _L_xargs_callback_array() {
 #         126 if the command cannot be run
 #         127 if the command is not found
 # @env L_XARGS_INDEX The index of the job being executed.
-L_xargs2() {
+L_xargs() {
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_idx=0 _L_x_atoms_limit=0 _L_x_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
 			_L_x_trace=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
 			_L_x_callback=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
@@ -1088,30 +1133,39 @@ L_xargs2() {
 	    _L_x_eof_str _L_x_eof_check_cb=: _L_x_preserve_set_e=0 _L_x_template_cb=_L_xargs_run_template_no \
 	    _L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" _L_x_timers=() \
 	    _L_x_forker=_L_xargs_forker _L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
-	    \
+	    _L_x_foreground=0 \
 	    _L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output _L_x_dobuf_prefix _L_x_dobuf_finished _L_x_dobuf_next=0
   local L_UV; L_uv_init
-	while getopts a:0c:d:g:sSu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
+	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
 		case "$_L_i" in
-			a)
-			  _L_x_callback=(_L_xargs_callback_array)
+			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
+		  a)
+        if (( L_HAS_VARIABLE_FD )); then
+          exec {_L_x_fd}<"$OPTARG"
+        else
+          L_get_free_fd_into _L_x_fd && eval "exec $L_x_fd<\"\$OPTARG\"" || return
+        fi
+		    L_finally -r eval "exec $_L_x_fd>&-"
+		    ;;
+			A)
         if (( L_HAS_NAMEREF )); then
           local -n _L_x_array=$OPTARG
+			    _L_x_callback=(_L_xargs_callback_array_nameref)
         else
-          _L_i="$OPTARG[@]"
-          _L_x_array=(${!_L_i+"${!_L_i}"})
+          local _L_x_array=$OPTARG
+			    _L_x_callback=(_L_xargs_callback_array_indirect)
         fi
         local _L_x_array_index=0
         _L_x_split=${_L_x_split:-0}
         _L_x_records_limit=${_L_x_records_limit:-1}
         ;;
-			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
-			c) _L_x_callback=(eval "$OPTARG"); ;;
+			C) _L_x_callback=(eval "$OPTARG"); ;;
 			d) _L_x_callback=() _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
-      g) _L_x_task_timeout=$OPTARG; L_duration_to_usec_vL_RET "$_L_x_task_timeout" || return ;;
-      G) L_uv_add_timer -v _L_x_global_timex -d "$OPTARG" _L_x_global_timeout_cb || return ;;
-			s) _L_x_split=1 ;;
-			S) _L_x_split=0 ;;
+			s) ;; # todo
+      m) _L_x_task_timeout=$OPTARG; L_duration_to_usec_vL_RET "$_L_x_task_timeout" || return ;;
+      M) L_uv_add_timer -v _L_x_global_timex -d "$OPTARG" _L_x_global_timeout_cb || return ;;
+			z) _L_x_split=1 ;;
+			Z) _L_x_split=0 ;;
 			u) _L_x_fd=$OPTARG ;;
 			I) _L_x_atoms_limit=1 _L_x_template_cb=_L_xargs_run_template_replace  _L_x_replace=$OPTARG ;;
 			i) _L_x_atoms_limit=1 _L_x_template_cb=_L_xargs_run_template_replace _L_x_replace="{}" ;;
@@ -1132,14 +1186,12 @@ L_xargs2() {
 			[eE]) _L_x_eof_check_cb=_L_xargs_eof_check _L_x_eof_str=$OPTARG ;;
 			X) _L_x_preserve_set_e=1 ;;
 			T) _L_x_template_cb=_L_xargs_run_template_template ;;
+			F) _L_x_foreground=1 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error "L_xargs: invalid option: -$_L_i"; return "$L_EX_USAGE" ;;
 		esac
 	done
   shift $((OPTIND - 1))
-  if (( _L_x_dobuf_mode || _L_x_prefix )); then
-    _L_x_notify+=(_L_xargs_dobuf_or_prefix_notify)
-  fi
 	local _L_x_cmd=("${@:-L_quote_printf}")
 	# Start the loop over records.
   if (( ${#_L_x_callback[@]} )); then
