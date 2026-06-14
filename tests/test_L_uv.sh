@@ -49,7 +49,7 @@ _L_test_L_uv_readline() {
 	L_pipe p
 	echo -n "abc" >&"${p[1]}"
 	exec {p[1]}>&-
-	L_uv_add_readline "" "${p[0]}" _read_cb
+	L_uv_add_reader "" "${p[0]}" _read_cb
 	L_uv_run -s 0.001
 	L_unittest_eq "$result" "abc"
 }

@@ -7,10 +7,11 @@ DIR="$(dirname "$(readlink -f "$0")")"/..
   description="Deterministic instruction counting using QEMU user-mode emulation." \
   dest_prefix=arg_ \
   -- -P --prefix default="" help="Prefix code to run before every command (e.g. setup)" \
+  -- -S --suffix default="" help="Suffix code to run after every command" \
   -- -r --repeat type=int default=1 help="Number of times to repeat the command inside a loop. Not needed as QEMU measuring is exact." \
   -- -b --bwrap action=store_const const=1 dest=bwrap help="Use bwrap for isolation (default)" \
   -- -B --no-bwrap flag=0 dest=bwrap help="Disable bwrap isolation" \
-  -- -s --stdout flag=1 help="Show guest stdout/stderr (don't redirect to /dev/null)" \
+  -- -s --stdout flag=1 help="Show guest stdout (don't redirect to /dev/null)" \
   -- -v --verbose flag=1 help="Print raw QEMU command and logs" \
   -- commands nargs="+" help="Bash commands to profile" \
   ---- "$@"
@@ -28,7 +29,7 @@ get_insn_count_to() {
     local _cmd_str=$2
     local log_file
     L_with_tmpfile_into log_file
-    
+ 
     local final_cmd=()
     if ((arg_bwrap)); then
         local BWRAP_BIN=$(which bwrap) || L_panic "bwrap not found"
@@ -43,7 +44,7 @@ get_insn_count_to() {
             --ro-bind "$DIR" "$DIR"
             --bind "$log_file" "$log_file"
         )
-        
+
         # Add libraries
         local libs=() ldd_out
         ldd_out=$(ldd "$BASH_BIN" "$QEMU_BIN") || L_panic "ldd failed for $BASH_BIN or $QEMU_BIN"
@@ -60,7 +61,7 @@ get_insn_count_to() {
                 done
             fi
         done <<<"$ldd_out"
-        
+
         local lib
         for lib in $(printf "%s\n" "${libs[@]+"${libs[@]}"}" | sort -u); do
             bwrap_args+=(--ro-bind "$lib" "$lib")
@@ -89,21 +90,24 @@ get_insn_count_to() {
     if ((arg_stdout)); then
         "${final_cmd[@]}" || _status=$?
     else
-        "${final_cmd[@]}" >/dev/null 2>&1 || _status=$?
+        "${final_cmd[@]}" >/dev/null || _status=$?
     fi
-    
+
     local _count
     _count=$(grep -c "^Trace" "$log_file")
     printf -v "$_var" "%s %s" "$_count" "$_status"
 }
 
+if [[ -n "$arg_prefix" ]]; then
+    echo "Prefix=$arg_prefix"
+fi
 # Main Loop
 printf "%-55s | %10s | %7s | %4s | %6s\n" "Command" "Instr" "Diff" "Exit" "Stdev"
 printf "%-55s-|------------|---------|------|--------\n" "-------------------------------------------------------"
 
 prev_total=0
 for cmd in "${arg_commands[@]}"; do
-    full_cmd="${arg_prefix}${cmd}"
+    full_cmd="${arg_prefix}${cmd}${arg_suffix}"
 
     samples=()
     statuses=()

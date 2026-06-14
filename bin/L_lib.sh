@@ -1025,11 +1025,11 @@ _L_getopts_in_initer() {
 # @description Wrapper around getopts that executes subcommand with local-ed variables.
 #
 # The frist argument defines a getopts specification, which is like getopts with modifications.
-# Sequence of character followed by : represents an option with required argument, just like in getopts.
-# Sequence of a character followed by :: represents an option that arguments are collected into an array.
+# Character followed by : represents an option with required argument, just like in getopts.
+# Character followed by :: represents an option that arguments are collected into an array.
 # Otherwise, the characters represent short options on the command line.
 #
-# Each option in getopts specification translated to a variable named like the option.
+# Each option in getopts specification is translated to a variable named like the option.
 # The set variables are optionally prefixed with -p argument.
 #
 # Options variables are initalized with 0, and are incremented each time encountered.
@@ -1059,7 +1059,7 @@ _L_getopts_in_initer() {
 #
 #    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
 #    myfunc_in() {
-#      echo "
+#      echo "${opt_n[@]} $opt_v $opt_q"
 #    }
 #
 L_getopts_in() {
@@ -1111,7 +1111,7 @@ L_getopts_in() {
     '*') ;;
     '?')
       if (( $# > 1 )); then
-        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
+        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up"
         return "$L_EX_USAGE"
       fi
       ;;
@@ -2080,7 +2080,7 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # a string in the form of `([a]=b)` that can be used to assign to another variable.
 #
 # Use `declare` with `-a` or `-A` for arrays to load the result into a variable.
-# Eval is not preferred and might result in in valid values on Bash<4.4.
+# Eval is not preferred and might result in invalid values on Bash<4.4.
 # Bash<4.4 prepends byte 0x01 in front of bytes 0x01 and 0x7f.
 # Single 0x01 in declare -p output results in double 0x01,0x01.
 #
@@ -2110,21 +2110,22 @@ if (( L_HAS_QEPAa_EXPANSIONS )); then
 	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
 
 	L_var_to_string_vL_RET() {
-		local -; set +u
-		if [[ ${!1@a} == *[aA]* ]]; then
+		case "${!1+1${!1@a}}" in
+		1*[aA]*)
 			# Indirect expansion with @A does not work in Bash5.0
 			# We know $1 is a sane valid variable name, becuase above worked.
 			eval "L_RET=\"\${$1[@]@A}\""
-			# @A does not print =() empty arrays assignment. Fix that.
-			if [[ "$L_RET" != *" $1=("* ]]; then
-				L_RET="()"
-			else
-				L_RET="${L_RET#*=}"
-			fi
-		else
+			L_RET="${L_RET#*=}"
+			;;
+		1*)
 			# Non array variable.
 			printf -v L_RET "%q" "${!1}"
-		fi
+			;;
+		*)
+			# unset
+			false
+			;;
+		esac
 	}
 else
 
@@ -2155,7 +2156,7 @@ L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-
 L_var_to_string_vL_RET() {
 	L_RET=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
 	# If it is an array or associative array.
-	if [[ "${L_RET::10}" == declare\ -[aA] ]]; then
+	if [[ "$L_RET" == declare\ -[aA]* ]]; then
 		# Bash before4.4 which is used here prints declare output of arrays in quotes.
 		if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
 			# There is space, tab or newline in the keys of an associative array on Bash4.0.
@@ -2916,6 +2917,17 @@ L_quote_printf_vL_RET() { printf -v L_RET " %q" "$@"; L_RET=${L_RET:1}; }
 # @arg $@ arguments to quote
 L_quote_bin_printf() { L_handle_v_scalar "$@"; }
 L_quote_bin_printf_vL_RET() { L_RET=$(exec printf " %q" "$@"); L_RET=${L_RET:1}; }
+
+if (( L_HAS_BASH4_4 )); then
+# @description Quotes a string for bash to be able to re-read it.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $@ arguments to quote
+L_quote() { L_handle_v_scalar "$@"; }
+L_quote_vL_RET() { L_RET="${@@Q}"; }
+else
+	L_quote() { L_quote_printf "$@"; }
+	L_quote_vL_RET() { L_quote_printf_vL_RET "$@"; }
+fi
 
 # @description Convert a string to a number.
 # @option -v <var> Store the output in variable instead of printing it.
@@ -5432,7 +5444,7 @@ L_finally_handle_return() {
 		;;
 	esac
 	#
-	if (( ${_L_finally_pending[@]:+1} )); then
+	if (( ${_L_finally_pending[@]+1} )); then
 		# Execute any pending signals.
 		# Unset L_SIGNAL, so that pending signal detection works correctly.
 		unset -v L_SIGNAL
@@ -5449,7 +5461,7 @@ L_finally_handle_exit() {
 		# _L_finally_debug "${_L_finally_arr[@]}"
 		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 		# During handling exit trap we received a signal. Try to preserve the exit code.
-		if (( ${_L_finally_pending[@]:+1} )); then
+		if (( ${_L_finally_pending[@]+1} )); then
 			# Execute any pending signals.
 			trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
@@ -5473,7 +5485,7 @@ L_finally_handle_signal() {
   	# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
 		if [[ -n "${L_SIGNAL:-}" ]]; then
 			# Is this the first time we are here?
-			if (( ${_L_finally_pending[@]:+1} )); then
+			if (( ${_L_finally_pending[@]+1} )); then
 				# Received multiple signals while servicing signal. Exit immidately.
   			trap - "$1" EXIT
 				L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately" || :
@@ -5715,7 +5727,7 @@ L_finally_pop() {
 		# L_SIGNAL unset for nested detection hadnling.
 		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL
 		# Execute a signal that might hhave happened while the above eval was executing.
-		if (( ${_L_finally_pending[@]:+1} )); then
+		if (( ${_L_finally_pending[@]+1} )); then
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 			exit "$(( 128 + _L_finally_pending[1] ))"
 		fi
