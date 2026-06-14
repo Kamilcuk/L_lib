@@ -9472,7 +9472,7 @@ L_is_fd_open() {
 	{ >&"$1"; } 2>/dev/null
 }
 
-if ((L_HAS_VARIABLE_FD)); then
+if (( L_HAS_VARIABLE_FD )); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd_into() {
