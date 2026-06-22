@@ -1,10 +1,9 @@
 #include <config.h>
 #include <stdio.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "builtins.h"
 #include "shell.h"
@@ -47,28 +46,22 @@ lseek_subcommand (WORD_LIST *list)
     }
 
   fd = atoi (list->word->word);
-  list = list->next;
-  
-  offset = (off_t) atoll (list->word->word);
-  list = list->next;
+  offset = atoll (list->next->word->word);
 
-  if (list)
+  if (list->next->next)
     {
-      if (strcmp (list->word->word, "SET") == 0 || strcmp (list->word->word, "0") == 0)
-	whence = SEEK_SET;
-      else if (strcmp (list->word->word, "CUR") == 0 || strcmp (list->word->word, "1") == 0)
-	whence = SEEK_CUR;
-      else if (strcmp (list->word->word, "END") == 0 || strcmp (list->word->word, "2") == 0)
-	whence = SEEK_END;
+      char *w = list->next->next->word->word;
+      if (strcmp (w, "SET") == 0 || strcmp (w, "0") == 0) whence = SEEK_SET;
+      else if (strcmp (w, "CUR") == 0 || strcmp (w, "1") == 0) whence = SEEK_CUR;
+      else if (strcmp (w, "END") == 0 || strcmp (w, "2") == 0) whence = SEEK_END;
       else
 	{
-	  builtin_error ("%s: invalid whence", list->word->word);
-	  return (EXECUTION_FAILURE);
+	  builtin_error ("%s: invalid whence", w);
+	  return (EX_USAGE);
 	}
     }
 
   result = lseek (fd, offset, whence);
-
   if (result == (off_t)-1)
     {
       builtin_error ("lseek error: %s", strerror (errno));
@@ -77,9 +70,13 @@ lseek_subcommand (WORD_LIST *list)
 
   if (ret_var)
     {
-      char buf[64];
+      char buf[32];
       sprintf (buf, "%lld", (long long)result);
-      bind_variable (ret_var, buf, 0);
+      if (bind_variable (ret_var, buf, 0) == NULL)
+	{
+	  builtin_error ("%s: cannot bind variable", ret_var);
+	  return (EXECUTION_FAILURE);
+	}
     }
 
   return (EXECUTION_SUCCESS);
@@ -99,5 +96,8 @@ char *lseek_doc[] = {
     "  2 or END  Seek from the end",
     "",
     "If -v VAR is provided, the new offset is stored in VAR.",
+    "",
+    "Exit Status:",
+    "Returns success unless an error occurs during lseek or variable binding.",
     (char *)NULL
 };

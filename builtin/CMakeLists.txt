@@ -10,7 +10,7 @@ foreach(i "" "include" "builtins")
     endif()
 endforeach()
 
-add_library(L_builtin MODULE L_builtin.c lseek.c select.c sig.c)
+add_library(L_builtin MODULE L_builtin.c lseek.c poll.c sig.c pipe.c)
 set_target_properties(L_builtin PROPERTIES
     PREFIX ""
     SUFFIX ".so"
