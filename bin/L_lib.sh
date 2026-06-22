@@ -5427,7 +5427,7 @@ L_finally_handle_return() {
 		;;
 	esac
 	#
-	if (( ${_L_finally_pending[@]:+1} )); then
+	if (( ${_L_finally_pending[@]+1} )); then
 		# Execute any pending signals.
 		# Unset L_SIGNAL, so that pending signal detection works correctly.
 		unset -v L_SIGNAL
@@ -5444,7 +5444,7 @@ L_finally_handle_exit() {
 		# _L_finally_debug "${_L_finally_arr[@]}"
 		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 		# During handling exit trap we received a signal. Try to preserve the exit code.
-		if (( ${_L_finally_pending[@]:+1} )); then
+		if (( ${_L_finally_pending[@]+1} )); then
 			# Execute any pending signals.
 			trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
@@ -5468,7 +5468,7 @@ L_finally_handle_signal() {
   	# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
 		if [[ -n "${L_SIGNAL:-}" ]]; then
 			# Is this the first time we are here?
-			if (( ${_L_finally_pending[@]:+1} )); then
+			if (( ${_L_finally_pending[@]+1} )); then
 				# Received multiple signals while servicing signal. Exit immidately.
   			trap - "$1" EXIT
 				L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately" || :
@@ -5511,7 +5511,7 @@ L_finally_list() {
 			frame=$(( ${#BASH_LINENO[@]}-frame ))
 			printf -v tmp "%q" "${BASH_SOURCE[frame]}"
 			tmp="#$frame $tmp:${BASH_LINENO[frame]}:${FUNCNAME[frame]}()"
-			data[idx]=$tmp${data[idx]}
+			data[idx]=$tmp${data[idx]:-}
 		done
 	done
 	# declare -p _L_finally_arr _L_finally_return data
