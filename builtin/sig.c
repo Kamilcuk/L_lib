@@ -54,7 +54,7 @@ sigmask_subcommand (WORD_LIST *list)
   int any_opt = 0;
   sigemptyset (&set);
   reset_internal_getopt ();
-  while ((opt = internal_getopt (list, "s:u:")) != -1)
+  while ((opt = internal_getopt (list, "s:u:h")) != -1)
     {
       any_opt = 1;
       switch (opt)
@@ -83,7 +83,10 @@ sigmask_subcommand (WORD_LIST *list)
 	    sigaddset (&set, s);
 	  }
 	  break;
-	CASE_HELPOPT;
+	case 'h':
+	case GETOPT_HELP:
+	  builtin_usage ();
+	  return (EX_USAGE);
 	default:
 	  builtin_usage ();
 	  return (EX_USAGE);
@@ -126,7 +129,7 @@ sigunmask_subcommand (WORD_LIST *list)
 
   sigemptyset (&unblocked);
   reset_internal_getopt ();
-  while ((opt = internal_getopt (list, "s:")) != -1)
+  while ((opt = internal_getopt (list, "s:h")) != -1)
     {
       switch (opt)
 	{
@@ -141,7 +144,10 @@ sigunmask_subcommand (WORD_LIST *list)
 	    sigaddset (&unblocked, sig);
 	  }
 	  break;
-	CASE_HELPOPT;
+	case 'h':
+	case GETOPT_HELP:
+	  builtin_usage ();
+	  return (EX_USAGE);
 	default:
 	  builtin_usage ();
 	  return (EX_USAGE);
@@ -224,10 +230,14 @@ char *sigmask_doc[] = {
 char *sigunmask_doc[] = {
     "Unblock signals and run a command.",
     "",
-    "L_builtin sigunmask -s sigspec cmd [args...]",
+    "L_builtin sigunmask [-h] -s sigspec cmd [args...]",
     "",
     "Temporarily unblocks the specified signal and executes the command.",
     "If the signal was pending, the trap is executed and the command is skipped.",
     "The command can be any shell command (builtin, function, or external).",
+    "",
+    "WARNING: There is a small window between unblocking and starting the command.",
+    "If a signal arrives in this window, it may be delivered to the command itself",
+    "rather than being caught by this builtin's check.",
     (char *)NULL
 };
