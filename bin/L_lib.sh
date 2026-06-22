@@ -18,6 +18,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+[[ -z "${_L_LIB_SH_:-}" ]] || return 0
+_L_LIB_SH_=1
+
 
 # globals [[[
 # @section globals
@@ -958,8 +961,10 @@ L_decorate() {
 # @description Measure time with the command, but include the command in the time message output and use %6l format.
 # @arg $@ command to measure.
 L_time() {
-	local _L_time=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'} TIMEFORMAT="real=%6lR user=%6lU system=%6lS [${*//$'\n'}]"
-	time TIMEFORMAT="$_L_time" "$@"
+	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
+	L_quote_printf -v _L_time_cmd "$@"
+	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [$_L_time_cmd]"
+	time TIMEFORMAT="$_L_time_sav" "$@"
 }
 
 # @description Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
@@ -1025,11 +1030,11 @@ _L_getopts_in_initer() {
 # @description Wrapper around getopts that executes subcommand with local-ed variables.
 #
 # The frist argument defines a getopts specification, which is like getopts with modifications.
-# Sequence of character followed by : represents an option with required argument, just like in getopts.
-# Sequence of a character followed by :: represents an option that arguments are collected into an array.
+# Character followed by : represents an option with required argument, just like in getopts.
+# Character followed by :: represents an option that arguments are collected into an array.
 # Otherwise, the characters represent short options on the command line.
 #
-# Each option in getopts specification translated to a variable named like the option.
+# Each option in getopts specification is translated to a variable named like the option.
 # The set variables are optionally prefixed with -p argument.
 #
 # Options variables are initalized with 0, and are incremented each time encountered.
@@ -1059,7 +1064,7 @@ _L_getopts_in_initer() {
 #
 #    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
 #    myfunc_in() {
-#      echo "
+#      echo "${opt_n[@]} $opt_v $opt_q"
 #    }
 #
 L_getopts_in() {
@@ -1111,7 +1116,7 @@ L_getopts_in() {
     '*') ;;
     '?')
       if (( $# > 1 )); then
-        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up" 
+        L_func_usage_error "Wrong number of arguments. At most 1 argument expected but received $#" "$_L_up"
         return "$L_EX_USAGE"
       fi
       ;;
@@ -2080,7 +2085,7 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # a string in the form of `([a]=b)` that can be used to assign to another variable.
 #
 # Use `declare` with `-a` or `-A` for arrays to load the result into a variable.
-# Eval is not preferred and might result in in valid values on Bash<4.4.
+# Eval is not preferred and might result in invalid values on Bash<4.4.
 # Bash<4.4 prepends byte 0x01 in front of bytes 0x01 and 0x7f.
 # Single 0x01 in declare -p output results in double 0x01,0x01.
 #
@@ -2912,6 +2917,17 @@ L_quote_printf_vL_RET() { printf -v L_RET " %q" "$@"; L_RET=${L_RET:1}; }
 L_quote_bin_printf() { L_handle_v_scalar "$@"; }
 L_quote_bin_printf_vL_RET() { L_RET=$(exec printf " %q" "$@"); L_RET=${L_RET:1}; }
 
+if (( L_HAS_BASH4_4 )); then
+# @description Quotes a string for bash to be able to re-read it.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $@ arguments to quote
+L_quote() { L_handle_v_scalar "$@"; }
+L_quote_vL_RET() { L_RET="${@@Q}"; }
+else
+	L_quote() { L_quote_printf "$@"; }
+	L_quote_vL_RET() { L_quote_printf_vL_RET "$@"; }
+fi
+
 # @description Convert a string to a number.
 # @option -v <var> Store the output in variable instead of printing it.
 L_strhash() { L_handle_v_scalar "$@"; }
@@ -3626,15 +3642,22 @@ L_json_create_vL_RET() {
 # @description Get array length.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
-# @arg $1 <var array nameref
+# @arg $1 <var> array nameref
 # @example L_array_len arr
 L_array_len() { L_handle_v_scalar "$@"; }
 
 # @description Get array keys
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
-# @arg $1 <var array nameref
+# @arg $1 <var> array nameref
 L_array_keys() { L_handle_v_array "$@"; }
+
+# @description Find the maximum index (key) in an array.
+# Return failure if the array is empty.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 <var> array nameref
+# @example L_array_max_index -v max_idx arr
+L_array_max_index() { L_handle_v_scalar "$@"; }
 
 if ((L_HAS_NAMEREF)); then
 
@@ -3690,8 +3713,15 @@ L_array_is_dense() {
 # @arg $1 Source array.
 # @arg $2 Destination array.
 L_array_copy() {
-	local -n _L_arr1=$1 _L_arr2=$2
+	local -n _L_arr1=$1 _L_arr2=$2 || return "$L_EX_USAGE"
 	_L_arr2=("${_L_arr1[@]}")
+}
+
+L_array_max_index_vL_RET() {
+	local -n _L_arr="$1" || return "$L_EX_USAGE"
+	local IFS=" "
+	L_RET="${!_L_arr[*]}"
+	L_RET="${L_RET##* }"
 }
 
 else  # L_HAS_NAMEREF
@@ -3718,6 +3748,12 @@ else  # L_HAS_NAMEREF
 		L_is_valid_variable_name "$1" &&
 			L_is_valid_variable_name "$2" &&
 			eval "$1=(\"\${$2[@]}\")"
+	}
+	L_array_max_index_vL_RET() {
+		L_is_valid_variable_name "$1" &&
+			local IFS=" " &&
+			eval "L_RET=\${!$1[*]}" &&
+			L_RET="${L_RET##* }"
 	}
 fi  # L_HAS_NAMEREF
 
@@ -3764,7 +3800,7 @@ L_array_reverse() {
 }
 
 # @description Wrapper for readarray/mapfile for bash versions that do not have it.
-# @option -t Ignored, does nothing.
+# @option -t Strip delimeter.
 # @option -d <delim> separator to use, default: newline
 # @option -u <fd> file descriptor to read from
 # @option -s <count> skip first n lines
@@ -4716,6 +4752,7 @@ L_log_format_json() {
 		script:"$0" \
 		\"pid\":"$pid" \
 		${PPID:+\"ppid\":"$PPID"} \
+		subshell:"$BASH_SUBSHELL" \
 	; do
 		if [[ "${i::1}" == \" ]]; then
 			out+=",$i"
@@ -5312,7 +5349,7 @@ L_trap_to_name_vL_RET() {
 #   L_trap_get -v var EXIT
 #   L_assert '' test "$var" = 'echo hi'
 L_trap_get() { L_handle_v_scalar "$@"; }
-if ((L_HAS_TRAP_P)); then
+if (( L_HAS_TRAP_P )); then
 L_trap_get_vL_RET() {
 	L_RET=$(trap -P "$1")
 }
@@ -6502,6 +6539,7 @@ L_unittest_cmd() {
 	else  # _L_uopt_curenv
 		_L_uc="set +e;trap - ERR;$_L_uc"
 		if ((_L_uopt_capture)); then
+			# The exit here executes exit trap on bash below something.
 			_L_uout=$( eval "$_L_uc" ) || _L_uret=$?
 		else
 			( eval "$_L_uc" ) || _L_uret=$?
@@ -9367,17 +9405,11 @@ L_argparse() {
 
 # @description Get bashpid in a way compatible with Bash before 4.0.
 # @arg $1 Variable to store the result to.
-L_bashpid_into() {
-	printf -v "$1" "%s" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"
-}
+L_bashpid_into() { printf -v "$1" "%s" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"; }
 
 # @description Send signal to itself.
 # @arg $@ Kill arguments. See kill --help.
-L_raise() {
-	local pid
-	L_bashpid_into pid
-	kill "$@" "$pid"
-}
+L_raise() { kill "$@" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"; }
 
 # @description
 L_kill_all_jobs() {
@@ -9411,19 +9443,21 @@ L_get_all_childs_vL_RET() {
 			echo "$_L_pid"
 			exec ps -e -o pid= -o ppid=
 	) && {
-		# Extract ps _L_pid that we conveniently put as the first item.
-		read -r _L_ps_pid <<<"$_L_ps_output"
-		# Populate a sparse array mapping pids to (string) lists of child pids.
-		_L_children_of=()
-		while read -r _L_pid _L_ppid; do
-			if [[ -n "$_L_pid" && -n "$_L_ppid" && _L_pid -ne _L_ppid && _L_pid -ne _L_ps_pid && _L_ppid -ne _L_ps_pid ]]; then
-				_L_children_of[_L_ppid]+=" $_L_pid"
-			fi
-		done <<<"$_L_ps_output"
+		{
+			# Extract ps _L_pid that we conveniently put as the first item.
+			read -r _L_ps_pid
+			# Populate a sparse array mapping pids to (string) lists of child pids.
+			_L_children_of=()
+			while read -r _L_pid _L_ppid; do
+				if [[ -n "$_L_pid" && -n "$_L_ppid" ]] && (( _L_pid != _L_ppid && _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
+					_L_children_of[_L_ppid]+=" $_L_pid"
+				fi
+			done
+		} <<<"$_L_ps_output"
 		# Add children to the list of pids until all descendants are found
 		L_RET=("$_L_toppid")
 		_L_unproc_idx=0    # Index of first process whose children have not been added
-		while (( ${L_RET[@]+${#L_RET[@]}}+0 > _L_unproc_idx )) ; do
+		while (( ${#L_RET[@]} > _L_unproc_idx )) ; do
 			_L_pid=${L_RET[_L_unproc_idx++]}     # Get first unprocessed, and advance
 			# shellcheck disable=SC2206
  			L_RET+=(${_L_children_of[_L_pid]-})  # Add child pids (ignore ShellCheck)
@@ -9443,8 +9477,8 @@ L_kill_all_childs() {
 		sig="$1"
 		shift
 	done
-	L_get_all_childs_vL_RET "$@"
-	if (( ${L_RET[*]:+${#L_RET[*]}}+0 )); then
+	L_get_all_childs_vL_RET "$@" || return
+	if (( ${L_RET[*]:+1}0 )); then
 		kill ${sig:+"$sig"} "${L_RET[@]}"
 	fi
 }
@@ -9456,7 +9490,7 @@ L_is_fd_open() {
 	{ >&"$1"; } 2>/dev/null
 }
 
-if ((L_HAS_VARIABLE_FD)); then
+if (( L_HAS_VARIABLE_FD )); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd_into() {
@@ -10691,168 +10725,6 @@ L_foreach() {
 # xargs [[[
 # @section xargs
 
-# @see https://github.com/jamesyoungman/findutils/blob/master/xargs/xargs.c#L1585
-# @see https://github.com/aixoss/findutils/blob/r4.4.2-aix/xargs/xargs.c#L1272
-_L_xargs_handle_return() {
-	case "$1" in
-	0) ;;
-	255)
-		_L_x_done=1
-		if ((_L_x_return < L_EX_TIMEOUT)); then
-			_L_x_return=$L_EX_TIMEOUT
-		fi
-		if (( !_L_x_quiet )); then
-			printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_cmd[0]}" >&2
-		fi
-		;;
-	126|127)
-		_L_x_done=1
-		if ((_L_x_return < $1)); then
-			_L_x_return=$1
-		fi
-		;;
-	*)
-		if ((128 < $1 && $1 <= 128 + 64)); then
-			_L_x_done=1
-			if (( !_L_x_quiet )); then
-				local L_RET
-				L_trap_to_name_vL_RET "$(($1-128))"
-				printf "L_xargs: %s: terminated by signal %s\n" "${_L_cmd[0]}" "$L_RET" >&2
-			fi
-			if ((_L_x_return < 125)); then
-				_L_x_return=125
-			fi
-		else
-			_L_x_return=123
-		fi
-		;;
-	esac
-}
-
-_L_xargs_buf_read() {
-	# Read from file descriptors if created pipes.
-	if (( ${_L_x_buf_fds_set[*]+${#_L_x_buf_fds_set[*]}}+0 )); then
-		if (( _L_x_dobuf == 1 )); then
-			# Read from any filedescriptor finishes first, while caching the others.
-			local _L_args=() _L_fd
-			# Prepare arguments for L_read_fds call - fd + buffer variable name.
-			for _L_fd in "${!_L_x_buf_fds_set[@]}"; do
-				_L_args+=( "$_L_fd" "_L_x_buf_output[$_L_fd]" )
-			done
-			# Read from file descriptors.
-			L_read_fds -v _L_fd "${_L_args[@]}" || return 1
-			# _L_fd finished. Close it, print output and remove from the list.
-			eval "exec $_L_fd>&-"
-			printf "%s" "${_L_x_buf_output[$_L_fd]}"
-			unset -v "_L_x_buf_fds_set[$_L_fd]" "_L_x_buf_output[$_L_fd]"
-		elif (( _L_x_dobuf >= 2 )); then
-			# Read from file descriptors on order.
-			# Reorder, so first one has index number 0.
-			# See the assignment above.
-			_L_x_buf_fds_set=("${_L_x_buf_fds_set[@]}")
-			cat <&"${_L_x_buf_fds_set[0]}"
-			unset -v "_L_x_buf_fds_set[0]"
-		fi
-	fi
-}
-
-_L_xargs_wait() {
-	# If there are no pids, there is nothing to wait for.
-	if (( ${_L_x_pid_to_num[*]+${#_L_x_pid_to_num[*]}}+0 )); then
-		# Read from buffered pipes, if used.
-		_L_xargs_buf_read || return 1
-		# Capture any command exit. Handle exit code.
-		local _L_a_pid _L_a_ret _L_a_idx
-		L_wait -n -v _L_a_ret -p _L_a_pid "${!_L_x_pid_to_num[@]}" || return 1
-		_L_x_rets[_L_x_pid_to_num[_L_a_pid]]=$_L_a_ret
-		_L_xargs_handle_return "$_L_a_ret"
-		unset -v "_L_x_pid_to_num[$_L_a_pid]"
-	fi
-}
-
-_L_xargs_prefixer() {
-	while IFS= read -r line; do
-		printf "%s\n" "$1: $line"
-	done
-}
-
-_L_xargs_run() {
-	if (( _L_x_done )); then
-		return
-	fi
-	if (( _L_x_template )); then
-		# Replace {} and {1} {2} ... {N}.
-		local _L_cmdready=("${_L_cmd[@]//\{\}/$*}")
-		for (( _L_i = 1; _L_i <= $#; ++_L_i )); do
-			_L_cmdready=("${_L_cmdready[@]//\{${_L_i}\}/${!_L_i}}")
-		done
-	elif [[ -n "$_L_x_replace" ]]; then
-		# Replace {}.
-		local _L_cmdready=("${_L_cmd[@]//"$_L_x_replace"/$*}")
-	else
-		local _L_cmdready=("${_L_cmd[@]}" "$@")
-	fi
-	if (( _L_x_prefix )); then
-		local _L_cmd _L_x_prefix
-		printf -v _L_cmd "%q " "${_L_cmdready[@]}"
-		printf -v _L_x_prefix " %q" "$@"
-		_L_cmd+="> >(_L_xargs_prefixer$_L_x_prefix)"
-		_L_cmdready=(eval "$_L_cmd")
-	fi
-	# Execute
-	if (( _L_x_verbose )); then
-		L_quote_printf "+" "${_L_cmdready[@]}" >&2
-	fi
-	if (( _L_x_maxprocs == 1 )); then
-		if (( _L_x_preserve_set_e )); then
-			"${_L_cmdready[@]}"
-			_L_i=$?
-		else
-			L_exit_into _L_i "${_L_cmdready[@]}"
-		fi
-		_L_xargs_handle_return "$_L_i"
-		_L_x_rets+=("$_L_i")
-	else
-		if (( !_L_registered_xargs_trap )); then
-			_L_registered_xargs_trap=1
-			L_finally -s 1 -r _L_xargs_trap || return 1
-		fi
-		if (( _L_x_dobuf )); then
-			local _L_pipe _L_cmd
-			printf -v _L_cmd "%q " "${_L_cmdready[@]}"
-			L_pipe _L_pipe || return 1
-			eval "$_L_cmd ${_L_pipe[0]}>&- 1>&${_L_pipe[1]} & exec ${_L_pipe[1]}>&-"
-			if (( _L_x_dobuf == 1 )); then
-				# When _L_x_dobuf=1, we can easily unset the buffer from L_wait using the file descriptor.
-				_L_x_buf_fds_set["${_L_pipe[0]}"]=""
-			else
-				# When _L_x_dobuf>=2, we can easily get the first buffer from [0] index.
-				_L_x_buf_fds_set+=("${_L_pipe[0]}")
-			fi
-		else
-			"${_L_cmdready[@]}" &
-		fi
-		_L_x_pid_to_num["$!"]=$L_XARGS_INDEX
-		if (( _L_x_maxprocs > 0 && ${#_L_x_pid_to_num[@]} >= _L_x_maxprocs )); then
-			_L_xargs_wait || return 1
-		fi
-	fi
-	(( ++L_XARGS_INDEX ))
-}
-
-_L_xargs_trap() {
-	if (( ${_L_x_pid_to_num[@]+1} )); then
-		if [[ " SIGINT RETURN EXIT " == *"$L_SIGNAL"* ]]; then
-			# https://stackoverflow.com/a/75385863/9072753
-			# SIGINT is disabled in subshells so do not send it
-			kill "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
-		else
-			kill ${L_SIGNAL+-"$L_SIGNAL"} "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
-		fi
-		wait "${!_L_x_pid_to_num[@]}" 2>/dev/null || :
-	fi
-}
-
 # @description Returns the number of CPU cores.
 # @option -v <var>
 # @option -h
@@ -10879,164 +10751,7 @@ L_nproc_vL_RET() {
 	fi
 }
 
-_L_xargs_callback_array() {
-	(( _L_x_a_index < (${_L_x_a[*]+${#_L_x_a[*]}}+0) )) && L_RET=("${_L_x_a[_L_x_a_index++]}")
-}
-_L_xargs_callback_read() {
-	IFS= read -u "$_L_x_fd" -d "$_L_x_d" -r L_RET || [[ -n "$L_RET" ]]
-}
-_L_xargs_handle_eof_str() {
-	"$@" && [[ "$L_RET" != "$_L_x_eof_str" ]]
-}
-
-# @description A high-performance Bash implementation of the `xargs` utility designed for seamless
-# integration with local shell environments. Unlike binary `xargs`, `L_xargs` executes within
-# the current shell context, enabling the direct use of unexported Bash functions,
-# aliases, and variables without requiring `expor` or `export -f`.
-#
-# The tool operates on a dual-unit architecture:
-# 1. Records: Discrete segments of input defined by a delimiter (default: `\n`).
-# 2. Atoms: The individual arguments passed to the command.
-#
-# By default, `L_xargs` operates in `-s -0` mode. If `-d` `-0` `-a` options are specified without `-s -S`, `-S` is implied.
-#
-# Execution follows a first-to-threshold trigger system: the command is dispatched as
-# soon as either the Atom limit (-n) or the Record limit (-L) is reached. If no
-# limits are specified, the command executes exactly once upon reaching EOF.
-#
-# @option -0 Use the null character (\0) as the Record separator.
-# @option -a <var> Read Records from the specified Bash array variable instead of STDIN.
-# @option -c <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
-# @option -d <delimiter> Set the Record separator to the specified character.
-# @option -s Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
-# @option -S Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
-# @option -u <fd> Read the input stream from the specified file descriptor.
-# @option -I <replace-str> Replace occurrences of replace-str in the command. Sets -n 1.
-# @option -i Shorthand for -I{}.
-# @option -L <max-records> Trigger execution once <max-records> have been accumulated.
-# @option -l Shorthand for -L1.
-# @option -n <max-atoms> Trigger execution once <max-atoms> have been accumulated.
-# @option -r If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
-# @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
-# @option -O Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
-# @option -t Verbose: Print each command to STDERR before execution.
-# @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
-# @option -q Be quiet.
-# @option -v <var> Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
-# @option -E <eof-str> Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
-# @option -e <eof-str> Like -E, compatibility wtih GNU xargs, use -E.
-# @option -X Exit on error when set -e flag is set. Capture the command exit status with "cmd; rc=$?", preserving set -e flag effect during the duration of cmd.
-# @option -T  Use the command as a template: {} is replaced by all arguments,
-#             {1} {2} ... {N} are replaced by the corresponding argument.
-# @option -h Display this help documentation and exit.
-# @arg $@ Command to execute. Default: L_quote_printf.
-# @return 0 on success
-#         1 on some other error
-#         64 ($L_EX_USAGE) on invalid usage
-#         123 if any invocation oft he command exited with status 1-125 and 192-254
-#         124 ($L_EX_TIMEOUT) if the command exited with status 255
-#         125 if the command exited with the status 128-192
-#         126 if the command cannot be run
-#         127 if the command is not found
-# @env L_XARGS_INDEX The index of the job being executed.
-L_xargs() {
-	local OPTIND OPTARG OPTERR _L_x_replace="" _L_atoms_limit=0 _L_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
-			_L_x_verbose=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
-			_L_x_callback=(_L_xargs_callback_read) _L_x_d=$'\n' _L_x_fd=0 _L_x_a _L_x_a_index=0 _L_x_split="" \
-			_L_x_dobuf=0 _L_x_buf_fds_set=() _L_x_buf_output=() _L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
-			_L_x_eof_str="" _L_x_preserve_set_e=0 _L_x_template=0
-	while getopts a:0c:d:sSu:I:in:L:lrP:tO^qv:E:e:XTh _L_i; do
-		case "$_L_i" in
-			a) _L_x_callback=(_L_xargs_callback_array) _L_i="$OPTARG[@]" _L_x_a=(${!_L_i+"${!_L_i}"}) _L_x_split=${_L_x_split:-0} _L_records_limit=${_L_records_limit:-1} ;;
-			0) _L_x_callback=(_L_xargs_callback_read) _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
-			c)
-				if (( L_HAS_BASH4_0 )); then
-					_L_x_callback=(eval "$OPTARG")
-				else
-					IFS=$' \t\n' read -ra _L_x_callback <<<"$OPTARG"
-				fi
-				;;
-			d) _L_x_callback=(_L_xargs_callback_read) _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
-			s) _L_x_split=1 ;;
-			S) _L_x_split=0 ;;
-			u) _L_x_fd=$OPTARG ;;
-			I) _L_atoms_limit=1 _L_x_replace=$OPTARG ;;
-			i) _L_atoms_limit=1 _L_x_replace="{}" ;;
-			n) _L_atoms_limit=$OPTARG ;;
-			L) _L_records_limit=$OPTARG ;;
-			l) _L_records_limit=1 ;;
-			r) _L_x_r=1 ;;
-			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
-			t) _L_x_verbose=1 ;;
-			O) _L_x_dobuf=$(( _L_x_dobuf + 1 )) ;;
-			^) _L_x_prefix=1 ;;
-			q) _L_x_quiet=1 ;;
-			v) _L_x_v=$OPTARG ;;
-			E) _L_x_eof_str=$OPTARG ;;
-			e) _L_x_eof_str=$OPTARG ;;
-			X) _L_x_preserve_set_e=1 ;;
-			T) _L_x_template=1 ;;
-			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return "$L_EX_USAGE" ;;
-		esac
-	done
-	shift "$((OPTIND-1))"
-	# When under -E or -e, exit when a line is exactly something.
-	if (( _L_x_eof_str )); then
-		_L_x_callback=(_L_xargs_handle_eof_str "${_L_x_callback[@]}")
-	fi
-	# Start the loop over records.
-	local _L_cmd=("${@:-L_quote_printf}") _L_x_pid_to_num=() _L_atoms=() _L_x_return=0 _L_x_done=0 L_RET _L_cur_records=0
-	# _L_x_done is set when any command exits wtih 255.
-	while (( !_L_x_done )) && L_RET=() && "${_L_x_callback[@]}"; do
-		(( ++_L_cur_records ))
-		if (( ${_L_x_split:-1} )); then
-			# Record -> Multiple Atoms
-			# shellcheck disable=SC2048
-			L_string_unquote -v L_RET "${L_RET[*]+${L_RET[*]}}" || return 1
-		fi
-		# Accumulate atoms (L_RET is 1 atom in Solid mode, 1+ in Split mode)
-		_L_atoms+=(${L_RET[@]+"${L_RET[@]}"})
-		# Dual-threshold trigger logic - on number of atoms and number of records.
-		if (( _L_atoms_limit > 0 )); then
-			while (( ${_L_atoms[*]+${#_L_atoms[*]}}+0 >= _L_atoms_limit )); do
-				if (( _L_x_preserve_set_e )); then
-					_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}"
-				else
-					_L_xargs_run "${_L_atoms[@]:0:_L_atoms_limit}" || return 1
-				fi
-				_L_atoms=("${_L_atoms[@]:_L_atoms_limit}")
-				_L_cur_records=0
-			done
-		fi
-		if (( _L_records_limit > 0 && _L_cur_records >= _L_records_limit )); then
-			if (( _L_x_preserve_set_e )); then
-				_L_xargs_run ${_L_atoms[@]+"${_L_atoms[@]}"}
-			else
-				_L_xargs_run ${_L_atoms[@]+"${_L_atoms[@]}"} || return 1
-			fi
-			_L_atoms=()
-			_L_cur_records=0
-		fi
-	done
-	# Final EOF Flush
-	if (( ${_L_atoms[*]+1} )); then
-		if (( _L_x_preserve_set_e )); then
-			_L_xargs_run "${_L_atoms[@]}"
-		else
-			_L_xargs_run "${_L_atoms[@]}" || return 1
-		fi
-	fi
-	# Reaper for parallel mode
-	while (( ${_L_x_pid_to_num[*]+1} )); do
-		_L_xargs_wait || return 1
-	done
-	if [[ -n "$_L_x_v" ]]; then
-		L_array_assign "$_L_x_v" "${_L_x_rets[@]}" || return 1
-		return 0
-	fi
-	return "$_L_x_return"
-}
+. "$(dirname "${BASH_SOURCE[0]}")"/../scripts/L_uv.sh
 
 # ]]]
 # lib [[[
