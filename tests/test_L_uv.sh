@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
-. "$(dirname "${BASH_SOURCE[0]}")"/../scripts/L_uv.sh
 
 _L_test_L_uv_timer_basic() {
 	local ran=0 L_UV

@@ -11,9 +11,13 @@ L_cb_parse_args
 L_cb_usage
 L_asa_set
 "
+ignore_functions="\
+_L_uv_delayer_waiter_timer
+_L_lib_usage
+"
 work() {
   func="$1"
-  if [[ "$func" == _L_lib_usage ]]; then
+  if grep -qx "$ignore_functions" <<<"$func"; then
     # Ignore
     return
   fi
@@ -28,7 +32,7 @@ if L_hash L_xargs; then
   L_xargs -t -P "$(nproc)" -i work {} <<<"$functions"
 else
   export -f $functions work
-  export all_functions functions
+  export all_functions functions ignore_functions
   xargs -t -P "$(nproc)" -n1 bash -c 'work $1' bash <<<"$functions"
 fi
 echo "SUCCESS"

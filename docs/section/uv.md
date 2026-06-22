@@ -206,10 +206,11 @@ Each handle type is allocated from a block of 1 million slots. The maximum numbe
 | 29000000 + (PID % 1M)  | PID-to-WID Hash Map Bucket                  | Waiter      |
 | 30000000               | Next available Reader handle ID (relative)  | Reader      |
 | 30000001               | Active Reader handle IDs cache ( rel_id )   | Reader      |
-| 31000000 + (RID*4) + 0 | Reader: User callback string                | Reader      |
-| 31000000 + (RID*4) + 1 | Reader: Separator (delimiter)               | Reader      |
-| 31000000 + (RID*4) + 2 | Reader: File descriptor (FD)                | Reader      |
-| 31000000 + (RID*4) + 3 | Reader: Accumulation buffer                 | Reader      |
+| 31000000 + (RID*5) + 0 | Reader: User callback string                | Reader      |
+| 31000000 + (RID*5) + 1 | Reader: Separator (delimiter)               | Reader      |
+| 31000000 + (RID*5) + 2 | Reader: File descriptor (FD)                | Reader      |
+| 31000000 + (RID*5) + 3 | Reader: Accumulation buffer                 | Reader      |
+| 31000000 + (RID*5) + 4 | Reader: Close on EOF flag                   | Reader      |
 | 98000000               | Next available Task handle ID (relative)    | Task        |
 | 99000000 - 99999999    | User task callbacks                         | Task        |
 
