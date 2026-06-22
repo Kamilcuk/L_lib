@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <signal.h>
 #include <errno.h>
+#include <string.h>
 
 #include "builtins.h"
 #include "shell.h"
@@ -97,7 +98,11 @@ sigmask_subcommand (WORD_LIST *list)
   if (any_opt == 0 && list == 0)
     {
       sigemptyset(&set);
-      sigprocmask(SIG_BLOCK, &set, &old);
+      if (sigprocmask(SIG_BLOCK, &set, &old) < 0)
+	{
+	  builtin_error ("sigprocmask: %s", strerror (errno));
+	  return (EXECUTION_FAILURE);
+	}
       for (int i = 1; i < NSIG; i++)
 	{
 	  if (sigismember(&old, i))
@@ -116,6 +121,7 @@ sigmask_subcommand (WORD_LIST *list)
       return (EXECUTION_FAILURE);
     }
 
+  /* Update top_level_mask so it persists across command executions. */
   sigprocmask (SIG_BLOCK, NULL, &top_level_mask);
 
   return (EXECUTION_SUCCESS);
@@ -162,7 +168,11 @@ sigunmask_subcommand (WORD_LIST *list)
     }
 
   sigemptyset(&set);
-  sigprocmask(SIG_BLOCK, &set, &old);
+  if (sigprocmask(SIG_BLOCK, &set, &old) < 0)
+    {
+      builtin_error ("sigprocmask: %s", strerror (errno));
+      return (EXECUTION_FAILURE);
+    }
   
   sigset_t newmask = old;
   for (int i = 1; i < NSIG; i++)
@@ -181,7 +191,12 @@ sigunmask_subcommand (WORD_LIST *list)
   add_unwind_protect (xfree, pold);
   add_unwind_protect (restore_process_sigmask, pold);
 
-  sigprocmask (SIG_SETMASK, &newmask, NULL);
+  if (sigprocmask (SIG_SETMASK, &newmask, NULL) < 0)
+    {
+      builtin_error ("sigprocmask: %s", strerror (errno));
+      run_unwind_frame ("sigunmask");
+      return (EXECUTION_FAILURE);
+    }
 
   QUIT;
   
@@ -224,6 +239,9 @@ char *sigmask_doc[] = {
     "",
     "Block or unblock signals in the shell process. Without options, it",
     "prints the current signal mask. -s blocks, -u unblocks.",
+    "",
+    "Exit Status:",
+    "Returns success unless an invalid signal is provided or a system error occurs.",
     (char *)NULL
 };
 
@@ -239,5 +257,8 @@ char *sigunmask_doc[] = {
     "WARNING: There is a small window between unblocking and starting the command.",
     "If a signal arrives in this window, it may be delivered to the command itself",
     "rather than being caught by this builtin's check.",
+    "",
+    "Exit Status:",
+    "Returns the status of the command, or 128+signum if a signal was caught.",
     (char *)NULL
 };

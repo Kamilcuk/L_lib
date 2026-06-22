@@ -11,21 +11,31 @@
 extern char *this_command_name;
 extern struct builtin L_builtin_struct;
 
-static void
-L_builtin_help_subcommand (char *subcommand)
-{
-  char **doc = NULL;
-  if (strcmp (subcommand, "lseek") == 0) doc = lseek_doc;
-  else if (strcmp (subcommand, "select") == 0) doc = select_doc;
-  else if (strcmp (subcommand, "pselect") == 0) doc = pselect_doc;
-  else if (strcmp (subcommand, "sigmask") == 0) doc = sigmask_doc;
-  else if (strcmp (subcommand, "sigunmask") == 0) doc = sigunmask_doc;
+struct subcommand_def {
+  const char *name;
+  sh_builtin_func_t *func;
+  char **doc;
+};
 
-  if (doc)
+static struct subcommand_def subcommands[] = {
+  { "lseek", lseek_subcommand, lseek_doc },
+  { "poll", poll_subcommand, poll_doc },
+  { "ppoll", ppoll_subcommand, ppoll_doc },
+  { "sigmask", sigmask_subcommand, sigmask_doc },
+  { "sigunmask", sigunmask_subcommand, sigunmask_doc },
+  { "pipe", pipe_subcommand, pipe_doc },
+  { NULL, NULL, NULL }
+};
+
+static struct subcommand_def *
+find_subcommand (const char *name)
+{
+  for (int i = 0; subcommands[i].name; i++)
     {
-      for (int i = 0; doc[i]; i++)
-	printf ("%s\n", doc[i]);
+      if (strcmp (name, subcommands[i].name) == 0)
+	return &subcommands[i];
     }
+  return NULL;
 }
 
 int
@@ -39,30 +49,27 @@ L_builtin_builtin (WORD_LIST *list)
       return (EX_USAGE);
     }
 
-  char *subcommand = list->word->word;
-  
+  char *subcommand_name = list->word->word;
+  struct subcommand_def *sub = find_subcommand (subcommand_name);
+
+  if (sub == NULL)
+    {
+      builtin_error ("%s: invalid subcommand", subcommand_name);
+      return (EX_USAGE);
+    }
+
   /* Check for help request for subcommand */
   if (list->next && (strcmp (list->next->word->word, "-h") == 0 || strcmp (list->next->word->word, "--help") == 0))
     {
-      L_builtin_help_subcommand (subcommand);
+      if (sub->doc)
+	{
+	  for (int i = 0; sub->doc[i]; i++)
+	    printf ("%s\n", sub->doc[i]);
+	}
       return (EXECUTION_SUCCESS);
     }
 
-  if (strcmp (subcommand, "lseek") == 0)
-    return lseek_subcommand (list->next);
-  else if (strcmp (subcommand, "select") == 0)
-    return select_subcommand (list->next);
-  else if (strcmp (subcommand, "pselect") == 0)
-    return pselect_subcommand (list->next);
-  else if (strcmp (subcommand, "sigmask") == 0)
-    return sigmask_subcommand (list->next);
-  else if (strcmp (subcommand, "sigunmask") == 0)
-    return sigunmask_subcommand (list->next);
-  else
-    {
-      builtin_error ("%s: invalid subcommand", subcommand);
-      return (EX_USAGE);
-    }
+  return (*sub->func) (list->next);
 }
 
 char *L_builtin_doc[] = {
@@ -72,10 +79,11 @@ char *L_builtin_doc[] = {
     "",
     "Available subcommands:",
     "  lseek      Reposition file offset",
-    "  select     Wait for file descriptors to become ready",
-    "  pselect    Wait for FDs and unblock signals atomically",
+    "  poll       Wait for file descriptors to become ready",
+    "  ppoll      Wait for FDs and unblock signals atomically",
     "  sigmask    Block or unblock signals",
     "  sigunmask  Unblock signals and run a command",
+    "  pipe       Create a pipe",
     "",
     "Use 'L_builtin <subcommand> -h' for more information.",
     (char *)NULL
