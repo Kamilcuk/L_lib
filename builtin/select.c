@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include "builtins.h"
 #include "shell.h"
@@ -12,6 +13,8 @@
 #include "common.h"
 #include "array.h"
 #include "variables.h"
+#include "trap.h"
+#include "sig.h"
 #include "L_builtin.h"
 
 static int
@@ -148,6 +151,104 @@ select_subcommand (WORD_LIST *list)
   return (ret >= 0 ? EXECUTION_SUCCESS : EXECUTION_FAILURE);
 }
 
+int
+pselect_subcommand (WORD_LIST *list)
+{
+  char *readfds_name = NULL;
+  char *writefds_name = NULL;
+  char *exceptfds_name = NULL;
+  char *timeout_str = NULL;
+  char *ret_var = NULL;
+  sigset_t unblock_set, current_mask, new_mask;
+  int opt, unblock_any = 0;
+
+  sigemptyset(&unblock_set);
+
+  reset_internal_getopt ();
+  while ((opt = internal_getopt (list, "r:w:e:t:v:u:h")) != -1)
+    {
+      switch (opt)
+	{
+	case 'r': readfds_name = list_optarg; break;
+	case 'w': writefds_name = list_optarg; break;
+	case 'e': exceptfds_name = list_optarg; break;
+	case 't': timeout_str = list_optarg; break;
+	case 'v': ret_var = list_optarg; break;
+	case 'u':
+	  {
+	    int sig = decode_signal (list_optarg, DSIG_NOCASE|DSIG_SIGPREFIX);
+	    if (sig == NO_SIG) { sh_invalidsig (list_optarg); return (EXECUTION_FAILURE); }
+	    sigaddset(&unblock_set, sig);
+	    unblock_any = 1;
+	  }
+	  break;
+	case 'h':
+	case GETOPT_HELP:
+	  builtin_usage ();
+	  return (EX_USAGE);
+	default:
+	  builtin_usage ();
+	  return (EX_USAGE);
+	}
+    }
+  list = loptend;
+
+  fd_set rfds, wfds, efds;
+  FD_ZERO (&rfds); FD_ZERO (&wfds); FD_ZERO (&efds);
+  int maxfd = -1;
+
+  if (populate_fd_set(readfds_name, &rfds, &maxfd) < 0) return EXECUTION_FAILURE;
+  if (populate_fd_set(writefds_name, &wfds, &maxfd) < 0) return EXECUTION_FAILURE;
+  if (populate_fd_set(exceptfds_name, &efds, &maxfd) < 0) return EXECUTION_FAILURE;
+
+  struct timespec ts, *tsp = NULL;
+  if (timeout_str) {
+      double t = atof(timeout_str);
+      ts.tv_sec = (long)t;
+      ts.tv_nsec = (long)((t - (long)t) * 1000000000);
+      tsp = &ts;
+  }
+
+  /* Get current mask to compute the new one for pselect */
+  sigemptyset(&current_mask);
+  sigprocmask(SIG_BLOCK, NULL, &current_mask);
+  new_mask = current_mask;
+  if (unblock_any) {
+      for (int i = 1; i < NSIG; i++) {
+          if (sigismember(&unblock_set, i)) sigdelset(&new_mask, i);
+      }
+  }
+
+  int ret = pselect(maxfd + 1, &rfds, &wfds, &efds, tsp, &new_mask);
+
+  if (ret_var) {
+      char buf[32]; sprintf(buf, "%d", ret);
+      bind_variable(ret_var, buf, 0);
+  }
+
+  if (ret > 0) {
+      update_array(readfds_name, &rfds, maxfd);
+      update_array(writefds_name, &wfds, maxfd);
+      update_array(exceptfds_name, &efds, maxfd);
+  } else {
+      /* On timeout (0) or error (<0), clear all arrays if they were provided */
+      if (readfds_name) {
+          SHELL_VAR *v = find_variable(readfds_name);
+          if (v && array_p(v)) array_flush(array_cell(v));
+      }
+      if (writefds_name) {
+          SHELL_VAR *v = find_variable(writefds_name);
+          if (v && array_p(v)) array_flush(array_cell(v));
+      }
+      if (exceptfds_name) {
+          SHELL_VAR *v = find_variable(exceptfds_name);
+          if (v && array_p(v)) array_flush(array_cell(v));
+      }
+  }
+
+  return (ret >= 0 ? EXECUTION_SUCCESS : EXECUTION_FAILURE);
+}
+
 char *select_doc[] = {
     "Wait for file descriptors to become ready.",
     "",
@@ -158,5 +259,19 @@ char *select_doc[] = {
     "On return, the arrays are modified to contain only the ready FDs.",
     "TIMEOUT is in seconds (can be fractional).",
     "RETVAR is the name of a variable to store the return value of select(2).",
+    (char *)NULL
+};
+
+char *pselect_doc[] = {
+    "Wait for file descriptors and unblock signals atomically.",
+    "",
+    "L_builtin pselect [-r READFDS] [-w WRITEFDS] [-e EXCEPTFDS] [-t TIMEOUT] [-v RETVAR] [-u SIGSPEC]",
+    "",
+    "Poll multiple file descriptors and unblock signals using pselect(2).",
+    "READFDS, WRITEFDS, and EXCEPTFDS are names of indexed arrays containing FDs.",
+    "On return, the arrays are modified to contain only the ready FDs.",
+    "TIMEOUT is in seconds (can be fractional).",
+    "RETVAR is the name of a variable to store the return value of pselect(2).",
+    "SIGSPEC is a signal to unblock during the wait (can be specified multiple times).",
     (char *)NULL
 };

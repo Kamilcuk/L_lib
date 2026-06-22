@@ -17,6 +17,7 @@ L_builtin_help_subcommand (char *subcommand)
   char **doc = NULL;
   if (strcmp (subcommand, "lseek") == 0) doc = lseek_doc;
   else if (strcmp (subcommand, "select") == 0) doc = select_doc;
+  else if (strcmp (subcommand, "pselect") == 0) doc = pselect_doc;
   else if (strcmp (subcommand, "sigmask") == 0) doc = sigmask_doc;
   else if (strcmp (subcommand, "sigunmask") == 0) doc = sigunmask_doc;
 
@@ -51,6 +52,8 @@ L_builtin_builtin (WORD_LIST *list)
     return lseek_subcommand (list->next);
   else if (strcmp (subcommand, "select") == 0)
     return select_subcommand (list->next);
+  else if (strcmp (subcommand, "pselect") == 0)
+    return pselect_subcommand (list->next);
   else if (strcmp (subcommand, "sigmask") == 0)
     return sigmask_subcommand (list->next);
   else if (strcmp (subcommand, "sigunmask") == 0)
@@ -70,6 +73,7 @@ char *L_builtin_doc[] = {
     "Available subcommands:",
     "  lseek      Reposition file offset",
     "  select     Wait for file descriptors to become ready",
+    "  pselect    Wait for FDs and unblock signals atomically",
     "  sigmask    Block or unblock signals",
     "  sigunmask  Unblock signals and run a command",
     "",
