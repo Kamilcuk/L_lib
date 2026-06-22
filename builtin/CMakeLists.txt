@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
+
+option(L_DEV "Enable development options" OFF)
+if(L_DEV)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
 project(L_builtin C)
 
 set(BASH_INC "/usr/include/bash" CACHE PATH "Path to bash headers")
@@ -10,10 +16,11 @@ foreach(i "" "include" "builtins")
     endif()
 endforeach()
 
-set(SOURCES L_builtin.c lseek.c poll.c sig.c pipe.c)
+set(SOURCES src/L_builtin.c src/lseek.c src/poll.c src/sig.c src/pipe.c)
 set(LIBS "")
 set(INC_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${BASH_INC}
     ${BASH_INC}/include
     ${BASH_INC}/builtins
@@ -36,7 +43,7 @@ find_package(PkgConfig QUIET)
 if(PKG_CONFIG_FOUND)
     pkg_check_modules(LUAJIT QUIET luajit)
     if(LUAJIT_FOUND)
-        list(APPEND SOURCES lua.c)
+        list(APPEND SOURCES src/lua.c)
         list(APPEND INC_DIRS ${LUAJIT_INCLUDE_DIRS})
         list(APPEND LIBS ${LUAJIT_LIBRARIES})
         add_definitions(-DHAVE_LUA)
@@ -56,3 +63,17 @@ set_target_properties(L_builtin PROPERTIES
 target_compile_definitions(L_builtin PRIVATE HAVE_CONFIG_H SHELL)
 target_include_directories(L_builtin PRIVATE ${INC_DIRS})
 target_link_libraries(L_builtin PRIVATE ${LIBS})
+
+if(L_DEV)
+    if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(L_builtin PRIVATE -Wall -Wextra -fanalyzer)
+    endif()
+
+    # Create a symlink to compile_commands.json in the root directory
+    add_custom_target(symlink_compile_commands ALL
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+        COMMENT "Creating symlink to compile_commands.json"
+    )
+endif()
