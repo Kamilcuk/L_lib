@@ -22,14 +22,17 @@ lseek_subcommand (WORD_LIST *list)
   int fd, whence = SEEK_SET;
 
   reset_internal_getopt ();
-  while ((opt = internal_getopt (list, "v:")) != -1)
+  while ((opt = internal_getopt (list, "v:h")) != -1)
     {
       switch (opt)
 	{
 	case 'v':
 	  ret_var = list_optarg;
 	  break;
-	CASE_HELPOPT;
+	case 'h':
+	case GETOPT_HELP:
+	  builtin_usage ();
+	  return (EX_USAGE);
 	default:
 	  builtin_usage ();
 	  return (EX_USAGE);

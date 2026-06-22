@@ -69,7 +69,7 @@ select_subcommand (WORD_LIST *list)
   int opt;
 
   reset_internal_getopt ();
-  while ((opt = internal_getopt (list, "r:w:e:t:v:")) != -1)
+  while ((opt = internal_getopt (list, "r:w:e:t:v:h")) != -1)
     {
       switch (opt)
 	{
@@ -88,7 +88,10 @@ select_subcommand (WORD_LIST *list)
 	case 'v':
 	  ret_var = list_optarg;
 	  break;
-	CASE_HELPOPT;
+	case 'h':
+	case GETOPT_HELP:
+	  builtin_usage ();
+	  return (EX_USAGE);
 	default:
 	  builtin_usage ();
 	  return (EX_USAGE);
