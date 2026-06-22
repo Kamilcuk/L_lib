@@ -11238,15 +11238,11 @@ _L_uv_delayer_waiter_capped() { _L_uv_delayer_waiter_timer "$1" "_capped"; }
 # @arg $1 Optional timeout.
 # @arg $2 Set to an empty string '' to disable timeout completely.
 _L_uv_manager_reader() {
-  local _L_rel _L_sep _L_fd _L_cb _L_line _L_buf _L_base _L_ids="${L_UV[30000001]:-}" _L_default_timeout=0.001 L_RET
-  if (( !L_HAS_BASH4_4 )); then
-    # Bash 3.2 timeouts can only be integers
-    _L_default_timeout=1
-    if (( $# == 1 )); then
-      L_sec_to_usec_vL_RET "$1"
-      # Round up.
-      set -- "$(( (L_RET + 1000000 - 1) / 1000000 ))"
-    fi
+  local _L_rel _L_sep _L_fd _L_cb _L_line _L_buf _L_base _L_ids="${L_UV[30000001]:-}" _L_default_timeout=1 L_RET
+  # Bash versions older than 4.0 (like 3.2) can only be integers. Round up.
+  if (( !L_HAS_BASH4_0 && $# == 1 )); then
+    L_sec_to_usec_vL_RET "$1"
+    set -- "$(( (L_RET + 999999) / 1000000 ))"
   fi
   # Iterate over active Reader IDs from the string cache
   for _L_rel in $_L_ids; do

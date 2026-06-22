@@ -234,4 +234,11 @@ It is possible to call `L_uv_run` from within a callback of another `L_uv_run` i
 
 **Warning**: This should be used with caution. Handles from the outer loop (timers, readers, etc.) will **not** be serviced while the inner loop is running. This can be useful for modal dialogs or sub-tasks that must complete before the main loop continues, but can also lead to unexpected latency if not managed carefully.
 
+### Reader Timeout and Race Conditions
+By default, `L_uv_manager_reader` uses a 1-second timeout for `read -d`. This relatively high value is a mitigation for a race condition in the Bash `read` builtin's internal timer framework (introduced in Bash 5.2).
+
+When `read -t` is used with a delimiter (`-d`), a timeout that expires exactly as data (including the delimiter) arrives can cause Bash to return a partial line and lose the delimiter from its internal buffer. In the `L_uv` reader, this would result in the next read's data being concatenated directly to the previous partial record without a separator, mangling the input (e.g., `record1` and `record2` becoming `record1record2`).
+
+Using a 1-second timeout significantly reduces the probability of hitting this timing window under high system load. For high-performance stream processing where 1-second latency is unacceptable, applications should consider implementing their own raw chunked reading logic to bypass Bash's delimited read entirely.
+
 ::: bin/L_lib.sh uv
