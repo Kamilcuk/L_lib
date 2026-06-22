@@ -2111,16 +2111,11 @@ if (( L_HAS_QEPAa_EXPANSIONS )); then
 
 	L_var_to_string_vL_RET() {
 		local -; set +u
-		if [[ ${!1@a} == *[aA]* ]]; then
+		if [[ "${!1@a}" == [aA]* ]]; then
 			# Indirect expansion with @A does not work in Bash5.0
 			# We know $1 is a sane valid variable name, becuase above worked.
 			eval "L_RET=\"\${$1[@]@A}\""
-			# @A does not print =() empty arrays assignment. Fix that.
-			if [[ "$L_RET" != *" $1=("* ]]; then
-				L_RET="()"
-			else
-				L_RET="${L_RET#*=}"
-			fi
+			L_RET="${L_RET#*=}"
 		else
 			# Non array variable.
 			printf -v L_RET "%q" "${!1}"
@@ -2155,7 +2150,7 @@ L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-
 L_var_to_string_vL_RET() {
 	L_RET=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
 	# If it is an array or associative array.
-	if [[ "${L_RET::10}" == declare\ -[aA] ]]; then
+	if [[ "$L_RET" == declare\ -[aA]* ]]; then
 		# Bash before4.4 which is used here prints declare output of arrays in quotes.
 		if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
 			# There is space, tab or newline in the keys of an associative array on Bash4.0.
