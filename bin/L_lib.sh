@@ -18,8 +18,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-[[ -z "${_L_LIB_SH_:-}" ]] || return 0
-_L_LIB_SH_=1
 
 
 # globals [[[
@@ -2922,7 +2920,7 @@ if (( L_HAS_BASH4_4 )); then
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arguments to quote
 L_quote() { L_handle_v_scalar "$@"; }
-L_quote_vL_RET() { L_RET="${@@Q}"; }
+L_quote_vL_RET() { L_RET="${*@Q}"; }
 else
 	L_quote() { L_quote_printf "$@"; }
 	L_quote_vL_RET() { L_quote_printf_vL_RET "$@"; }
@@ -5663,9 +5661,9 @@ L_finally() {
 			# declare -p BASH_LINENO FUNCNAME BASH_SOURCE _L_up >&2
 			# Add element to the return array. Index loop is unrolled for speed.
 			local _L_depth=$(( ${#BASH_LINENO[@]} - _L_up ))
-			_L_finally_item_depth[$_L_idx]=$_L_depth
-		_L_elem="${_L_elem% };unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
-		_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]:-$'\t'}"
+			_L_finally_item_depth[_L_idx]=$_L_depth
+			_L_elem="${_L_elem% };unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
+			_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]:-$'\t'}"
 			# Register the trap.
 			# Use ${+} expansion to execute nothing when there is nothing to execute.
 			trap '${_L_finally_return[${#BASH_LINENO[*]}]+L_finally_handle_return} ${_L_finally_return[${#BASH_LINENO[*]}]+"$?"} ${_L_finally_return[${#BASH_LINENO[*]}]+"$BASH_COMMAND"}' RETURN
@@ -10738,8 +10736,8 @@ _L_uv_timerheap_swap_with_L_tmp() {
   _L_tmp=${L_UV[11000000 + $1]} \
     L_UV[11000000 + $1]=${L_UV[11000000 + $2]} \
     L_UV[11000000 + $2]=$_L_tmp \
-    L_UV[12000000 + (${_L_tmp#*:} * 3) + 2]=$2 \
-    L_UV[12000000 + (${L_UV[11000000 + $1]#*:} * 3) + 2]=$1
+    L_UV["12000000 + (${_L_tmp#*:} * 3) + 2"]=$2 \
+    L_UV["12000000 + (${L_UV[11000000 + $1]#*:} * 3) + 2"]=$1
 }
 
 # @description Maintain the min-heap property by sifting an element up.
@@ -10782,7 +10780,7 @@ _L_uv_timerheap_push() {
   local _L_size=$(( L_UV[11000000] = ${L_UV[11000000]:-0} + 1 ))
   # Appends the new timer at the end and sifts it up to the correct position.
   L_UV[11000000 + _L_size]=$1
-  L_UV[12000000 + (${1#*:} * 3) + 2]=$_L_size
+  L_UV["12000000 + (${1#*:} * 3) + 2"]=$_L_size
   _L_uv_timerheap_sift_up $_L_size
 }
 
@@ -10803,7 +10801,7 @@ _L_uv_timerheap_pop_vL_RET() {
   fi
   # Replaces root with last element and sifts it down.
   L_UV[11000001]=${L_UV[11000000 + _L_size + 1]}
-  L_UV[12000000 + (${L_UV[11000001]#*:} * 3) + 2]=1
+  L_UV["12000000 + (${L_UV[11000001]#*:} * 3) + 2"]=1
   unset -v "L_UV[11000000 + _L_size + 1]"
   L_UV[11000000]=$_L_size
   _L_uv_timerheap_sift_down 1
@@ -10816,7 +10814,7 @@ _L_uv_timerheap_update_top() {
   # Efficiently replaces the top timer (e.g., for repeating timers) and sifts it down.
   L_UV[11000001]=$1
   unset -v "L_UV[12000000 + (${_L_old#*:} * 3) + 2]"
-  L_UV[12000000 + (${1#*:} * 3) + 2]=1
+  L_UV["12000000 + (${1#*:} * 3) + 2"]=1
   _L_uv_timerheap_sift_down 1
 }
 
@@ -10835,12 +10833,12 @@ _L_uv_timerheap_delete_taskid() {
   fi
   # Fills the hole with the last element and balances the heap in both directions.
   L_UV[11000000 + _L_curr]=${L_UV[11000000 + _L_size]}
-  L_UV[12000000 + (${L_UV[11000000 + _L_curr]#*:} * 3) + 2]=$_L_curr
+  L_UV["12000000 + (${L_UV[11000000 + _L_curr]#*:} * 3) + 2"]=$_L_curr
   unset -v "L_UV[11000000 + _L_size]" "L_UV[12000000 + ($1 * 3) + 2]"
   L_UV[11000000]=$(( --_L_size ))
   if (( _L_curr <= _L_size )); then
-    _L_uv_timerheap_sift_up $_L_curr
-    _L_uv_timerheap_sift_down $_L_curr
+    _L_uv_timerheap_sift_up "$_L_curr"
+    _L_uv_timerheap_sift_down "$_L_curr"
   fi
 }
 
@@ -11056,7 +11054,7 @@ L_uv_remove() {
     0) # Timer
       _L_uv_timerheap_delete_taskid "$_L_id"
       unset -v "L_UV[12000000 + (_L_id * 3) + 0]" "L_UV[12000000 + (_L_id * 3) + 1]" "L_UV[12000000 + (_L_id * 3) + 2]"
-      if (( ${L_UV[11000000]} == 0 )); then L_UV[1]=0; fi
+      if (( L_UV[11000000] == 0 )); then L_UV[1]=0; fi
       ;;
     1) # Waiter
       local _L_pid=${L_UV[21000000 + (_L_rel * 2) + 1]}
@@ -11145,6 +11143,7 @@ _L_uv_delayer_timer_capped() { if _L_uv_timeout_left_capped_vL_RET "$1"; then L_
 # Internal function to monitor and reap child processes registered as waiters.
 _L_uv_manager_waiter_wait_n_p() {
   local _L_rel _L_pid _L_cb _L_status=0 _L_w_done _L_pids="${L_UV[20000002]}"
+	# shellcheck disable=SC2086
   wait -n -p _L_w_done $_L_pids 2>/dev/null || _L_status=$?
   if [[ -n "${_L_w_done:-}" ]]; then
     # Use the 29M bucket map for O(1) reverse lookup of the PID to handle
@@ -11187,6 +11186,7 @@ _L_uv_manager_waiter_wait_iterate() {
   done
 }
 _L_uv_manager_waiter() {
+	# shellcheck disable=SC2086
   while [[ -n "${L_UV[20000002]}" ]] && ! kill -0 ${L_UV[20000002]} 2>/dev/null; do
     if (( L_HAS_BASH5_2 )); then
       # wait -n -p started working correctly from Bash 5.2 only.
@@ -11196,6 +11196,7 @@ _L_uv_manager_waiter() {
     fi
   done
 }
+# shellcheck disable=SC2086
 _L_uv_delayer_waiter_indefinite() {
   local _L_pids="${L_UV[20000002]:-}"
   if [[ -n "$_L_pids" ]]; then
@@ -11206,7 +11207,7 @@ _L_uv_delayer_waiter_indefinite() {
     elif L_hash waitpid; then
       waitpid -c 1 $_L_pids 2>/dev/null || :
     elif L_hash tail && _L_wait_tail_has_pid && [[ ! "$_L_pids" == *"  "* ]]; then
-      # If there is tail and there is only one pid.
+      # If there is tail --pid and there is only one pid.
       tail --pid="$_L_pids" -f /dev/null 2>/dev/null || :
     else
       _L_uv_delayer_timer_capped "$1"
@@ -11215,15 +11216,18 @@ _L_uv_delayer_waiter_indefinite() {
 }
 # @arg $1 Default sleep timeout. Ignored in timer, used in capped mode.
 # @arg $2 if _capped, will cap on the first argument
+# shellcheck disable=SC2086
 _L_uv_delayer_waiter_timer() {
   local L_RET _L_pids="${L_UV[20000002]}"
   if L_hash waitpid; then
-    _L_uv_timeout_left${2:-}_vL_RET "$1" &&
+    if _L_uv_timeout_left"${2:-}"_vL_RET "$1"; then
       waitpid -c 1 -t "$L_RET" $_L_pids || :
+		fi
   elif L_hash timeout tail && _L_wait_tail_has_pid && [[ ! "$_L_pids" == *"  "* ]]; then
-    # If there is timeout and tail and there is only one pid.
-    _L_uv_timeout_left${2:-}_vL_RET "$1" &&
+    # If there is timeout and tail and tail has --pid and there is only one pid.
+    if _L_uv_timeout_left"${2:-}"_vL_RET "$1"; then
       timeout "$L_RET" tail --pid="$_L_pids" -f /dev/null 2>/dev/null || :
+		fi
   else
     _L_uv_delayer_timer_capped "$1"
   fi
@@ -11254,6 +11258,7 @@ _L_uv_manager_reader() {
     do
       _L_cb="${L_UV[_L_base + 0]}"
       _L_sep="${L_UV[_L_base + 1]}"
+      # shellcheck disable=SC2086
       if IFS= read ${2--t} ${2-"${1:-$_L_default_timeout}"} -d "$_L_sep" -u "$_L_fd" -r _L_line; then
         # Read successful: prepend stored buffer, clear buffer, and execute callback
         eval "$_L_cb $_L_fd \"\${L_UV[_L_base + 3]:-}\$_L_line\""
@@ -11335,6 +11340,7 @@ _L_uv_run_optimizer() {
 # @return 0 on success, 124 on timeout, or task exit code.
 # @note You can call L_uv_add functions while the loop is running to add more tasks dynamically.
 # @example L_uv_add_timer 1 echo "hello"; L_uv_run
+# shellcheck disable=SC2120
 L_uv_run() {
   local OPTIND OPTARG OPTERR _L_i _L_uv_sleep_time=0.05 _L_uv_break=0 _L_uv_return=0 \
     L_UV_CURRENT _L_uv_stack_depth=${#FUNCNAME[@]} _L_uv_poked=0 L_RET \
@@ -11571,7 +11577,7 @@ _L_xargs_dispatch_one() {
   if (( _L_x_trace )); then
     local _L_tmp
     printf -v _L_tmp " %q" "${L_RET[@]}"
-    printf "+$_L_tmp\n" >&2
+    printf "+%s\n" "$_L_tmp" >&2
   fi
   # Run PREEXEC callbacks.
   set -- PREEXEC
