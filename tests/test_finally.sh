@@ -493,6 +493,7 @@ _L_test_finally_interrupt() {
 		f2() {
 			L_finally waiter 10
 			L_bashpid_into bashpid
+			exec 2>&1
 			sleep 0.2 && kill -USR1 "$bashpid" &
 			sleep 0.4 && kill -USR1 "$bashpid" &
 			case "$1" in
@@ -509,12 +510,11 @@ _L_test_finally_interrupt() {
 		L_unittest_cmd -e "$e" "${newbash[@]}" f2 pop
 		L_unittest_cmd -e "$e" "${newbash[@]}" f2 return
 		L_unittest_cmd -e "$e" "${newbash[@]}" f2 exit
-		if ((!L_HAS_BASH5_0)); then
-			L_unittest_skip "Disabled below bash5.0"
-			return
-		fi
 		L_unittest_cmd -e "$e" f2 signal
 	}
+}
+
+_L_test_finally_good_function_return() {
 	{
 		L_info "test good function calls return"
 		f1() {
@@ -543,7 +543,8 @@ _L_test_finally_interrupt() {
 			echo -n 5
 		}
 		L_unittest_cmd -o 1234567891011 f1
-		L_unittest_cmd -o 1234567891011 bash -c ". $L_LIB_SCRIPT;"'. "$1"' bash <(declare -f f1 f2 f3 f4 f5; echo f1)
+		export -f f1 f2 f3 f4 f5
+		L_unittest_cmd -o 1234567891011 bash -c ". $L_LIB_SCRIPT; f1"
 	}
 }
 

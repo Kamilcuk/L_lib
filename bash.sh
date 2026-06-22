@@ -61,7 +61,7 @@ docker_run() {
   else
     docker run -i "${args[@]}" <<<"$input"
   fi || rc=$?
-  echo "\-- rc=$rc"
+  echo "\\-- bash:$version rc=$rc"
 }
 
 IFS=$', \t\n' read -r -a versions <<<"$opt_versions"
@@ -81,7 +81,7 @@ else
     done
   else
     if true; then
-      L_xargs -OO -Pn -a versions docker_run
+      L_xargs -OO -Pn -A versions docker_run
     else
       {
         for version in "${versions[@]}"; do

@@ -18,7 +18,7 @@ The command is executed when either the number of accumulated Atoms reaches the 
 ### Key Features and Differences from GNU xargs
 
 -   **Shell Integration:** The most significant advantage. `L_xargs` can call shell functions and aliases directly, which is impossible with standard `xargs` without using `export -f`.
--   **Advanced Input Sources:** `L_xargs` can read items from a Bash array (`-a <array_name>`) or a custom callback function (`-c <callback_eval_string>`), in addition to `stdin`.
+-   **Advanced Input Sources:** `L_xargs` can read items from a Bash array (`-A <array_name>`) or a custom callback function (`-C <callback_eval_string>`), in addition to `stdin`.
 -   **Performance:** While highly optimized for shell environments, `L_xargs` is a pure Bash implementation and will generally be slower than the native C-based GNU `xargs`. For most scripting tasks, its flexibility and integration are more valuable.
 -   **Granular Return Codes:** Provides specific return codes (123, 124, 125, etc.) to indicate different failure modes, allowing for more robust error handling.
 
@@ -67,8 +67,8 @@ Use the `-a` option to read input directly from a Bash array.
 
 ```bash
 my_items=("First item" "Second item" "Third item")
-# -S ensures each element is a single argument
-L_xargs -S -a my_items -n 1 echo
+# -Z ensures each element is a single argument
+L_xargs -Z -A my_items -n 1 echo
 # Output:
 # First item
 # Second item
@@ -89,7 +89,7 @@ generate_items() {
     return 1
 }
 
-L_xargs -n 1 -c 'generate_items' echo
+L_xargs -n 1 -C 'generate_items' echo
 # Output:
 # item_1
 # item_2
@@ -110,7 +110,7 @@ printf "A B\nC" | L_xargs -n 1 echo
 # C
 
 # Split mode
-printf "A B\nC" | L_xargs -s -n 1 echo
+printf "A B\nC" | L_xargs -z -n 1 echo
 # Output:
 # A
 # B
@@ -157,9 +157,9 @@ printf "A\nB" | L_xargs -O -P 2 -n 1 -- bash -c 'echo "start $1"; sleep 0.1; ech
 
 Example:
 ```bash
-# -s splits "A B" into two atoms. The -n 2 limit is hit after the first line.
+# -z splits "A B" into two atoms. The -n 2 limit is hit after the first line.
 # The command runs, and the limits are reset. Then "C" is processed.
-printf "A B\nC" | L_xargs -s -n 2 -L 3 echo
+printf "A B\nC" | L_xargs -z -n 2 -L 3 echo
 # Output:
 # A B
 # C

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 . "$(dirname "$0")"/../bin/L_lib.sh
 
-if [[ "$1" == "show"*"nomapfile" ]]; then
+if [[ "${1:-}" == "show"*"nomapfile" ]]; then
   L_HAS_MAPFILE=0
 fi
-if [[ "$1" == "show"* ]]; then
+if [[ "${1:-}" == "show"* ]]; then
   a() {
     b
   }

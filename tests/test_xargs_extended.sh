@@ -7,7 +7,7 @@ _L_test_L_xargs_callback_option() {
         if (( i < 3 )); then
             L_RET="item$((++i))"
         else
-            return 1
+            L_RET=()
         fi
     }
     local i=0
@@ -18,17 +18,17 @@ _L_test_L_xargs_callback_option() {
         if (( L_BASH_VERSION / 0x100 == 0x400 )); then
             trap - ERR
         fi
-        L_xargs -c 'callback_func' echo
+        L_xargs -C 'callback_func' echo
     )
     L_unittest_eq "$output" "item1 item2 item3"
 }
 
 _L_test_L_xargs_solid_mode_option() {
-    # Test for the -S (solid mode) option
+    # Test for the -Z (solid mode) option
     local output
     output=$(printf "a b
 c
-d e" | L_xargs -S -n 1 echo)
+d e" | L_xargs -Z -n 1 echo)
     L_unittest_eq "$output" "a b
 c
 d e"
@@ -88,14 +88,17 @@ _L_test_L_xargs_process_killing() {
     L_command_exists pgrep || L_unittest_skip "pgrep not found"
     # Test that child processes are killed when L_xargs is killed
     # and that it happens quickly.
-    local pid start end duration dur=1023491 before after beforelines afterlines
+    local pid start end duration dur=1023491 before after beforelines afterlines bashpid
+    L_bashpid_into bashpid
+    dur=$bashpid$dur
     L_epochrealtime_usec -v start
-    L_xargs -P 4 -I {} sleep "$dur" <<<"1 2 3 4" & pid=$!
+    L_setx L_xargs -P 4 -I {} L_eval "exec sleep $dur" <<<"1 2 3 4" &
+    pid=$!
     sleep 0.2
-    before=$(pgrep -u $UID -f "sleep $dur" || :)
+    before=$(pgrep -u $UID -x -f "sleep $dur" || :)
     kill $pid
     wait $pid 2>/dev/null || :
-    after=$(pgrep -u $UID -f "sleep $dur" || :)
+    after=$(pgrep -u $UID -x -f "sleep $dur" || :)
     L_epochrealtime_usec -v end
     duration=$((end - start))
     L_unittest_cmd eval "(( duration < 1000000 ))"
@@ -103,5 +106,16 @@ _L_test_L_xargs_process_killing() {
     L_unittest_cmd -e 1 -j -v _ kill -0 "$pid"
     L_string_count_lines -v beforelines "$before"
     L_string_count_lines -v afterlines "$after"
+    #
+    if [[ -n "$before" ]]; then
+        echo "before --"
+        ps $before || :
+        echo --
+    fi
+    if [[ -n "$after" ]]; then
+        echo "after --"
+        ps $after || :
+        echo --
+    fi
     L_unittest_cmd eval "(( beforelines - afterlines == 4 ))"
 }
