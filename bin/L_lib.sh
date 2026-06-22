@@ -4892,15 +4892,17 @@ L_logrun() {
 }
 
 # @description Output a green information message
-# @option -s <int>
-# @option -l <level>
+# @option -s <int> stacklevel increase
+# @option -l <level> loglevel to print log line as
+# @option -h Show help
 # @arg $1 message
 L_ok() {
 	local OPTIND OPTARG OPTERR o a=()
-	while getopts s:l: o; do
+	while getopts s:l:h o; do
 		case $o in
 			s) a+=(-s "$OPTARG") ;;
 			l) a+=(-l "$OPTARG") ;;
+			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
@@ -10885,6 +10887,7 @@ _L_uv_add_allocate_id_and_set_v() {
 # @option -r <duration> Repeat interval (e.g., 1s, 500ms; bare number is seconds) (defaults to 0)
 # @option -d <duration> Initial delay (e.g., 1s, 500ms; bare number is seconds) (defaults to 0)
 # @option -v <var> Variable to assign the handle ID to
+# @option -h Show help
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments only.
 L_uv_add_timer() {
   local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_v="" _L_now_us _L_cmd _L_timerid
@@ -10910,6 +10913,7 @@ L_uv_add_timer() {
 
 # @description Add a process wait handle to the loop.
 # @option -v <var> Variable to assign the handle ID to
+# @option -h Show help
 # @arg $1 PID to wait for
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments, followed by the PID and exit status.
 L_uv_add_waiter() {
@@ -10940,34 +10944,39 @@ L_uv_add_waiter() {
 # @description Add a line-buffered read handle to the loop.
 # @option -d Delimiter character (defaults to newline)
 # @option -v <var> Variable to assign the handle ID to
+# @option -c Close file descriptor on EOF
+# @option -h Show help
 # @arg $1 Target file descriptor
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments, followed by the FD and the line read. On EOF or error, the callback is invoked with its arguments and the FD only (no line argument).
 L_uv_add_reader() {
-  local OPTIND OPTARG OPTERR _L_opt _L_d=$'\n' _L_v="" _L_rid
-  while getopts d:v:h _L_opt; do
+  local OPTIND OPTARG OPTERR _L_opt _L_d=$'\n' _L_v="" _L_rid _L_c=0
+  while getopts d:v:hc _L_opt; do
     case "$_L_opt" in
       d) _L_d=$OPTARG ;;
       v) _L_v=$OPTARG ;;
+      c) _L_c=1 ;;
       h) L_func_usage; return 0 ;;
       *) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift $((OPTIND - 1))
   local _L_fd=$1
-  _L_uv_add_allocate_id_and_set_v _L_rid 30000000 31000000 4 0 2000000 "${@:2}" || return
+  _L_uv_add_allocate_id_and_set_v _L_rid 30000000 31000000 5 0 2000000 "${@:2}" || return
   local _L_rel=$(( _L_rid % 1000000 ))
   # Invalidate optimization state on first reader added.
   if [[ -z "${L_UV[30000001]:-}" ]]; then L_UV[1]=0; fi
   # Update active reader cache
   L_UV[30000001]+=" ${L_UV[30000000]} "
-  # Store Sep at +1, FD at +2, Buf at +3
-  L_UV[31000000 + (_L_rel * 4) + 1]="$_L_d"
-  L_UV[31000000 + (_L_rel * 4) + 2]="$_L_fd"
-  L_UV[31000000 + (_L_rel * 4) + 3]=""
+  # Store Sep at +1, FD at +2, Buf at +3, Close at +4
+  L_UV[31000000 + (_L_rel * 5) + 1]="$_L_d"
+  L_UV[31000000 + (_L_rel * 5) + 2]="$_L_fd"
+  L_UV[31000000 + (_L_rel * 5) + 3]=""
+  L_UV[31000000 + (_L_rel * 5) + 4]="$_L_c"
 }
 
 # @description Add a task callback to the loop.
 # @option -v <var> Variable to assign the handle ID to
+# @option -h Show help
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments only.
 L_uv_add_task() {
   local OPTIND OPTARG OPTERR _L_opt _L_v="" IFS=' ' _L_id
@@ -10996,6 +11005,7 @@ _L_uv_once_callback() {
 # @description Add a callback that runs once when a condition is met.
 # @option -c <condition> Condition command to evaluate (defaults to 'true')
 # @option -v <var> Variable to assign the handle ID to
+# @option -h Show help
 # @arg $@ Callback function and its arguments
 L_uv_add_once() {
   local OPTIND OPTARG OPTERR _L_opt _L_c="" _L_v=""
@@ -11027,8 +11037,8 @@ L_uv_set() {
     1) # Waiter Data: CB at +0, PID at +1
       L_UV[21000000 + (($1 % 1000000) * 2) + 0]="L_UV_CURRENT=$1;$L_RET"
       ;;
-    2) # Reader Data: CB at +0, Sep at +1, FD at +2, Buf at +3
-      L_UV[31000000 + (($1 % 1000000) * 4) + 0]="L_UV_CURRENT=$1;$L_RET"
+    2) # Reader Data: CB at +0, Sep at +1, FD at +2, Buf at +3, Close at +4
+      L_UV[31000000 + (($1 % 1000000) * 5) + 0]="L_UV_CURRENT=$1;$L_RET"
       ;;
     3) # User Task Data: relative indexing at 99,000,000+
       L_UV[99000000 + ($1 % 1000000)]="L_UV_CURRENT=$1;$L_RET"
@@ -11058,7 +11068,7 @@ L_uv_remove() {
       ;;
     2) # Reader
       L_UV[30000001]="${L_UV[30000001]/ $_L_rel }"
-      unset -v "L_UV[31000000 + (_L_rel * 4) + 0]" "L_UV[31000000 + (_L_rel * 4) + 1]" "L_UV[31000000 + (_L_rel * 4) + 2]" "L_UV[31000000 + (_L_rel * 4) + 3]"
+      unset -v "L_UV[31000000 + (_L_rel * 5) + 0]" "L_UV[31000000 + (_L_rel * 5) + 1]" "L_UV[31000000 + (_L_rel * 5) + 2]" "L_UV[31000000 + (_L_rel * 5) + 3]" "L_UV[31000000 + (_L_rel * 5) + 4]"
       if [[ -z "${L_UV[30000001]:-}" ]]; then L_UV[1]=0; fi
       ;;
     3) # User Task
@@ -11236,7 +11246,7 @@ _L_uv_manager_reader() {
   fi
   # Iterate over active Reader IDs from the string cache
   for _L_rel in $_L_ids; do
-    _L_base=$(( 31000000 + (_L_rel * 4) ))
+    _L_base=$(( 31000000 + (_L_rel * 5) ))
     while
       _L_fd="${L_UV[_L_base + 2]:-}"
       # Perform non-blocking read checks
@@ -11255,6 +11265,7 @@ _L_uv_manager_reader() {
       else
         # EOF reached: remove handle, execute callback with remaining buffer then EOF signal
         _L_buf="${L_UV[_L_base + 3]}"
+        if (( L_UV[_L_base + 4] )); then eval "exec $_L_fd>&-"; fi
         L_uv_remove $(( 2000000 + _L_rel ))
         if [[ -n "$_L_buf$_L_line" ]]; then
           eval "$_L_cb $_L_fd \"\$_L_buf\$_L_line\""
@@ -11320,6 +11331,7 @@ _L_uv_run_optimizer() {
 # @option -1 Run only one iteration of the loop.
 # @option -t <duration> Timeout (e.g., 1s, 500ms; bare number is seconds) (defaults to none)
 # @option -c Set sigchild trap.
+# @option -h Show help
 # @return 0 on success, 124 on timeout, or task exit code.
 # @note You can call L_uv_add functions while the loop is running to add more tasks dynamically.
 # @example L_uv_add_timer 1 echo "hello"; L_uv_run
@@ -11607,7 +11619,7 @@ _L_xargs_dispatch_over_atoms() {
   while
     _L_xargs_has_slots && {
       ((
-        _L_dispatch_limit = ${#_L_x_atoms[@]} - _L_x_atoms_idx ,
+        ( _L_dispatch_limit = ${#_L_x_atoms[@]} - _L_x_atoms_idx ) ,
         ( _L_x_atoms_limit > 0 && _L_dispatch_limit >= _L_x_atoms_limit ) ?
           ( _L_dispatch_limit = _L_x_atoms_limit ) :
           ( _L_x_records_limit > 0 && _L_x_cur_records >= _L_x_records_limit ) ||
@@ -11755,7 +11767,8 @@ _L_x_finally() {
 # limits are specified, the command executes exactly once upon reaching EOF.
 #
 # @option -0 Use the null character (\0) as the Record separator.
-# @option -a <var> Read Records from the specified Bash array variable.
+# @option -a <file> Read Records from the specified file.
+# @option -A <var> Read Records from the specified Bash array variable.
 # @option -C <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
 # @option -d <delimiter> Set the Record separator to the specified character.
 # @option -s <max-chars> Use at most max-chars characters per command line.
@@ -11802,7 +11815,7 @@ L_xargs() {
 	    _L_x_foreground=0 _L_x_feeder_id="" \
 	    _L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output=() _L_x_dobuf_prefix=() _L_x_dobuf_finished _L_x_dobuf_next=0 \
       L_UV=() _L_x_finally_idx
-	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:TFh _L_i; do
+	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:Fh _L_i; do
 		case "$_L_i" in
 			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
 			a)
