@@ -958,7 +958,7 @@ L_decorate() {
 # @description Measure time with the command, but include the command in the time message output and use %6l format.
 # @arg $@ command to measure.
 L_time() {
-	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
+	local _L_time=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'} TIMEFORMAT="real=%6lR user=%6lU system=%6lS [${*//$'\n'}]"
 	time TIMEFORMAT="$_L_time" "$@"
 }
 
