@@ -13,7 +13,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*|_L_PIPE_CNT|_L_finally_idx_.*|_L_finally_item_depth|SRANDOM|BASH_SUBSHELL)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177\r']}
@@ -23,11 +23,13 @@ USR2_CNT=0
 
 ###############################################################################
 
+. "$dir"/../scripts/L_uv.sh
 . "$dir"/array_index_tests.sh
 . "$dir"/foreach_tests.sh
 . "$dir"/test_xargs.sh
 . "$dir"/test_xargs_extended.sh
 . "$dir"/test_xargs_extra.sh
+. "$dir"/test_xargs_compat.sh
 . "$dir"/test_duration.sh
 . "$dir"/test_L_date.sh
 . "$dir"/test_asserts.sh
@@ -35,6 +37,7 @@ USR2_CNT=0
 . "$dir"/test_finally.sh
 . "$dir"/test_pretty_print.sh
 . "$dir"/test_fuzzy.sh
+. "$dir"/test_L_uv.sh
 
 _L_test_color() {
 	{
@@ -707,6 +710,30 @@ _L_test_array() {
 		L_unittest_eq "$b" "2"
 		L_unittest_eq "$c" "3"
 	}
+}
+
+_L_test_array_max_index() {
+	local arr=(a b c)
+	local idx
+
+	L_array_max_index -v idx arr
+	L_unittest_eq "$idx" "2"
+
+	arr+=(d)
+	L_array_max_index -v idx arr
+	L_unittest_eq "$idx" "3"
+
+	local -a sparse=()
+	sparse[10]=val
+	sparse[20]=val
+	sparse[30]=other
+
+	L_array_max_index -v idx sparse
+	L_unittest_eq "$idx" "30"
+
+	local empty=()
+	L_array_max_index -v idx empty
+	L_unittest_eq "${idx:-0}" "0"
 }
 
 . "$dir"/readarray_tests.sh
@@ -1586,7 +1613,7 @@ _L_test_map() {
 }
 
 _L_test_asa() {
-	skip_assoc
+	skip_assoc || return
 	declare -A map=()
 	local v
 	{
@@ -2591,8 +2618,10 @@ skip_assoc() {
 newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)
 
-L_trap_err_enable
-L_unittest_main -p _L_test_ "$@"
+if L_is_main; then
+	L_trap_err_enable
+	L_unittest_main -p _L_test_ "$@"
 
-# Check for any new variables.
-diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
+	# Check for any new variables.
+	diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
+fi

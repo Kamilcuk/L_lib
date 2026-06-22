@@ -25,9 +25,9 @@ file2" | L_xargs -I {} echo "Processing {}")
     L_unittest_eq "$output" "Processing file1
 Processing file2"
 
-    # Test with no input. L_xargs should not run the command.
-    output=$(printf "" | L_xargs echo "this should not be printed")
-    L_unittest_eq "$output" ""
+    # Test with no input. Standard xargs runs the command once even if input is empty.
+    output=$(printf "" | L_xargs echo "HEAD")
+    L_unittest_eq "$output" "HEAD"
 
     # Test -0 option with null-separated input
     output=$(printf "item1\0item2\0item3\0" | L_xargs -0 echo)
@@ -57,15 +57,15 @@ _L_test_L_xargs_extended_options() {
     output=$(printf "1:2:3" | L_xargs -d : echo)
     L_unittest_eq "$output" "1 2 3"
 
-    # Test -a option (read from array)
+    # Test -A option (read from array)
     local my_array=("a b" "c" "d")
-    output=$(L_xargs -a my_array echo)
+    output=$(L_xargs -A my_array echo)
     L_unittest_eq "$output" $'a b\nc\nd'
 
-    # Test -s option (shell-like parsing)
+    # Test -z option (shell-like parsing)
     output=$(printf "'a b'
 c
-'d e'" | L_xargs -s echo)
+'d e'" | L_xargs -z echo)
     L_unittest_eq "$output" "a b c d e"
 
     # Test -O option (separate output buffering)
