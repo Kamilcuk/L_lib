@@ -5566,14 +5566,14 @@ L_finally() {
   # Parse arguments.
   while getopts rs:lfRv:h _L_i; do
     case "$_L_i" in
-    r) _L_onreturn=1 ;;
-    s) _L_up=$((OPTARG + _L_up)) ;;
-    l) _L_last=1 ;;
-    f) _L_first=1 ;;
-    R) _L_register=1 ;;
-    v) _L_v=$OPTARG ;;
-    h) L_func_help; return 0 ;;
-    *) L_func_usage_error; return "$L_EX_USAGE" ;;
+    	r) _L_onreturn=1 ;;
+    	s) _L_up=$((OPTARG + _L_up)) ;;
+    	l) _L_last=1 ;;
+    	f) _L_first=1 ;;
+    	R) _L_register=1 ;;
+    	v) _L_v=$OPTARG ;;
+    	h) L_func_help; return 0 ;;
+    	*) L_func_usage_error; return "$L_EX_USAGE" ;;
     esac
   done
   shift "$((OPTIND-1))"
@@ -5582,34 +5582,26 @@ L_finally() {
   if [[ "${_L_finally_pid:-}" != "$_L_pid" ]]; then
   	if [[ -n "${_L_finally_pid:-}" ]]; then
   		# Reset values inherited from parent shell.
-  		_L_finally_pid=""
-			_L_finally_arr=()
-			_L_finally_return=()
-			_L_finally_pending=()
-			_L_register=1
+  		_L_finally_pid="" _L_finally_arr=() _L_finally_return=() _L_finally_pending=() _L_finally_item_depth=() _L_register=1
 		fi
-	fi
+  	_L_finally_idx_first=5000 _L_finally_idx_std=10000000000 _L_finally_idx_last=10000000000
+  fi
   # Add element to our array variable.
 	if (($#)); then
-		# Calculate new element index. This is getting slower, but we assume we will have small number of elements.
-		_L_idx=( ${_L_finally_arr[@]:+"${!_L_finally_arr[@]}"} )
 		if (( _L_first )); then
 			# The first 5000 elements for "first" callbacks.
-			(( _L_idx = ${_L_idx[0]:-5000} , _L_idx > 5000 && ( _L_idx = 5000 ) , _L_idx-- ))
-			if (( _L_onreturn )); then return "$L_EX_USAGE"; fi
-			if (( _L_idx < 0 )); then return "$L_EX_USAGE"; fi
+			_L_idx=$(( --_L_finally_idx_first ))
+			if (( _L_onreturn )); then L_func_error "-f is not allowed with -r"; return "$L_EX_USAGE"; fi
+			if (( _L_idx < 0 )); then L_func_error "too many -f actions"; return "$L_EX_USAGE"; fi
 		elif (( _L_last )); then
-			# Add element to be executed last. Start from 10B.
-			# If there are already elements, find the largest one and increment.
-			(( _L_idx = ${_L_idx[${_L_idx[@]:+${#_L_idx[@]}-}1]:-10000000000} , _L_idx < 5000 && ( _L_idx = 10000000000 ) , ++_L_idx ))
+			# Add element to be executed last.
+			_L_idx=$(( ++_L_finally_idx_last ))
+			if (( _L_idx > 20000000000 )); then L_func_error "too many -l actions"; return "$L_EX_SOFTWARE"; fi
 		else
 			# Add element to be executed first. Start from 10B and go down.
 			# But ignore indices < 5000 (the "strictly first" range).
-			local _L_min=10000000000
-			for _L_i in ${_L_idx[@]:+"${_L_idx[@]}"}; do
-				(( _L_i >= 5000 && ( _L_min = _L_i ) )) && break
-			done
-			_L_idx=$(( _L_min - 1 ))
+			_L_idx=$(( --_L_finally_idx_std ))
+			if (( _L_idx < 5000 )); then L_func_error "too many actions"; return "$L_EX_SOFTWARE"; fi
 		fi
   	# After calculating index, store it to the user, if he wants that.
   	if [[ -n "$_L_v" ]]; then
