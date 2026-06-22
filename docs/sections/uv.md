@@ -1,10 +1,10 @@
 # L_uv: High-Performance Bash Event Loop
 
-`L_uv` is an event loop implementation for Bash, inspired by libuv. It allows you to poll for events, in particular for timers, file descriptors, and child processes asynchronously within a single Bash process.
+`L_uv` is an event loop implementation for Bash. It allows polling for timers, file descriptors, and child processes asynchronously within a single process.
 
+## Quick Start
 
-````bash
-
+```bash
 # 1. Initialize the event loop state
 L_uv_init
 
@@ -13,59 +13,66 @@ L_pipe pipe_fds
 L_array_extract pipe_fds read_fd write_fd
 ( while true; do echo "SERVICE_HEARTBEAT"; sleep 1; done >&"$write_fd" ) & bg_pid=$!
 # Close the write end in the parent, the child process will keep it open.
-exec "$write_fd"> T&-
+exec {write_fd}>&-
 
 # 3. Define callbacks
+# Reader callback: receives [args] fd [line]
+# On EOF/error: line argument is omitted
 reader_cb() {
-  echo "[READER]: Received data: $2"
+  if (( $# == 2 )); then
+    echo "[READER]: Received: $2"
+  else
+    echo "[READER]: Pipe closed"
+  fi
 }
 
+# Waiter callback: receives [args] pid status
 waiter_cb() {
-  echo "[WAITER]: Service PID $1 exited with code $2."
-  # The read FD is closed automatically by the -c flag.
+  echo "[WAITER]: PID $1 exited with $2"
 }
 
-stoptimer_cb() {
-  echo "[TIMER]: 5s elapsed. Sending SIGTERM to service."
+# Timer callback: receives [args]
+timer_cb() {
+  echo "[TIMER]: 5s elapsed. Stopping service."
   kill "$bg_pid" 2>/dev/null || :
 }
 
 # 4. Add handles to the loop
-L_uv_add_reader -c -v reader_id "$read_fd" reader_cb
+L_uv_add_reader -v reader_id "$read_fd" reader_cb
 L_uv_add_waiter -v waiter_id "$bg_pid" waiter_cb
-L_uv_add_timer -d 5 stoptimer_cb # One-shot timer after 5s
+L_uv_add_timer -d 5 timer_cb # One-shot timer after 5s
 
 # 5. Run the loop
 echo "Event loop started. Monitoring service PID $bg_pid..."
 L_uv_run
 echo "Event loop finished."
-````
+```
 
 **Expected Output:**
 
-````
-Event loop started. Monitoring service PID 34567...
-[READER]: Received data: SERVICE_HEARTBEAT
-[READER]: Received data: SERVICE_HEARTBEAT
-[READER]: Received data: SERVICE_HEARTBEAT
-[READER]: Received data: SERVICE_HEARTBEAT
-[TIMER]: 5s elapsed. Sending SIGTERM to service.
-[WAITER]: Service PID 34567 exited with code 143.
-Event loop finished.
-````
-
-## Common Usage Examples
-
-This section demonstrates the most frequent usage patterns. For complete option flags, please refer to the in-code documentation.
-
-### Starting and Stopping the Loop
-Always initialize the state before adding handles. The loop continues until all handles are removed or `L_uv_break` is called.
-
-```bash
-L_uv_init
-# ... add handles ...
-L_uv_run
 ```
+Event loop started. Monitoring service PID 2690731...
+[READER]: Received: SERVICE_HEARTBEAT
+[READER]: Received: SERVICE_HEARTBEAT
+[READER]: Received: SERVICE_HEARTBEAT
+[READER]: Received: SERVICE_HEARTBEAT
+[READER]: Received: SERVICE_HEARTBEAT
+[TIMER]: 5s elapsed. Stopping service.
+[READER]: Pipe closed
+[WAITER]: PID 2690731 exited with 143
+Event loop finished.
+```
+
+## Usage Stages
+
+Working with `L_uv` involves two distinct stages:
+
+1.  **Registration Stage**: Initialize the loop with `L_uv_init` and add handles using `L_uv_add_*`. **Note**: `L_uv_init` will panic if called on an already running loop without a scoped `local L_UV`.
+2.  **Running Stage**: Start the loop with `L_uv_run`. During this stage, handles can be added or removed dynamically from within callbacks.
+
+---
+
+## Common Patterns
 
 ### Repeating Timers
 Timers are the core of time-based scheduling. 
@@ -75,7 +82,7 @@ count=0
 tick() {
   echo "Tick $((++count))"
   if (( count >= 5 )); then
-    L_uv_current_remove # Remove this specific timer
+    L_uv_current_remove # Remove this specific handle
   fi
 }
 # Start immediately (no -d), repeat every 0.5s
@@ -88,50 +95,6 @@ L_uv_run
 # Tick 3
 # Tick 4
 # Tick 5
-```
-
-### Reading from Pipes
-`L_uv` allows you to monitor file descriptors asynchronously. Use the `-c` flag with `L_uv_add_reader` to automatically close the file descriptor when the reader handle is removed.
-
-```bash
-L_pipe p
-L_array_extract p read_fd write_fd
-
-# Background writer
-( sleep 1; echo "Message 1"; sleep 1; echo "Message 2" ) >&"$write_fd" &
-exec "$write_fd"> T&- # Close write end in parent
-
-process_message() {
-  local fd=$1 line=$2
-  echo "Received: $line"
-  # Stop after receiving the second message
-  [[ "$line" == *"Message 2"* ]] && L_uv_break
-}
-L_uv_add_reader -c -v reader_id "$read_fd" process_message
-L_uv_run
-
-# Expected Output:
-# Received: Message 1
-# Received: Message 2
-```
-
-### Reaping Background Processes
-Waiters allow you to react when a child process exits, capturing its exit code without blocking the main script.
-
-```bash
-sleep 2 & bg_pid=$!
-
-on_exit() {
-  local pid=$1 exit_code=$2
-  echo "Process $pid finished with code $exit_code"
-  L_uv_break # Stop the loop
-}
-L_uv_add_waiter "$bg_pid" on_exit
-L_uv_run
-
-# Expected Output (after 2 seconds):
-# Started background sleep with PID 12345.
-# Process 12345 finished with code 0
 ```
 
 ### High-Frequency Tasks
@@ -160,7 +123,7 @@ L_uv_run
 ```
 
 ### Handling Signals
-The `L_uv` functions (such as `L_uv_add_timer`, `L_uv_remove`, etc.) are **not signal-safe or reentrant**. For example, if a signal interrupts the internal timer heap modification and the trap handler also attempts to register a new timer, the internal memory structures will almost certainly become corrupted. Therefore, you must never manipulate the loop state directly from within a Bash `trap` handler.
+The `L_uv` functions (such as `L_uv_add_timer`, `L_uv_remove`, etc.) are **not signal-safe or reentrant**. For example, if a signal interrupts the internal timer heap modification and the trap handler also attempts to register a new handle, the internal memory structures will almost certainly become corrupted. Therefore, you must never manipulate the loop state directly from within a Bash `trap` handler.
 
 Instead, trap handlers should only set state variables or call `L_uv_poke` to wake up the loop. You can then use a persistent task (`L_uv_add_task`) to poll those variables safely outside of the interrupt context.
 
@@ -176,21 +139,14 @@ You ensure the loop will wake up at least every 50ms (the default cap) to proces
 *(Note on `L_uv_run -c`)*: The `-c` option registers a `SIGCHLD` trap that calls `L_uv_poke`. This is mildly useful to skip the 50ms delay when a child exits. However, because Bash lacks `sigprocmask` (signal blocking), a race condition exists: if the signal is received exactly between the loop checking the poked flag and entering the `sleep` command, the loop will still sleep. It is generally not advertised or recommended for critical logic.
 
 ### Replacing Callbacks
-You can change a handle's behavior dynamically from within its own execution context.
-
+Handles can replace their own callback and arguments dynamically.
 ```bash
-phase_two() { echo "Phase two complete."; L_uv_current_remove; }
-phase_one() { echo "Phase one complete."; L_uv_current_set phase_two; }
+phase_two() { echo "$1: Phase two complete."; L_uv_current_remove; }
+phase_one() { echo "$1: Phase one complete."; L_uv_current_set phase_two "$1"; }
 
-L_uv_add_timer -r 1 phase_one
+L_uv_add_timer -r 1 phase_one "Task1"
 L_uv_run
-
-# Expected Output:
-# Phase one complete.
-# Phase two complete.
 ```
-
-
 
 ---
 
@@ -232,42 +188,43 @@ The optimizer (`_L_uv_run_optimizer`) is used to pre-calculate the loop's behavi
 ### Full Memory Architecture
 Each handle type is allocated from a block of 1 million slots. The maximum number of concurrent timers, readers, waiters, or tasks is 1 million each.
 
-| Index Range | Description | Handle Type |
-| :--- | :--- | :--- |
-| `1` | Optimizer State Flag (0=Dirty, 1=Optimized) | Core |
-| `10000000` | Next available Timer ID (relative) | Timer |
-| `11000000` | Timer Min-Heap metadata (size at base) | Timer |
-| `11000001+` | Timer Min-Heap elements (`expiry_usec:TID`) | Timer |
-| `12000000 + (TID*3) + 0` | Timer: User callback string | Timer |
-| `12000000 + (TID*3) + 1` | Timer: Repeat interval (usec) | Timer |
-| `12000000 + (TID*3) + 2` | Timer: Heap inverse map pointer | Timer |
-| `20000000` | Next available Waiter ID (relative) | Waiter |
-| `20000001` | Active Waiter IDs cache (` rel_id `) | Waiter |
-| `20000002` | List of space-separated PIDs | Waiter |
-| `21000000 + (WID*2) + 0` | Waiter: User callback string | Waiter |
-| `21000000 + (WID*2) + 1` | Waiter: PID to monitor | Waiter |
-| `29000000 + (PID % 1M)` | **PID-to-WID Hash Map Bucket** | Waiter |
-| `30000000` | Next available Reader ID (relative) | Reader |
-| `30000001` | Active Reader IDs cache (` rel_id `) | Reader |
-| `31000000 + (RID*4) + 0` | Reader: User callback string | Reader |
-| `31000000 + (RID*4) + 1` | Reader: Separator (delimiter) | Reader |
-| `31000000 + (RID*4) + 2` | Reader: File descriptor (FD) | Reader |
-| `31000000 + (RID*4) + 3` | Reader: Accumulation buffer | Reader |
-| `90000000 + TID` | `L_finally` index for resource cleanup | Core |
-| `99000000 - 99999999` | User task callbacks | Task |
+| Index Range            | Description                                 | Handle Type |
+| :---                   | :---                                        | :---        |
+| 1                      | Optimizer State Flag (0=Dirty, 1=Optimized) | Core        |
+| 2                      | 1 if uv is running                          | Global      |
+| 10000000               | Next available Timer handle ID (relative)   | Timer       |
+| 11000000               | Timer Min-Heap metadata (size at base)      | Timer       |
+| 11000001+              | Timer Min-Heap elements (expiry_usec:TID)   | Timer       |
+| 12000000 + (TID*3) + 0 | Timer: User callback string                 | Timer       |
+| 12000000 + (TID*3) + 1 | Timer: Repeat interval (usec)               | Timer       |
+| 12000000 + (TID*3) + 2 | Timer: Heap inverse map pointer             | Timer       |
+| 20000000               | Next available Waiter handle ID (relative)  | Waiter      |
+| 20000001               | Active Waiter handle IDs cache ( rel_id )   | Waiter      |
+| 20000002               | List of space-separated PIDs                | Waiter      |
+| 21000000 + (WID*2) + 0 | Waiter: User callback string                | Waiter      |
+| 21000000 + (WID*2) + 1 | Waiter: PID to monitor                      | Waiter      |
+| 29000000 + (PID % 1M)  | PID-to-WID Hash Map Bucket                  | Waiter      |
+| 30000000               | Next available Reader handle ID (relative)  | Reader      |
+| 30000001               | Active Reader handle IDs cache ( rel_id )   | Reader      |
+| 31000000 + (RID*4) + 0 | Reader: User callback string                | Reader      |
+| 31000000 + (RID*4) + 1 | Reader: Separator (delimiter)               | Reader      |
+| 31000000 + (RID*4) + 2 | Reader: File descriptor (FD)                | Reader      |
+| 31000000 + (RID*4) + 3 | Reader: Accumulation buffer                 | Reader      |
+| 98000000               | Next available Task handle ID (relative)    | Task        |
+| 99000000 - 99999999    | User task callbacks                         | Task        |
 
 ### The 7-Delayer Strategy
 `L_uv` uses an optimized decision tree to select the most efficient waiting method (the "delayer") for the current state.
 
-| Case            | Active Handles     | Wait Method          | Timeout            |
-| :-------------- | :----------------- | :------------------- | :----------------- |
-| **Single Reader** | 1 FD               | `read -u FD`         | Indefinite         |
-| **Single Waiter** | 1 PID              | `wait -n` / `waitpid` / `tail --pid`  | Indefinite         |
-| **Single Timer**  | Timers             | `L_sleep`            | Next Timer         |
-| **Reader + Timer**| 1 FD + Timers      | `read -t $timer -u FD` | Next Timer         |
-| **Waiter + Timer**| PID + Timers       | `waitpid -t $timer` / `timeout $timer tail`    | Next Timer         |
-| **Capped Reader** | Multi-FD or Tasks  | `read -t 0.05 -u FD`   | min(Timer, 50ms)   |
-| **Capped Waiter** | Tasks + Waiter     | `waitpid -t 0.05` / `timeout 0.05 tail`      | min(Timer, 50ms)   |
+| Case            | Active Handles     | Wait Method                             | Timeout            |
+| :-------------- | :----------------- | :-------------------                    | :----------------- |
+| Single Reader   | 1 FD               | read -u FD                              | Indefinite         |
+| Single Waiter   | 1 PID              | wait -n / waitpid / tail --pid          | Indefinite         |
+| Single Timer    | Timers             | L_sleep                                 | Next Timer         |
+| Reader + Timer  | 1 FD + Timers      | read -t $timer -u FD                    | Next Timer         |
+| Waiter + Timer  | PID + Timers       | waitpid -t $timer / timeout $timer tail --pid | Next Timer         |
+| Capped Reader   | Multi-FD or Tasks  | read -t 0.05 -u FD                      | min(Timer, 50ms)   |
+| Capped Waiter   | Tasks + Waiter     | waitpid -t 0.05 / timeout 0.05 tail --pid | min(Timer, 50ms)   |
 
 ### Nested `L_uv_run` Usage
 It is possible to call `L_uv_run` from within a callback of another `L_uv_run` instance. 
@@ -275,3 +232,5 @@ It is possible to call `L_uv_run` from within a callback of another `L_uv_run` i
 **Behavior**: The outer loop is effectively paused. A new, independent inner loop starts and will run until it is empty or broken. Once the inner loop completes, control returns to the outer loop's callback.
 
 **Warning**: This should be used with caution. Handles from the outer loop (timers, readers, etc.) will **not** be serviced while the inner loop is running. This can be useful for modal dialogs or sub-tasks that must complete before the main loop continues, but can also lead to unexpected latency if not managed carefully.
+
+::: bin/L_lib.sh uv
