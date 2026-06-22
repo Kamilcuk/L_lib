@@ -54,9 +54,11 @@ format_revents (short revents)
 static int
 do_poll (struct pollfd *pfds, int nfds, struct timespec *tsp, sigset_t *sigmask, int is_ppoll)
 {
+#ifdef HAVE_PPOLL
   if (is_ppoll)
     return ppoll (pfds, nfds, tsp, sigmask);
   else
+#endif
     {
       int timeout = -1;
       if (tsp)
@@ -203,11 +205,13 @@ poll_subcommand (WORD_LIST *list)
   return poll_internal (list, 0);
 }
 
+#ifdef HAVE_PPOLL
 int
 ppoll_subcommand (WORD_LIST *list)
 {
   return poll_internal (list, 1);
 }
+#endif
 
 char *poll_doc[] = {
     "Wait for file descriptors to become ready.",
@@ -224,6 +228,7 @@ char *poll_doc[] = {
     (char *)NULL
 };
 
+#ifdef HAVE_PPOLL
 char *ppoll_doc[] = {
     "Wait for file descriptors and unblock signals atomically.",
     "",
@@ -236,3 +241,4 @@ char *ppoll_doc[] = {
     "Returns success if ppoll succeeds. Returns failure on system errors.",
     (char *)NULL
 };
+#endif

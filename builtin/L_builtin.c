@@ -20,10 +20,15 @@ struct subcommand_def {
 static struct subcommand_def subcommands[] = {
   { "lseek", lseek_subcommand, lseek_doc },
   { "poll", poll_subcommand, poll_doc },
+#ifdef HAVE_PPOLL
   { "ppoll", ppoll_subcommand, ppoll_doc },
+#endif
   { "sigmask", sigmask_subcommand, sigmask_doc },
   { "sigunmask", sigunmask_subcommand, sigunmask_doc },
   { "pipe", pipe_subcommand, pipe_doc },
+#ifdef HAVE_LUA
+  { "lua", lua_subcommand, lua_doc },
+#endif
   { NULL, NULL, NULL }
 };
 
@@ -80,10 +85,15 @@ char *L_builtin_doc[] = {
     "Available subcommands:",
     "  lseek      Reposition file offset",
     "  poll       Wait for file descriptors to become ready",
+#ifdef HAVE_PPOLL
     "  ppoll      Wait for FDs and unblock signals atomically",
+#endif
     "  sigmask    Block or unblock signals",
     "  sigunmask  Unblock signals and run a command",
     "  pipe       Create a pipe",
+#ifdef HAVE_LUA
+    "  lua        Execute LuaJIT script",
+#endif
     "",
     "Use 'L_builtin <subcommand> -h' for more information.",
     (char *)NULL
