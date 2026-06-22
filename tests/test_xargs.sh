@@ -94,3 +94,18 @@ _L_test_L_xargs_return_codes() {
     # Command not found -> L_xargs should return 127
     L_unittest_cmd -e 127 -I L_xargs non_existent_command <<<'1'
 }
+
+_L_test_L_xargs_empty_lines() {
+    local output
+    # Default behavior: ignore empty lines
+    output=$(echo -e "a\n\nb" | L_xargs echo)
+    L_unittest_eq "$output" "a b"
+
+    # -d behavior: treat empty lines as empty arguments
+    output=$(echo -e "a\n\nb" | L_xargs -d $'\n' -n 1 printf "[%s]")
+    L_unittest_eq "$output" "[a][][b]"
+
+    # -L behavior: empty lines should not count as records in default mode
+    output=$(echo -e "a\n\nb" | L_xargs -L 1 echo | wc -l)
+    L_unittest_eq "${output// /}" "2"
+}
