@@ -66,7 +66,7 @@ This scenario measures the time it takes for Bash to parse the function definiti
 | `L_sete_opt :`   | 1   | 0    |              | 0.0026350 ± 0.0000419 (1.59%) |
 | `L_sete_shopt :` | 1   | 0    |              | 0.0022563 ± 0.0000392 (1.74%) |
 
-**Result:** The `[[ $- == *e* ]]` implementation is the fastest to parse. It is functionally smaller and bypasses the structure needed for `case`, taking ~0.0020 seconds compared to ~0.0025 seconds.
+Result: The `[[ $- == *e* ]]` implementation is the fastest to parse. It is functionally smaller and bypasses the structure needed for `case`, taking ~0.0020 seconds compared to ~0.0025 seconds.
 
 ### Scenario 2: Loop Execution (Runtime Overhead)
 This scenario measures the pure runtime execution overhead by defining the function once and running it 10,000 times (5,000 times with `+e` and 5,000 times with `-e`).
@@ -82,4 +82,62 @@ This scenario measures the pure runtime execution overhead by defining the funct
 | `loop_opt`   | 1   | 0    |              | 0.27852 ± 0.00260 (0.93%) |
 | `loop_shopt` | 1   | 0    |              | 0.42494 ± 0.00561 (1.32%) |
 
-**Result:** In pure runtime execution, the `case` statement proves to be the most performant implementation. It executes approximately 60% faster than the original `shopt` method and holds a ~5% speed advantage over conditional checks (`[[ ]]`). This demonstrates that for high-iteration logic within the Bash evaluator, native POSIX keywords like `case` bypass the overhead of evaluating condition expressions.
+Result: In pure runtime execution, the `case` statement proves to be the most performant implementation. It executes approximately 60% faster than the original `shopt` method and holds a ~5% speed advantage over conditional checks (`[[ ]]`). This demonstrates that for high-iteration logic within the Bash evaluator, native POSIX keywords like `case` bypass the overhead of evaluating condition expressions.
+
+## Bash Patterns (QEMU Exact Instruction Counts)
+
+| Pattern | Instruction Cost (100x) | Per Iteration |
+| :--- | :--- | :--- |
+| `((1))` | 1,893,564 | 18,935 |
+| `[[ 1 ]]` | 1,926,536 | 19,265 |
+| `:` | 2,096,439 | 20,964 |
+| `f() { :; }; f` | 3,440,324 | 34,403 |
+
+Result: `((1))` is the fastest success state.
+
+### Array Operations (100-element array)
+
+| Operation | Total Instructions | Incremental Cost |
+| :--- | :--- | :--- |
+| `${#arr[@]}` | 2,839,169 | 3,515 |
+| `${#arr[*]}` | 2,839,169 | 3,515 |
+| `${arr[*]+${#arr[*]}}` | 2,941,785 | 106,131 |
+| `${arr[*]}` | 3,256,346 | 420,692 |
+
+Result: `${#arr[@]}` is the fastest length retrieval method.
+
+### Parameter Expansion
+
+| Expansion | Total Instructions | Instruction Delta |
+| :--- | :--- | :--- |
+| `${v+x}` | 688,595 | 0 |
+| `${v:+x}` | 688,869 | +274 |
+
+Result: `${v+x}` is faster than `${v:+x}`.
+
+### Short-Circuiting
+
+| Operation | Total Instructions | Instruction Delta |
+| :--- | :--- | :--- |
+| `(( A && B ))` | 711,790 | 0 |
+| `(( A )) && (( B ))` | 710,934 | -856 |
+
+Result: External short-circuiting with `&&` between `(( ))` blocks is the fastest way to skip logic.
+
+
+### Callback Execution (eval)
+
+| Pattern | Instructions (cb=':') |
+| :--- | :--- |
+| `eval "${cb:-}"` | 704,412 |
+| `[[ -n "$cb" ]] && eval "$cb"` | 714,949 |
+| `${cb:+eval} ${cb:+"$cb"}` | 716,212 |
+
+Result: `eval "${cb:-}"` is the fastest when a callback is present.
+
+
+### Real-time Throughput
+
+| Instruction Count | Real Time (Estimated) | Throughput |
+| :--- | :--- | :--- |
+| 1,000,000 (1M) | 600µs – 800µs | ~1.6 GIPS |
