@@ -22,6 +22,10 @@ L_builtin_builtin (WORD_LIST *list)
     return lseek_subcommand (list->next);
   else if (strcmp (subcommand, "select") == 0)
     return select_subcommand (list->next);
+  else if (strcmp (subcommand, "sigmask") == 0)
+    return sigmask_subcommand (list->next);
+  else if (strcmp (subcommand, "sigunmask") == 0)
+    return sigunmask_subcommand (list->next);
   else
     {
       builtin_error ("%s: invalid subcommand", subcommand);
@@ -35,8 +39,10 @@ char *L_builtin_doc[] = {
     "L_builtin <subcommand> [options] [args]",
     "",
     "Available subcommands:",
-    "  lseek   Reposition file offset",
-    "  select  Wait for file descriptors to become ready",
+    "  lseek      Reposition file offset",
+    "  select     Wait for file descriptors to become ready",
+    "  sigmask    Block or unblock signals",
+    "  sigunmask  Unblock signals and run a command",
     "",
     "Use 'help L_builtin <subcommand>' for more information.",
     (char *)NULL
