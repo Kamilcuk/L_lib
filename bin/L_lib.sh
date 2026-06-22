@@ -5623,8 +5623,10 @@ L_finally() {
 			fi
 			# declare -p BASH_LINENO FUNCNAME BASH_SOURCE _L_up >&2
 			# Add element to the return array. Index loop is unrolled for speed.
-  		_L_elem="${_L_elem% };unset -v \"_L_finally_arr[$_L_idx]\";"
-  		_L_finally_return[${#BASH_LINENO[@]}-_L_up]=$'\t'"$_L_elem${_L_finally_return[${#BASH_LINENO[@]}-_L_up]:-$'\t'}"
+			local _L_depth=$(( ${#BASH_LINENO[@]} - _L_up ))
+			_L_finally_item_depth[$_L_idx]=$_L_depth
+		_L_elem="${_L_elem% };unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
+		_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]:-$'\t'}"
 			# Register the trap.
 			# Use ${+} expansion to execute nothing when there is nothing to execute.
 			trap '${_L_finally_return[${#BASH_LINENO[*]}]+L_finally_handle_return} ${_L_finally_return[${#BASH_LINENO[*]}]+"$?"} ${_L_finally_return[${#BASH_LINENO[*]}]+"$BASH_COMMAND"}' RETURN
@@ -5699,26 +5701,27 @@ L_finally_pop() {
 			L_func_error "index not found: $_L_idx"; return "$L_EX_USAGE"
 		fi
 	fi
-	if ((_L_run)); then
+	local _L_depth="${_L_finally_item_depth[$_L_idx]:-}"
+	_L_elem="${_L_finally_arr[$_L_idx]}unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
+	if (( _L_run )); then
 		# shellcheck disable=SC2294
 		local L_SIGNAL=POP
 		eval "${_L_finally_arr[_L_idx]}" || _L_ret=$?
-		unset -v "_L_finally_arr[$_L_idx]" L_SIGNAL
-		if ((${_L_finally_pending[@]:+1})); then
+		# L_SIGNAL unset for nested detection hadnling.
+		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL
+		# Execute a signal that might hhave happened while the above eval was executing.
+		if (( ${_L_finally_pending[@]+1} )); then
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$((128+_L_finally_pending[1]))"
+			exit "$(( 128 + _L_finally_pending[1] ))"
 		fi
 	else
-		unset -v "_L_finally_arr[$_L_idx]"
+		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[$_L_idx]'
 	fi
 	# Remove the index from _L_finally_return.
-	_L_elem=";unset -v \"_L_finally_arr[$_L_idx]\";"$'\t'
-	for _L_idx in ${_L_finally_return[@]:+"${!_L_finally_return[@]}"}; do
-		if [[ "${_L_finally_return[_L_idx]}" == *"$_L_elem"* ]]; then
-			_L_finally_return[_L_idx]=${_L_finally_return[_L_idx]#*$'\t'*"$_L_elem"}$'\t'${_L_finally_return[_L_idx]%$'\t'*"$_L_elem"*}
-			break
-		fi
-	done
+	if [[ -n "$_L_depth" ]]; then
+		_L_finally_return[_L_depth]="${_L_finally_return[_L_depth]/$'\t'"$_L_elem"$'\t'/$'\t'}"
+	fi
+	# declare -p _L_finally_arr _L_finally_return _L_elem >&2
 	return "$_L_ret"
 }
 
@@ -5775,10 +5778,10 @@ L_with_tmpfile_into() {
 L_with_tmpdir_into() {
   local _L_v &&
     _L_v=$(mktemp -d "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
-    L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_to_callback "$_L_v" &&
+    L_finally -r -s "$((${2-}+1))" _L_with_tmpdir_into_callback "$_L_v" &&
     printf -v "$1" "%s" "$_L_v"
 }
-_L_with_tmpdir_to_callback() {
+_L_with_tmpdir_into_callback() {
 	rm -rf "$1" || L_critical "Could not remove directory $1"
 }
 
@@ -6178,7 +6181,7 @@ L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt \
-		_L_u_verbose=0 _L_u_finally_idx="" _L_u_msg=""
+		_L_u_verbose=0 _L_u_finally_idx="" _L_u_msg="" L_RET
 	while getopts p:k:EP:lqd:xsScvh _L_i; do
 		case $_L_i in
 			p)
@@ -6255,7 +6258,8 @@ L_unittest_main() {
 	# echo "Using directory $_L_u_tmpd"
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
-	L_xargs -X -q -O -v _L_u_rets -a _L_u_tests -P "$_L_u_nproc" _L_unittest_main_runner
+	if (( _L_u_subshell )); then _L_i=""; else _L_i=-F; fi
+	L_xargs -r -v _L_u_rets -A _L_u_tests -P "$_L_u_nproc" $_L_i _L_unittest_main_runner
 	L_epochrealtime_usec -v _L_u_end
 	if (( _L_u_quiet )); then
 		# When quiet the _L_unittest_main_runner writes one character per test, without any newlines.
