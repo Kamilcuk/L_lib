@@ -11655,8 +11655,10 @@ _L_xargs_stop_input_last_dispatch() {
 _L_xargs_input_split_L_RET() {
   if "$_L_x_eof_check_cb"; then
     if (( ${_L_x_split:-1} )); then
-      L_string_unquote -v L_RET "${L_RET[*]}" || return 1
-      (( ${#L_RET[@]} == 0 )) && return 0
+      L_string_unquote -v L_RET "${L_RET[*]:+${L_RET[*]}}" || return 1
+      if (( ${#L_RET[@]} == 0 )); then
+				return 0
+			fi
     fi
     _L_x_atoms+=("${L_RET[@]}")
     (( ++_L_x_cur_records ))
@@ -11669,10 +11671,10 @@ _L_xargs_input_split_L_RET() {
 _L_xargs_callback_caller() {
   local L_RET
   while _L_xargs_continue_input; do
-    if "${_L_x_callback[@]}" && _L_xargs_input_split_L_RET; then
-      _L_xargs_dispatch_over_atoms
-    else
-      _L_xargs_stop_input_last_dispatch
+		if "${_L_x_callback[@]}" && (( ${L_RET[@]+1}0 )) && _L_xargs_input_split_L_RET; then
+			_L_xargs_dispatch_over_atoms
+		else
+			_L_xargs_stop_input_last_dispatch
       break
     fi
   done

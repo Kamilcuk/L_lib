@@ -12,16 +12,26 @@ _L_test_L_xargs_callback_option() {
     }
     local i=0
     local output
-    output=$(
-        # On bash version 4.0 the set -e is NOT disabled in a while loop condition, which makes
-        # the callback returning 1 trigger trap ERR, which makes it exit because L_trap_err exits.
-        if (( L_BASH_VERSION / 0x100 == 0x400 )); then
-            trap - ERR
-        fi
-        L_xargs -C 'callback_func' echo
-    )
+    output=$( L_xargs -C 'callback_func' echo )
     L_unittest_eq "$output" "item1 item2 item3"
 }
+
+_L_test_L_xargs_callback_empty() {
+    # Test for the -c (callback) option
+    callback_func() {
+        case "$(( i++ ))" in
+            0) L_RET=("") ;;
+            1) L_RET=("" "") ;;
+            2) L_RET=("" a) ;;
+            *) L_RET=() ;;
+        esac
+    }
+    local i=0
+    local output
+    output=$(L_xargs -Z -L 1 -t -C 'callback_func')
+    L_unittest_eq "$output" $'\'\'\n\'\' \'\'\n\'\' a'
+}
+
 
 _L_test_L_xargs_solid_mode_option() {
     # Test for the -Z (solid mode) option
