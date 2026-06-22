@@ -1301,6 +1301,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#reader-timeout-and-race-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reader Timeout and Race Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2001,6 +2012,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#reader-timeout-and-race-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reader Timeout and Race Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2588,6 +2610,10 @@ L_uv_run
 <p>It is possible to call <code>L_uv_run</code> from within a callback of another <code>L_uv_run</code> instance. </p>
 <p><strong>Behavior</strong>: The outer loop is effectively paused. A new, independent inner loop starts and will run until it is empty or broken. Once the inner loop completes, control returns to the outer loop's callback.</p>
 <p><strong>Warning</strong>: This should be used with caution. Handles from the outer loop (timers, readers, etc.) will <strong>not</strong> be serviced while the inner loop is running. This can be useful for modal dialogs or sub-tasks that must complete before the main loop continues, but can also lead to unexpected latency if not managed carefully.</p>
+<h3 id="reader-timeout-and-race-conditions">Reader Timeout and Race Conditions<a class="headerlink" href="#reader-timeout-and-race-conditions" title="Permanent link">&para;</a></h3>
+<p>By default, <code>L_uv_manager_reader</code> uses a 1-second timeout for <code>read -d</code>. This relatively high value is a mitigation for a race condition in the Bash <code>read</code> builtin's internal timer framework (introduced in Bash 5.2).</p>
+<p>When <code>read -t</code> is used with a delimiter (<code>-d</code>), a timeout that expires exactly as data (including the delimiter) arrives can cause Bash to return a partial line and lose the delimiter from its internal buffer. In the <code>L_uv</code> reader, this would result in the next read's data being concatenated directly to the previous partial record without a separator, mangling the input (e.g., <code>record1</code> and <code>record2</code> becoming <code>record1record2</code>).</p>
+<p>Using a 1-second timeout significantly reduces the probability of hitting this timing window under high system load. For high-performance stream processing where 1-second latency is unacceptable, applications should consider implementing their own raw chunked reading logic to bypass Bash's delimited read entirely.</p>
 <h2 id="L_lib.sh--uv">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     uv
       <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10725"
@@ -3080,7 +3106,7 @@ Uses environment variable:
 
 <h3 id="L_lib.sh--L_uv_run">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_run
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11343"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11339"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3149,7 +3175,7 @@ Return:
 
 <h3 id="L_lib.sh--L_uv_break">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_break
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11376"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11372"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3184,7 +3210,7 @@ Return:
 
 <h3 id="L_lib.sh--L_uv_poke">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_poke
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11380"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11376"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3218,7 +3244,7 @@ Return:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 22, 2026 12:00:20 UTC">June 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 22, 2026 18:18:43 UTC">June 22, 2026</span>
   </span>
 
     
