@@ -11522,7 +11522,7 @@ _L_xargs_run_template_replace() {
 }
 # No templating - add arguments to execute.
 _L_xargs_run_template_no() {
-  L_RET+=("${_L_x_atoms[@]:_L_x_atoms_idx:_L_dispatch_limit}")
+  L_RET+=(${_L_x_atoms[@]+"${_L_x_atoms[@]:_L_x_atoms_idx:_L_dispatch_limit}"})
 }
 
 # @see https://github.com/jamesyoungman/findutils/blob/master/xargs/xargs.c#L1585
@@ -11609,8 +11609,8 @@ _L_xargs_dispatch_one() {
   fi
   # Update state.
   (( _L_x_atoms_idx += _L_dispatch_limit, 1 ))
-  if (( L_XARGS_INDEX++ % 1000 == 0 || _L_x_atoms_idx > 1073741824 )); then
-    _L_x_atoms=("${_L_x_atoms[@]:_L_x_atoms_idx}")
+  if (( ++L_XARGS_INDEX % 1000 == 0 || _L_x_atoms_idx > 1073741824 )); then
+    _L_x_atoms=(${_L_x_atoms[@]+"${_L_x_atoms[@]:_L_x_atoms_idx}"})
     _L_x_atoms_idx=0
   fi
   _L_x_cur_records=0
@@ -11653,9 +11653,10 @@ _L_xargs_stop_input_last_dispatch() {
 # Split the input stored in L_RET into L_RET.
 # @return 1 if hit EOF or quoting error.
 _L_xargs_input_split_L_RET() {
-  if (( ${L_RET[@]:+1}0 )) && "$_L_x_eof_check_cb"; then
+  if "$_L_x_eof_check_cb"; then
     if (( ${_L_x_split:-1} )); then
       L_string_unquote -v L_RET "${L_RET[*]}" || return 1
+      (( ${#L_RET[@]} == 0 )) && return 0
     fi
     _L_x_atoms+=("${L_RET[@]}")
     (( ++_L_x_cur_records ))
@@ -11744,12 +11745,7 @@ _L_xargs_callback_array_indirect() {
 _L_x_finally() {
   if (( ${#_L_X_CLEANUP[@]} )); then
     kill "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
-    wait "${!_L_X_CLEANUP[@]}" 2>/dev/null || {
-      local _L_i
-      for _L_i in "${_L_X_CLEANUP[@]}"; do
-        wait "$_L_i" || :
-      done
-    }
+    wait "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
   fi
 }
 

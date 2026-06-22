@@ -13,7 +13,7 @@ _L_test_L_uv_timer_repeat() {
 	local count=0 L_UV
 	L_uv_init
 	cb() { if (( ++count == 3 )); then L_uv_break; fi; }
-	L_uv_add_timer -d 0.01 -r 0.01 cb
+	L_uv_add_timer -d 0.1 -r 0.1 cb
 	L_uv_run
 	L_unittest_eq "$count" 3
 }
