@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-. "$(dirname "$0")"/../bin/L_lib.sh -s
+. "$(dirname "${BASH_SOURCE[0]}")"/../bin/L_lib.sh -s
 functions="\
 $(compgen -A function -- _L_)
 $(compgen -A function -- L_)
@@ -10,29 +10,32 @@ $functions
 L_cb_parse_args
 L_cb_usage
 L_asa_set
-"
-ignore_functions="\
-_L_uv_delayer_waiter_timer
-_L_lib_usage
+L_lib
 "
 work() {
-  func="$1"
-  if grep -qx "$ignore_functions" <<<"$func"; then
-    # Ignore
-    return
-  fi
-  def=$(declare -f "$func") || L_panic "Function does not exists: $func"
-  calls=$(sed -n 's/^[ \t\n]*\(_\?L_[^ \t\n;]*\).*/\1/p' <<<"$def" | grep -v '[=+[]' | sort -u)
-  for call in $calls; do
-    L_assert "-255 Function $func calls $call but this function does not exists in L_lib.sh: $def" \
-      grep -q "$call" <<<"$all_functions"
-  done
+  local func="$1"
+  local def=$(declare -f "$func") || L_panic "Function does not exists: $func"
+  while IFS= read -r _L_line; do
+    # 1. Match any identifier at the start of whitespace cleanly
+    if [[ "$_L_line" =~ ^[[:space:]]*(_?L_[a-zA-Z0-9_]+) ]]; then
+      _L_call="${BASH_REMATCH[1]}"
+      # Additional safety check to drop common assignment artifacts
+      if [[ "$_L_line" =~ ^[[:space:]]*_?L_[a-zA-Z0-9_]+[[:space:]]*[*+=[] ]]; then
+        continue
+      fi
+      if [[ " $all_functions " != *[$' \n']"$_L_call"[$' \n']* ]]; then
+        L_fatal "-255 Function $func calls $_L_call but this function does not exist in L_lib.sh:$L_NL$_L_line"
+      fi
+    fi
+  done <<<"$def"
 }
-if L_hash L_xargs; then
-  L_xargs -t -P "$(nproc)" -i work {} <<<"$functions"
-else
-  export -f $functions work
-  export all_functions functions ignore_functions
-  xargs -t -P "$(nproc)" -n1 bash -c 'work $1' bash <<<"$functions"
+if L_is_main; then
+  if L_hash L_xargs; then
+    L_xargs -t -P n -i work {} <<<"$functions" || exit
+  else
+    export -f $functions work
+    export all_functions functions
+    xargs -t -P "$(nproc)" -n1 bash -c 'work $1' bash <<<"$functions" || exit
+  fi
+  echo "SUCCESS"
 fi
-echo "SUCCESS"
