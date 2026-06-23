@@ -34798,7 +34798,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_sort_bash">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort_bash
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5053"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5054"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -34822,6 +34822,9 @@ Argument:
 
 </li><li>                <strong><code>-r</code></strong>
     Reverse sort.
+
+</li><li>                <strong><code>-u</code></strong>
+    Unique values only.
 
 </li><li>                <strong><code>-c &lt;compare&gt;</code></strong>
     Custom compare function that returns 0 when $1 &gt; $2 and 1 otherwise.
@@ -34865,7 +34868,7 @@ See:
 
 <h4 id="L_lib.sh--L_sort_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5117"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5131"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -34925,7 +34928,7 @@ echo "${arr[@]}"  # 1 2 5 5
 
 <h4 id="L_lib.sh--L_sort">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sort
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5139"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5154"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -34951,6 +34954,9 @@ Otherwise, it uses L_sort_cmd for performance (calling the system sort command).
 
 </li><li>                <strong><code>-r</code></strong>
     reverse sort
+
+</li><li>                <strong><code>-u</code></strong>
+    unique values only
 
 </li><li>                <strong><code>-c &lt;compare&gt;</code></strong>
     Custom compare function (uses L_sort_bash)
@@ -34995,7 +35001,7 @@ Argument:
 
 <h3 id="L_lib.sh--trap">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     trap
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5159"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5174"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35021,7 +35027,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_print_traceback">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_print_traceback
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5179"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5194"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35079,7 +35085,7 @@ Traceback from pid 3973390 (most recent call last):
 
 <h4 id="L_lib.sh--L_print_caller">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_print_caller
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5207"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5222"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35110,7 +35116,7 @@ Traceback from pid 3973390 (most recent call last):
 
 <h4 id="L_lib.sh--L_trap_err_small">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_err_small
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5219"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5234"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35146,7 +35152,7 @@ Traceback from pid 3973390 (most recent call last):
 
 <h4 id="L_lib.sh--L_trap_err">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_err
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5229"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5244"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35192,7 +35198,7 @@ trap 'L_trap_err $?' EXIT
 
 <h4 id="L_lib.sh--L_trap_err_enable">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_err_enable
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5252"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5267"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35229,7 +35235,7 @@ trap 'L_trap_err $?' EXIT
 
 <h4 id="L_lib.sh--L_trap_err_disable">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_err_disable
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5260"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5275"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35265,7 +35271,7 @@ trap 'L_trap_err $?' EXIT
 
 <h4 id="L_lib.sh--L_trap_err_init">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_err_init
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5267"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5282"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35301,7 +35307,7 @@ trap 'L_trap_err $?' EXIT
 
 <h4 id="L_lib.sh--L_trap_names">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_names
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5299"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5314"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35340,7 +35346,7 @@ Option:
 
 <h4 id="L_lib.sh--L_trap_names_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_names_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5300"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5315"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35367,7 +35373,7 @@ Option:
 
 <h4 id="L_lib.sh--L_trap_to_number">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_to_number
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5312"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5327"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35416,7 +35422,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_to_number_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_to_number_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5313"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5328"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35443,7 +35449,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_to_name">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_to_name
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5328"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5343"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35495,7 +35501,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_to_name_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_to_name_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5329"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5344"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35522,7 +35528,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_get
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5350"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5365"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35576,7 +35582,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_get_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5352"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5367"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35603,7 +35609,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_trap_push">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_push
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5368"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5383"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35654,7 +35660,7 @@ See:
 
 <h4 id="L_lib.sh--L_trap_pop">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap_pop
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5381"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5396"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35704,7 +35710,7 @@ See:
 
 <h4 id="L_lib.sh--L_trap">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_trap
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5394"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5409"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35745,7 +35751,7 @@ See:
 
 <h3 id="L_lib.sh--finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5404"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5419"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35808,7 +35814,7 @@ L_SIGNUM=""</p>
 
 <h4 id="L_lib.sh--L_finally_handle_return">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_return
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5448"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5463"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35848,7 +35854,7 @@ L_SIGNUM=""</p>
 
 <h4 id="L_lib.sh--L_finally_handle_exit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_exit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5476"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5491"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35879,7 +35885,7 @@ L_SIGNUM=""</p>
 
 <h4 id="L_lib.sh--L_finally_handle_signal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_signal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5500"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5515"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35919,7 +35925,7 @@ L_SIGNUM=""</p>
 
 <h4 id="L_lib.sh--L_finally_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5536"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5551"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -35950,7 +35956,7 @@ L_SIGNUM=""</p>
 
 <h4 id="L_lib.sh--L_finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5599"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5614"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36058,7 +36064,7 @@ See:
 
 <h4 id="L_lib.sh--L_finally_pop">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_pop
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5712"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5727"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36116,7 +36122,7 @@ See:
 
 <h4 id="L_lib.sh--L_finally_critical_section">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_critical_section
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5768"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5783"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36158,7 +36164,7 @@ Argument:
 
 <h3 id="L_lib.sh--with">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     with
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5787"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5802"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36188,7 +36194,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_cd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5794"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5809"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36229,7 +36235,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_tmpfile_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpfile_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5803"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5818"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36270,7 +36276,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_tmpdir_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpdir_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5814"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5829"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36311,7 +36317,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_cd_tmpdir">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd_tmpdir
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5828"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5843"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36352,7 +36358,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_process_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_process_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5855"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5870"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36402,7 +36408,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_with_redirect_stdout_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_redirect_stdout_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5883"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5898"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36444,7 +36450,7 @@ Argument:
 
 <h3 id="L_lib.sh--unittest">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     unittest
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5893"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5908"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36485,7 +36491,7 @@ Testing library for testing if variables are commands are returning as expected.
 
 <h4 id="L_lib.sh--L_unittest_skip">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_skip
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6042"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6057"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36520,7 +36526,7 @@ Option:
 
 <h4 id="L_lib.sh--L_unittest_main">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_main
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6216"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6231"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36620,7 +36626,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_checkexit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_checkexit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6400"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6415"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36664,7 +36670,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_success">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_success
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6416"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6431"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36703,7 +36709,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_failure">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_failure
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6422"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6437"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36742,7 +36748,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_failure_capture">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_failure_capture
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6429"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6444"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36782,7 +36788,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6462"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6477"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36876,7 +36882,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_vareq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_vareq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6596"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6611"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36919,7 +36925,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_eq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_eq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6609"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6624"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36959,7 +36965,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_arreq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_arreq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6622"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6637"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -36999,7 +37005,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_ne">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_ne
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6649"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6664"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37039,7 +37045,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_regex">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_regex
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6660"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6675"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37079,7 +37085,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_unittest_contains">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_contains
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6673"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6688"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37120,7 +37126,7 @@ Argument:
 
 <h3 id="L_lib.sh--map">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     map
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6685"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6700"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37159,7 +37165,7 @@ The map depends on printf %q never outputting a newline or a tab character, inst
 
 <h4 id="L_lib.sh--L_map_assign">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_assign
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6704"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6719"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37205,7 +37211,7 @@ L_map_assign var a 1 b 2
 
 <h4 id="L_lib.sh--L_map_clear">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_clear
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6716"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6731"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37244,7 +37250,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_remove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_remove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6731"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6746"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37295,7 +37301,7 @@ fi
 
 <h4 id="L_lib.sh--L_map_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6747"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6762"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37345,7 +37351,7 @@ L_map_set var b 2
 
 <h4 id="L_lib.sh--L_map_set_noremove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_set_noremove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6756"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6771"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37388,7 +37394,7 @@ L_map_set var b 2
 
 <h4 id="L_lib.sh--L_map_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_get
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6774"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6789"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37449,7 +37455,7 @@ Option:
 
 <h4 id="L_lib.sh--L_map_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_get_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6775"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6790"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37476,7 +37482,7 @@ Option:
 
 <h4 id="L_lib.sh--L_map_has">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_has
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6804"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6819"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37532,7 +37538,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_map_setdefault">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_setdefault
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6814"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6829"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37575,7 +37581,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_map_append">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_append
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6824"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6839"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37618,7 +37624,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_map_keys">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_keys
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6842"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6857"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37674,7 +37680,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_keys_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_keys_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6843"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6858"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37701,7 +37707,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_values">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_values
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6860"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6875"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37757,7 +37763,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_values_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_values_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6861"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6876"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37784,7 +37790,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_items">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_items
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6879"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6894"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37840,7 +37846,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_items_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_items_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6880"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6895"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37867,7 +37873,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_map_load">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_load
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6896"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6911"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37919,7 +37925,7 @@ echo "$PREFIX_a $PREFIX_b"  # outputs: 1 2
 
 <h4 id="L_lib.sh--L_map_save">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_map_save
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6917"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6932"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -37970,7 +37976,7 @@ echo "${tmp[@]}"  # outputs: 'a 1 b 2'
 
 <h3 id="L_lib.sh--asa">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     asa
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6927"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6942"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38007,7 +38013,7 @@ and shorter that associative array.</p>
 
 <h4 id="L_lib.sh--L_asa_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_copy
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6944"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6959"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38057,7 +38063,7 @@ L_asa_copy map mapcopy
 
 <h4 id="L_lib.sh--L_asa_has">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_has
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6953"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6968"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38097,7 +38103,7 @@ L_asa_copy map mapcopy
 
 <h4 id="L_lib.sh--L_asa_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_get
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6961"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6976"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38155,7 +38161,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_asa_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_get_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6962"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6977"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38182,7 +38188,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_asa_len">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_len
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6976"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6991"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38229,7 +38235,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_asa_len_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_len_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6977"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6992"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38256,7 +38262,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_asa_keys">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_keys
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6982"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6997"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38303,7 +38309,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_asa_keys_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_keys_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6983"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6998"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38330,7 +38336,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_asa_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6996"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7011"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38382,7 +38388,7 @@ L_asa_set map a val  # will work in bash4.0
 
 <h4 id="L_lib.sh--L_asa_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_asa_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7016"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7031"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38439,7 +38445,7 @@ Exit:
 
 <h3 id="L_lib.sh--argparse">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     argparse
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7037"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7052"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38469,7 +38475,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_argparse_fatal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_fatal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7044"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7059"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38516,7 +38522,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_argparse_print_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_print_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7305"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7320"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38587,7 +38593,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_argparse_print_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_print_usage
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7483"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7498"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38622,7 +38628,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_argparse_template_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7514"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7529"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38665,7 +38671,7 @@ See:
 
 <h4 id="L_lib.sh--L_argparse_template_verbose">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_verbose
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7518"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7533"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38708,7 +38714,7 @@ See:
 
 <h4 id="L_lib.sh--L_argparse_template_quiet">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_quiet
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7522"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7537"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38751,7 +38757,7 @@ See:
 
 <h4 id="L_lib.sh--L_argparse_template_dryrun">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_argparse_template_dryrun
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7526"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7541"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38794,7 +38800,7 @@ See:
 
 <h4 id="L_lib.sh--L_argparse_compgen">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse_compgen
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L8176"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L8191"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38851,7 +38857,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_argparse">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argparse
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9188"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9203"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38891,7 +38897,7 @@ The last group of arguments are command line arguments passed to <code>_L_argpar
 
 <h3 id="L_lib.sh--proc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     proc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9402"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9417"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38921,7 +38927,7 @@ The last group of arguments are command line arguments passed to <code>_L_argpar
 
 <h4 id="L_lib.sh--L_bashpid_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_bashpid_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9407"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9422"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38960,7 +38966,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_raise">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_raise
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9411"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9426"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -38999,7 +39005,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_kill_all_jobs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_kill_all_jobs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9414"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9429"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39030,7 +39036,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_wait_all_jobs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_wait_all_jobs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9422"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9437"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39061,7 +39067,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_get_all_childs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_get_all_childs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9433"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9448"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39116,7 +39122,7 @@ See:
 
 <h4 id="L_lib.sh--L_get_all_childs_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_get_all_childs_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9434"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9449"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39143,7 +39149,7 @@ See:
 
 <h4 id="L_lib.sh--L_kill_all_childs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_kill_all_childs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9473"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9488"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39183,7 +39189,7 @@ See:
 
 <h4 id="L_lib.sh--L_is_fd_open">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_is_fd_open
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9488"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9503"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39226,7 +39232,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_get_free_fd_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_get_free_fd_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9495"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9510"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39265,7 +39271,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_mktemp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_mktemp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9539"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9554"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39323,7 +39329,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_mktemp_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_mktemp_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9540"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9555"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39350,7 +39356,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_pipe">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_pipe
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9575"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9590"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39406,7 +39412,7 @@ exec "$out"&lt;&amp;-
 
 <h4 id="L_lib.sh--L_mkstemp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_mkstemp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9604"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9619"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39449,7 +39455,7 @@ so you get extra spare ones to read from the file.</p>
 
 <h4 id="L_lib.sh--L_proc_popen">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_popen
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9712"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9727"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39557,7 +39563,7 @@ echo "$exitcode"
 
 <h4 id="L_lib.sh--L_proc_get_exitcode">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_exitcode
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9768"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9783"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39604,7 +39610,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_exitcode_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_exitcode_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9769"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9784"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39631,7 +39637,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_pid">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_pid
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9774"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9789"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39678,7 +39684,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_pid_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_pid_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9775"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9790"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39705,7 +39711,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stdin">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stdin
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9780"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9795"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39752,7 +39758,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stdin_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stdin_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9781"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9796"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39779,7 +39785,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stdout">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stdout
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9786"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9801"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39826,7 +39832,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stdout_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stdout_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9787"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9802"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39853,7 +39859,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stderr">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stderr
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9792"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9807"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39900,7 +39906,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_stderr_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_stderr_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9793"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9808"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39927,7 +39933,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9798"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9813"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -39974,7 +39980,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_get_cmd_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_get_cmd_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9799"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9814"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40001,7 +40007,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_free">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_free
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9810"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9825"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40028,7 +40034,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_popen_finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_popen_finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9830"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9845"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40088,7 +40094,7 @@ This might change in the future.</p>
 
 <h4 id="L_lib.sh--L_proc_printf">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_printf
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9842"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9857"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40128,7 +40134,7 @@ This might change in the future.</p>
 
 <h4 id="L_lib.sh--L_proc_read">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_read
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9852"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9867"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40168,7 +40174,7 @@ This might change in the future.</p>
 
 <h4 id="L_lib.sh--L_proc_read_stderr">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_read_stderr
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9862"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9877"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40215,7 +40221,7 @@ See:
 
 <h4 id="L_lib.sh--L_proc_close">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_close
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9870"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9885"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40254,7 +40260,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_close_stdin">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_close_stdin
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9879"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9894"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40294,7 +40300,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_close_stdout">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_close_stdout
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9886"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9901"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40334,7 +40340,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_close_stderr">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_close_stderr
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9893"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9908"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40374,7 +40380,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_poll">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_poll
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9916"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L9931"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40420,7 +40426,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_wait">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_wait
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10056"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10071"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40498,7 +40504,7 @@ Return:
 
 <h4 id="L_lib.sh--L_proc_wait">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_wait
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10178"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10193"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40561,7 +40567,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_read_fds">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_read_fds
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10227"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10242"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40652,7 +40658,7 @@ Return:
 
 <h4 id="L_lib.sh--L_proc_communicate">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_communicate
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10341"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10356"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40730,7 +40736,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_proc_send_signal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_send_signal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10392"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10407"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40770,7 +40776,7 @@ Exit:
 
 <h4 id="L_lib.sh--L_proc_terminate">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_terminate
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10400"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10415"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40809,7 +40815,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_proc_kill">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_proc_kill
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10404"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10419"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40849,7 +40855,7 @@ Argument:
 
 <h3 id="L_lib.sh--foreach">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     foreach
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10408"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10423"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40875,7 +40881,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_printf_v">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_printf_v
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10417"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10432"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -40920,7 +40926,7 @@ The variables are like printf -v $1 fmt args...</p>
 
 <h4 id="L_lib.sh--L_foreach">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_foreach
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10537"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10552"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41055,7 +41061,7 @@ Return:
 
 <h3 id="L_lib.sh--uv">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     uv
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10725"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10740"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41088,7 +41094,7 @@ Return:
 
 <h4 id="L_lib.sh--L_uv_init">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_init
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10848"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10863"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41123,7 +41129,7 @@ Return:
 
 <h4 id="L_lib.sh--L_uv_add_timer">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_timer
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10889"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10904"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41177,7 +41183,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_add_waiter">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_waiter
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10916"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10931"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41226,7 +41232,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_add_reader">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_reader
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10948"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10963"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41281,7 +41287,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_add_task">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_task
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10978"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10993"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41329,7 +41335,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_add_once">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_once
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11007"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11022"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41380,7 +41386,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11027"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11042"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41420,7 +41426,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_remove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_remove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11050"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11065"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41459,7 +41465,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_uv_current_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_current_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11082"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11097"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41506,7 +41512,7 @@ Uses environment variable:
 
 <h4 id="L_lib.sh--L_uv_current_remove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_current_remove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11086"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11101"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41545,7 +41551,7 @@ Uses environment variable:
 
 <h4 id="L_lib.sh--L_uv_run">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_run
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11339"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11354"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41614,7 +41620,7 @@ Return:
 
 <h4 id="L_lib.sh--L_uv_break">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_break
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11372"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11387"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41649,7 +41655,7 @@ Return:
 
 <h4 id="L_lib.sh--L_uv_poke">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_poke
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11376"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11391"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41685,7 +41691,7 @@ Return:
 
 <h3 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11383"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11398"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41711,7 +41717,7 @@ Return:
 
 <h4 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11388"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11403"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41751,7 +41757,7 @@ Return:
 
 <h4 id="L_lib.sh--L_nproc_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11389"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11404"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41778,7 +41784,7 @@ Return:
 
 <h4 id="L_lib.sh--L_sleep">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sleep
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11413"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11428"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41817,7 +41823,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11805"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11820"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -41973,7 +41979,7 @@ Return:
 
 <h3 id="L_lib.sh--lib">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     lib
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11889"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11904"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -42003,7 +42009,7 @@ Return:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2026 10:05:46 UTC">June 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2026 20:05:32 UTC">June 23, 2026</span>
   </span>
 
     
