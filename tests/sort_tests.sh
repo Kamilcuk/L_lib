@@ -130,3 +130,56 @@ _L_test_sort_robustness() {
 		L_unittest_arreq arr 0 0 1
 	done
 }
+
+_L_test_sort_unique() {
+	L_log "test unique sorting with L_sort, L_sort_bash, and L_sort_cmd"
+	local arr
+
+	# Lexical sort with duplicates
+	arr=(b a b c a c b)
+	L_sort_bash -u arr
+	L_unittest_arreq arr a b c
+
+	arr=(b a b c a c b)
+	L_sort_cmd -u arr
+	L_unittest_arreq arr a b c
+
+	arr=(b a b c a c b)
+	L_sort -u arr
+	L_unittest_arreq arr a b c
+
+	# Numeric sort with duplicates
+	arr=(3 1 2 2 3 1 2)
+	L_sort_bash -u -n arr
+	L_unittest_arreq arr 1 2 3
+
+	arr=(3 1 2 2 3 1 2)
+	L_sort_cmd -u -n arr
+	L_unittest_arreq arr 1 2 3
+
+	arr=(3 1 2 2 3 1 2)
+	L_sort -u -n arr
+	L_unittest_arreq arr 1 2 3
+
+	# Reverse unique sort
+	arr=(b a b c a c b)
+	L_sort_bash -u -r arr
+	L_unittest_arreq arr c b a
+
+	arr=(b a b c a c b)
+	L_sort_cmd -u -r arr
+	L_unittest_arreq arr c b a
+
+	arr=(b a b c a c b)
+	L_sort -u -r arr
+	L_unittest_arreq arr c b a
+
+	# Single element or empty array
+	arr=(a)
+	L_sort_bash -u arr
+	L_unittest_arreq arr a
+
+	arr=()
+	L_sort_bash -u arr
+	L_unittest_arreq arr
+}

@@ -5047,6 +5047,7 @@ _L_sort_bash_in() {
 # @option -z ignored. Always zero sorting.
 # @option -n Numeric sort, otherwise lexical.
 # @option -r Reverse sort.
+# @option -u Unique values only.
 # @option -c <compare> Custom compare function that returns 0 when $1 > $2 and 1 otherwise.
 # @option -E <eval> Custom expression to evaluate just like -c option.
 # @option -h Print this help and return 0.
@@ -5058,13 +5059,14 @@ L_sort_bash() {
 	# _L_St - temporary variable for swap
 	# _L_Sl - left
 	# _L_Sr - right
-	local _L_sort_numeric=0 OPTIND OPTARG OPTERR _L_c _L_Sa _L_Scmp=() _L_sort_reverse=0 _L_St _L_Sp
+	local _L_sort_numeric=0 _L_sort_unique=0 OPTIND OPTARG OPTERR _L_c _L_Sa _L_Scmp=() _L_sort_reverse=0 _L_St _L_Sp
 	local -i _L_Sl _L_Sr
-	while getopts znrc:E:h _L_c; do
+	while getopts znruc:E:h _L_c; do
 		case $_L_c in
 			z) ;;
 			n) _L_sort_numeric=1 ;;
 			r) _L_sort_reverse=1 ;;
+			u) _L_sort_unique=1 ;;
 			c) _L_Scmp=("$OPTARG") ;;
 			E) _L_Scmp=(L_eval "$OPTARG") ;;
 			h) L_func_help; return 0 ;;
@@ -5082,7 +5084,7 @@ L_sort_bash() {
 	else
 		local -n _L_Sa="$1" || return "$L_EX_USAGE"
 	fi
-	if (( ${#_L_Sa[@]} )); then
+	if (( ${#_L_Sa[@]} > 1 )); then
 		if (( _L_sort_numeric )); then
 			if (( ${#_L_Scmp[*]} != 0 )); then
 				L_func_usage_error "-c option conflicts with -n option"
@@ -5092,10 +5094,22 @@ L_sort_bash() {
 		elif (( ${#_L_Scmp[*]} == 0 )); then
 			_L_Scmp=(_L_sort_compare_strings)
 		fi
+		local _L_Scmp_base=("${_L_Scmp[@]}")
 		if (( _L_sort_reverse )); then
 			_L_Scmp=(L_not "${_L_Scmp[@]}")
 		fi
 		_L_sort_bash_in 0 "$((${#_L_Sa[@]}-1))"
+		if (( _L_sort_unique )); then
+			local -a _L_tmp=("${_L_Sa[0]}")
+			local _L_prev="${_L_Sa[0]}" _L_item
+			for _L_item in "${_L_Sa[@]:1}"; do
+				if "${_L_Scmp_base[@]}" "$_L_item" "$_L_prev" || "${_L_Scmp_base[@]}" "$_L_prev" "$_L_item"; then
+					_L_tmp+=("$_L_item")
+					_L_prev="$_L_item"
+				fi
+			done
+			_L_Sa=("${_L_tmp[@]}")
+		fi
 		if (( !L_HAS_NAMEREF )); then
 			L_array_assign "$1" ${_L_Sa[@]+"${_L_Sa[@]}"}
 		fi
@@ -5131,6 +5145,7 @@ L_sort_cmd() {
 # @option -z Use zero separated stream with sort -z (forwarded to sort command)
 # @option -n numeric sort
 # @option -r reverse sort
+# @option -u unique values only
 # @option -c <compare> Custom compare function (uses L_sort_bash)
 # @option -E <eval> Custom expression to evaluate (uses L_sort_bash)
 # @option -h Print this help and return 0.
@@ -5139,9 +5154,9 @@ L_sort_cmd() {
 # @see L_sort_cmd
 L_sort() {
 	local _L_c _L_cust=0 _L_len OPTIND OPTARG OPTERR
-	while getopts znrc:E:h _L_c; do
+	while getopts znruc:E:h _L_c; do
 		case "$_L_c" in
-			z|n|r) ;;
+			z|n|r|u) ;;
 			c|E) _L_cust=1 ;;
 			h) L_func_help; return 0 ;;
     	*) L_func_usage_error; return "$L_EX_USAGE" ;;
