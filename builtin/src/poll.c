@@ -18,7 +18,8 @@
 #include "trap.h"
 #include "L_builtin.h"
 
-static short parse_events(const char *s) {
+static short parse_events(const char *s)
+{
   short ev = 0;
   if (!s || !*s)
     return POLLIN;
@@ -39,7 +40,8 @@ static short parse_events(const char *s) {
   return ev ? ev : POLLIN;
 }
 
-static char *format_revents(short revents) {
+static char *format_revents(short revents)
+{
   static char buf[8];
   int p = 0;
   if (revents & POLLIN)
@@ -58,8 +60,9 @@ static char *format_revents(short revents) {
   return buf;
 }
 
-static int do_poll(struct pollfd *pfds, int nfds, struct timespec *tsp,
-                   sigset_t *sigmask, int is_ppoll) {
+static int
+do_poll(struct pollfd *pfds, int nfds, struct timespec *tsp, sigset_t *sigmask, int is_ppoll)
+{
 #ifdef HAVE_PPOLL
   if (is_ppoll)
     return ppoll(pfds, nfds, tsp, sigmask);
@@ -73,7 +76,8 @@ static int do_poll(struct pollfd *pfds, int nfds, struct timespec *tsp,
   }
 }
 
-static int poll_internal(WORD_LIST *list, int is_ppoll) {
+static int poll_internal(WORD_LIST *list, int is_ppoll)
+{
   char *ret_var = NULL;
   char *timeout_str = NULL;
   sigset_t unblock_set, current_mask, new_mask;
@@ -195,7 +199,7 @@ static int poll_internal(WORD_LIST *list, int is_ppoll) {
       for (int i = 0; i < nfds; i++) {
         if (pfds[i].revents) {
           char entry[64];
-          sprintf(entry, "%d:%s", pfds[i].fd, format_revents(pfds[i].revents));
+          snprintf(entry, sizeof(entry), "%d:%s", pfds[i].fd, format_revents(pfds[i].revents));
           array_insert(a, count++, entry);
         }
       }
@@ -214,46 +218,48 @@ int ppoll_subcommand(WORD_LIST *list) { return poll_internal(list, 1); }
 #endif
 
 char *poll_doc[] = {
-    "Wait for file descriptors to become ready.",
-    "",
-    "L_builtin poll [-t TIMEOUT] [-v ARRAY_VAR] [FD[:EVENTS] ...]",
-    "",
-    "Poll file descriptors using poll(2). EVENTS can be 'r', 'w', or 'p'.",
-    "Results are stored in the indexed array ARRAY_VAR as FD:REVENTS.",
-    "REVENTS contains 'r', 'w', 'p', 'h' (hangup), 'e' (error), or 'n' "
-    "(invalid).",
-    "",
-    "Exit Status:",
-    "Returns success if poll succeeds, even if it timed out. Returns failure "
-    "on",
-    "system errors.",
-    (char *)NULL};
+  "Wait for file descriptors to become ready.",
+  "",
+  "L_builtin poll [-t TIMEOUT] [-v ARRAY_VAR] [FD[:EVENTS] ...]",
+  "",
+  "Poll file descriptors using poll(2). EVENTS can be 'r', 'w', or 'p'.",
+  "Results are stored in the indexed array ARRAY_VAR as FD:REVENTS.",
+  "REVENTS contains 'r', 'w', 'p', 'h' (hangup), 'e' (error), or 'n' "
+  "(invalid).",
+  "",
+  "Exit Status:",
+  "Returns success if poll succeeds, even if it timed out. Returns failure "
+  "on",
+  "system errors.",
+  (char *)NULL
+};
 
 #ifdef HAVE_PPOLL
 char *ppoll_doc[] = {
-    "Wait for file descriptors and unblock signals atomically.",
-    "",
-    "L_builtin ppoll [-t TIMEOUT] [-v ARRAY_VAR] [-u SIGSPEC] [FD[:EVENTS] "
-    "...]",
-    "",
-    "Poll file descriptors and unblock signals using ppoll(2).",
-    "Results are stored in the indexed array ARRAY_VAR as FD:REVENTS.",
-    "",
-    "Use -u SIGSPEC to temporarily unblock specified signals during ppoll.",
-    "Use -u 'ALL' (case-insensitive) to unblock all signals.",
-    "",
-    "EVENTS and REVENTS format:",
-    "  EVENTS can be a combination of 'r' (read, default if omitted),",
-    "  'w' (write), or 'p' (priority).",
-    "  REVENTS contains 'r', 'w', 'p', 'h' (hangup), 'e' (error), or 'n' "
-    "(invalid).",
-    "",
-    "Example:",
-    "  # Poll fd 0 for reading with a 2.5 second timeout, unblocking all "
-    "signals",
-    "  L_builtin ppoll -t 2.5 -v results -u ALL 0:r",
-    "",
-    "Exit Status:",
-    "Returns success if ppoll succeeds. Returns failure on system errors.",
-    (char *)NULL};
+  "Wait for file descriptors and unblock signals atomically.",
+  "",
+  "L_builtin ppoll [-t TIMEOUT] [-v ARRAY_VAR] [-u SIGSPEC] [FD[:EVENTS] "
+  "...]",
+  "",
+  "Poll file descriptors and unblock signals using ppoll(2).",
+  "Results are stored in the indexed array ARRAY_VAR as FD:REVENTS.",
+  "",
+  "Use -u SIGSPEC to temporarily unblock specified signals during ppoll.",
+  "Use -u 'ALL' (case-insensitive) to unblock all signals.",
+  "",
+  "EVENTS and REVENTS format:",
+  "  EVENTS can be a combination of 'r' (read, default if omitted),",
+  "  'w' (write), or 'p' (priority).",
+  "  REVENTS contains 'r', 'w', 'p', 'h' (hangup), 'e' (error), or 'n' "
+  "(invalid).",
+  "",
+  "Example:",
+  "  # Poll fd 0 for reading with a 2.5 second timeout, unblocking all "
+  "signals",
+  "  L_builtin ppoll -t 2.5 -v results -u ALL 0:r",
+  "",
+  "Exit Status:",
+  "Returns success if ppoll succeeds. Returns failure on system errors.",
+  (char *)NULL
+};
 #endif

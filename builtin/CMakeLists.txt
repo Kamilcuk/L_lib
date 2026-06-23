@@ -7,16 +7,52 @@ endif()
 
 project(L_builtin C)
 
+add_compile_options(-std=gnu99)
+
 set(BASH_INC "/usr/include/bash" CACHE PATH "Path to bash headers")
+
+# Try to parse the Bash version from BASH_INC/version.h
+if(EXISTS "${BASH_INC}/version.h")
+    file(READ "${BASH_INC}/version.h" VERSION_H_CONTENT)
+    string(REGEX MATCH "#define DISTVERSION \"([0-9]+\\.[0-9]+)\"" _ "${VERSION_H_CONTENT}")
+    set(BASH_VER "${CMAKE_MATCH_1}")
+endif()
+
+# Fallback to the active system/container Bash version
+if(NOT BASH_VER)
+    execute_process(
+        COMMAND bash -c "echo -n \$BASH_VERSION"
+        OUTPUT_VARIABLE RAW_BASH_VER
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(REGEX MATCH "^([0-9]+\\.[0-9]+)" _ "${RAW_BASH_VER}")
+    set(BASH_VER "${CMAKE_MATCH_1}")
+endif()
+
+message(STATUS "Determined Bash version: ${BASH_VER}")
+
+string(REGEX MATCH "^([0-9]+)" _ "${BASH_VER}")
+set(BASH_MAJOR_VERSION "${CMAKE_MATCH_1}")
+add_definitions(-DBASH_MAJOR_VERSION=${BASH_MAJOR_VERSION})
+
+if(NOT BASH_VER STREQUAL "3.2" AND NOT BASH_VER STREQUAL "5.2" AND NOT BASH_VER STREQUAL "5.3")
+    message(WARNING "
+#####################################################################
+# WARNING: Bash version ${BASH_VER} is UNTESTED!
+# This project is officially tested and optimized only for:
+# - Bash 3.2
+# - Bash 5.3
+# Use at your own risk.
+#####################################################################
+")
+endif()
+
 set(BASH_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../tmp/bash" CACHE PATH "Path to bash source")
 
-foreach(i "" "include" "builtins")
-    if(NOT IS_DIRECTORY "${BASH_INC}/${i}")
-        message(STATUS "Bash header directory not found: ${BASH_INC}/${i}")
-    endif()
-endforeach()
+message(STATUS "Using bash includes from: ${BASH_INC}")
+message(STATUS "Using bash fallback source from: ${BASH_SRC}")
 
-set(SOURCES src/L_builtin.c src/lseek.c src/poll.c src/sig.c src/pipe.c)
+set(SOURCES src/L_builtin.c src/lseek.c src/poll.c src/sig.c src/pipe.c src/net.c)
 set(LIBS "")
 set(INC_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}

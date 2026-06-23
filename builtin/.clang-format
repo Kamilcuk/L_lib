@@ -1,5 +1,11 @@
 BasedOnStyle: LLVM
 SortIncludes: false
 IndentWidth: 2
+ContinuationIndentWidth: 2
 UseTab: Never
 ColumnLimit: 100
+AlignAfterOpenBracket: BlockIndent
+Cpp11BracedListStyle: true
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBraces: Linux

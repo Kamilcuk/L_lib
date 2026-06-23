@@ -7,10 +7,14 @@ dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$dir"/../bin/L_lib.sh
 
 # Load L_builtin
-if [[ ! -f "$dir/build/L_builtin.so" ]]; then
-    L_panic "Error: $dir/build/L_builtin.so not found. Run make first."
+build_dir="${B:-build}"
+module="$dir/$build_dir/L_builtin.so"
+L_info "BASH_VERSION=$BASH_VERSION module=$module"
+
+if [[ ! -f $module ]]; then
+    L_panic "Error: $module not found. Run make first."
 fi
-enable -f "$dir/build/L_builtin.so" L_builtin
+enable -f "$module" L_builtin
 
 # Source all modular test files
 for f in "$dir"/tests/test_*.sh; do
