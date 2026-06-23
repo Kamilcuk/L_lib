@@ -21,12 +21,14 @@ extern sigset_t top_level_mask;
 extern int pending_traps[NSIG];
 extern int line_number;
 
-static void restore_process_sigmask(void *arg) {
+static void restore_process_sigmask(void *arg)
+{
   sigset_t *mask = (sigset_t *)arg;
   sigprocmask(SIG_SETMASK, mask, NULL);
 }
 
-static int parse_sigspec(WORD_LIST *list, sigset_t *set) {
+static int parse_sigspec(WORD_LIST *list, sigset_t *set)
+{
   int sig;
   while (list) {
     if (strcasecmp(list->word->word, "all") == 0) {
@@ -44,7 +46,8 @@ static int parse_sigspec(WORD_LIST *list, sigset_t *set) {
   return 0;
 }
 
-int sigmask_subcommand(WORD_LIST *list) {
+int sigmask_subcommand(WORD_LIST *list)
+{
   sigset_t block_set, unblock_set, old;
   int opt;
   int any_opt = 0;
@@ -137,7 +140,8 @@ int sigmask_subcommand(WORD_LIST *list) {
   return (EXECUTION_SUCCESS);
 }
 
-int sigunmask_subcommand(WORD_LIST *list) {
+int sigunmask_subcommand(WORD_LIST *list)
+{
   sigset_t set, old, unblocked;
   int opt;
 
@@ -220,7 +224,11 @@ int sigunmask_subcommand(WORD_LIST *list) {
   run_pending_traps();
 
   int result;
+#if defined(BASH_MAJOR_VERSION) && BASH_MAJOR_VERSION < 5
+  COMMAND *cmd = make_bare_simple_command();
+#else
   COMMAND *cmd = make_bare_simple_command(line_number);
+#endif
   cmd->value.Simple->words = copy_word_list(list);
 
   result = execute_command(cmd);
@@ -233,37 +241,39 @@ int sigunmask_subcommand(WORD_LIST *list) {
 }
 
 char *sigmask_doc[] = {
-    "Block or unblock signals.",
-    "",
-    "L_builtin sigmask [-s sigspec] [-u sigspec] [sigspec ...]",
-    "",
-    "Block or unblock signals in the shell process. Without options, it",
-    "prints the current signal mask. -s blocks, -u unblocks.",
-    "Use 'ALL' (case-insensitive) with -s or -u to block or unblock all",
-    "signals respectively. Positional arguments are always blocked.",
-    "",
-    "Exit Status:",
-    "Returns success unless an invalid signal is provided or a system error "
-    "occurs.",
-    (char *)NULL};
+  "Block or unblock signals.",
+  "",
+  "L_builtin sigmask [-s sigspec] [-u sigspec] [sigspec ...]",
+  "",
+  "Block or unblock signals in the shell process. Without options, it",
+  "prints the current signal mask. -s blocks, -u unblocks.",
+  "Use 'ALL' (case-insensitive) with -s or -u to block or unblock all",
+  "signals respectively. Positional arguments are always blocked.",
+  "",
+  "Exit Status:",
+  "Returns success unless an invalid signal is provided or a system error "
+  "occurs.",
+  (char *)NULL
+};
 
 char *sigunmask_doc[] = {
-    "Unblock signals and run a command.",
-    "",
-    "L_builtin sigunmask [-h] -s sigspec cmd [args...]",
-    "",
-    "Temporarily unblocks the specified signal and executes the command.",
-    "Use 'ALL' (case-insensitive) with -s to unblock all signals.",
-    "If the signal was pending, the trap is executed and the command is "
-    "skipped.",
-    "The command can be any shell command (builtin, function, or external).",
-    "",
-    "WARNING: There is a small window between unblocking and starting the "
-    "command.",
-    "If a signal arrives in this window, it may be delivered to the command "
-    "itself",
-    "rather than being caught by this builtin's check.",
-    "",
-    "Exit Status:",
-    "Returns the status of the command, or 128+signum if a signal was caught.",
-    (char *)NULL};
+  "Unblock signals and run a command.",
+  "",
+  "L_builtin sigunmask [-h] -s sigspec cmd [args...]",
+  "",
+  "Temporarily unblocks the specified signal and executes the command.",
+  "Use 'ALL' (case-insensitive) with -s to unblock all signals.",
+  "If the signal was pending, the trap is executed and the command is "
+  "skipped.",
+  "The command can be any shell command (builtin, function, or external).",
+  "",
+  "WARNING: There is a small window between unblocking and starting the "
+  "command.",
+  "If a signal arrives in this window, it may be delivered to the command "
+  "itself",
+  "rather than being caught by this builtin's check.",
+  "",
+  "Exit Status:",
+  "Returns the status of the command, or 128+signum if a signal was caught.",
+  (char *)NULL
+};

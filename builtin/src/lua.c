@@ -20,7 +20,8 @@
 
 static lua_State *L = NULL;
 
-static int l_bash_get(lua_State *L) {
+static int l_bash_get(lua_State *L)
+{
   const char *name = luaL_checkstring(L, 1);
   SHELL_VAR *v = find_variable((char *)name);
   if (v && !invisible_p(v)) {
@@ -34,7 +35,8 @@ static int l_bash_get(lua_State *L) {
   return 1;
 }
 
-static int l_bash_set(lua_State *L) {
+static int l_bash_set(lua_State *L)
+{
   const char *name = luaL_checkstring(L, 1);
   const char *value = luaL_checkstring(L, 2);
 
@@ -48,7 +50,8 @@ static int l_bash_set(lua_State *L) {
   return 0;
 }
 
-static int l_bash_get_array(lua_State *L) {
+static int l_bash_get_array(lua_State *L)
+{
   const char *name = luaL_checkstring(L, 1);
   SHELL_VAR *v = find_variable((char *)name);
   if (!v || invisible_p(v) || !array_p(v)) {
@@ -71,7 +74,8 @@ static int l_bash_get_array(lua_State *L) {
   return 1;
 }
 
-static int l_bash_set_array(lua_State *L) {
+static int l_bash_set_array(lua_State *L)
+{
   const char *name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TTABLE);
 
@@ -86,8 +90,7 @@ static int l_bash_set_array(lua_State *L) {
   }
 
   if (!v)
-    return luaL_error(L, "bash error: failed to create array variable %s",
-                      name);
+    return luaL_error(L, "bash error: failed to create array variable %s", name);
 
   ARRAY *a = array_cell(v);
   if (!a)
@@ -106,7 +109,8 @@ static int l_bash_set_array(lua_State *L) {
   return 0;
 }
 
-static int l_bash_call(lua_State *L) {
+static int l_bash_call(lua_State *L)
+{
   const char *name = luaL_checkstring(L, 1);
   SHELL_VAR *v = find_function(name);
   if (!v)
@@ -131,7 +135,8 @@ static int l_bash_call(lua_State *L) {
   return 1;
 }
 
-static int l_bash_expand(lua_State *L) {
+static int l_bash_expand(lua_State *L)
+{
   const char *s = luaL_checkstring(L, 1);
   char *expanded = expand_string_to_string((char *)s, Q_DOUBLE_QUOTES);
   lua_pushstring(L, expanded ? expanded : "");
@@ -140,7 +145,8 @@ static int l_bash_expand(lua_State *L) {
   return 1;
 }
 
-static int l_bash_expand_list(lua_State *L) {
+static int l_bash_expand_list(lua_State *L)
+{
   const char *s = luaL_checkstring(L, 1);
   WORD_LIST *list = expand_string((char *)s, 0);
 
@@ -157,7 +163,8 @@ static int l_bash_expand_list(lua_State *L) {
   return 1;
 }
 
-static void init_lua(void) {
+static void init_lua(void)
+{
   if (L)
     return;
   L = luaL_newstate();
@@ -183,7 +190,8 @@ static void init_lua(void) {
   lua_setglobal(L, "bash");
 }
 
-int lua_subcommand(WORD_LIST *list) {
+int lua_subcommand(WORD_LIST *list)
+{
   char *script = NULL;
   char *ret_var = NULL;
   int opt;
@@ -249,24 +257,25 @@ int lua_subcommand(WORD_LIST *list) {
 }
 
 char *lua_doc[] = {
-    "Execute LuaJIT script.",
-    "",
-    "L_builtin lua [-v VAR] SCRIPT [args...]",
-    "",
-    "Execute Lua code within the shell process. The Lua state persists",
-    "between calls. A global 'bash' table provides get/set access to",
-    "shell variables (including arrays), function calls, and expansions.",
-    "",
-    "bash.get(name)           - Get a scalar variable (returns nil if not "
-    "found)",
-    "bash.set(name, val)      - Set a scalar variable (errors if read-only)",
-    "bash.get_array(name)     - Get an indexed array as a table",
-    "bash.set_array(name, t)  - Set an indexed array from a table",
-    "bash.call(name, ...)     - Call a Bash function and return exit status",
-    "bash.expand(s)           - Expand string s (vars, arithmetic, subshell)",
-    "bash.expand_list(s)      - Expand string s into a list "
-    "(splitting/globbing)",
-    "",
-    "Exit Status:",
-    "Returns success unless a Lua error or a Bash binding error occurs.",
-    (char *)NULL};
+  "Execute LuaJIT script.",
+  "",
+  "L_builtin lua [-v VAR] SCRIPT [args...]",
+  "",
+  "Execute Lua code within the shell process. The Lua state persists",
+  "between calls. A global 'bash' table provides get/set access to",
+  "shell variables (including arrays), function calls, and expansions.",
+  "",
+  "bash.get(name)           - Get a scalar variable (returns nil if not "
+  "found)",
+  "bash.set(name, val)      - Set a scalar variable (errors if read-only)",
+  "bash.get_array(name)     - Get an indexed array as a table",
+  "bash.set_array(name, t)  - Set an indexed array from a table",
+  "bash.call(name, ...)     - Call a Bash function and return exit status",
+  "bash.expand(s)           - Expand string s (vars, arithmetic, subshell)",
+  "bash.expand_list(s)      - Expand string s into a list "
+  "(splitting/globbing)",
+  "",
+  "Exit Status:",
+  "Returns success unless a Lua error or a Bash binding error occurs.",
+  (char *)NULL
+};

@@ -1,13 +1,29 @@
 MAKEFLAGS = -rR
 SHELL = bash
 
-all:
-	cmake -S . -B build -DL_DEV=1
-	cmake --build build
-	./test.sh
+B ?= build
+BASH_INC ?= /usr/include/bash
+BASH ?= bash
+
+.PHONY: all build test bash3.2 bash4.0 format tidy cppcheck clean sh
+
+all: build test
+
+build:
+	cmake -S . -B $(B) -DL_DEV=1 -DBASH_INC=$(BASH_INC)
+	cmake --build $(B)
+
+test:
+	B=$(B) $(BASH) ./test.sh
+	$(MAKE) check-format
+	$(MAKE) tidy
+	$(MAKE) cppcheck
 
 format:
 	clang-format -i src/*.c src/*.h
+
+check-format:
+	clang-format --dry-run --Werror src/*.c src/*.h
 
 tidy:
 	@if [ -f build/compile_commands.json ]; then \
@@ -31,5 +47,5 @@ cppcheck:
 clean:
 	rm -rf build compile_commands.json
 
-sh: all
+sh: build
 	bash --init-file <(echo 'enable -f ./build/L_builtin.so L_builtin')

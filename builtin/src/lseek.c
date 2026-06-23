@@ -12,7 +12,8 @@
 #include "bashgetopt.h"
 #include "L_builtin.h"
 
-int lseek_subcommand(WORD_LIST *list) {
+int lseek_subcommand(WORD_LIST *list)
+{
   char *ret_var = NULL;
   int opt;
   off_t offset, result;
@@ -65,7 +66,7 @@ int lseek_subcommand(WORD_LIST *list) {
 
   if (ret_var) {
     char buf[32];
-    sprintf(buf, "%lld", (long long)result);
+    snprintf(buf, sizeof(buf), "%lld", (long long)result);
     if (bind_variable(ret_var, buf, 0) == NULL) {
       builtin_error("%s: cannot bind variable", ret_var);
       return (EXECUTION_FAILURE);
@@ -76,20 +77,21 @@ int lseek_subcommand(WORD_LIST *list) {
 }
 
 char *lseek_doc[] = {
-    "Reposition file offset.",
-    "",
-    "L_builtin lseek [-v var] fd offset [whence]",
-    "",
-    "Adjust the file offset of file descriptor FD to OFFSET bytes",
-    "according to WHENCE.",
-    "",
-    "WHENCE can be one of:",
-    "  0 or SET  Seek from the beginning (default)",
-    "  1 or CUR  Seek from the current position",
-    "  2 or END  Seek from the end",
-    "",
-    "If -v VAR is provided, the new offset is stored in VAR.",
-    "",
-    "Exit Status:",
-    "Returns success unless an error occurs during lseek or variable binding.",
-    (char *)NULL};
+  "Reposition file offset.",
+  "",
+  "L_builtin lseek [-v var] fd offset [whence]",
+  "",
+  "Adjust the file offset of file descriptor FD to OFFSET bytes",
+  "according to WHENCE.",
+  "",
+  "WHENCE can be one of:",
+  "  0 or SET  Seek from the beginning (default)",
+  "  1 or CUR  Seek from the current position",
+  "  2 or END  Seek from the end",
+  "",
+  "If -v VAR is provided, the new offset is stored in VAR.",
+  "",
+  "Exit Status:",
+  "Returns success unless an error occurs during lseek or variable binding.",
+  (char *)NULL
+};

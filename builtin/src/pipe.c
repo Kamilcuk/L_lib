@@ -12,7 +12,12 @@
 #include "bashgetopt.h"
 #include "L_builtin.h"
 
-int pipe_subcommand(WORD_LIST *list) {
+#if defined(__GNUC__) && __GNUC__ >= 10
+#pragma GCC diagnostic ignored "-Wanalyzer-fd-leak"
+#endif
+
+int pipe_subcommand(WORD_LIST *list)
+{
   char *array_name = NULL;
   int opt;
   int fds[2];
@@ -65,22 +70,23 @@ int pipe_subcommand(WORD_LIST *list) {
   array_flush(a);
 
   char buf[32];
-  sprintf(buf, "%d", fds[0]);
+  snprintf(buf, sizeof(buf), "%d", fds[0]);
   array_insert(a, 0, buf);
-  sprintf(buf, "%d", fds[1]);
+  snprintf(buf, sizeof(buf), "%d", fds[1]);
   array_insert(a, 1, buf);
 
   return (EXECUTION_SUCCESS);
 }
 
 char *pipe_doc[] = {
-    "Create a pipe.",
-    "",
-    "L_builtin pipe ARRAY",
-    "",
-    "Create a new pipe and store the file descriptors in the indexed",
-    "array ARRAY. ARRAY[0] is the read end, ARRAY[1] is the write end.",
-    "",
-    "Exit Status:",
-    "Returns success unless the pipe cannot be created or ARRAY is invalid.",
-    (char *)NULL};
+  "Create a pipe.",
+  "",
+  "L_builtin pipe ARRAY",
+  "",
+  "Create a new pipe and store the file descriptors in the indexed",
+  "array ARRAY. ARRAY[0] is the read end, ARRAY[1] is the write end.",
+  "",
+  "Exit Status:",
+  "Returns success unless the pipe cannot be created or ARRAY is invalid.",
+  (char *)NULL
+};

@@ -18,20 +18,29 @@ struct subcommand_def {
 };
 
 static struct subcommand_def subcommands[] = {
-    {"lseek", lseek_subcommand, lseek_doc},
-    {"poll", poll_subcommand, poll_doc},
+  {"lseek", lseek_subcommand, lseek_doc},
+  {"poll", poll_subcommand, poll_doc},
 #ifdef HAVE_PPOLL
-    {"ppoll", ppoll_subcommand, ppoll_doc},
+  {"ppoll", ppoll_subcommand, ppoll_doc},
 #endif
-    {"sigmask", sigmask_subcommand, sigmask_doc},
-    {"sigunmask", sigunmask_subcommand, sigunmask_doc},
-    {"pipe", pipe_subcommand, pipe_doc},
+  {"sigmask", sigmask_subcommand, sigmask_doc},
+  {"sigunmask", sigunmask_subcommand, sigunmask_doc},
+  {"pipe", pipe_subcommand, pipe_doc},
+  {"listen", listen_subcommand, listen_doc},
+  {"accept", accept_subcommand, accept_doc},
+  {"connect", connect_subcommand, connect_doc},
+  {"shutdown", shutdown_subcommand, shutdown_doc},
+  {"send", send_subcommand, send_doc},
+  {"recv", recv_subcommand, recv_doc},
+  {"sleep", sleep_subcommand, sleep_doc},
 #ifdef HAVE_LUA
-    {"lua", lua_subcommand, lua_doc},
+  {"lua", lua_subcommand, lua_doc},
 #endif
-    {NULL, NULL, NULL}};
+  {NULL, NULL, NULL}
+};
 
-static struct subcommand_def *find_subcommand(const char *name) {
+static struct subcommand_def *find_subcommand(const char *name)
+{
   for (int i = 0; subcommands[i].name; i++) {
     if (strcmp(name, subcommands[i].name) == 0)
       return &subcommands[i];
@@ -39,7 +48,8 @@ static struct subcommand_def *find_subcommand(const char *name) {
   return NULL;
 }
 
-static void print_arr(char **arr) {
+static void print_arr(char **arr)
+{
   if (arr) {
     for (int i = 0; arr[i]; i++)
       printf("%s\n", arr[i]);
@@ -47,27 +57,36 @@ static void print_arr(char **arr) {
 }
 
 char *L_builtin_doc[] = {
-    "L_lib helper builtins.",
-    "",
-    "L_builtin <subcommand> [options] [args]",
-    "",
-    "Available subcommands:",
-    "  lseek      Reposition file offset",
-    "  poll       Wait for file descriptors to become ready",
+  "L_lib helper builtins.",
+  "",
+  "L_builtin <subcommand> [options] [args]",
+  "",
+  "Available subcommands:",
+  "  lseek      Reposition file offset",
+  "  poll       Wait for file descriptors to become ready",
 #ifdef HAVE_PPOLL
-    "  ppoll      Wait for FDs and unblock signals atomically",
+  "  ppoll      Wait for FDs and unblock signals atomically",
 #endif
-    "  sigmask    Block or unblock signals",
-    "  sigunmask  Unblock signals and run a command",
-    "  pipe       Create a pipe",
+  "  sigmask    Block or unblock signals",
+  "  sigunmask  Unblock signals and run a command",
+  "  pipe       Create a pipe",
+  "  listen     Create a listening TCP socket",
+  "  accept     Accept a network connection",
+  "  connect    Establish a TCP connection",
+  "  shutdown   Semi-close a network socket",
+  "  send       Send bytes over a socket",
+  "  recv       Receive bytes from a socket",
+  "  sleep      High-precision sub-second sleep",
 #ifdef HAVE_LUA
-    "  lua        Execute LuaJIT script",
+  "  lua        Execute LuaJIT script",
 #endif
-    "",
-    "Use 'L_builtin <subcommand> -h' for more information.",
-    (char *)NULL};
+  "",
+  "Use 'L_builtin <subcommand> -h' for more information.",
+  (char *)NULL
+};
 
-int L_builtin_builtin(WORD_LIST *list) {
+int L_builtin_builtin(WORD_LIST *list)
+{
   if (list == 0) {
     if (this_command_name && *this_command_name)
       fprintf(stderr, "%s: usage: ", this_command_name);
@@ -76,8 +95,7 @@ int L_builtin_builtin(WORD_LIST *list) {
   }
 
   char *subcommand_name = list->word->word;
-  if (strcmp(subcommand_name, "-h") == 0 ||
-      strcmp(subcommand_name, "--help") == 0) {
+  if (strcmp(subcommand_name, "-h") == 0 || strcmp(subcommand_name, "--help") == 0) {
     print_arr(L_builtin_doc);
     return (EX_USAGE);
   }
@@ -98,9 +116,11 @@ int L_builtin_builtin(WORD_LIST *list) {
   return (*sub->func)(list->next);
 }
 
-struct builtin L_builtin_struct = {"L_builtin",
-                                   L_builtin_builtin,
-                                   BUILTIN_ENABLED,
-                                   L_builtin_doc,
-                                   "L_builtin <subcommand> [options] [args]",
-                                   0};
+struct builtin L_builtin_struct = {
+  "L_builtin",
+  L_builtin_builtin,
+  BUILTIN_ENABLED,
+  L_builtin_doc,
+  "L_builtin <subcommand> [options] [args]",
+  0
+};

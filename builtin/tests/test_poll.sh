@@ -7,15 +7,15 @@ _L_test_poll_timeout() {
 _L_test_poll_pipe() {
     local -a p=()
     L_builtin pipe p
-    echo "hello" >&"${p[1]}"
+    eval "echo 'hello' >&${p[1]}"
     
     local -a results=()
     L_builtin poll -t 0.1 -v results "${p[0]}:r"
     L_unittest_eq "${#results[@]}" "1"
     L_unittest_eq "${results[0]}" "${p[0]}:r"
     
-    exec {p[0]}<&-
-    exec {p[1]}>&-
+    eval "exec ${p[0]}<&-"
+    eval "exec ${p[1]}>&-"
 }
 
 _L_test_ppoll_atomic_signal() {
