@@ -98,11 +98,12 @@ _L_test_L_xargs_process_killing() {
     L_command_exists pgrep || L_unittest_skip "pgrep not found"
     # Test that child processes are killed when L_xargs is killed
     # and that it happens quickly.
-    local pid start end duration dur=1023491 before after beforelines afterlines bashpid
+    local pid start end duration dur before after beforelines afterlines bashpid
     L_bashpid_into bashpid
-    dur=$bashpid$dur
+    # Limit dur to be safely under INT_MAX (2147483647) for FreeBSD sleep compatibility
+    dur=$(( ( (bashpid + 1000) * 10000 + ${SRANDOM:-$RANDOM} % 10000 ) % 1999999999 ))
     L_epochrealtime_usec -v start
-    L_setx L_xargs -P 4 -I {} L_eval "exec sleep $dur" <<<"1 2 3 4" &
+    L_xargs -P 4 -I {} L_eval "exec sleep $dur" <<<"1 2 3 4" &
     pid=$!
     sleep 0.2
     before=$(pgrep -u $UID -x -f "sleep $dur" || :)
