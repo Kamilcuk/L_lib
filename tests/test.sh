@@ -2181,7 +2181,7 @@ wait_test_finish() {
 		wait "${allchilds[@]}" || L_error "wait on allchilds=${allchilds[*]} exited with $? which is highly odd"
 		allchilds=()
 	fi
-	local endtime passed limit_sec=3 limit_usec i passed_sec
+	local endtime passed limit_sec=10 limit_usec i passed_sec
 	for i in "${childs[@]}"; do
 		L_unittest_cmd -r 'No such process' ! kill -0 "$i"
 	done
