@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: MeilCli/bump-release-action@v3
         id: create_release
         with:
