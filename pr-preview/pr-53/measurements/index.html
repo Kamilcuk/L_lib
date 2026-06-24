@@ -1027,6 +1027,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../section/uv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../section/xargs/" class="md-nav__link">
         
   
@@ -1381,6 +1409,78 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#bash-patterns-qemu-exact-instruction-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash Patterns (QEMU Exact Instruction Counts)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bash Patterns (QEMU Exact Instruction Counts)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-operations-100-element-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Operations (100-element array)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-expansion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter Expansion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#short-circuiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short-Circuiting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#callback-execution-eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Callback Execution (eval)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-time-throughput" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-time Throughput
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1451,6 +1551,78 @@
     <span class="md-ellipsis">
       
         Scenario 2: Loop Execution (Runtime Overhead)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bash-patterns-qemu-exact-instruction-counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash Patterns (QEMU Exact Instruction Counts)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bash Patterns (QEMU Exact Instruction Counts)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-operations-100-element-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Operations (100-element array)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parameter-expansion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parameter Expansion
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#short-circuiting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short-Circuiting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#callback-execution-eval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Callback Execution (eval)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#real-time-throughput" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Real-time Throughput
       
     </span>
   </a>
@@ -1855,7 +2027,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Result:</strong> The <code>[[ $- == *e* ]]</code> implementation is the fastest to parse. It is functionally smaller and bypasses the structure needed for <code>case</code>, taking ~0.0020 seconds compared to ~0.0025 seconds.</p>
+<p>Result: The <code>[[ $- == *e* ]]</code> implementation is the fastest to parse. It is functionally smaller and bypasses the structure needed for <code>case</code>, taking ~0.0020 seconds compared to ~0.0025 seconds.</p>
 <h3 id="scenario-2-loop-execution-runtime-overhead">Scenario 2: Loop Execution (Runtime Overhead)<a class="headerlink" href="#scenario-2-loop-execution-runtime-overhead" title="Permanent link">&para;</a></h3>
 <p>This scenario measures the pure runtime execution overhead by defining the function once and running it 10,000 times (5,000 times with <code>+e</code> and 5,000 times with <code>-e</code>).</p>
 <div class="highlight"><pre><span></span><code>-r 100 --no-bwrap -C 1 --prefix &#39;. /tmp/l_sete_funcs.sh; &#39; loop_shopt loop_match loop_opt loop_case
@@ -1901,7 +2073,160 @@
 </tr>
 </tbody>
 </table>
-<p><strong>Result:</strong> In pure runtime execution, the <code>case</code> statement proves to be the most performant implementation. It executes approximately 60% faster than the original <code>shopt</code> method and holds a ~5% speed advantage over conditional checks (<code>[[ ]]</code>). This demonstrates that for high-iteration logic within the Bash evaluator, native POSIX keywords like <code>case</code> bypass the overhead of evaluating condition expressions.</p>
+<p>Result: In pure runtime execution, the <code>case</code> statement proves to be the most performant implementation. It executes approximately 60% faster than the original <code>shopt</code> method and holds a ~5% speed advantage over conditional checks (<code>[[ ]]</code>). This demonstrates that for high-iteration logic within the Bash evaluator, native POSIX keywords like <code>case</code> bypass the overhead of evaluating condition expressions.</p>
+<h2 id="bash-patterns-qemu-exact-instruction-counts">Bash Patterns (QEMU Exact Instruction Counts)<a class="headerlink" href="#bash-patterns-qemu-exact-instruction-counts" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Pattern</th>
+<th style="text-align: left;">Instruction Cost (100x)</th>
+<th style="text-align: left;">Per Iteration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>((1))</code></td>
+<td style="text-align: left;">1,893,564</td>
+<td style="text-align: left;">18,935</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>[[ 1 ]]</code></td>
+<td style="text-align: left;">1,926,536</td>
+<td style="text-align: left;">19,265</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>:</code></td>
+<td style="text-align: left;">2,096,439</td>
+<td style="text-align: left;">20,964</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>f() { :; }; f</code></td>
+<td style="text-align: left;">3,440,324</td>
+<td style="text-align: left;">34,403</td>
+</tr>
+</tbody>
+</table>
+<p>Result: <code>((1))</code> is the fastest success state.</p>
+<h3 id="array-operations-100-element-array">Array Operations (100-element array)<a class="headerlink" href="#array-operations-100-element-array" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: left;">Total Instructions</th>
+<th style="text-align: left;">Incremental Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>${#arr[@]}</code></td>
+<td style="text-align: left;">2,839,169</td>
+<td style="text-align: left;">3,515</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>${#arr[*]}</code></td>
+<td style="text-align: left;">2,839,169</td>
+<td style="text-align: left;">3,515</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>${arr[*]+${#arr[*]}}</code></td>
+<td style="text-align: left;">2,941,785</td>
+<td style="text-align: left;">106,131</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>${arr[*]}</code></td>
+<td style="text-align: left;">3,256,346</td>
+<td style="text-align: left;">420,692</td>
+</tr>
+</tbody>
+</table>
+<p>Result: <code>${#arr[@]}</code> is the fastest length retrieval method.</p>
+<h3 id="parameter-expansion">Parameter Expansion<a class="headerlink" href="#parameter-expansion" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Expansion</th>
+<th style="text-align: left;">Total Instructions</th>
+<th style="text-align: left;">Instruction Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>${v+x}</code></td>
+<td style="text-align: left;">688,595</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>${v:+x}</code></td>
+<td style="text-align: left;">688,869</td>
+<td style="text-align: left;">+274</td>
+</tr>
+</tbody>
+</table>
+<p>Result: <code>${v+x}</code> is faster than <code>${v:+x}</code>.</p>
+<h3 id="short-circuiting">Short-Circuiting<a class="headerlink" href="#short-circuiting" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Operation</th>
+<th style="text-align: left;">Total Instructions</th>
+<th style="text-align: left;">Instruction Delta</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>(( A &amp;&amp; B ))</code></td>
+<td style="text-align: left;">711,790</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>(( A )) &amp;&amp; (( B ))</code></td>
+<td style="text-align: left;">710,934</td>
+<td style="text-align: left;">-856</td>
+</tr>
+</tbody>
+</table>
+<p>Result: External short-circuiting with <code>&amp;&amp;</code> between <code>(( ))</code> blocks is the fastest way to skip logic.</p>
+<h3 id="callback-execution-eval">Callback Execution (eval)<a class="headerlink" href="#callback-execution-eval" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Pattern</th>
+<th style="text-align: left;">Instructions (cb=':')</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>eval "${cb:-}"</code></td>
+<td style="text-align: left;">704,412</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>[[ -n "$cb" ]] &amp;&amp; eval "$cb"</code></td>
+<td style="text-align: left;">714,949</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>${cb:+eval} ${cb:+"$cb"}</code></td>
+<td style="text-align: left;">716,212</td>
+</tr>
+</tbody>
+</table>
+<p>Result: <code>eval "${cb:-}"</code> is the fastest when a callback is present.</p>
+<h3 id="real-time-throughput">Real-time Throughput<a class="headerlink" href="#real-time-throughput" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Instruction Count</th>
+<th style="text-align: left;">Real Time (Estimated)</th>
+<th style="text-align: left;">Throughput</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;">1,000,000 (1M)</td>
+<td style="text-align: left;">600µs – 800µs</td>
+<td style="text-align: left;">~1.6 GIPS</td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -1922,7 +2247,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2026 22:20:39 UTC">June 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 24, 2026 14:11:21 UTC">June 24, 2026</span>
   </span>
 
     

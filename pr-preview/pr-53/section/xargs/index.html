@@ -15,7 +15,7 @@
         <link rel="canonical" href="https://kamilcuk.github.io/L_lib/section/xargs/">
       
       
-        <link rel="prev" href="../asa/">
+        <link rel="prev" href="../uv/">
       
       
         <link rel="next" href="../argparse/">
@@ -1028,6 +1028,34 @@
                 
   
   
+  
+  
+    <li class="md-nav__item">
+      <a href="../uv/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    uv
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
     
   
   
@@ -1273,6 +1301,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_nproc_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_sleep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sleep
       
     </span>
   </a>
@@ -1781,6 +1820,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#L_lib.sh--L_sleep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sleep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#L_lib.sh--L_xargs" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1891,7 +1941,7 @@
 <h3 id="key-features-and-differences-from-gnu-xargs">Key Features and Differences from GNU xargs<a class="headerlink" href="#key-features-and-differences-from-gnu-xargs" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Shell Integration:</strong> The most significant advantage. <code>L_xargs</code> can call shell functions and aliases directly, which is impossible with standard <code>xargs</code> without using <code>export -f</code>.</li>
-<li><strong>Advanced Input Sources:</strong> <code>L_xargs</code> can read items from a Bash array (<code>-a &lt;array_name&gt;</code>) or a custom callback function (<code>-c &lt;callback_eval_string&gt;</code>), in addition to <code>stdin</code>.</li>
+<li><strong>Advanced Input Sources:</strong> <code>L_xargs</code> can read items from a Bash array (<code>-A &lt;array_name&gt;</code>) or a custom callback function (<code>-C &lt;callback_eval_string&gt;</code>), in addition to <code>stdin</code>.</li>
 <li><strong>Performance:</strong> While highly optimized for shell environments, <code>L_xargs</code> is a pure Bash implementation and will generally be slower than the native C-based GNU <code>xargs</code>. For most scripting tasks, its flexibility and integration are more valuable.</li>
 <li><strong>Granular Return Codes:</strong> Provides specific return codes (123, 124, 125, etc.) to indicate different failure modes, allowing for more robust error handling.</li>
 </ul>
@@ -1928,8 +1978,8 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 <h4 id="input-from-an-array-a">Input from an Array (-a)<a class="headerlink" href="#input-from-an-array-a" title="Permanent link">&para;</a></h4>
 <p>Use the <code>-a</code> option to read input directly from a Bash array.</p>
 <div class="highlight"><pre><span></span><code><span class="nv">my_items</span><span class="o">=(</span><span class="s2">&quot;First item&quot;</span><span class="w"> </span><span class="s2">&quot;Second item&quot;</span><span class="w"> </span><span class="s2">&quot;Third item&quot;</span><span class="o">)</span>
-<span class="c1"># -S ensures each element is a single argument</span>
-L_xargs<span class="w"> </span>-S<span class="w"> </span>-a<span class="w"> </span>my_items<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
+<span class="c1"># -Z ensures each element is a single argument</span>
+L_xargs<span class="w"> </span>-Z<span class="w"> </span>-A<span class="w"> </span>my_items<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
 <span class="c1"># Output:</span>
 <span class="c1"># First item</span>
 <span class="c1"># Second item</span>
@@ -1946,7 +1996,7 @@ generate_items<span class="o">()</span><span class="w"> </span><span class="o">{
 <span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="m">1</span>
 <span class="o">}</span>
 
-L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;generate_items&#39;</span><span class="w"> </span><span class="nb">echo</span>
+L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span>-C<span class="w"> </span><span class="s1">&#39;generate_items&#39;</span><span class="w"> </span><span class="nb">echo</span>
 <span class="c1"># Output:</span>
 <span class="c1"># item_1</span>
 <span class="c1"># item_2</span>
@@ -1962,7 +2012,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 <span class="c1"># C</span>
 
 <span class="c1"># Split mode</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-s<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-z<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="nb">echo</span>
 <span class="c1"># Output:</span>
 <span class="c1"># A</span>
 <span class="c1"># B</span>
@@ -1998,9 +2048,9 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 <li><strong><code>-n 2 -L 3</code></strong>: If 2 atoms are collected <em>before</em> 3 records are read, the command runs. If 3 records are read <em>before</em> 2 atoms are collected, the command runs.</li>
 </ul>
 <p>Example:
-<div class="highlight"><pre><span></span><code><span class="c1"># -s splits &quot;A B&quot; into two atoms. The -n 2 limit is hit after the first line.</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># -z splits &quot;A B&quot; into two atoms. The -n 2 limit is hit after the first line.</span>
 <span class="c1"># The command runs, and the limits are reset. Then &quot;C&quot; is processed.</span>
-<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-s<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>-L<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="nb">echo</span>
+<span class="nb">printf</span><span class="w"> </span><span class="s2">&quot;A B\nC&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>L_xargs<span class="w"> </span>-z<span class="w"> </span>-n<span class="w"> </span><span class="m">2</span><span class="w"> </span>-L<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="nb">echo</span>
 <span class="c1"># Output:</span>
 <span class="c1"># A B</span>
 <span class="c1"># C</span>
@@ -2016,7 +2066,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 </code></pre></div>
 <h2 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10700"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11398"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2042,7 +2092,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10867"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11403"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2082,7 +2132,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10868"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11404"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2107,22 +2157,61 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
   
 
 
+<h3 id="L_lib.sh--L_sleep">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_sleep
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11428"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_sleep" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Pause for a specified duration using the best available sleep method.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Duration in floating point seconds.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
 <h3 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10950"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11820"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_xargs" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            <p>A high-performance Bash implementation of the <code>xargs</code> utility designed for seamless</p>
+            <p>Bash implementation of the <code>xargs</code> utility designed for seamless</p>
 <p>integration with local shell environments. Unlike binary <code>xargs</code>, <code>L_xargs</code> executes within
 the current shell context, enabling the direct use of unexported Bash functions,
-aliases, and variables without requiring <code>expor</code> or <code>export -f</code>.</p>
+aliases, and variables without requiring <code>export</code> or <code>export -f</code>.</p>
 <p>The tool operates on a dual-unit architecture:
 1. Records: Discrete segments of input defined by a delimiter (default: <code>\n</code>).
 2. Atoms: The individual arguments passed to the command.</p>
-<p>By default, <code>L_xargs</code> operates in <code>-s -0</code> mode. If <code>-d</code> <code>-0</code> <code>-a</code> options are specified without <code>-s -S</code>, <code>-S</code> is implied.</p>
+<p>By default, <code>L_xargs</code> operates in <code>-s -0</code> mode. If <code>-d</code> <code>-0</code> <code>-a</code> options are specified without <code>-z -Z</code>, <code>-Z</code> is implied.</p>
 <p>Execution follows a first-to-threshold trigger system: the command is dispatched as
 soon as either the Atom limit (-n) or the Record limit (-L) is reached. If no
 limits are specified, the command executes exactly once upon reaching EOF.</p>
@@ -2138,19 +2227,31 @@ limits are specified, the command executes exactly once upon reaching EOF.</p>
 <ul><li>                <strong><code>-0</code></strong>
     Use the null character (\0) as the Record separator.
 
-</li><li>                <strong><code>-a &lt;var&gt;</code></strong>
-    Read Records from the specified Bash array variable instead of STDIN.
+</li><li>                <strong><code>-a &lt;file&gt;</code></strong>
+    Read Records from the specified file.
 
-</li><li>                <strong><code>-c &lt;callback&gt;</code></strong>
+</li><li>                <strong><code>-A &lt;var&gt;</code></strong>
+    Read Records from the specified Bash array variable.
+
+</li><li>                <strong><code>-C &lt;callback&gt;</code></strong>
     Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
 
 </li><li>                <strong><code>-d &lt;delimiter&gt;</code></strong>
     Set the Record separator to the specified character.
 
-</li><li>                <strong><code>-s</code></strong>
+</li><li>                <strong><code>-s &lt;max-chars&gt;</code></strong>
+    Use at most max-chars characters per command line.
+
+</li><li>                <strong><code>-m &lt;task-max-time&gt;</code></strong>
+    If a task is running longer then specified time, it is killed.
+
+</li><li>                <strong><code>-M &lt;global-max-time&gt;</code></strong>
+    If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+
+</li><li>                <strong><code>-z</code></strong>
     Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
 
-</li><li>                <strong><code>-S</code></strong>
+</li><li>                <strong><code>-Z</code></strong>
     Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
 
 </li><li>                <strong><code>-u &lt;fd&gt;</code></strong>
@@ -2198,12 +2299,8 @@ limits are specified, the command executes exactly once upon reaching EOF.</p>
 </li><li>                <strong><code>-e &lt;eof-str&gt;</code></strong>
     Like -E, compatibility wtih GNU xargs, use -E.
 
-</li><li>                <strong><code>-X</code></strong>
-    Exit on error when set -e flag is set. Capture the command exit status with "cmd; rc=$?", preserving set -e flag effect during the duration of cmd.
-
-</li><li>                <strong><code>-T</code></strong>
-    <p>Use the command as a template: {} is replaced by all arguments,</p>
-<p>{1} {2} ... {N} are replaced by the corresponding argument.</p>
+</li><li>                <strong><code>-F</code></strong>
+    Run the command in current shell execution context. Do not fork.
 
 </li><li>                <strong><code>-h</code></strong>
     Display this help documentation and exit.
@@ -2241,8 +2338,8 @@ Return:
             <p>0 on success</p>
 <p>1 on some other error
 64 ($L_EX_USAGE) on invalid usage
-123 if any invocation oft he command exited with status 1-125 and 192-254
-124 ($L_EX_TIMEOUT) if the command exited with status 255
+123 if any invocation of the command exited with status 1-125 and 192-254
+124 if the command exited with status 255
 125 if the command exited with the status 128-192
 126 if the command cannot be run
 127 if the command is not found</p>
@@ -2268,7 +2365,7 @@ Return:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 23, 2026 22:20:39 UTC">June 23, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 24, 2026 14:11:21 UTC">June 24, 2026</span>
   </span>
 
     
@@ -2358,7 +2455,7 @@ Return:
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../asa/" class="md-footer__link md-footer__link--prev" aria-label="Previous: asa">
+          <a href="../uv/" class="md-footer__link md-footer__link--prev" aria-label="Previous: uv">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2368,7 +2465,7 @@ Return:
                 Previous
               </span>
               <div class="md-ellipsis">
-                asa
+                uv
               </div>
             </div>
           </a>
