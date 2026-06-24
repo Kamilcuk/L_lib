@@ -1027,6 +1027,10 @@ _L_test_argskeywords() {
 }
 
 _L_test_version() {
+	local -a line27
+	L_readarray -n 1 -s 26 -t line27 <"$L_LIB_SCRIPT"
+	L_unittest_eq "$line27" "L_LIB_VERSION=$L_LIB_VERSION"
+
 	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
 	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
 	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
