@@ -2,25 +2,14 @@ name: Release
 on: push
 
 jobs:
-  test_repo_secret:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print repository-level RELEASE_TOKEN md5sum
-        run: |
-          echo -n "Repo Token md5: "
-          echo -n "${{ secrets.RELEASE_TOKEN }}" | md5sum
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
   test_env_secret:
     runs-on: ubuntu-latest
     environment: release
     steps:
-      - name: Print environment-level RELEASE_TOKEN md5sum
+      - name: Verify Token Owner Identity
         run: |
-          echo -n "Env Token md5: "
-          echo -n "${{ secrets.RELEASE_TOKEN }}" | md5sum
+          owner=$(curl -s -H "Authorization: token ${{ secrets.RELEASE_TOKEN }}" https://api.github.com/user | jq -r '.login')
+          echo "The token belongs to user: $owner"
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
