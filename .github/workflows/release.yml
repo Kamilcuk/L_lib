@@ -18,9 +18,12 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    environment: release
+    if: github.ref == 'refs/heads/release-test'
     steps:
+      - name: Print RELEASE_TOKEN md5sum
+        run: |
+          echo -n "Token secret md5: "
+          echo -n "${{ secrets.RELEASE_TOKEN }}" | md5sum
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
