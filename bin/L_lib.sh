@@ -1359,8 +1359,8 @@ L_cache() {
     _L_CACHE=(${_L_cache[@]:+"${_L_cache[@]}"})
   else
     {
-      if ((_L_flock)); then flock 9; fi
-      _L_cache=$(cat <&9)$'\n'
+      if (( _L_flock )); then flock 9; fi
+      _L_cache=$(< "$_L_file")$'\n'
       if [[ "$_L_cache" != "$_L_cache_header"* ]]; then
         # Cache has wrong version or wrong header - clear it.
         _L_cache=()
@@ -1372,7 +1372,7 @@ L_cache() {
         printf "%s\n" "${_L_cache_header%%$'\n'*}"
         declare -p _L_cache
       } >"$_L_file"
-    } 9<"$_L_file"
+    } 9>>"$_L_file"
   fi
   return "$_L_c_ret"
 }
@@ -6347,7 +6347,7 @@ L_unittest_main() {
 			for i in "${!_L_u_tests[@]}"; do
 				local f="$_L_u_tmpd/${_L_u_tests[i]}.skip" reason
 				if [[ -r "$f" ]]; then
-					if reason=$(cat "$f"); then
+					if reason=$(< "$f"); then
 						printf "%s %s\n" "${_L_u_testnames[i]}" "$reason"
 					else
 						L_critical "internal error: could not cat file: $f . This means that something has removed it between the test has finished and proced output and between L_unittest wanting to print it. It might also mean a faulty code or logic. Please report"
@@ -6544,7 +6544,8 @@ L_unittest_cmd() {
 					rm "$_L_utmpf"
 					eval "$_L_uc || _L_uret=\$?"
 				} >"$_L_utmpf" 111<&-
-				_L_uout=$(cat <&111)
+				read -r -d '' -u 111 _L_uout || :
+				while [[ "$_L_uout" == *$'\n' ]]; do _L_uout=${_L_uout%$'\n'}; done
 			} 111<"$_L_utmpf"
 		else
 			eval "$_L_uc || _L_uret=\$?"
@@ -9996,7 +9997,7 @@ _L_wait_handle_err() {
 		{
 			rm "$_L_tmpf"
 			wait "${@:2}" 2>&10
-			_L_err=$(cat <&11)
+			read -r -d '' -u 11 _L_err || :
 			if [[ -n "$_L_err" ]]; then
 				return 1
 			fi
@@ -11417,7 +11418,7 @@ L_nproc_vL_RET() {
 			done </proc/cpuinfo
 		fi
 	elif [[ -r /proc/sys/hw/ncpu ]]; then
-		L_RET=$(cat /proc/sys/hw/ncpu)
+		L_RET=$(< /proc/sys/hw/ncpu)
 	else
 		L_RET=1
 	fi
