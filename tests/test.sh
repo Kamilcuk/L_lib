@@ -1062,6 +1062,8 @@ _L_test_version() {
 	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1a1"
 	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1.post1"
 	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1.*"
+	L_unittest_cmd -o "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski" bash "$L_LIB_SCRIPT" --version
+	L_unittest_cmd -o "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski" bash "$L_LIB_SCRIPT" version
 }
 
 _L_test_table() {
