@@ -11916,46 +11916,106 @@ _L_lib_fatal() {
 }
 
 _L_lib_selfupdate() {
+	local OPTIND OPTARG OPTERR _L_opt check=0
+	while getopts "ch" _L_opt; do
+		case "$_L_opt" in
+			c) check=1 ;;
+			h)
+				cat <<EOF
+Usage: L_lib.sh selfupdate [OPTIONS]
+Options:
+  -c  Check if a new version is available without updating.
+  -h  Print this help message.
+EOF
+				return 0
+				;;
+			*)
+				return "$L_EX_USAGE"
+				;;
+		esac
+	done
+	shift "$((OPTIND - 1))"
+
 	local url="https://raw.githubusercontent.com/Kamilcuk/L_lib/refs/heads/v1/bin/L_lib.sh"
 	local dest="${L_LIB_SCRIPT:-$0}"
 	if [[ ! -w "$dest" ]]; then
 		_L_lib_fatal "Script is not writable: $dest"
 	fi
+
+	local TMPDIR
+	L_path_dirname -v TMPDIR "$dest"
+	local tmpf
+	L_with_tmpfile_into tmpf
+
 	_L_lib_log "Downloading update from $url to $dest..."
 	if command -v curl >/dev/null 2>&1; then
-		curl -fsSL "$url" > "$dest.tmp"
+		curl -fsSL "$url" > "$tmpf"
 	elif command -v wget >/dev/null 2>&1; then
-		wget -qO "$dest.tmp" "$url"
+		wget -qO "$tmpf" "$url"
 	else
 		_L_lib_fatal "Neither curl nor wget found."
 	fi
-	if [[ ! -s "$dest.tmp" ]]; then
-		rm -f "$dest.tmp"
+	if [[ ! -s "$tmpf" ]]; then
 		_L_lib_fatal "Download failed or empty file."
 	fi
-	mv "$dest.tmp" "$dest"
-	_L_lib_log "Update successful."
+
+	local remote_version="" line
+	while IFS= read -r line; do
+		if [[ "$line" == "L_LIB_VERSION="* ]]; then
+			remote_version="${line#L_LIB_VERSION=}"
+			remote_version="${remote_version#[\"\']}"
+			remote_version="${remote_version%[\"\']}"
+			break
+		fi
+	done < "$tmpf"
+
+	if [[ -z "$remote_version" ]]; then
+		_L_lib_fatal "Could not detect remote version."
+	fi
+
+	if (( check )); then
+		if L_version_cmp "$L_LIB_VERSION" "<" "$remote_version"; then
+			_L_lib_log "New version available: $remote_version (current: $L_LIB_VERSION)"
+		else
+			_L_lib_log "Already up-to-date ($L_LIB_VERSION)."
+		fi
+		return 0
+	fi
+
+	if ! L_version_cmp "$L_LIB_VERSION" "<" "$remote_version"; then
+		_L_lib_log "Already up-to-date ($L_LIB_VERSION)."
+		return 0
+	fi
+
+	mv "$tmpf" "$dest"
+	_L_lib_log "Update successful to $remote_version."
 }
 
 _L_lib_usage() {
 	cat <<EOF
-Usage: . L_lib.sh -s [OPTIONS] [COMMAND [ARGS]...]
+Usage: . L_lib.sh [OPTIONS] [COMMAND [ARGS]...]
 
-Library with usefull bash functions.
-See https://github.com/Kamilcuk/L_lib .
+A standard library for Bash providing advanced utilities for shell scripting.
+Documentation: https://github.com/Kamilcuk/L_lib
 
-Options:
-  -s  Notify this script that it is sourced.
-  -n  Do not set extglob, patsub_replacement and don't set ERR trap.
-  -L  Drop the 'L_' prefix from some of the functions.
-  -h  Print this help and exit.
+Initialization Options:
+  By default, sourcing this script only loads functions.
+  -s         Enable automatic shell setup (sets extglob, patsub_replacement, and ERR trap).
+  -n         Disable automatic shell setup (overrides -s).
+  -L         Create aliases without the 'L_' prefix for common functions (e.g., log, error, assert).
+
+Other Options:
+  -h, --help Print this help message.
+  --version  Print version and copyright information.
 
 Commands:
-  selfupdate    Update this script from the repository
-  eval EXPR     Evaluate expression for testing
-  exec ARGS...  Run command for testing
-  help          Print this help and exit
-  L_* | _L_*    Execute the function
+  If a command is provided, it will be executed immediately.
+  selfupdate Update L_lib.sh from the remote repository.
+  eval EXPR  Evaluate a bash expression.
+  exec ARGS  Execute a command with the given arguments.
+  version    Print version and copyright information.
+  help       Print this help message.
+  <func>     Execute any loaded bash function (e.g., L_log "Message").
 
 L_lib.sh Copyright (C) 2026 Kamil Cukrowski
 $L_FREE_SOFTWARE_NOTICE
@@ -11976,12 +12036,18 @@ _L_lib_main() {
 				eval "$_L_i() { L_$_L_i -s 1 \"\$@\"; }"
 			done
 			;;
-		h) _L_lib_usage; exit 0 ;;
+		h) _L_lib_usage; return 0 ;;
 		-)
-			shift "$((OPTIND-1))"
-			OPTIND=1
-			set -- --help "$@"
-			break
+			case "$OPTARG" in
+			help) _L_lib_usage; return 0 ;;
+			version)
+				echo "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski"
+				return 0
+				;;
+			*)
+				_L_lib_fatal "unknown option: --$OPTARG"
+				;;
+			esac
 			;;
 		*) _L_lib_fatal "L_lib.sh: Internal error when parsing arguments: $_L_opt" ;;
 		esac
@@ -12006,7 +12072,11 @@ _L_lib_main() {
 			selfupdate) _L_lib_selfupdate "${@:2}" ;;
 			exec) "${@:2}" ;;
 			eval|L_*|_L_*) "$@" ;;
-			--help | help) _L_lib_usage; exit 0 ;;
+			--help | help) _L_lib_usage; return 0 ;;
+			--version | version)
+				echo "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski"
+				return 0
+				;;
 			nop) ;;
 			*)
 				L_quote_printf -v _L_i "$1"
