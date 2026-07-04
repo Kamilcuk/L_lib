@@ -153,3 +153,43 @@ _L_test_cache_vars() {
 	done
 	unset -f cachevars
 }
+
+_L_test_cache_stdout_var() {
+	local opt outvar cachef
+	L_with_tmpfile_into cachef
+	#
+	for opt in "" "-f$cachef"; do
+		outvar=""
+		L_unittest_cmd -c L_cache $opt -r -k testkey
+		L_unittest_cmd -c L_cache $opt -O outvar -k testkey echo "hello stdout"
+		L_unittest_eq "$outvar" "hello stdout"
+
+		# Second run (cached)
+		outvar=""
+		L_unittest_cmd -c L_cache $opt -O outvar -k testkey echo "ignored stdout"
+		L_unittest_eq "$outvar" "hello stdout"
+	done
+}
+
+_L_test_cache_global_isolation() {
+	local cachef mem_res file_res
+	L_with_tmpfile_into cachef
+
+	# Clear both caches
+	L_cache -r -k mykey
+	L_cache -f "$cachef" -r -k mykey
+
+	# Add entry to memory cache (must be in current shell to affect global _L_CACHE)
+	L_cache -o -k mykey echo "memory_val" >/dev/null
+
+	# Add different entry to file cache
+	L_cache -o -f "$cachef" -k mykey echo "file_val" >/dev/null
+
+	# Check that memory cache still holds "memory_val"
+	mem_res=$(L_cache -o -k mykey echo "dummy")
+	L_unittest_eq "$mem_res" "memory_val"
+
+	# Check that file cache still holds "file_val"
+	file_res=$(L_cache -o -f "$cachef" -k mykey echo "dummy")
+	L_unittest_eq "$file_res" "file_val"
+}
