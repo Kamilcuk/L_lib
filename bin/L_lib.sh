@@ -2120,21 +2120,26 @@ L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A
 L_var_to_string_vL_RET() {
 	L_RET=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
 	# If it is an array or associative array.
-	if [[ "$L_RET" == declare\ -[aA]* ]]; then
-		# Bash before4.4 which is used here prints declare output of arrays in quotes.
-		if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
-			# There is space, tab or newline in the keys of an associative array on Bash4.0.
-			L_panic "Not possible to serialize an associative array with keys containing space, tab or newline on Bash 4.0. Such keys are just improperly stored in the first place and this is a bug in Bash. Consider moving to a newer bash version"
-		fi
-  	# Remove one level of quoting.
-  	eval "L_RET=${L_RET#*=}"
-		# Fix erroneus \001 in front of every \177 and \001.
-  	L_RET=${L_RET//$'\001\001'/$'\001'}
-  	L_RET=${L_RET//$'\001\177'/$'\177'}
-  else
-  	# Non array variable.
-		printf -v L_RET "%q" "${!1}"
-  fi
+	case "$L_RET" in
+		declare\ -[aA]*)
+			# Bash before4.4 which is used here prints declare output of arrays in quotes.
+			if (( !L_HAS_BASH4_1 )) && local IFS=+ && eval "[[ \"\${!$1[*]}\" == *[$' \\t\\n']* ]]"; then
+				# There is space, tab or newline in the keys of an associative array on Bash4.0.
+				L_panic "Not possible to serialize an associative array with keys containing space, tab or newline on Bash 4.0. Such keys are just improperly stored in the first place and this is a bug in Bash. Consider moving to a newer bash version"
+			fi
+  		# Remove one level of quoting.
+  		eval "L_RET=${L_RET#*=}"
+			# Fix erroneus \001 in front of every \177 and \001.
+  		L_RET=${L_RET//$'\001\001'/$'\001'}
+  		L_RET=${L_RET//$'\001\177'/$'\177'}
+			;;
+		declare\ -n*)
+			eval "L_var_to_string_vL_RET ${L_RET##*=}"
+			;;
+		*)
+  		# Non-array and non-nameref variable.
+			printf -v L_RET "%q" "${!1}"
+	esac
 }
 
 fi

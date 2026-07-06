@@ -32,7 +32,8 @@ USR2_CNT=0
 . "$dir"/test_duration.sh
 . "$dir"/test_L_date.sh
 . "$dir"/test_asserts.sh
-. "$dir"/test_var_to_string.sh
+. "$dir"/test_var_to_string2.sh
+. "$dir"/test_format.sh
 . "$dir"/test_finally.sh
 . "$dir"/test_pretty_print.sh
 . "$dir"/test_fuzzy.sh
@@ -404,58 +405,6 @@ _L_test_exit_into_bool() {
 		L_unittest_vareq var 1
 		L_unittest_success L_exit_into_1unset var false
 		L_unittest_failure L_var_is_set var
-	}
-}
-
-_L_test_format() {
-	{
-		local name=John
-		local age=21
-		L_unittest_cmd -o "Hello, John! You are         21 years old." \
-			L_percent_format "Hello, %(name)s! You are %(age)10s years old.\n"
-		L_unittest_cmd -o "Hello, %John! You are %%        21 years old." \
-			L_percent_format "Hello, %%%(name)s! You are %%%%%(age)10s years old.\n"
-		L_unittest_cmd -o "Hello, John! You are         21 years old." \
-			L_fstring 'Hello, {name}! You are {age:10s} years old.\n'
-		L_unittest_cmd -o "Hello, {John}! You are {{        21}} years old." \
-			L_fstring 'Hello, {{{name}}}! You are {{{{{age:10s}}}}} years old.\n'
-	}
-	{
-		L_unittest_cmd -o "21" \
-			L_percent_format "%(age)s"
-		L_unittest_cmd -o "21 " \
-			L_percent_format "%(age)s "
-		L_unittest_cmd -o " 21" \
-			L_percent_format " %(age)s"
-		L_unittest_cmd -o "21" \
-			L_fstring "{age}"
-		L_unittest_cmd -o "21" \
-			L_fstring "{age:}"
-		L_unittest_cmd -o "21" \
-			L_fstring "{age:d}"
-		L_unittest_cmd -o " 21" \
-			L_fstring " {age:d}"
-		L_unittest_cmd -o "21 " \
-			L_fstring "{age:d} "
-		L_unittest_cmd -o "{" \
-			L_fstring "{{"
-		L_unittest_cmd -o "}" \
-			L_fstring "}}"
-		L_unittest_cmd -o "%%%" \
-			L_fstring "%%%"
-	}
-	{
-		L_unittest_cmd -r 'invalid' ! L_percent_format "%(age)"
-		L_unittest_cmd -r 'invalid' ! L_percent_format "%()"
-		L_unittest_cmd -r 'invalid' ! L_percent_format "%("
-		L_unittest_cmd -r 'invalid' ! L_percent_format "%)d"
-		L_unittest_cmd -r 'invalid' ! L_percent_format "%"
-		L_unittest_cmd -r 'invalid' ! L_fstring "{age"
-		L_unittest_cmd -r 'invalid' ! L_fstring "age}"
-		L_unittest_cmd -r 'invalid' ! L_fstring "{}"
-		L_unittest_cmd -r 'invalid' ! L_fstring "{:}"
-		L_unittest_cmd -r 'invalid' ! L_fstring "}"
-		L_unittest_cmd -r 'invalid' ! L_fstring "{"
 	}
 }
 
