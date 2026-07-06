@@ -24,6 +24,8 @@ nav:
     - assert: section/assert.md
     - func: section/func.md
     - stdlib: section/stdlib.md
+    - time: section/time.md
+    - cache: section/cache.md
     - json: section/json.md
     - exit_to: section/exit_to.md
     - path: section/path.md
