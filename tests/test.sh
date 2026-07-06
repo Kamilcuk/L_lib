@@ -87,6 +87,9 @@ _L_test_basic() {
 		L_unittest_checkexit 1 L_var_is_associative c
 		local -A c=(["declare -r c"]="declare -r c")
 		L_unittest_checkexit 0 L_var_is_associative c
+		unset c
+		local -A c
+		L_unittest_checkexit 0 L_var_is_associative c
 	fi
 	{
 		unset d
