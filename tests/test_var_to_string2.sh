@@ -1,4 +1,5 @@
-# shellcheck disable=SC2178
+#!/usr/bin/env bash
+# shellcheck disable=SC2178,SC2034,SC2128,SC2190
 _L_test_var_to_string_normal() {
 	local tmp i
 	#
@@ -98,8 +99,7 @@ _L_test_var_to_string_assoc_all() {
 }
 
 _L_test_var_to_string_scalar_2() {
-	local a="  leading trailing  " b="inside  space" c=$'with
-newlines' d=$'	with	tabs	'
+	local a="  leading trailing  " b="inside  space" c=$'with\nnewlines' d=$'	with	tabs	'
 	local tmp
 	local a2 b2 c2 d2
 
@@ -121,9 +121,7 @@ newlines' d=$'	with	tabs	'
 }
 
 _L_test_var_to_string_array_2() {
-	local -a a=("  first  " "second  element" $'third
-with
-newlines' $'	fourth	')
+	local -a a=("  first  " "second  element" $'third\nwith\nnewlines' $'	fourth	')
 	local tmp
 	local -a a2
 
@@ -155,4 +153,27 @@ _L_test_var_to_string_assoc_2() {
 	L_pretty_print -w100 a1
 	L_pretty_print -w100 a2
 	L_unittest_cmd L_asa_cmp a1 a2
+}
+
+_L_test_var_to_string_nameref() {
+	if (( !L_HAS_NAMEREF )); then
+		L_unittest_skip "No nameref support (requires Bash >= 4.3)"
+		return
+	fi
+
+	local target="hello world"
+	local -n ref=target
+	local tmp result
+
+	L_var_to_string -v tmp ref
+	eval "result=$tmp"
+	L_unittest_vareq result "$target"
+
+	# Also test an array nameref
+	local -a target_arr=("val1" "val 2" "val3")
+	local -n ref_arr=target_arr
+	L_var_to_string -v tmp ref_arr
+	local -a result_arr
+	eval "result_arr=$tmp"
+	L_unittest_arreq target_arr "${result_arr[@]}"
 }
