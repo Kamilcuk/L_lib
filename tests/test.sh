@@ -2012,6 +2012,27 @@ _L_test_no_duplicate_functions() {
 	L_unittest_cmd test "$funcs_cnt" -ne "$vars_cnt"
 }
 
+_L_test_indentation() {
+	local line heredoc=""
+	local pattern_heredoc='<<-?[[:space:]]*['\''"]?([a-zA-Z_][a-zA-Z0-9_]*)'
+	local pattern_indent='^[[:space:]]* [^[:space:]#]'
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		# 1. Skip if currently inside a here-document
+		if [[ -n "$heredoc" ]]; then
+			[[ "${line//[$' \t']/}" == "$heredoc" ]] && heredoc=""
+			continue
+		fi
+		# 2. Check for here-document start (excluding here-strings <<<)
+		if [[ "$line" != *"<<<"* ]] && [[ "$line" =~ $pattern_heredoc ]]; then
+			heredoc="${BASH_REMATCH[1]}"
+		fi
+		# 3. Assert no leading spaces on active code lines
+		if [[ "$line" =~ $pattern_indent ]]; then
+			L_unittest_eq "tabs" "spaces" "Line has space-based indentation: $line"
+		fi
+	done < "$L_LIB_SCRIPT"
+}
+
 _L_test_source_test() {
 	L_unittest_cmd bash "$L_DIR"/source_test.sh
 	L_unittest_cmd bash "$L_DIR"/source_test.sh 1 2 3
