@@ -2067,10 +2067,17 @@ if (( L_HAS_QEPAa_EXPANSIONS )); then
 	# For example `declare -r var` makes `var` readonly without assigning any value to it.
 	L_var_is_notarray() { local -; set +u; [[ -n "${!1+y}" && "${!1@a}" != *[aA]* ]]; }
 	L_var_is_array() { local -; set +u; [[ "${!1@a}" == *a* ]]; }
-	L_var_is_associative() { local -; set +u; [[ "${!1@a}" == *A* ]]; }
 	L_var_is_readonly() { local -; set +u; [[ "${!1@a}" == *r* ]]; }
 	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
 	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
+	# Indirect expansion `${!1@a}` is fast but expands to empty for defined but unset arrays.
+	# Fall back to `declare -p` to correctly identify unset associative arrays with attributes.
+	L_var_is_associative() {
+		local -; set +u
+		[[ "${!1@a}" == *A* ]] || {
+			[[ -z "${!1@a}" ]] && [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]
+		}
+	}
 
 	L_var_to_string_vL_RET() {
 		local -; set +u
@@ -2094,10 +2101,6 @@ L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA
 # @arg $1 variable nameref
 L_var_is_array() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -a* ]]; }
 
-# @description Return 0 if variable is an associative array.
-# @arg $1 variable nameref
-L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]; }
-
 # @description Return 0 if variable is readonly.
 # @arg $1 variable nameref
 L_var_is_readonly() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-za-z]*r ]]; }
@@ -2109,6 +2112,10 @@ L_var_is_integer() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Z
 # @description Return 0 if variable is exported.
 # @arg $1 variable nameref
 L_var_is_exported() { [[ "$(declare -p "$1" 2>/dev/null || :)" =~ ^declare\ -[A-Za-z]*x ]]; }
+
+# @description Return 0 if variable is an associative array.
+# @arg $1 variable nameref
+L_var_is_associative() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]; }
 
 L_var_to_string_vL_RET() {
 	L_RET=$(LC_ALL=C declare -p "$1") || return "$L_EX_USAGE"
