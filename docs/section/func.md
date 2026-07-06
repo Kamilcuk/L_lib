@@ -104,6 +104,50 @@ fi
 L_func_assert "File not found: $file" test -f "$file" || return "$L_EX_USAGE"
 ```
 
+### Decorators (`L_decorate`)
+
+Apply decorators to existing functions to wrap their execution.
+
+```bash
+# Define a decorator that prints start and end messages
+my_logger() {
+    echo "Starting..."
+    "$@"
+    echo "Finished with status $?"
+}
+
+# Define your function
+work() {
+    echo "Working on: $*"
+}
+
+# Decorate the work function with my_logger
+L_decorate my_logger work
+
+# Call the decorated function
+work "task 1"
+```
+
+### Simplified Argument Parsing (`L_getopts_in`)
+
+Use `L_getopts_in` to parse command-line options and positional arguments. It translates options directly into local variables and handles help flags.
+
+```bash
+# Inner implementation function
+deploy_in() {
+    echo "Verbose: $opt_v"
+    echo "User: $opt_u"
+    echo "Args: ${opt_args[@]}"
+}
+
+# Declare the parsing specification
+# -p defines the variable prefix (e.g., opt_)
+# -n defines positional argument expectations (e.g., "+" for at least one)
+deploy() {
+    L_getopts_in -p opt_ -n "+" "vu:h" deploy_in "$@"
+}
+```
+
 ## API Reference
 
 ::: bin/L_lib.sh func

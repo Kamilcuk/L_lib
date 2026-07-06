@@ -960,67 +960,6 @@ L_decorate_copy() {
     eval "$func(){$deco \"\$@\";}"
 }
 
-# @description Measure time with the command, but include the command in the time message output and use %6l format.
-# @arg $@ command to measure.
-L_time() {
-	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
-	L_quote_printf -v _L_time_cmd "$@"
-	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [$_L_time_cmd]"
-	time TIMEFORMAT="$_L_time_sav" "$@"
-}
-
-# @description Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
-# @option -v <var>
-# @arg $1 Duration string.
-# @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
-L_duration_to_usec() { L_handle_v_scalar "$@"; }
-# shellcheck disable=SC2211,SC2035,SC2035,SC1102
-L_duration_to_usec_vL_RET() {
-  [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
-  #           123          45          67          89          01          23          45           67            8        9   0
-  # convert year, week, day, ... into <seconds><microseconds>
-    printf -v L_RET "%s%06d" \
-    	"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18] + (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
-      ))" \
-      "$(( BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) } ))" &&
-    # Remove leading zeros.
-    L_RET=$(( 10#$L_RET ))
-}
-
-# @description Convert microseconds to Prometheus duration string using L_RET.
-# @option -v <var>
-# @arg $1 Microseconds (integer).
-L_usec_to_duration() { L_handle_v_scalar "$@"; }
-L_usec_to_duration_vL_RET() {
-    # Time unit calculation
-    # Year: 31536000000000 us (365d)
-    # Week: 604800000000 us (7d)
-    # Day: 86400000000 us (24h)
-    # Hour: 3600000000 us (60m)
-    # Minute: 60000000 us (60s)
-    # Second: 1000000 us (1000ms)
-    # Millisecond: 1000 us
-  	local \
-  		y=$((   $1 / 31536000000000 )) \
-  		w=$((  ($1 / 86400000000 % 365) / 7 )) \
-  		d=$((   $1 / 86400000000 % 365 % 7 )) \
-    	h=$((  ($1 / 3600000000) % 24 )) \
-    	m=$((  ($1 / 60000000) % 60 )) \
-    	s=$((  ($1 / 1000000) % 60 )) \
-    	ms=$(( ($1 / 1000) % 1000 )) \
-    	us=$((  $1 % 1000 ))
-    printf -v L_RET "%.*s%.*s%.*s%.*s%.*s%.*s%.*s%.*s" \
-    	"$(( y > 0 ? ${#y}+1 : 0 ))" "${y}y" \
-    	"$(( w > 0 ? ${#w}+1 : 0 ))" "${w}w" \
-    	"$(( d > 0 ? ${#d}+1 : 0 ))" "${d}d" \
-    	"$(( h > 0 ? ${#h}+1 : 0 ))" "${h}h" \
-    	"$(( m > 0 ? ${#m}+1 : 0 ))" "${m}m" \
-    	"$(( s > 0 ? ${#s}+1 : 0 ))" "${s}s" \
-    	"$(( ms > 0 ? ${#ms}+2 : 0 ))" "${ms}ms" \
-    	"$(( us > 0 ? ${#us}+2 : 0 ))" "${us}us"
-    L_RET="${L_RET:-0s}"
-}
-
 _L_getopts_in_initer() {
 	if [[ "$1" == -a ]]; then
 		L_array_assign "${2%%=*}"
@@ -1149,250 +1088,6 @@ L_getopts_in() {
   else
     "$_L_cmd" "$@"
   fi
-}
-
-_L_cache_append_or_remove() {
-  # Remove the key from cache.
-  for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
-    if [[ "${_L_CACHE[_L_i]}" == "$_L_key" ]]; then
-      if (( _L_c_remove )); then
-        # Remove the element.
-        _L_CACHE=("${_L_CACHE[@]::_L_i}" "${_L_CACHE[@]:_L_i+5}")
-      else
-        # We can just overwrite.
-        _L_CACHE[_L_i+1]=$_L_c_now
-        _L_CACHE[_L_i+2]=$_L_c_data
-        _L_CACHE[_L_i+3]=$_L_c_ret
-        _L_CACHE[_L_i+4]=$_L_c_stdout
-      fi
-      return
-    fi
-  done
-  if (( !_L_c_remove )); then
-    # Append the new entry to cache and save it.
-    _L_CACHE+=("$_L_key" "$_L_c_now" "$_L_c_data" "$_L_c_ret" "$_L_c_stdout")
-  fi
-}
-
-# @description Cache the execution of a command.
-#
-# The command execution is cached in _L_CACHE global variable or in file when -f option is present.
-# The second execution of the command will result in a cached execution.
-# On cached execution the exit status of the command will be extracted from the cache.
-#
-# @option -o Cache the stdout of the command and output it.
-#            It will run the command in a process substitution.
-# @option -O <var> Cache the stdout of the command and store it in variable <var> instead of printing.
-#            It will run the command in a process substitution.
-# @option -s <var> Save this variable to the cache. All cache variables will be restored on cached execution.
-# @option -f <file> Use the file as cache.
-#            The file has a header with version number.
-#            The file stores internal cache state from declare -p _L_CACHE variable.
-#            The file content is eval-ed upon loading.
-# @option -r Instead of executing, clear the cache.
-#            If used with -k or with command, clear only the specific key.
-# @option -l Instead of executing, list the entires in the cache in a table. Use twice to not limit to 100 characters.
-#            If used with -k or with command, list only the specific key.
-# @option -T <ttl> Set time to live in duration string. Default: infinity.
-#            The TTL is checked by the caller. The option should be specified every call.
-# @option -L <01> If 1, use flock, if 0, do not use flock. Default: autodetect based on flock availability.
-# @option -k <key> Use this key to index the cache. Default: space joined %q quoted command.
-# @option -h Print this help and return 0.
-# @arg $@ Command to execute.
-# @set _L_CACHE
-# @env _L_CACHE
-# @return 64 ($L_EX_USAGE) or other error code on invalid usage or error
-#         otherwise returns the exit status of the cached command.
-#
-# @example
-#    L_cache -T 10m -O output -f /tmp/cache.L_cache curl -sS https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html
-#
-#    myfunc() { var=$(( 1 + 2 )); }
-#    L_decorate L_cache -s var -k myfunc myfunc
-#    myfunc
-#    myfunc
-#
-#    mydata() { curl "$@" https://website.com; }
-#    L_decorate L_cache -O website_data mydata
-#    mydata -sS
-#    echo "$website_data"
-#    mydata
-#    echo "$website_data"
-#
-#    L_data -k mydata -l
-#
-# shellcheck disable=SC2094
-L_cache() {
-  local OPTIND OPTARG OPTERR _L_i _L_file="" _L_vars=() _L_c_ret=0 _L_stdout_var="" _L_stdout_output=0 _L_c_stdout="" \
-    _L_c_remove=0 _L_ttl="" _L_flock="" _L_c_data="" _L_key="" _L_c_now \
-    _L_cache_header="# L_cache version 1 $L_HAS_DECLARE_WITH_NO_QUOTES"$'\n'"declare -a _L_CACHE=" _L_list=0 _L_tmp=""
-  while getopts oO:s:f:rlk:T:L:h _L_i; do
-    case "$_L_i" in
-      o) _L_stdout_output=1 ;;
-      O) _L_stdout_var="$OPTARG" ;;
-      s) _L_vars+=("$OPTARG") ;;
-      f) local _L_CACHE; _L_file=$OPTARG ;;
-      r) _L_c_remove=1 ;;
-      l) (( ++_L_list )) ;;
-      k) _L_key=$OPTARG ;;
-      T)
-        if ! L_duration_to_usec -v _L_ttl "$OPTARG"; then
-          L_func_usage_error "invalid ttl: $OPTARG"
-          return "$L_EX_USAGE"
-        fi
-        ;;
-      L) _L_flock=$OPTARG ;;
-      h) L_func_help; return 0 ;;
-      *) L_func_usage_error; return "$L_EX_USAGE" ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-  # Check
-  if (( ${_L_vars[@]:+1} )); then
-    if (( _L_stdout_output )) || [[ -n "$_L_stdout_var" ]]; then
-      L_func_usage_error "can't cache variables while running the command in process substitution. Remove -s or remove -o or -O options."
-      return "$L_EX_USAGE"
-    fi
-  fi
-  # Calculate key if not specified.
-  if [[ -z "$_L_key" ]]; then
-  	# shellcheck disable=SC2059
-    printf -v _L_key "${1+%q} " "$@"
-    _L_key=${_L_key%% }
-  fi
-  if (( _L_c_remove )); then
-		if [[ -z "$_L_key" ]]; then
-			# When in -r mode, and no key is specified, remove the whole cache.
-			if [[ -z "$_L_file" ]]; then
-				_L_CACHE=()
-			else
-				rm "$_L_file"
-			fi
-			return
-		fi
-		# Otherwise key is specified in -r mode, that is handled below after the if.
-	else
-		# Not _L_c_remove mode - either running mode or -l list mode.
-		if (( !_L_list )) && (( $# == 0 )); then
-				L_func_usage_error "no command to execute given. Specify the command to cache"
-				return "$L_EX_USAGE"
-		fi
-  	# First extract current cache content. Save in _L_CACHE.
-  	if [[ -n "$_L_file" ]]; then
-    	if [[ -z "$_L_flock" ]]; then
-      	L_exit_into_10 _L_flock L_hash flock
-    	fi
-    	if
-      	{ (( _L_flock )) && { _L_CACHE=$(flock "$_L_file" cat "$_L_file") || return "$L_EX_IOERR"; }; } ||
-      		{ [[ -e "$_L_file" ]] && { _L_CACHE=$(< "$_L_file") || return "$L_EX_IOERR"; }; }
-    	then
-      	if [[ "$_L_CACHE" != "$_L_cache_header"* ]]; then
-        	declare -a _L_CACHE=()
-      	else
-        	eval "$_L_CACHE"
-      	fi
-    	fi
-  	fi
-  	# Handle _L_list.
-  	if (( _L_list )); then
-    	local res=($'cmd\ttimestamp\tvars\trc\tstdout') tmp
-			if (( _L_list == 1 )); then
-				res[0]=$'cmd\ttimestamp\tvars::100\trc\tstdout::100'
-			fi
-    	for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
-    		L_usec_to_sec -v ts "${_L_CACHE[_L_i+1]}"
-      	L_date -v ts "%Y-%m-%dT%H:%M:%S.%6N%z" "$ts"
-      	# If no key is specified, print all keys, otherwise print only entry of this key.
-      	if [[ -z "$_L_key" || "$_L_key" == "${_L_CACHE[_L_i]}" ]]; then
-        	if
-        		# If the TTL of the key valid?
-          	if [[ -n "$_L_ttl" ]]; then
-            	L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
-            	(( _L_CACHE[_L_i+1] + _L_ttl >= _L_c_now ))
-          	fi
-        	then
-      			printf -v tmp "%q\t%s\t%.*q\t%q\t%.*q" \
-							"${_L_CACHE[_L_i]}" "$ts" \
-							"$(( _L_list == 1 ? 100 : -1 ))" "${_L_CACHE[_L_i+2]}" \
-							"${_L_CACHE[_L_i+3]}" \
-							"$(( _L_list == 1 ? 100 : -1 ))" "${_L_CACHE[_L_i+4]}"
-      			res+=("$tmp")
-      		fi
-      	fi
-    	done
-    	if (( ${#res[*]} <= 1 )); then
-    		echo "empty"
-    	else
-    		L_table -s $'\t' "${res[@]}"
-    	fi
-    	return 0
-  	fi
-    # Find the key in the cache.
-    for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
-      if [[ "${_L_CACHE[_L_i]}" == "$_L_key" ]]; then
-        if
-        	# If the TTL of the key valid?
-          if [[ -n "$_L_ttl" ]]; then
-            L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
-            # echo "${_L_CACHE[_L_i+1]} ${_L_ttl} ${_L_c_now}" >&2
-            (( _L_CACHE[_L_i+1] + _L_ttl >= _L_c_now ))
-          fi
-        then
-        	# Return the cache key.
-          eval "${_L_CACHE[_L_i+2]}"
-          if [[ -n "$_L_stdout_var" ]]; then
-            printf -v "$_L_stdout_var" "%s" "${_L_CACHE[_L_i+4]}"
-          fi
-          if (( _L_stdout_output )); then
-            printf "%s\n" "${_L_CACHE[_L_i+4]}"
-          fi
-          return "${_L_CACHE[_L_i+3]}"
-        fi
-        # Key found, but not valid TTL. Break.
-        break
-      fi
-    done
-    # Cache was not hit, execute the command and capture what we need.
-    if [[ -n "$_L_stdout_var" ]] || (( _L_stdout_output )); then
-      _L_c_stdout=$( "$@" ) || _L_c_ret=$?
-      if [[ -n "$_L_stdout_var" ]]; then
-        printf -v "$_L_stdout_var" "%s" "$_L_c_stdout"
-      fi
-      if (( _L_stdout_output )); then
-        printf "%s\n" "$_L_c_stdout"
-      fi
-    else
-      "$@" || _L_c_ret=$?
-    fi
-    # Serialize variables to save into a string.
-    for _L_i in ${_L_vars[@]:+"${_L_vars[@]}"}; do
-    	L_var_to_string -v _L_tmp "$_L_i" || return "$L_EX_SOFTWARE"
-    	_L_c_data+="${_L_c_data:+ }$_L_i=$_L_tmp"
-    done
-    # printf "%q\n" "_L_c_data=$_L_c_data" >&2
-    L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
-	fi
-  # Store data back in the cache or remove elemnet from it.
-  if [[ -z "$_L_file" ]]; then
-    _L_cache_append_or_remove
-  else
-    {
-      if (( _L_flock )); then flock 9; fi
-      read -r -d '' -u 9 _L_CACHE || :
-      if [[ "$_L_CACHE" != "$_L_cache_header"* ]]; then
-        # Cache has wrong version or wrong header - clear it.
-        declare -a _L_CACHE=()
-      else
-        eval "$_L_CACHE"
-      fi
-      _L_cache_append_or_remove
-      {
-        printf "%s\n" "${_L_cache_header%%$'\n'*}"
-        declare -p _L_CACHE
-      } >"$_L_file"
-    } 9<>"$_L_file"
-  fi
-  return "$_L_c_ret"
 }
 
 _L_getopts_forward() {
@@ -1668,6 +1363,254 @@ else  # L_HAS_NAMEREF
 	}
 
 fi  # L_HAS_NAMEREF
+
+# ]]]
+# cache [[[
+# @section cache
+
+_L_cache_append_or_remove() {
+  # Remove the key from cache.
+  for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
+    if [[ "${_L_CACHE[_L_i]}" == "$_L_key" ]]; then
+      if (( _L_c_remove )); then
+        # Remove the element.
+        _L_CACHE=("${_L_CACHE[@]::_L_i}" "${_L_CACHE[@]:_L_i+5}")
+      else
+        # We can just overwrite.
+        _L_CACHE[_L_i+1]=$_L_c_now
+        _L_CACHE[_L_i+2]=$_L_c_data
+        _L_CACHE[_L_i+3]=$_L_c_ret
+        _L_CACHE[_L_i+4]=$_L_c_stdout
+      fi
+      return
+    fi
+  done
+  if (( !_L_c_remove )); then
+    # Append the new entry to cache and save it.
+    _L_CACHE+=("$_L_key" "$_L_c_now" "$_L_c_data" "$_L_c_ret" "$_L_c_stdout")
+  fi
+}
+
+# @description Cache the execution of a command.
+#
+# The command execution is cached in _L_CACHE global variable or in file when -f option is present.
+# The second execution of the command will result in a cached execution.
+# On cached execution the exit status of the command will be extracted from the cache.
+#
+# @option -o Cache the stdout of the command and output it.
+#            It will run the command in a process substitution.
+# @option -O <var> Cache the stdout of the command and store it in variable <var> instead of printing.
+#            It will run the command in a process substitution.
+# @option -s <var> Save this variable to the cache. All cache variables will be restored on cached execution.
+# @option -f <file> Use the file as cache.
+#            The file has a header with version number.
+#            The file stores internal cache state from declare -p _L_CACHE variable.
+#            The file content is eval-ed upon loading.
+# @option -r Instead of executing, clear the cache.
+#            If used with -k or with command, clear only the specific key.
+# @option -l Instead of executing, list the entires in the cache in a table. Use twice to not limit to 100 characters.
+#            If used with -k or with command, list only the specific key.
+# @option -T <ttl> Set time to live in duration string. Default: infinity.
+#            The TTL is checked by the caller. The option should be specified every call.
+# @option -L <01> If 1, use flock, if 0, do not use flock. Default: autodetect based on flock availability.
+# @option -k <key> Use this key to index the cache. Default: space joined %q quoted command.
+# @option -h Print this help and return 0.
+# @arg $@ Command to execute.
+# @set _L_CACHE
+# @env _L_CACHE
+# @return 64 ($L_EX_USAGE) or other error code on invalid usage or error
+#         otherwise returns the exit status of the cached command.
+#
+# @example
+#    L_cache -T 10m -O output -f /tmp/cache.L_cache curl -sS https://www.gnu.org/software/bash/manual/html_node/Bash-Variables.html
+#
+#    myfunc() { var=$(( 1 + 2 )); }
+#    L_decorate L_cache -s var -k myfunc myfunc
+#    myfunc
+#    myfunc
+#
+#    mydata() { curl "$@" https://website.com; }
+#    L_decorate L_cache -O website_data mydata
+#    mydata -sS
+#    echo "$website_data"
+#    mydata
+#    echo "$website_data"
+#
+#    L_data -k mydata -l
+#
+# shellcheck disable=SC2094
+L_cache() {
+  local OPTIND OPTARG OPTERR _L_i _L_file="" _L_vars=() _L_c_ret=0 _L_stdout_var="" _L_stdout_output=0 _L_c_stdout="" \
+    _L_c_remove=0 _L_ttl="" _L_flock="" _L_c_data="" _L_key="" _L_c_now \
+    _L_cache_header="# L_cache version 1 $L_HAS_DECLARE_WITH_NO_QUOTES"$'\n'"declare -a _L_CACHE=" _L_list=0 _L_tmp=""
+  while getopts oO:s:f:rlk:T:L:h _L_i; do
+    case "$_L_i" in
+      o) _L_stdout_output=1 ;;
+      O) _L_stdout_var="$OPTARG" ;;
+      s) _L_vars+=("$OPTARG") ;;
+      f) local _L_CACHE; _L_file=$OPTARG ;;
+      r) _L_c_remove=1 ;;
+      l) (( ++_L_list )) ;;
+      k) _L_key=$OPTARG ;;
+      T)
+        if ! L_duration_to_usec -v _L_ttl "$OPTARG"; then
+          L_func_usage_error "invalid ttl: $OPTARG"
+          return "$L_EX_USAGE"
+        fi
+        ;;
+      L) _L_flock=$OPTARG ;;
+      h) L_func_help; return 0 ;;
+      *) L_func_usage_error; return "$L_EX_USAGE" ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+  # Check
+  if (( ${_L_vars[@]:+1} )); then
+    if (( _L_stdout_output )) || [[ -n "$_L_stdout_var" ]]; then
+      L_func_usage_error "can't cache variables while running the command in process substitution. Remove -s or remove -o or -O options."
+      return "$L_EX_USAGE"
+    fi
+  fi
+  # Calculate key if not specified.
+  if [[ -z "$_L_key" ]]; then
+  	# shellcheck disable=SC2059
+    printf -v _L_key "${1+%q} " "$@"
+    _L_key=${_L_key%% }
+  fi
+  if (( _L_c_remove )); then
+		if [[ -z "$_L_key" ]]; then
+			# When in -r mode, and no key is specified, remove the whole cache.
+			if [[ -z "$_L_file" ]]; then
+				_L_CACHE=()
+			else
+				rm "$_L_file"
+			fi
+			return
+		fi
+		# Otherwise key is specified in -r mode, that is handled below after the if.
+	else
+		# Not _L_c_remove mode - either running mode or -l list mode.
+		if (( !_L_list )) && (( $# == 0 )); then
+				L_func_usage_error "no command to execute given. Specify the command to cache"
+				return "$L_EX_USAGE"
+		fi
+  	# First extract current cache content. Save in _L_CACHE.
+  	if [[ -n "$_L_file" ]]; then
+    	if [[ -z "$_L_flock" ]]; then
+      	L_exit_into_10 _L_flock L_hash flock
+    	fi
+    	if
+      	{ (( _L_flock )) && { _L_CACHE=$(flock "$_L_file" cat "$_L_file") || return "$L_EX_IOERR"; }; } ||
+      		{ [[ -e "$_L_file" ]] && { _L_CACHE=$(< "$_L_file") || return "$L_EX_IOERR"; }; }
+    	then
+      	if [[ "$_L_CACHE" != "$_L_cache_header"* ]]; then
+        	declare -a _L_CACHE=()
+      	else
+        	eval "$_L_CACHE"
+      	fi
+    	fi
+  	fi
+  	# Handle _L_list.
+  	if (( _L_list )); then
+    	local res=($'cmd\ttimestamp\tvars\trc\tstdout') tmp
+			if (( _L_list == 1 )); then
+				res[0]=$'cmd\ttimestamp\tvars::100\trc\tstdout::100'
+			fi
+    	for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
+    		L_usec_to_sec -v ts "${_L_CACHE[_L_i+1]}"
+      	L_date -v ts "%Y-%m-%dT%H:%M:%S.%6N%z" "$ts"
+      	# If no key is specified, print all keys, otherwise print only entry of this key.
+      	if [[ -z "$_L_key" || "$_L_key" == "${_L_CACHE[_L_i]}" ]]; then
+        	if
+        		# If the TTL of the key valid?
+          	if [[ -n "$_L_ttl" ]]; then
+            	L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
+            	(( _L_CACHE[_L_i+1] + _L_ttl >= _L_c_now ))
+          	fi
+        	then
+      			printf -v tmp "%q\t%s\t%.*q\t%q\t%.*q" \
+							"${_L_CACHE[_L_i]}" "$ts" \
+							"$(( _L_list == 1 ? 100 : -1 ))" "${_L_CACHE[_L_i+2]}" \
+							"${_L_CACHE[_L_i+3]}" \
+							"$(( _L_list == 1 ? 100 : -1 ))" "${_L_CACHE[_L_i+4]}"
+      			res+=("$tmp")
+      		fi
+      	fi
+    	done
+    	if (( ${#res[*]} <= 1 )); then
+    		echo "empty"
+    	else
+    		L_table -s $'\t' "${res[@]}"
+    	fi
+    	return 0
+  	fi
+    # Find the key in the cache.
+    for (( _L_i = 0; _L_i < ${_L_CACHE[@]:+${#_L_CACHE[@]}}+0; _L_i += 5 )); do
+      if [[ "${_L_CACHE[_L_i]}" == "$_L_key" ]]; then
+        if
+        	# If the TTL of the key valid?
+          if [[ -n "$_L_ttl" ]]; then
+            L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
+            # echo "${_L_CACHE[_L_i+1]} ${_L_ttl} ${_L_c_now}" >&2
+            (( _L_CACHE[_L_i+1] + _L_ttl >= _L_c_now ))
+          fi
+        then
+        	# Return the cache key.
+          eval "${_L_CACHE[_L_i+2]}"
+          if [[ -n "$_L_stdout_var" ]]; then
+            printf -v "$_L_stdout_var" "%s" "${_L_CACHE[_L_i+4]}"
+          fi
+          if (( _L_stdout_output )); then
+            printf "%s\n" "${_L_CACHE[_L_i+4]}"
+          fi
+          return "${_L_CACHE[_L_i+3]}"
+        fi
+        # Key found, but not valid TTL. Break.
+        break
+      fi
+    done
+    # Cache was not hit, execute the command and capture what we need.
+    if [[ -n "$_L_stdout_var" ]] || (( _L_stdout_output )); then
+      _L_c_stdout=$( "$@" ) || _L_c_ret=$?
+      if [[ -n "$_L_stdout_var" ]]; then
+        printf -v "$_L_stdout_var" "%s" "$_L_c_stdout"
+      fi
+      if (( _L_stdout_output )); then
+        printf "%s\n" "$_L_c_stdout"
+      fi
+    else
+      "$@" || _L_c_ret=$?
+    fi
+    # Serialize variables to save into a string.
+    for _L_i in ${_L_vars[@]:+"${_L_vars[@]}"}; do
+    	L_var_to_string -v _L_tmp "$_L_i" || return "$L_EX_SOFTWARE"
+    	_L_c_data+="${_L_c_data:+ }$_L_i=$_L_tmp"
+    done
+    # printf "%q\n" "_L_c_data=$_L_c_data" >&2
+    L_epochrealtime_usec -v _L_c_now || return "$L_EX_OSERR"
+	fi
+  # Store data back in the cache or remove elemnet from it.
+  if [[ -z "$_L_file" ]]; then
+    _L_cache_append_or_remove
+  else
+    {
+      if (( _L_flock )); then flock 9; fi
+      read -r -d '' -u 9 _L_CACHE || :
+      if [[ "$_L_CACHE" != "$_L_cache_header"* ]]; then
+        # Cache has wrong version or wrong header - clear it.
+        declare -a _L_CACHE=()
+      else
+        eval "$_L_CACHE"
+      fi
+      _L_cache_append_or_remove
+      {
+        printf "%s\n" "${_L_cache_header%%$'\n'*}"
+        declare -p _L_CACHE
+      } >"$_L_file"
+    } 9<>"$_L_file"
+  fi
+  return "$_L_c_ret"
+}
 
 # ]]]
 # stdlib [[[
@@ -2269,6 +2212,71 @@ L_uuid4_vL_RET() {
 			"$RANDOM" "$RANDOM" "$RANDOM" "$RANDOM"
 	fi
 	L_RET=${L_RET::8}-${L_RET:8:4}-4${L_RET:13:3}-${L_RET:16:4}-${L_RET:20}
+}
+
+# ]]]
+# time [[[
+# @section time
+
+# @description Measure time with the command, but include the command in the time message output and use %6l format.
+# @arg $@ command to measure.
+L_time() {
+	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
+	L_quote_printf -v _L_time_cmd "$@"
+	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [$_L_time_cmd]"
+	time TIMEFORMAT="$_L_time_sav" "$@"
+}
+
+# @description Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
+# @option -v <var>
+# @arg $1 Duration string.
+# @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
+L_duration_to_usec() { L_handle_v_scalar "$@"; }
+# shellcheck disable=SC2211,SC2035,SC2035,SC1102
+L_duration_to_usec_vL_RET() {
+  [[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
+  #           123          45          67          89          01          23          45           67            8        9   0
+  # convert year, week, day, ... into <seconds><microseconds>
+    printf -v L_RET "%s%06d" \
+    	"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18] + (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
+      ))" \
+      "$(( BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) } ))" &&
+    # Remove leading zeros.
+    L_RET=$(( 10#$L_RET ))
+}
+
+# @description Convert microseconds to Prometheus duration string using L_RET.
+# @option -v <var>
+# @arg $1 Microseconds (integer).
+L_usec_to_duration() { L_handle_v_scalar "$@"; }
+L_usec_to_duration_vL_RET() {
+    # Time unit calculation
+    # Year: 31536000000000 us (365d)
+    # Week: 604800000000 us (7d)
+    # Day: 86400000000 us (24h)
+    # Hour: 3600000000 us (60m)
+    # Minute: 60000000 us (60s)
+    # Second: 1000000 us (1000ms)
+    # Millisecond: 1000 us
+  	local \
+  		y=$((   $1 / 31536000000000 )) \
+  		w=$((  ($1 / 86400000000 % 365) / 7 )) \
+  		d=$((   $1 / 86400000000 % 365 % 7 )) \
+    	h=$((  ($1 / 3600000000) % 24 )) \
+    	m=$((  ($1 / 60000000) % 60 )) \
+    	s=$((  ($1 / 1000000) % 60 )) \
+    	ms=$(( ($1 / 1000) % 1000 )) \
+    	us=$((  $1 % 1000 ))
+    printf -v L_RET "%.*s%.*s%.*s%.*s%.*s%.*s%.*s%.*s" \
+    	"$(( y > 0 ? ${#y}+1 : 0 ))" "${y}y" \
+    	"$(( w > 0 ? ${#w}+1 : 0 ))" "${w}w" \
+    	"$(( d > 0 ? ${#d}+1 : 0 ))" "${d}d" \
+    	"$(( h > 0 ? ${#h}+1 : 0 ))" "${h}h" \
+    	"$(( m > 0 ? ${#m}+1 : 0 ))" "${m}m" \
+    	"$(( s > 0 ? ${#s}+1 : 0 ))" "${s}s" \
+    	"$(( ms > 0 ? ${#ms}+2 : 0 ))" "${ms}ms" \
+    	"$(( us > 0 ? ${#us}+2 : 0 ))" "${us}us"
+    L_RET="${L_RET:-0s}"
 }
 
 # @description Print date in the format.
