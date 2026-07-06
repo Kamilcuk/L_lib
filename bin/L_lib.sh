@@ -2755,19 +2755,11 @@ L_is_false() { [[ "$1" == [-0fFnN]* ]]; }
 
 # @description Return 0 if the string happend to be something like true in locale.
 # @arg $1 str
-L_is_true_locale() {
-	local i
-	i=$(locale yesexpr)
-	[[ "$1" =~ $i ]]
-}
+L_is_true_locale() { [[ "$1" =~ $(locale yesexpr) ]]; }
 
 # @description Return 0 if the string happend to be something like false in locale.
 # @arg $1 str
-L_is_false_locale() {
-	local i
-	i=$(locale noexpr)
-	[[ "$1" =~ $i ]]
-}
+L_is_false_locale() { [[ "$1" =~ $(locale noexpr) ]]; }
 
 # @description Return 0 if all characters in string are printable
 # @arg $1 string to check
@@ -2800,7 +2792,7 @@ L_is_valid_variable_or_array_element() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\[.+
 # @see https://stackoverflow.com/a/44041384/9072753
 # @see https://stackoverflow.com/a/69292370/9072753
 L_is_valid_function_name() {
-	[[ "$1" =~ ["!*+,-./:=?@A-Z\[\]^_a-z{}~"]["#%0-9!*+,-./:=?@A-Z\[\]^_a-z{}~"]* ]]
+	[[ "$1" =~ ^["!*+,-./:=?@A-Z\[\]^_a-z{}~"]["#%0-9!*+,-./:=?@A-Z\[\]^_a-z{}~"]*$ ]]
 	# [[ "$1" =~ [a-zA-Z_][0-9a-zA-Z_]* ]]
   # [[ "$1" =~ ^[^$'\x01\x7f\t\n '"!\"#$%\'()*0-9\;<>\\\`{|}"][^$'\x01\x7f\t\n '"\"$&\'();<>[\\\`|"]*$ && "$1" == *[^0-9]* ]];
 }
@@ -3217,10 +3209,11 @@ L_percent_format() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2059
 L_percent_format_vL_RET() {
 	local _L_fmt=$1 _L_args=("")
+	shift
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^%]*(%%)*[^%]*)*)(%\(([^\)]+)\)([^a-zA-Z]*[a-zA-Z]))?(.*)$ ]]; do
 		#                                    12     3            4   5         6                     7
 		if [[ "$_L_fmt" == "${BASH_REMATCH[7]}" ]]; then
-			L_func_error "invalid format specification: $1" 2; return "$L_EX_USAGE"
+			L_func_error "invalid format specification at: $_L_fmt" 2; return "$L_EX_USAGE"
 		fi
 		_L_fmt="${BASH_REMATCH[7]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
@@ -3238,7 +3231,8 @@ L_percent_format_vL_RET() {
 # A simple implementation of f-strings in bash using regex and printf.
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -h Print this help and return 0.
-# @arg $1 format string
+# @arg $1 Format string
+# @arg $@ Arguments {$1} {$2} etc.
 # @example
 #  name=John
 #  declare -A age=([John]=42)
@@ -3246,11 +3240,13 @@ L_percent_format_vL_RET() {
 L_fstring() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2059
 L_fstring_vL_RET() {
-	local _L_fmt="$*" _L_args=("") _L_tmp
+	local _L_fmt="$1" _L_args=("") _L_tmp
+	shift
 	while [[ -n "$_L_fmt" && "$_L_fmt" =~ ^(([^{}]*([{][{]|[}][}])*[^{}]*)*)([{]([^:}]+)(:([^}]*))?[}])?(.*) ]]; do
 		#                                    12      3                        4   5       6 7             8
 		if [[ "$_L_fmt" == "${BASH_REMATCH[8]}" ]]; then
-			L_func_error "invalid format specification: $1" 2; return "$L_EX_USAGE"
+			L_func_error "invalid format specification at: $_L_fmt" 2
+			return "$L_EX_USAGE"
 		fi
 		_L_fmt="${BASH_REMATCH[8]}"
 		if [[ -n "${BASH_REMATCH[1]}" ]]; then
