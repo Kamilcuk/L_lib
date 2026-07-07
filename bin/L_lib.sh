@@ -2497,14 +2497,19 @@ L_date_vL_RET() {
 				L_RET=${BASH_REMATCH[1]}${_L_d_tmp::${BASH_REMATCH[2]:-9}}${BASH_REMATCH[3]}
 			fi
 			printf -v L_RET "%($L_RET)T" "${_L_d_ts%.*}"
-	else
+	elif _L_has_date_N; then
 		# Otherwise,
 		# - when printf %T is not supported,
 		# - the timestamp is not a simple seconds since epoch with optional leading @
 		# - the timestamp is now, but we do not have EPOCHREALTIME
 		# - the timestamp is now, but there is %N in the format string
 		# use date command.
-		L_RET=$(date ${2:+"-d$2"} +"$L_RET")
+		L_RET=$(date ${2:+"-d@${2#@}"} +"$L_RET")
+	else
+		# Without GNU date, we need to remove the sub-seconds from -d argument.
+		# busybox date does not support them.
+		local _L_d_tmp=${2%%.*}
+		L_RET=$(date ${2:+"-d@${_L_d_tmp#@}"} +"$L_RET")
 	fi
 }
 
@@ -2535,24 +2540,19 @@ L_epochrealtime_usec_vL_RET() {
 		L_epochrealtime_usec_vL_RET() { L_RET=$(gdate +%s%6N); }
 	elif L_hash perl; then
 		L_epochrealtime_usec_vL_RET() { L_RET=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
-	elif [[ -r /proc/uptime ]]; then
-		L_epochrealtime_usec_vL_RET() { L_RET=$(< /proc/uptime) && L_sec_to_usec_vL_RET "${L_RET// *}"; }
 	elif L_hash busybox; then
 		L_epochrealtime_usec_vL_RET() {
 			# https://elixir.bootlin.com/busybox/1.37.0/source/miscutils/adjtimex.c#L123
 			L_RET=$(busybox adjtimex)
 			# https://github.com/torvalds/linux/blob/50c19e20ed2ef359cf155a39c8462b0a6351b9fa/include/uapi/linux/timex.h#L187
-			local status=${L_RET##*status:} sec=${L_RET##*time.tv_sec:} usec=${L_RET##*time.tv_usec:} STA_NANO=0x2000
-			L_lstrip_vL_RET "$sec"; sec=$L_RET
-			L_lstrip_vL_RET "$usec"; usec=$L_RET
-			L_lstrip_vL_RET "$status"; status=$L_RET
-			sec=${sec%%[$' \t\n']*} usec=${usec%%[$' \t\n']*} status=${status%%[$' \t\n']*}
-			printf -v "L_RET" "%d%06d" "$sec" "$(( (status & STA_NANO) ? ( usec / 1000 ) : usec ))"
+			local status=${L_RET##*status:} sec=${L_RET##*time.tv_sec:} usec=${L_RET##*time.tv_usec:}
+			status=${status#"${status%%[![:space:]]*}"} sec=${sec#"${sec%%[![:space:]]*}"} usec=${usec#"${usec%%[![:space:]]*}"}
+			(( L_RET = ${sec%%[[:space:]]*} * 1000000 + ${usec%%[[:space:]]*} / ( ${status%%[[:space:]]*} & 0x2000 ? 1000 : 1 ) ))
 		}
 	elif L_hash python3; then
-		L_epochrealtime_usec_vL_RET() { L_RET=$(python -c 'import time; print(int(time.time() * 1000000))'); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(python3 -c 'import time; print(int(time.time() * 1000000))'); }
 	else
-		return 1
+		L_epochrealtime_usec_vL_RET() { L_RET=$(date +%s)000000; }
 	fi
 	"${FUNCNAME[0]}"
 }

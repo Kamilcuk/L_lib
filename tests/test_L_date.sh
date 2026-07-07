@@ -44,3 +44,29 @@ _L_test_date_N_now() {
 	d=$(L_date '%N')
 	L_unittest_eq "${#d}" 9
 }
+
+_L_test_L_epochrealtime_and_date() {
+	local -x TZ=UTC
+	local epoch_usec epoch_sec d1 d2 epoch_sec_int
+	L_epochrealtime_usec -v epoch_usec
+	L_usec_to_sec -v epoch_sec "$epoch_usec"
+	epoch_sec_int="${epoch_sec%%.*}"
+
+	L_date -v d1 "%Y-%m-%d %H:%M:%S" "@$epoch_sec_int"
+	d1=${d1#+}
+
+	if date -u -d "@$epoch_sec_int" >/dev/null 2>&1; then
+		d2=$(date -u -d "@$epoch_sec_int" +"%Y-%m-%d %H:%M:%S")
+	elif date -u -r "$epoch_sec_int" >/dev/null 2>&1; then
+		d2=$(date -u -r "$epoch_sec_int" +"%Y-%m-%d %H:%M:%S")
+	else
+		d2=""
+	fi
+
+	if [[ -n "$d2" ]]; then
+		L_log "Comparing L_date output '$d1' with system date output '$d2'"
+		L_unittest_eq "$d1" "$d2"
+	else
+		L_unittest_skip "Could not retrieve system date for timezone-independent epoch comparison"
+	fi
+}
