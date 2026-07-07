@@ -4008,35 +4008,51 @@ L_readarray() {
 		L_readarray() { mapfile "$@"; }
 		mapfile "$@";
 	else
-		local OPTIND OPTARG OPTERR _L_d=$'\n' _L_strip=0 _L_c _L_read=(read -r) _L_mapfile=(mapfile) _L_s=0 _L_i=0 _L_n=0 _L_res IFS=""
+		local OPTIND OPTARG OPTERR _L_d=$'\n' _L_strip=0 _L_c _L_read=(read -r) _L_mapfile=(mapfile) _L_s=0 _L_i=0 _L_n=0 _L_res IFS="" _L_u=0 _L_forward_opts=(L_readarray)
 		while getopts td:u:s:n:h _L_c; do
 			case $_L_c in
-			t) _L_strip=1; _L_mapfile+=(-t) ;;
-			d) _L_d=$OPTARG ;;
-			u) _L_read+=(-u "$OPTARG"); _L_mapfile+=(-u "$OPTARG") ;;
-			s) _L_s=$OPTARG; _L_mapfile+=(-s "$_L_s") ;;
-			n) _L_n=$OPTARG; _L_mapfile+=(-n "$_L_n") ;;
-			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+				t) _L_strip=1; _L_mapfile+=(-t); _L_forward_opts+=(-t) ;;
+				d) _L_d=$OPTARG _L_forward_opts+=("$OPTARG") ;;
+				u) _L_u=$OPTARG; _L_read+=(-u "$OPTARG"); _L_mapfile+=(-u "$OPTARG") ;;
+				s) _L_s=$OPTARG; _L_mapfile+=(-s "$_L_s") ;;
+				n) _L_n=$OPTARG; _L_mapfile+=(-n "$_L_n") _L_forward_opts+=(-n "$_L_n") ;;
+				h) L_func_help; return 0 ;;
+				*) L_func_usage_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
-		local _L_t=""
-		if [[ $_L_strip -eq 0 ]]; then _L_t=$_L_d; fi
 		if (( L_HAS_MAPFILE )) && [[ "$_L_d" == $'\n' ]]; then
 			"${_L_mapfile[@]}" "$1"
 		else
+			if (( _L_s > 20 )) && [[ "$_L_d" == $'\n' ]]; then
+				# Speed up slow Bash loop skipping elements.
+				if hash tail 2>/dev/null; then
+					"${_L_forward_opts[@]}" "$1" < <(tail -n +"$((_L_s + 1))" <&"$_L_u")
+					return
+				elif hash awk 2>/dev/null; then
+					"${_L_forward_opts[@]}" "$1" < <(awk "NR > $_L_s" <&"$_L_u")
+					return
+				elif hash sed 2>/dev/null; then
+					"${_L_forward_opts[@]}" "$1" < <(sed "1,$_L_s d" <&"$_L_u")
+					return
+				fi
+			fi
 			while (( _L_s-- )); do
 				"${_L_read[@]}" -d "$_L_d" _L_c || return
 			done
 			L_array_clear "$1"
-			while (( _L_n <= 0 || _L_i < _L_n )) && "${_L_read[@]}" -d "$_L_d" "$1[$((_L_i++))]"; do
-				if [[ -n "$_L_t" ]]; then
-					eval "$1[$((_L_i-1))]+=\$_L_t"
-				fi
-			done
+			# Optimize inline the -t option.
+			if (( _L_strip == 0 )); then
+				while (( _L_n <= 0 || _L_i < _L_n )) && "${_L_read[@]}" -d "$_L_d" "$1[$((_L_i++))]"; do
+					eval "$1[_L_i-1]+=\$_L_d"
+				done
+			else
+				while (( _L_n <= 0 || _L_i < _L_n )); do
+					"${_L_read[@]}" -d "$_L_d" "$1[$((_L_i++))]" || break
+				done
+			fi
 			if ! L_var_is_notnull "$1[$((_L_i-1))]"; then
-				unset -v "$1[$((_L_i-1))]"
+				unset -v "$1[_L_i-1]"
 			fi
 		fi
 	fi
