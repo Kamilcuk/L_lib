@@ -30,7 +30,7 @@ _L_test_z_argparse30_file_type() {
 	L_unittest_cmd -c L_argparse -- --file type=file ---- --file "$tmpf1"
 
 	L_unittest_failure_capture tmp -- L_argparse -- --file type=file ---- --file "/path/that/does/not/exist/hopefully"
-	L_unittest_contains "$tmp" "file does not exists"
+	L_unittest_contains "$tmp" "file does not exist"
 
 	rm -f "$tmpf1"
 }
