@@ -8280,13 +8280,11 @@ _L_argparse_parser_find_option() {
 	printf -v "$1" "%d" "${_L_tmp%% *}"
 }
 
-# @description Get space separate list of all options of the current parser.
-# @arg $1 <var> variable to append options to
+# @description Get list of all options of the current parser.
+# @arg $1 <var> array variable name to populate with options
 # @set $1
 _L_argparse_parser_get_all_options() {
-	local IFS=' '
-	local -a _L_tmp="(${_L_parser__optionlookup[_L_parseri]:-})"
-	printf -v "$1" "%s" "${_L_tmp[*]//=*}"
+	IFS=' ' read -r -a "$1" <<<"${_L_parser__optionlookup[_L_parseri]:-}" && eval "$1=(\"\${$1[@]%%=*}\")"
 }
 
 # @description
@@ -8302,14 +8300,13 @@ _L_argparse_parser_get_long_option() {
 		return 0
 	elif L_is_true "${_L_parser_allow_abbrev[_L_parseri]:-0}"; then
 		local IFS=$' \t\n' _L_abbrev_matches _L_options
-		_L_argparse_parser_get_all_options _L_options
-		_L_abbrev_matches=$(compgen -W "$_L_options" -- "$2" || :)
-		if [[ -n "$_L_abbrev_matches" ]]; then
-			if [[ "$_L_abbrev_matches" == *[$' \t\n']* ]]; then
-				L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches//[$' \t\n']/ }" || return "$?"
+		_L_argparse_parser_get_all_options _L_options || return "$?"
+		if L_compgen -V _L_abbrev_matches -W "${_L_options[*]}" -- "$2"; then
+			if (( ${#_L_abbrev_matches[@]} > 1 )); then
+				L_argparse_fatal "ambiguous option: $2 could match ${_L_abbrev_matches[*]}" || return "$?"
 			else
-				if ! _L_argparse_parser_find_option "$1" "$_L_abbrev_matches"; then
-					L_argparse_fatal "internal error: could not get short option of $_L_abbrev_matches" || return "$?"
+				if ! _L_argparse_parser_find_option "$1" "${_L_abbrev_matches[0]}"; then
+					L_argparse_fatal "internal error: could not get short option of ${_L_abbrev_matches[0]}" || return "$?"
 				fi
 				return 0
 			fi
@@ -8922,8 +8919,8 @@ _L_argparse_parse_args_set_defaults() {
 _L_argparse_gen_option_names_completion() {
 	if ((_L_comp_enabled)); then
 		local IFS=$' \t\n' _L_options
-		_L_argparse_parser_get_all_options _L_options
-		L_argparse_compgen -W "$_L_options" -P "${2:-}" -- "${1:-}" || return "$?"
+		_L_argparse_parser_get_all_options _L_options || return "$?"
+		L_argparse_compgen -W "${_L_options[*]}" -P "${2:-}" -- "${1:-}" || return "$?"
 		exit
 	fi
 }
@@ -8952,8 +8949,8 @@ _L_argparse_parse_args_long_option() {
 			return 0
 		fi
 		local _L_options _L_sug=""
-		_L_argparse_parser_get_all_options _L_options
-		_L_argparse_spec_suggest_v _L_sug "$_L_option" $_L_options
+		_L_argparse_parser_get_all_options _L_options || return "$?"
+		_L_argparse_spec_suggest_v _L_sug "$_L_option" "${_L_options[@]}"
 		_L_argparse_add_unknown_args "${_L_args[_L_argsi]}" ||
 			L_argparse_fatal "unrecognized long option: %s%s" "${_L_args[_L_argsi]}" "$_L_sug" || return "$?"
 		# This is special - if _L_comp_enabled, then we should ignore invalid options and carry on
