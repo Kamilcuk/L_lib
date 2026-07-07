@@ -157,4 +157,4 @@ docs_docker:
 	$(DOCKER) build --target doc --output type=local,dest=./public .
 
 llm:
-	,llm --podman -H gemini
+	,llm --podman -H $(shell [[ -r ../L_bash_profile ]] && printf '%s ' --ro ../L_bash_profile --ro ~/.local/bin) gemini

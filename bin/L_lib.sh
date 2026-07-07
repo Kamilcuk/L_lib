@@ -767,7 +767,7 @@ _L_func_help_print_section() {
 		_L_is_first=1
 		while IFS= read -r _L_line || [[ -n "$_L_line" ]]; do
 			# Strip leading/trailing whitespace
-			L_strip -v _L_line "$_L_line"
+			L_strip -v _L_line -- "$_L_line"
 			if (( _L_is_first )); then
 				if (( ${#_L_name} > _L_max_len )); then
 					_L_out+=$'\n'"  ${_L_name}"$'\n'"  ${_L_pad}  ${_L_line}"
@@ -846,7 +846,7 @@ L_func_help() {
 			if [[ "$line" =~ $rx_comment ]]; then
 				line="${BASH_REMATCH[1]}"
 			else
-				L_strip -v line "$line"
+				L_strip -v line -- "$line"
 			fi
 			# Skip shellcheck directives
 			if [[ "$line" =~ ^[[:space:]]*shellcheck ]]; then
@@ -942,12 +942,12 @@ L_func_help() {
 			fi
 		done <<<"$docstring"
 		help_out="${description[*]}"
-		_L_func_help_print_section help_out "Options:" "${option_list[@]}"
-		_L_func_help_print_section help_out "Arguments:" "${argument_list[@]}"
-		_L_func_help_print_section help_out "Environment:" "${env_list[@]}"
-		_L_func_help_print_section help_out "Return:" "${return_list[@]}"
-		_L_func_help_print_list_section help_out "See:" "${see_list[@]}"
-		_L_func_help_print_list_section help_out "Example:" "${example_list[@]}"
+		_L_func_help_print_section help_out "Options:" ${option_list[@]+"${option_list[@]}"}
+		_L_func_help_print_section help_out "Arguments:" ${argument_list[@]+"${argument_list[@]}"}
+		_L_func_help_print_section help_out "Environment:" ${env_list[@]+"${env_list[@]}"}
+		_L_func_help_print_section help_out "Return:" ${return_list[@]+"${return_list[@]}"}
+		_L_func_help_print_list_section help_out "See:" ${see_list[@]+"${see_list[@]}"}
+		_L_func_help_print_list_section help_out "Example:" ${example_list[@]+"${example_list[@]}"}
 	fi
 	echo "$0: ${FUNCNAME[up]}: $help_out" >&2
 }
@@ -4563,7 +4563,7 @@ _L_argskeywords_assign() {
 L_argskeywords() {
 	{
 		# parse arguments
-		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]}:${FUNCNAME[0]}:" _L_asa="" _L_use_map=0
+		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]:-}:${FUNCNAME[0]:-}:" _L_asa="" _L_use_map=0
 		while getopts A:MEe:h _L_i; do
 			case $_L_i in
 			A) _L_asa=$OPTARG ;;
@@ -7347,7 +7347,7 @@ _L_argparse_print_help_indenter() {
 		local headerlen=${header//$cdel}
 		headerlen=${#headerlen}
 		local opthelp=${_L_helps[_L_i]#*$'\n'}
-		L_strip -v opthelp "$opthelp"
+		L_strip -v opthelp -- "$opthelp"
 		if ((${#opthelp} == 0)); then
 			# no help
 			L_printf_append "$1" "%s\n" "$header"
@@ -8438,7 +8438,7 @@ L_argparse_compgen() {
 		# shellcheck disable=SC2064
 		# replace multiple spaces with one space and remove leading/trailing spaces
 		L_shopt_extglob eval 'desc="${desc//+([$L_GS[:space:]])/ }"'
-		L_strip -v desc "$desc"
+		L_strip -v desc -- "$desc"
 	fi
 	shift "$((OPTIND - 1))"
 	if (($# == 0)) && L_var_is_set L_comp_incomplete; then
