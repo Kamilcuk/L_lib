@@ -38,6 +38,7 @@ USR2_CNT=0
 . "$dir"/test_pretty_print.sh
 . "$dir"/test_fuzzy.sh
 . "$dir"/test_L_uv.sh
+. "$dir"/test_L_func.sh
 
 _L_test_color() {
 	{
@@ -1256,7 +1257,7 @@ _L_test_log_json() {
 
 _L_test_log() {
 	{
-		L_unittest_cmd -c -r 'L_log_configure' eval 'L_log_configure -h 2>&1'
+		L_unittest_cmd -j -r 'L_log_configure' eval 'L_log_configure -h'
 		L_unittest_cmd -c L_log_configure -r -L
 		L_unittest_cmd -c eval 'L_log "hello world" 2>&1 | grep "hello world"'
 
@@ -2461,42 +2462,6 @@ EOF
 
 _L_test_self_contained() {
 	"$(dirname "$0")"/./self_contained.sh
-}
-
-test_followed() {
-	awk '
-/^[[:space:]]*#/{ next }
-/'"$1"'.*; return /{
-	print NR, $0
-	next
-}
-/^[[:space:]]*'"$1"' / {
-	print NR, $0
-	pending = NR
-	next
-}
-pending && /^[[:space:]]*return /{
-	print NR, $0
-	pending = 0
-}
-pending { exit -1 }
-END {
-    if (pending) {
-        print NR, $0
-        printf "ERROR: '"$1"' without following return at %s:%d\n", FILENAME, pending
-        exit -1
-    }
-}
-' bin/L_lib.sh
-}
-
-_L_test_func_usage() {
-	L_log "Check that every L_func_assert is followed by return"
-	! grep 'L_func_assert ' bin/L_lib.sh | grep -v '|| return'
-	L_log "Check every L_func_error is followed by return"
-	test_followed L_func_error
-	L_log "Check every L_func_help is followed by return"
-	test_followed L_func_help
 }
 
 _L_test_getopts_documented() {
