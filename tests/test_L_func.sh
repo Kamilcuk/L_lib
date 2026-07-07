@@ -45,7 +45,7 @@ _L_test_func_usage() {
 _L_test_L_func_comment() {
 	local help_out=""
 	L_unittest_cmd -c L_func_comment -v help_out -f _L_dummy_comment_func
-	L_unittest_eq "$help_out" '# @description This is a dummy test function.
+	L_unittest_eq "${help_out//$'\r'/}" '# @description This is a dummy test function.
 # @arg $1 Some argument.
 '
 }
