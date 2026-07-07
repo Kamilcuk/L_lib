@@ -6827,7 +6827,7 @@ L_map_get_vL_RET() {
 	# Remove anything in front of the newline followed by key followed by space.
 	# Because the key can't have newline not space, it's fine.
 	L_RET=${!1##*$'\n'"$L_RET"$'\t'}
-	# If nothing was removed, then the key does not exists.
+	# If nothing was removed, then the key does not exist.
 	if [[ "$L_RET" == "${!1}" ]]; then
 		if (($# >= 3)); then
 			L_RET="${*:3}"
@@ -7534,22 +7534,43 @@ L_argparse_print_usage() {
 	L_argparse_print_help -u "$@"
 }
 
+_L_argparse_spec_suggest_v() {
+	local _L_resvar=$1 _L_val=$2; shift 2
+	local L_RET=()
+	L_fuzzy_vL_RET "$_L_val" "$@"
+	if ((${#L_RET[@]})); then
+		local _L_joined
+		L_args_join -v _L_joined ", " "${L_RET[@]}"
+		printf -v "$_L_resvar" " (Did you mean: %s?)" "$_L_joined"
+	else
+		printf -v "$_L_resvar" "%s" ""
+	fi
+}
+
 # shellcheck disable=SC2030
 _L_argparse_spec_fatal() {
 	(
 		local _L_tmp
 		set +x
-		echo 'L_argparse: The parsing state, usefull for debugging:'
+		echo 'L_argparse: The parsing state, useful for debugging:'
 		_L_argparse_print
 		L_print_traceback 1
-		printf -v _L_tmp " %q" "${_L_args[@]:_L_argsi-5:5}"
-		echo "L_argparse: before args:$_L_tmp"
-		printf -v _L_tmp " %q" "${_L_args[_L_argsi]:-}"
-		echo "L_argparse: current arg:$_L_tmp"
+		local _L_start=$((_L_argsi - 5 < 0 ? 0 : _L_argsi - 5))
+		local _L_len=$((_L_argsi - _L_start))
+		printf -v _L_tmp " %q" "${_L_args[@]:_L_start:_L_len}"
+		if [[ -n "${_L_tmp//[\'\" ]}" ]]; then
+			echo "L_argparse: before args:$_L_tmp"
+		fi
+		local _L_cur="${_L_args[_L_argsi]:-}"
+		if [[ -n "$_L_cur" && "$_L_cur" != "----" ]]; then
+			echo "L_argparse: current arg: $_L_cur"
+		fi
 		printf -v _L_tmp " %q" "${_L_args[@]:_L_argsi+1:5}"
-		echo "L_argparse:   next args:$_L_tmp"
+		if [[ -n "${_L_tmp//[\'\" ]}" ]]; then
+			echo "L_argparse:   next args:$_L_tmp"
+		fi
 		echo 'L_argparse: The most probable cause is L_argparse specification arguments are invalid.'
-		echo "L_argparse: When parsing arguments specification the following error occured: $*"
+		echo "L_argparse: When parsing arguments specification the following error occurred: $*"
 	) >&2
 	if L_is_true "${_L_parser_exit_on_error[1]:-1}"; then
 		exit "$L_EX_USAGE"
@@ -7792,7 +7813,7 @@ _L_argparse_validator_float() {
 _L_argparse_validator_positive() {
 	_L_argparse_validator_int "$1" || return 1
 	if ! (( $1 > 0 )); then
-		L_argparse_fatal "is lower than 0" "$1"
+		L_argparse_fatal "is not positive: %q" "$1"
 	fi
 }
 _L_argparse_validator_nonnegative() {
@@ -7803,7 +7824,7 @@ _L_argparse_validator_nonnegative() {
 }
 _L_argparse_validator_file() {
 	if [[ ! -e "$1" ]]; then
-		L_argparse_fatal "file does not exists: %q" "$1"
+		L_argparse_fatal "file does not exist: %q" "$1"
 	elif [[ -d "$1" ]]; then
 		L_argparse_fatal "expected a file, but received a directory: %q" "$1"
 	fi
@@ -7822,7 +7843,7 @@ _L_argparse_validator_file_w() {
 }
 _L_argparse_validator_dir() {
 	if [[ ! -e "$1" ]]; then
-		L_argparse_fatal "directory does not exists: %q" "$1"
+		L_argparse_fatal "directory does not exist: %q" "$1"
 	elif [[ ! -d "$1" ]]; then
 		L_argparse_fatal "not a directory: %q" "$1"
 	fi
@@ -7888,7 +7909,15 @@ _L_argparse_spec_call_parameter() {
 			complete=*) _L_opt_complete[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			show_default=*) _L_opt_show_default[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			flag=1|flag=0|flag=true|flag=false) _L_opt_action[_L_opti]=store_${_L_args[_L_argsi]#*=} ;;
-			*[$' \v\a\t\n\\=']*) _L_argparse_spec_fatal "unsupported positional argument: ${_L_args[_L_argsi]}" ;;
+			*[$' \v\a\t\n\\=']*)
+				if [[ "${_L_args[_L_argsi]}" == *=* ]]; then
+					local _L_key="${_L_args[_L_argsi]%%=*}" _L_sug
+					_L_argparse_spec_suggest_v _L_sug "$_L_key" nargs const eval default type choices required help metavar dest deprecated validate complete show_default flag action
+					_L_argparse_spec_fatal "unsupported parameter: ${_L_args[_L_argsi]}$_L_sug"
+				else
+					_L_argparse_spec_fatal "unsupported positional argument: ${_L_args[_L_argsi]}"
+				fi
+				;;
 			["$pc"]["$pc"]?*)
 				_L_argparse_spec_call_parameter_common_option_assign
 				first_long_option="${first_long_option:-${_L_args[_L_argsi]##["$pc"]["$pc"]}}"
@@ -7953,7 +7982,9 @@ _L_argparse_spec_call_parameter() {
 			*)
 				local L_RET=()
 				L_list_functions_with_prefix_removed_vL_RET "_L_argparse_validator_"
-				_L_argparse_spec_fatal "L_argparse: invalid type=$_L_type for option. Available types: ${L_RET[*]}"
+				local _L_sug
+				_L_argparse_spec_suggest_v _L_sug "$_L_type" "${L_RET[@]}"
+				_L_argparse_spec_fatal "L_argparse: invalid type=$_L_type for option${_L_sug}. Available types: ${L_RET[*]}"
 				;;
 			esac
 			: "${_L_opt_validate[_L_opti]:=\"$default\" \"\$1\"}"
@@ -8048,7 +8079,10 @@ _L_argparse_spec_argument_common() {
 			: "${_L_opt_nargs[_L_opti]:=0}"
 			;;
 		_subparser|count|help) ;;
-		*) _L_argparse_spec_fatal "invalid action=${_L_opt_action[_L_opti]:-}. Action has to be one of: store, store_const, store_true, store_false, store_0, store_1, store_1null, append, append_const, eval or remainder. "
+		*)
+			local _L_sug
+			_L_argparse_spec_suggest_v _L_sug "${_L_opt_action[_L_opti]:-}" store store_const store_true store_false store_0 store_1 store_1null append append_const eval remainder count help
+			_L_argparse_spec_fatal "invalid action=${_L_opt_action[_L_opti]:-}${_L_sug}. Action has to be one of: store, store_const, store_true, store_false, store_0, store_1, store_1null, append, append_const, eval or remainder."
 		esac
 	}
 	{
@@ -8752,8 +8786,11 @@ _L_argparse_parse_args_long_option() {
 			_L_argparse_parse_args_short_option || return "$?"
 			return 0
 		fi
+		local _L_options _L_sug=""
+		_L_argparse_parser_get_all_options _L_options
+		_L_argparse_spec_suggest_v _L_sug "$_L_option" $_L_options
 		_L_argparse_add_unknown_args "${_L_args[_L_argsi]}" ||
-			L_argparse_fatal "unrecognized long option: ${_L_args[_L_argsi]}" || return "$?"
+			L_argparse_fatal "unrecognized long option: %s%s" "${_L_args[_L_argsi]}" "$_L_sug" || return "$?"
 		# This is special - if _L_comp_enabled, then we should ignore invalid options and carry on
 		(( ++_L_argsi ))
 		return 0
@@ -8774,7 +8811,9 @@ _L_argparse_parse_args_long_option() {
 		_L_argsi=$(( _L_argsi + (_L_nargs - _L_has_equal) ))
 		if ((${#_L_values[@]} != _L_nargs)); then
 			_L_argparse_optspec_get_description _L_desc
-			L_argparse_fatal "argument $_L_desc: expected ${_L_opt_nargs[_L_opti]} arguments but received ${#_L_values[@]}" || return "$?"
+			local _L_args_plural="arguments"
+			if ((_L_nargs == 1)); then _L_args_plural="argument"; fi
+			L_argparse_fatal "argument $_L_desc: expected ${_L_opt_nargs[_L_opti]} $_L_args_plural but received ${#_L_values[@]}" || return "$?"
 		fi
 		;;
 	*) L_argparse_fatal "invalid nargs specification of $(_L_argparse_print_curopt)" || return "$?" ;;
@@ -8833,7 +8872,9 @@ _L_argparse_parse_args_short_option() {
 			_L_values+=("${_L_args[@]:_L_argsi+1:_L_req_nargs}")
 			_L_argsi=$((_L_argsi+1+_L_req_nargs))
 			if ((${#_L_values[@]} != _L_nargs)); then
-				L_argparse_fatal "argument $_L_option: expected ${_L_opt_nargs[_L_opti]} arguments, received ${#_L_values[@]}" || return "$?"
+				local _L_args_plural="arguments"
+				if ((_L_nargs == 1)); then _L_args_plural="argument"; fi
+				L_argparse_fatal "argument $_L_option: expected ${_L_opt_nargs[_L_opti]} $_L_args_plural, received ${#_L_values[@]}" || return "$?"
 			fi
 			;;
 		*) L_argparse_fatal "invalid nargs specification of $(_L_argparse_print_curopt)" || return 1 ;;
@@ -8904,7 +8945,7 @@ _L_argparse_parse_args() {
 						exit
 					fi
 					if [[ ! -e "${_L_args[_L_argsi]:1}" ]]; then
-						L_argparse_fatal "Arguments input file ${_L_args[_L_argsi]:1} does not exists" || return "$?"
+						L_argparse_fatal "Arguments input file ${_L_args[_L_argsi]:1} does not exist" || return "$?"
 					fi
 					if [[ ! -r "${_L_args[_L_argsi]:1}" ]]; then
 						L_argparse_fatal "Arguments input file ${_L_args[_L_argsi]:1} is not readable" || return "$?"
@@ -9076,7 +9117,15 @@ _L_argparse_spec_parse_args() {
 			unknown_args=*) _L_parser_unknown_args[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			fromfile_prefix_chars=*) _L_parser_fromfile_prefix_chars[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			color=*) _L_parser_color[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
-			*[$' \r\v\t\n=']*|*=*|'') _L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE" ;;
+			*[$' \r\v\t\n=']*|*=*|'')
+				if [[ "${_L_args[_L_argsi]}" == *=* ]]; then
+					local _L_key="${_L_args[_L_argsi]%%=*}" _L_sug
+					_L_argparse_spec_suggest_v _L_sug "$_L_key" dest_dict dest_prefix exit_on_error add_help aliases allow_abbrev allow_subparser_abbrev description epilog help name prefix_chars prog show_default usage remainder unknown_args fromfile_prefix_chars color
+					_L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}$_L_sug" || return "$L_EX_USAGE"
+				else
+					_L_argparse_spec_fatal "unknown parser k=v argument: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE"
+				fi
+				;;
 			*)
 				if ((_L_parseri == 1)); then
 					_L_argparse_spec_fatal "unknown parser positional argument: ${_L_args[_L_argsi]}" || return "$L_EX_USAGE"
@@ -9697,7 +9746,7 @@ _L_proc_init_setup_redirs() {
 			fi
 			;;
 		file)
-			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exists: $val" 1; return "$L_EX_USAGE"; fi
+			if [[ ! -e "$val" ]]; then L_func_error "invalid argument $arg: file does not exist: $val" 1; return "$L_EX_USAGE"; fi
 			L_printf_append _L_redirs "%q" "$val"
 			;;
 		fd) L_printf_append _L_redirs "&%d" "$val" ;;

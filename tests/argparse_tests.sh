@@ -233,7 +233,7 @@ And that's how you'd foo a bar" \
 			---- --foon
 		L_unittest_eq "$out" "\
 Usage: PROG [-h] [--foobar] [--foonley]
-PROG: error: unrecognized long option: --foon"
+PROG: error: unrecognized long option: --foon (Did you mean: --foonley?)"
 	}
 	{
 		local foo='' bar=''
@@ -624,7 +624,7 @@ EOF
 		L_log "argparse6 check calls"
 		L_unittest_cmd -r "three= four=123" "${argparse[@]}" aaa bbb 123
 		L_unittest_cmd -r "one=/tmp two= three=three four=ddd" "${argparse[@]}" -3 three aaa -1 /tmp ccc ddd
-		L_unittest_cmd -r "does not exists" ! "${argparse[@]}" -3 three aaa -1 fdsa ccc ddd
+		L_unittest_cmd -r "does not exist" ! "${argparse[@]}" -3 three aaa -1 fdsa ccc ddd
 		L_unittest_cmd -r "unrecognized option" ! "${argparse[@]}" aaa -2 ccc
 		L_unittest_cmd -r "unrecognized option" ! "${argparse[@]}" bbb -1 ddd
 		L_unittest_cmd -r "required" ! "${argparse[@]}" aaa bbb
@@ -825,9 +825,9 @@ _L_test_z_argparse16_nonnegative_positive() {
 		L_unittest_vareq num 5
 		#
 		L_unittest_failure_capture tmp -- L_argparse -- --num type=positive ---- --num 0
-		L_unittest_contains "$tmp" "lower than 0"
+		L_unittest_contains "$tmp" "is not positive"
 		L_unittest_failure_capture tmp -- L_argparse -- --num type=positive ---- --num -1
-		L_unittest_contains "$tmp" "lower than 0"
+		L_unittest_contains "$tmp" "is not positive"
 		L_argparse -- --num type=positive ---- --num 1
 		L_unittest_vareq num 1
 	}
