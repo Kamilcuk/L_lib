@@ -738,12 +738,72 @@ L_func_comment() {
 	[[ -n "$L_RET" ]] && printf -v "$_L_v" "%s\n" "${L_RET%$'\n'}"
 }
 
+_L_func_help_print_section() {
+	if (( $# == 2 )); then return; fi
+	local _L_dest_var="$1" _L_title="$2" _L_dest_val="${!1}" _L_out="" _L_max_len=0 _L_i _L_name _L_desc _L_line _L_is_first _L_pad _L_next _L_aligned
+	shift 2
+	if [[ -n "$_L_dest_val" ]]; then
+		_L_out+=$'\n\n'
+	fi
+	_L_out+="$_L_title"
+	# Calculate max name length
+	for (( _L_i=1; _L_i <= $#; _L_i+=2 )); do
+		_L_name="${!_L_i}"
+		if (( ${#_L_name} > _L_max_len )); then
+			_L_max_len=${#_L_name}
+		fi
+	done
+	if (( _L_max_len > 30 )); then
+		_L_max_len=30
+	fi
+	# Generate pad string once, avoiding any subshell!
+	printf -v _L_pad "%-${_L_max_len}s" ""
+	for (( _L_i=1; _L_i <= $#; _L_i+=2 )); do
+		_L_name="${!_L_i}"
+		_L_next=$((_L_i+1))
+		_L_desc="${!_L_next}"
+		_L_desc="${_L_desc#$'\n'}"
+		_L_desc="${_L_desc%$'\n'}"
+		_L_is_first=1
+		while IFS= read -r _L_line || [[ -n "$_L_line" ]]; do
+			# Strip leading/trailing whitespace
+			L_strip -v _L_line "$_L_line"
+			if (( _L_is_first )); then
+				if (( ${#_L_name} > _L_max_len )); then
+					_L_out+=$'\n'"  ${_L_name}"$'\n'"  ${_L_pad}  ${_L_line}"
+				else
+					printf -v _L_aligned "%-${_L_max_len}s" "${_L_name}"
+					_L_out+=$'\n'"  ${_L_aligned}  ${_L_line}"
+				fi
+				_L_is_first=0
+			else
+				_L_out+=$'\n'"  ${_L_pad}  ${_L_line}"
+			fi
+		done <<<"$_L_desc"
+	done
+	printf -v "$_L_dest_var" "%s%s" "$_L_dest_val" "$_L_out"
+}
+
+_L_func_help_print_list_section() {
+	if (( $# == 2 )); then return; fi
+	local _L_dest_var="$1" _L_title="$2" _L_dest_val="${!1}" _L_out="" _L_item
+	shift 2
+	if [[ -n "$_L_dest_val" ]]; then
+		_L_out+=$'\n\n'
+	fi
+	_L_out+="$_L_title"
+	for _L_item in "$@"; do
+		_L_out+=$'\n'"  $_L_item"
+	done
+	printf -v "$_L_dest_var" "%s%s" "$_L_dest_val" "$_L_out"
+}
+
 # @description Print function comment as usage message.
 # @arg [int] How many stack frames up.
 # @see L_func_comment
 # @see L_func_error
 # @return 0
-# @example:
+# @example
 #
 #    # @option -t this is an option
 #    # @option -g <arg> this is an option with an argument
@@ -769,23 +829,127 @@ L_func_comment() {
 #    utility -invalid  # prints 'Usage: utility [-th] [-g arg] arg'
 #
 L_func_help() {
-	local up="$((${1:-0}+1))" v=""
-	if L_func_comment -v v -s "$up" "$@"; then
-		v="${v###}"
-		v="${v## }"
-		v="${v//$'\n' /$'\n'}"
-		v="${v//$'\n'#/$'\n'}"
-		v="${v//$'\n' /$'\n'}"
-		v="${v%%$'\n'}"
-		v="${v%%$'\n'}"
-		v=${v#@description }
-		if [[ "$v" == @* && "$v" == *$'\n'* ]]; then
-			v=$'\n'$v
-		fi
-	else
-		v="unknown help"
+	local up="$((${1:-0}+1))" help_out="unknown help"
+	if L_func_comment -v help_out -s "$up" "$@"; then
+		local -a description=() option_list=() argument_list=() return_list=() env_list=() see_list=() example_list=()
+		local current_section="description" line tag rest docstring="$help_out" sect_out="" IFS=$'\n'
+		help_out=""
+		# Regex variables to avoid Bash parsing issues across different versions
+		local rx_comment='^\#[[:space:]]?(.*)$'
+		local rx_tag='^@(description|option|arg|return|env|see|example):?([[:space:]]+(.*))?$'
+		local rx_opt='^((-[a-zA-Z0-9_?+^]+|--[a-zA-Z0-9_?+^-]+)([[:space:]]+<[^>]+>)?)[[:space:]]*(.*)$'
+		local rx_arg='^(([^[:space:]]+([[:space:]]+<[^>]+>)?)[[:space:]]*)(.*)$'
+		local rx_ret='^([0-9]+|non-zero|L_EX_[A-Z_]+)([[:space:]]+\([^)]+\))?[[:space:]]+(.*)$'
+		local rx_env='^([_a-zA-Z0-9]+([[:space:]]+<[^>]+>)?)[[:space:]]*(.*)$'
+		while IFS= read -r line || [[ -n "$line" ]]; do
+			# Strip leading '#' and at most one optional space
+			if [[ "$line" =~ $rx_comment ]]; then
+				line="${BASH_REMATCH[1]}"
+			else
+				L_strip -v line "$line"
+			fi
+			# Skip shellcheck directives
+			if [[ "$line" =~ ^[[:space:]]*shellcheck ]]; then
+				continue
+			fi
+			# If the stripped line is empty
+			if [[ -z "${line//[[:space:]]}" ]]; then
+				if [[ "$current_section" == "description" && ${#description[@]} -gt 0 ]]; then
+					description+=("")
+				fi
+				continue
+			fi
+			# Check for tags
+			if [[ "$line" =~ $rx_tag ]]; then
+				tag="${BASH_REMATCH[1]}"
+				rest="${BASH_REMATCH[3]}"
+				current_section="$tag"
+				case "$tag" in
+					description)
+						if [[ -n "$rest" ]]; then
+							description+=("$rest")
+						fi
+						;;
+					option)
+						if [[ "$rest" =~ $rx_opt ]]; then
+							option_list+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[4]}")
+						else
+							option_list+=("$rest" "")
+						fi
+						;;
+					arg)
+						if [[ "$rest" =~ $rx_arg ]]; then
+							argument_list+=("${BASH_REMATCH[2]}" "${BASH_REMATCH[4]}")
+						else
+							argument_list+=("$rest" "")
+						fi
+						;;
+					return)
+						if [[ "$rest" =~ $rx_ret ]]; then
+							return_list+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
+						else
+							return_list+=("$rest" "")
+						fi
+						;;
+					env)
+						if [[ "$rest" =~ $rx_env ]]; then
+							env_list+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}")
+						else
+							env_list+=("$rest" "")
+						fi
+						;;
+					see)
+						if [[ -n "$rest" ]]; then
+							see_list+=("$rest")
+						fi
+						;;
+					example)
+						if [[ -n "$rest" ]]; then
+							example_list+=("$rest")
+						fi
+						;;
+				esac
+			else
+				# Continuation line
+				case "$current_section" in
+					description)
+						description+=("$line")
+						;;
+					option)
+						option_list[${#option_list[@]}-1]+=$'\n'"$line"
+						;;
+					arg)
+						argument_list[${#argument_list[@]}-1]+=$'\n'"$line"
+						;;
+					return)
+						# Check if continuation line is a new return code
+						if [[ "$line" =~ $rx_ret ]]; then
+							return_list+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
+						else
+							return_list[${#return_list[@]}-1]+=$'\n'"$line"
+						fi
+						;;
+					env)
+						env_list[${#env_list[@]}-1]+=$'\n'"$line"
+						;;
+					see)
+						see_list+=("$line")
+						;;
+					example)
+						example_list+=("$line")
+						;;
+				esac
+			fi
+		done <<<"$docstring"
+		help_out="${description[*]}"
+		_L_func_help_print_section help_out "Options:" "${option_list[@]}"
+		_L_func_help_print_section help_out "Arguments:" "${argument_list[@]}"
+		_L_func_help_print_section help_out "Environment:" "${env_list[@]}"
+		_L_func_help_print_section help_out "Return:" "${return_list[@]}"
+		_L_func_help_print_list_section help_out "See:" "${see_list[@]}"
+		_L_func_help_print_list_section help_out "Example:" "${example_list[@]}"
 	fi
-	echo "$0: ${FUNCNAME[up]}: $v" >&2
+	echo "$0: ${FUNCNAME[up]}: $help_out" >&2
 }
 
 # @description Print funtion usage to stderr.
@@ -1119,7 +1283,7 @@ if ((!L_HAS_NAMEREF)); then
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $@ arbitrary function arguments
 # @exitcode Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
-# @example:
+# @example
 #    L_hello() { L_handle_v_arr "$@"; }
 #    L_hello_vL_RET() { L_RET="hello world"; }
 #    L_hello          # outputs 'hello world'
@@ -1193,7 +1357,7 @@ L_handle_v_scalar() {
 #
 # Currently array indexes are not preserved. This could be worked on in the future when needed.
 #
-# @example:
+# @example
 #    L_hello() { L_handle_v_arr "$@"; }
 #    L_hello_vL_RET() { L_RET=(hello world); }
 #    L_hello          # outputs two lines 'hello' and 'world'
@@ -5210,7 +5374,7 @@ L_sort() {
 # @description Prints traceback
 # @arg [$1] int stack offset to start from (default: 0)
 # @arg [$2] int number of lines to show around the line (default: 2)
-# @example:
+# @example
 #   Example traceback:
 #   Traceback from pid 3973390 (most recent call last):
 #     File ./bin/L_lib.sh, line 2921, in main()
