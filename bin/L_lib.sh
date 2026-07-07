@@ -5433,7 +5433,7 @@ L_trap_err_small() {
 	L_critical "fatal error on $(caller)"
 }
 
-# description Callback to be exectued on ERR trap that prints a traceback and exits.
+# @description Callback to be exectued on ERR trap that prints a traceback and exits.
 # @arg $1 int exit code
 # @arg $2 BASH_COMMAND
 # @example
@@ -6251,6 +6251,7 @@ _L_unittest_main_handle_k() {
 	done
 }
 
+# @description Skip the current unit test with a specified reason.
 # @option $1 Skipping reason.
 L_unittest_skip() {
 	echo "${@//$'\n'/ }" >>"$_L_u_tmpd/$_L_u_test.skip"
@@ -11671,7 +11672,7 @@ L_nproc_vL_RET() {
 	fi
 }
 
-# Pause for a specified duration using the best available sleep method.
+# @description Pause for a specified duration using the best available sleep method.
 # @arg $1 Duration in floating point seconds.
 L_sleep() {
 	if builtin sleep 0 0 2>/dev/null || (( $? == 2 )); then
