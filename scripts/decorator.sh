@@ -34,7 +34,7 @@ fi
 
 mycurl() { md5sum <<<"$@"; }
 # mycurl() { echo "$@"; }
-L_cache_decorate -T 10s -o -f /tmp/cache.L_cache mycurl
+L_decorate L_cache -T 10s -o -f /tmp/cache.L_cache mycurl
 time var=$(mycurl https://github.com/Kamilcuk/L_lib)
 time var2=$(mycurl https://github.com/Kamilcuk/L_lib)  # uses file cache with 10 seconds ttl
 L_assert '' [ "$var" == "$var2" ]
@@ -48,7 +48,7 @@ myfunc() {
   assoc=(a b c d)
   echo RUN >&2
 }
-L_cache_decorate -T 5 -s var -s assoc -s array -f /tmp/cache.L_cache myfunc
+L_decorate L_cache -T 5 -s var -s assoc -s array -f /tmp/cache.L_cache myfunc
 declare -f myfunc
 declare -i var
 declare -A assoc

@@ -2548,6 +2548,27 @@ _L_test_sections_ok() {
 	# L_unittest_eq "$vim_sections" "$list_sections"
 }
 
+_L_test_readme_links_ok() {
+	local links=() link section symbol file
+	L_readarray -t links < <(grep -oE 'https://kamilcuk.github.io/L_lib/[^)]+' README.md)
+	L_sort -u links
+	for link in "${links[@]}"; do
+		if L_regex_match "$link" "section/([^/#]+)"; then
+			section="${BASH_REMATCH[1]}"
+			file="docs/section/${section}.md"
+			L_unittest_success test -f "$file"
+		fi
+		if L_regex_match "$link" "\#L_lib\.sh--([^/]+)"; then
+			symbol="${BASH_REMATCH[1]}"
+			symbol="${symbol#\$}"
+			if ! grep -qE "^\s*${symbol}\s*\(\)|^\s*${symbol}=" "$L_LIB_SCRIPT"; then
+				L_fatal "Symbol '$symbol' linked in README.md does not exist in $L_LIB_SCRIPT (link: $link)"
+			fi
+		fi
+	done
+	L_info OK
+}
+
 _L_test_unittest_skip() {
 	L_unittest_skip "tests skipping"
 	false
