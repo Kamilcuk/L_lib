@@ -89,7 +89,7 @@ Below is a selection of the library's features. The library contains much more.
 - Temporary enable or disable shell features `set -x` for the duration of a command
     [`L_setx`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_setx)
     [`L_unsetx`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_unsetx)
-    [`L_extglob`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_extglob)
+    [`L_shopt_extglob`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_shopt_extglob)
 - Easily sort a Bash arrays containing any characters
     [`L_sort`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_sort)
 - Failure handling utilities
@@ -127,7 +127,7 @@ Below is a selection of the library's features. The library contains much more.
     [`L_html_escape`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_html_escape)
     [`L_urlencode`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_urlencode)
 - Split string without remote execution and understand `$''` sequences
-    [`L_str_split`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_str_split)
+    [`L_string_unquote`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_string_unquote)
 - Template output
     [`L_percent_format`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_percent_format)
     [`L_fstring`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_fstring)
@@ -135,7 +135,6 @@ Below is a selection of the library's features. The library contains much more.
     [`L_json_escape`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_json_escape)
 - Cache commands execution with TTL in memory or file
     [`L_cache`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_cache)
-    [`L_cache_decorate`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_cache_decorate)
 - Easy writing function utilities by supporting `-v <var>` option or extracting comment before function
     [`L_handle_v_scalar`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_handle_v_scalar)
     [`L_func_help`](https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_func_help)
