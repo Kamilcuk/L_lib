@@ -123,8 +123,18 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v7
-      - run: make docs_build
+      - name: Build documentation
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            sed -i "s|/main/|/${{ github.event.pull_request.head.ref }}/|g" mkdocs.yml
+            echo "{INHERIT: mkdocs.yml, site_url: 'https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}/'}" > mkdocs_pr.yml
+            uv run --group docs mkdocs build -f mkdocs_pr.yml
+          else
+            make docs_build
+          fi
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
@@ -141,6 +151,7 @@ jobs:
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           action: deploy
+          wait-for-pages-deployment: true
 
   build_basher:
     runs-on: ubuntu-latest
