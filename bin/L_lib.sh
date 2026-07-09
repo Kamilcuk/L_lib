@@ -2678,14 +2678,14 @@ L_exit_into_10() {
 # @description The filename
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
-L_path_basename() { L_handle_v_scalar "$@"; }
-L_path_basename_vL_RET() { L_RET=${*##*/}; }
+L_basename() { L_handle_v_scalar "$@"; }
+L_basename_vL_RET() { L_RET=${*##*/}; }
 
 # @description parent of the path
 # @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 path
-L_path_dirname() { L_handle_v_scalar "$@"; }
-L_path_dirname_vL_RET() {
+L_dirname() { L_handle_v_scalar "$@"; }
+L_dirname_vL_RET() {
 	case "$*" in
 	..) L_RET=. ;;
 	?*/*) L_RET=${*%/*} ;;
@@ -2700,7 +2700,7 @@ L_path_dirname_vL_RET() {
 # @see https://en.cppreference.com/w/cpp/filesystem/path/extension.html
 L_path_extension() { L_handle_v_scalar "$@"; }
 L_path_extension_vL_RET() {
-	L_path_basename_vL_RET "$*"
+	L_basename_vL_RET "$*"
 	case $L_RET in
 	.|..) L_RET="" ;;
 	?*.*) L_RET=.${L_RET##*.} ;;
@@ -2714,7 +2714,7 @@ L_path_extension_vL_RET() {
 # @see https://docs.python.org/3/library/pathlib.html#pathlib.PurePath.suffixes
 L_path_extensions() { L_handle_v_array "$@"; }
 L_path_extensions_vL_RET() {
-	L_path_basename_vL_RET "$*"
+	L_basename_vL_RET "$*"
 	case $L_RET in
 	.|..) L_RET=() ;;
 	?*.*)
@@ -2736,7 +2736,7 @@ L_path_extensions_vL_RET() {
 # @see https://en.cppreference.com/w/cpp/filesystem/path/stem
 L_path_stem() { L_handle_v_scalar "$@"; }
 L_path_stem_vL_RET() {
-	L_path_basename_vL_RET "$*"
+	L_basename_vL_RET "$*"
 	case $L_RET in
 	.|..) ;;
 	?*.*) L_RET=${L_RET%.*} ;;
@@ -12266,7 +12266,7 @@ EOF
 	fi
 
 	local TMPDIR
-	L_path_dirname -v TMPDIR "$dest"
+	L_dirname -v TMPDIR "$dest"
 	local tmpf
 	L_with_tmpfile_into tmpf
 
