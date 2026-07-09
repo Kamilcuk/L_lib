@@ -925,7 +925,7 @@ _L_test_log() {
 
 _L_test_log_from() {
 	local dir
-	L_path_dirname -v dir "${BASH_SOURCE[0]}"
+	L_dirname -v dir "${BASH_SOURCE[0]}"
 	L_unittest_cmd -jr " log_1.sh:log_function:8 " env L_LIB_SCRIPT="$L_LIB_SCRIPT" bash "$dir"/log_1.sh 1
 	L_unittest_cmd -jr " log_1.sh:main:13 " env L_LIB_SCRIPT="$L_LIB_SCRIPT" bash "$dir"/log_1.sh 2
 }
@@ -1270,7 +1270,7 @@ _L_test_asa() {
 _L_test_path() {
 	local v
 	{
-		tester() { local v; L_path_basename -v v "$1"; L_unittest_vareq v "$2"; }
+		tester() { local v; L_basename -v v "$1"; L_unittest_vareq v "$2"; }
 		tester /foo/bar.txt bar.txt
 		tester /foo/.bar .bar
 		tester /foo/bar/ ''
@@ -1281,7 +1281,7 @@ _L_test_path() {
 		tester //host host
 	}
 	{
-		tester() { local v; L_path_dirname -v v "$1"; L_unittest_vareq v "$2"; }
+		tester() { local v; L_dirname -v v "$1"; L_unittest_vareq v "$2"; }
 		tester '' .
 		tester . .
 		tester .. .
