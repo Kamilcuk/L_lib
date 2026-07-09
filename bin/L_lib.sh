@@ -4021,9 +4021,16 @@ L_readarray() {
 			esac
 		done
 		shift "$((OPTIND-1))"
+		if [[ -z "${1:-}" ]]; then
+			set -- "MAPFILE"
+		fi
 		if (( L_HAS_MAPFILE )) && [[ "$_L_d" == $'\n' ]]; then
 			"${_L_mapfile[@]}" "$1"
 		else
+			if ! L_is_valid_variable_name "$1"; then
+				echo "L_readarray: \`$1': not a valid identifier" >&2
+				return 1
+			fi
 			if (( _L_s > 20 )) && [[ "$_L_d" == $'\n' ]]; then
 				# Speed up slow Bash loop skipping elements.
 				if hash tail 2>/dev/null; then
@@ -4036,6 +4043,17 @@ L_readarray() {
 					"${_L_forward_opts[@]}" "$1" < <(sed "1,$_L_s d" <&"$_L_u")
 					return
 				fi
+			fi
+			if [[ "$_L_d" == [!$' \t\n'] ]] && (( _L_strip == 1 && _L_n <= 0 )); then
+				if IFS="$_L_d" "${_L_read[@]}" -d '' -a "$1"; then
+					while IFS="$_L_d" "${_L_read[@]}" -d '' -a _L_c || (( ${_L_c[*]+1}0 )); do
+						eval "$1+=(\"\${_L_c[@]}\")"
+					done
+				fi
+				if (( _L_s )); then
+					eval "$1=(\"\${$1[@]:$_L_s}\")"
+				fi
+				return
 			fi
 			while (( _L_s-- )); do
 				"${_L_read[@]}" -d "$_L_d" _L_c || return
