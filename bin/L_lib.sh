@@ -2942,9 +2942,7 @@ L_isdigit() { [[ "$*" != *[^0-9]* ]]; }
 # This function is used to make sure that eval "$1=" will e correct if L_is_valid_variable_name "$1".
 # @arg $1 string to check
 # @see L_is_valid_variable_or_array_element
-L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
-# L_is_valid_variable_name() { [[ ${1:0:1} == [a-zA-Z_] && ( ${#1} == 1 || ${1:1} != *[^a-zA-Z0-9_]* ) ]]; }
-# L_is_valid_variable_name() { [[ $1 == [a-zA-Z_]*([a-zA-Z0-9_]) ]]; }
+L_is_valid_variable_name() { [[ $1 == [a-zA-Z_]* && $1 != *[^a-zA-Z0-9_]* ]]; }
 
 # @description Return 0 if argument could be a variable name or array element.
 # @arg $1 string to check
@@ -2953,7 +2951,9 @@ L_is_valid_variable_name() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]; }
 #	L_is_valid_variable_or_array_element aa           # true
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
 #	L_is_valid_variable_or_array_element 'arr[elem'   # false
-L_is_valid_variable_or_array_element() { [[ "$1" =~ ^[a-zA-Z_][a-zA-Z0-9_]*(\[.+\])?$ ]]; } # ]
+L_is_valid_variable_or_array_element() {
+	[[ ${1%%\[*} == [a-zA-Z_]* && ${1%%\[*} != *[^a-zA-Z0-9_]* && ( $1 != *\[* || ( $1 == *\] && ${1#*\[} != \] ) ) ]]  # ]]
+}
 
 # @description Is the string a valid Bash opinionated function name?
 # Almost anything is valid Bash function name.
@@ -2968,13 +2968,16 @@ L_is_valid_function_name() {
 
 # @description Return 0 if the string characters is an integer
 # @arg $1 string to check
-L_is_integer() { [[ "$1" =~ ^[-+]?[0-9]+$ ]]; }
+L_is_integer() { [[ -n ${1#[+-]} && ${1#[+-]} != *[^0-9]* ]]; }
 # L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} -gt 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
 # L_is_integer() { [[ $1 == ?([+-])+([0-9]) ]]; }
 
 # @description Return 0 if the string characters is a float
 # @arg $1 string to check
-L_is_float() { [[ "$1" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]; }
+L_is_float() {
+	local val="${1#[+-]}"
+	[[ ( $val == *.* && ${val%%.*} != *[^0-9]* && ${val#*.} != *[^0-9]* && ( -n ${val%%.*} || -n ${val#*.} ) ) || ( $val != *.* && -n $val && $val != *[^0-9]* ) ]]
+}
 # L_is_float() { [[ "$*" == ?([+-])@(+([0-9])?(.)|*([0-9]).+([0-9])) ]]; }
 
 # @description newline

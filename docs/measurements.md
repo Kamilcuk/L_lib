@@ -136,6 +136,49 @@ Result: External short-circuiting with `&&` between `(( ))` blocks is the fastes
 Result: `eval "${cb:-}"` is the fastest when a callback is present.
 
 
+### Variable Name Validation (L_is_valid_variable_name)
+
+We compared six different implementations for validating variable names over a test suite of 16 representative valid and invalid names (including `a`, `ab`, `_ac`, `_a9`, `9`, `9a`, `a-`, `-a`, `a `, ` a`, ` a `, `a=b`, `a[0]`, ``, `$((a))`, `rm -rf`).
+
+Measurements were taken using the QEMU deterministic instruction count method:
+
+| Implementation | Instructions (16 inputs) | Relative Cost | Correctness | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Regex Match** (`[[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]`) | 4,225,700 | 100.0% | **Correct** | Invokes heavy `regcomp`/`regexec` engine. |
+| **Declare Check** (`declare -- "$v" 2>&1`) | 529,870 | 12.5% | **Incorrect** | Incorrectly marks `a=b` and `a[0]` as valid. |
+| **Substring Slice** (`[[ ${v:0:1} == [a-zA-Z_] && ... ]]`) | 464,940 | 11.0% | **Correct** | Complex multi-conditional logic. |
+| **Extglob Match** (`[[ $v == [a-zA-Z_]*([a-zA-Z0-9_]) ]]`) | 303,088 | 7.1% | **Correct** | Requires `extglob` to be enabled. |
+| **3-Glob Check** (`-n $v && != *[^...] && != [0-9]*`) | 331,722 | 7.8% | **Correct** | Simple, portable pattern match. |
+| **2-Glob Check** (`== [a-zA-Z_]* && != *[^...]`) | 306,723 | 7.2% | **Correct** | **Fastest & most robust correct portable method.** |
+
+Result: The **2-glob check** method is the fastest correct way to validate a variable name, avoiding the massive dynamic memory and regex compilation overhead of `=~` (~13.7x faster) while remaining portable and independent of `extglob`.
+
+
+### Numeric Validation (L_is_integer, L_is_float)
+
+We compared the performance of pure glob-based validation vs. regex-based validation (`=~`) for integers and floats.
+
+Measurements were taken using the QEMU deterministic instruction count method:
+
+#### Integer Validation (L_is_integer)
+Tested over 12 typical valid and invalid integer inputs (including signs and trailing characters):
+
+| Implementation | Instructions (12 inputs) | Relative Cost | Correctness | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Regex Match** (`[[ "$1" =~ ^[-+]?[0-9]+$ ]]`) | 2,733,340 | 100.0% | **Correct** | Invokes regular expression engine. |
+| **Pure Glob** (`[[ -n ${1#[+-]} && ${1#[+-]} != *[^0-9]* ]]`) | 616,425 | 22.6% | **Correct** | **Fastest (4.4x faster)**, entirely native. |
+
+#### Float Validation (L_is_float)
+Tested over 16 representative float patterns (e.g., `.2`, `1.2`, `1.`, `-.2`, `-.`, `abc`, `1.2.3`):
+
+| Implementation | Instructions (16 inputs) | Relative Cost | Correctness | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **Regex Match** (`[[ "$1" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]`) | 9,744,211 | 100.0% | **Correct** | High regex engine overhead. |
+| **Pure Glob** (conditional block with split) | 1,850,228 | 19.0% | **Correct** | **Fastest (5.2x faster)**, entirely native. |
+
+Result: Switching from regular expressions (`=~`) to native Bash glob patterns/parameter expansions for numeric validation yields a **4x to 5x performance improvement** by entirely bypassing regex compilation and memory allocations.
+
+
 ### Real-time Throughput
 
 | Instruction Count | Real Time (Estimated) | Throughput |
