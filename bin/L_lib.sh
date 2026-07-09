@@ -4423,6 +4423,29 @@ L_parse_range_list_vL_RET() {
 	done
 }
 
+_L_pretty_print_output() {
+	if [[ -z "$_L_pp_out" ]]; then
+		_L_pp_out+="$1"
+		_L_pp_line_len=${#1}
+	elif (( _L_pp_oneline && _L_pp_line_len + 1 + ${#1} <= _L_pp_width )); then
+		_L_pp_out+=" $1"
+		(( _L_pp_line_len += 1 + ${#1} ))
+	else
+		_L_pp_out+=$'\n'"$1"
+		_L_pp_line_len=${#1}
+	fi
+}
+
+_L_pretty_print_output_array() {
+	if (( _L_pp_oneline && _L_pp_line_len + ${#2} + ${#1} + 1 <= _L_pp_width )); then
+		_L_pp_out+="$2$1"
+		(( _L_pp_line_len += ${#2} + ${#1} ))
+	else
+		_L_pp_out+=$'\n  '"$1"
+		(( _L_pp_line_len = 2 + ${#1} ))
+	fi
+}
+
 # @description Prints values with declare, but array values are on separate lines.
 # @option -p <str> Prefix each line with this prefix
 # @option -v <var> Store the output in variable instead of printing it.
@@ -4432,80 +4455,83 @@ L_parse_range_list_vL_RET() {
 # @option -h Print this help and return 0.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
+	_L_init_COLUMNS
 	local OPTIND OPTARG OPTERR \
-		_L_pp_prefix="" _L_pp_var="" _L_pp_compact=1 _L_pp_width=${COLUMNS:-80}  \
-		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" _L_pp_sep
+		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
+		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
+		_L_pp_line_len=0
 	while getopts p:v:w:cCh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
 			v) _L_pp_var=$OPTARG ;;
 			w) _L_pp_width=$OPTARG ;;
-			c) _L_pp_compact=1 ;;
-			C) _L_pp_compact=0 ;;
+			c) _L_pp_oneline=1 ;;
+			C) _L_pp_oneline=0 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	while (($#)); do
-		# Start a new line in the output.
-		_L_pp_out+="${_L_pp_out:+$'\n'}"
 		if _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
 			# Extract variable flags from declare output.
 			local _L_pp_declare_opts=${_L_pp_declare#declare }
 			_L_pp_declare_opts=${_L_pp_declare_opts%% *}
-			# Add variable flags if they are something fancy.
+			local _L_flags=""
 			case "$_L_pp_declare_opts" in
 				""|--|-a|-A) ;;
-				*) _L_pp_out+="${_L_pp_declare_opts} " ;;
+				*) _L_flags="${_L_pp_declare_opts} " ;;
 			esac
 			if [[ "$_L_pp_declare" != *=* ]]; then
-				_L_pp_out+="$1 is null"
+				_L_pretty_print_output "$1 is null"
 			elif [[ "$_L_pp_declare_opts" == -[Aa]* ]]; then
-				_L_pp_out+="$1=("
-				if [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
-					# Dense normal array - just output values in order.
+				# Array or associative array
+				_L_pretty_print_output "${_L_flags}$1=("
+				local _L_pp_nonfirst_sep=""
+				if (( _L_pp_oneline )) && [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
+					# Dense normal array
 					L_array_len -v _L_pp_len "$1"
-					_L_pp_sep=""
 					for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
 						_L_pp_v="$1[$_L_pp_i]"
 						printf -v _L_pp_v "%q" "${!_L_pp_v}"
-						_L_pp_out+="$_L_pp_sep$_L_pp_v"
-						_L_pp_sep=" "
+						_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+						_L_pp_nonfirst_sep=" "
 					done
 				else
-					# Normal array with non-sequential elements, or an associative array.
+					# Sparse array or associative array
 					L_array_keys -v _L_pp_keys "$1"
 					if [[ "$_L_pp_declare_opts" == -A* ]]; then
-						# Sort associative array keys.
 						L_sort -z _L_pp_keys
 					fi
-					_L_pp_sep=""
 					for _L_pp_k in "${_L_pp_keys[@]}"; do
 						eval "_L_pp_v=\${$1[\"\$_L_pp_k\"]}"
-						printf -v _L_pp_k "%q" "$_L_pp_k"
-						printf -v _L_pp_v "%q" "$_L_pp_v"
-						_L_pp_out+="$_L_pp_sep[$_L_pp_k]=$_L_pp_v"
-						_L_pp_sep=" "
+						printf -v _L_pp_v "[%q]=%q" "$_L_pp_k" "$_L_pp_v"
+						_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+						_L_pp_nonfirst_sep=" "
 					done
 				fi
-				_L_pp_out+=")"
+				# Close paren
+				if (( _L_pp_oneline && ( ${_L_pp_nonfirst_sep:+1}0 || _L_pp_line_len + 1 <= _L_pp_width ) )); then
+					_L_pp_out+=")"
+					(( _L_pp_line_len += 1 ))
+				else
+					_L_pp_out+=$'\n)'
+					_L_pp_line_len=1
+				fi
 			else
-				# Scalar value. Don't want to use declare output, cause it overquotes.
+				# Scalar
 				printf -v _L_pp_current "%s=%q" "$1" "${!1}"
-				_L_pp_out+="$_L_pp_current"
+				_L_pretty_print_output "${_L_flags}${_L_pp_current}"
 			fi
 		else
-			_L_pp_out+="$1"
+			# Literal string arg (not a variable name)
+			_L_pretty_print_output "$1"
 		fi
 		shift
 	done
-	if (( _L_pp_compact )); then
-		# Join by space and format with fmt.
-		_L_pp_out="${_L_pp_out//$'\n'/ }"
-		if [[ -n "$_L_pp_out" ]] && L_hash fmt; then
-			_L_pp_out=$(fmt -w "$_L_pp_width" <<<"$_L_pp_out")
-		fi
+	if [[ -n "$_L_pp_prefix" ]]; then
+		_L_pp_out="${_L_pp_out//$'\n'/$'\n'$_L_pp_prefix}"
+		_L_pp_out="$_L_pp_prefix$_L_pp_out"
 	fi
 	if [[ -z "$_L_pp_var" ]]; then
 		printf "%s\n" "$_L_pp_out"
@@ -6200,12 +6226,22 @@ _L_unittest_main_longest_string_to() {
 	printf -v "$1" "%d" "$j"
 }
 
-_L_unittest_init_COLUMNS() {
-	if ! L_var_is_set COLUMNS; then
-		shopt -s checkwinsize
-		( : )
-		shopt -u checkwinsize
-		COLUMNS=${COLUMNS:-80}
+# The function temporarily enables checkwinsize and runs a subshell (:) to force the parent
+# process to reap it, triggering get_tty_state() and updating COLUMNS via ioctl.
+# @see https://askubuntu.com/a/1199418
+_L_init_COLUMNS() {
+	if [[ -z "${COLUMNS+y}" ]]; then
+		if shopt -p checkwinsize >/dev/null; then
+			( (( 1 )) )
+		else
+			shopt -s checkwinsize
+			( (( 1 )) )
+			shopt -u checkwinsize
+		fi
+		if [[ -z "${COLUMNS+y}" ]]; then
+			# This means terminal is not attached.
+			COLUMNS=80
+		fi
 	fi
 }
 
@@ -6477,7 +6513,7 @@ L_unittest_main() {
 		_L_u_nproc=1
 	fi
 	# Print welcoming message.
-	_L_unittest_init_COLUMNS
+	_L_init_COLUMNS
 	if (( !_L_u_quiet )); then
 		_L_unittest_main_print_line "=" "test session start" >&2
 		_L_u_msg+="; $((${_L_u_tests[*]+${#_L_u_tests[*]}}+0)) tests"
@@ -7534,6 +7570,7 @@ _L_argparse_parser_get_full_program_name() {
 # @option -h Print this help and return 0.
 # @arg $@ error message to print
 L_argparse_print_help() {
+	_L_init_COLUMNS
 	local IFS=' '
 	{
 		# parse arguments
