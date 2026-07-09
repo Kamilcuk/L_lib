@@ -39,6 +39,7 @@ USR2_CNT=0
 . "$dir"/test_fuzzy.sh
 . "$dir"/test_L_uv.sh
 . "$dir"/test_L_func.sh
+. "$dir"/test_unquote.sh
 
 _L_test_color() {
 	{
@@ -2413,53 +2414,6 @@ _L_test_all_childs() {
 _L_test_unset() {
 	# every unset must be followed by -f or -v
 	! grep 'unset -[^fv]' "$L_LIB_SCRIPT"
-}
-
-# shellcheck disable=SC1012
-_L_test_string_unquote() {
-	local IFS=' '
-	L_unittest_cmd -r ".*No closing quotation '" ! L_string_unquote "'"
-	L_unittest_cmd -r ".*No escaped character" ! L_string_unquote "\\"
-	L_unittest_cmd -r ".*No closing quotation \"" ! L_string_unquote '"'
-	L_unittest_cmd -r ".*No closing quotation \"" ! L_string_unquote '" \"'
-	L_unittest_cmd -r ".*No closing quotation [$]'" ! L_string_unquote "$'"
-	L_unittest_cmd -r ".*No closing quotation [$]'" ! L_string_unquote \$\'\ \\\'
-	L_unittest_cmd -o 'a' L_string_unquote '\a'
-	L_unittest_cmd -o 'abc' L_string_unquote $'a\\\nb\\\nc'
-	L_unittest_cmd -o $'a\nb' L_string_unquote $'a\nb'
-	L_unittest_cmd -o $'a\nb' L_string_unquote -c $'#e\na #c\nb #d'
-	L_unittest_cmd -o $'\na' L_string_unquote "'' a"
-	L_unittest_cmd -o $'\na' L_string_unquote "\"\" a"
-	L_unittest_cmd -o $'\na' L_string_unquote "\$'' a"
-	L_unittest_cmd -o $'\n\n\n\na' L_string_unquote "'' \"\" '' \$'' a"
-	L_unittest_cmd -o $'a\nb\nc\nd' L_string_unquote "'''a''' \"\"'b'\"\" \$''\$'c'\$''''\"\" d"
-	L_unittest_cmd -o $'\'\\\\\na' L_string_unquote "$(cat <<'EOF'
-	$'\'\\\\' a
-EOF
-	)"
-	L_unittest_cmd -o $'\'a \nb\'' L_string_unquote "$(cat <<'EOF'
-	$'\'''a ' b$'\''
-EOF
-	)"
-	local tmp
-	L_string_unquote -v tmp -c "$(cat <<'EOF'
-	$'\n\'' '' $'\\\\' $'\\\'' "\\\\" "\\\'"
-EOF
-	)"
-	L_unittest_arreq tmp $'\n\'' "" "\\\\" "\\'" "\\\\" "\\\\'"
-	L_string_unquote -v tmp -c "$(cat <<'EOF'
-	"" "\"" "\$\`\\\\\\\\\a"
-EOF
-	)"
-	L_unittest_arreq tmp "" "\"" "\$\`\\\\\\\\\\a"
-	L_unittest_cmd -o \$a\$\'c\ \'b%\ \\\ \\n^ L_string_unquote \$\'\$\'a\$\"\'c\ \'b%\ \\\ \"\\\\n\'^\'
-	L_unittest_cmd -o 'c""^'$'\n''\a\naa$   ' L_string_unquote '$'\''c""'\''^ '\''\a'\'''\'''\''\\n'\''aa$   '\'''
-	L_unittest_cmd -o \\\'\\\'\\\'\\\'\'\\\'\'\\$'\n'a L_string_unquote " $'\\\\\\'\\\\\\'\\\\\\''$'\\\\\\'\\'\\\\\\'\\'\\\\''' a"
-	L_unittest_cmd -o $'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'$'\n'a \
-		L_string_unquote "$(cat <<'EOF'
-	$'\a\b\c\d\e\E\f\n\r\t\v\\\'\"\?\002\x03\u0004\U5\c1'  a
-EOF
-	)"
 }
 
 _L_test_self_contained() {
