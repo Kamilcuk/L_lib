@@ -28,6 +28,7 @@ When calling `L_argskeywords`, you can supply options before the parameter speci
 *   `-M`: Use the `L_map` interface instead of native associative arrays. Highly recommended for compatibility with older Bash versions (like 3.2).
 *   `-E`: Exit the script immediately on parameter validation errors rather than returning a non-zero exit status.
 *   `-e <prefix>`: Prefix validation error messages with this custom string.
+*   `-c <command>`: Dynamically declare all arguments as local variables, bind them, and evaluate this command. This removes the need for manual `local` declarations in the calling function, as variables are kept strictly local and cleaned up automatically when `L_argskeywords` exits.
 
 ---
 
@@ -105,6 +106,21 @@ configure_server() {
 
 # Usage:
 configure_server host="127.0.0.1" debug=true
+```
+
+##### Example E: Zero-Boilerplate Arguments using Subcall (`-c`)
+Rather than manually declaring `local start stop step`, use the `-c` option to automatically localize all arguments and evaluate the function's body inside `L_argskeywords`:
+```bash
+range() {
+    L_argskeywords -c '
+        for (( i = start; i < stop; i += step )); do
+            echo "$i"
+        done
+    ' start stop step=1 -- "$@" || return "$L_EX_USAGE"
+}
+
+# Usage:
+range 1 5 step=2 # prints: 1, 3
 ```
 
 ---
