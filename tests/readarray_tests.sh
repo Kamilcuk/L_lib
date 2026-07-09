@@ -1,5 +1,5 @@
 _L_test_readarray_1() {
-	local L_HAS_MAPFILE=0
+	local L_HAS_MAPFILE=0 L_HAS_MAPFILE_D=0
 	_L_test_readarray_2
 }
 
@@ -107,7 +107,7 @@ _L_test_readarray_tail_0() {
 }
 
 _L_test_readarray_tail_1() {
-	local L_HAS_MAPFILE=0
+	local L_HAS_MAPFILE=0 L_HAS_MAPFILE_D=0
 	_L_test_readarray_tail_0
 }
 
@@ -145,9 +145,63 @@ _L_test_readarray_extra_0() {
 		L_readarray -t -d ":" -s 1 -n 2 arr < <(printf "a:b:c:d:e:")
 		L_unittest_arreq arr b c
 	}
+	# Test space delimiter with -t
+	{
+		local arr=()
+		L_readarray -t -d " " arr < <(printf "foo bar baz ")
+		L_unittest_arreq arr foo bar baz
+	}
+	# Test space delimiter without -t
+	{
+		local arr=()
+		L_readarray -d " " arr < <(printf "foo bar baz ")
+		L_unittest_arreq arr "foo " "bar " "baz "
+	}
+	# Test tab delimiter with -t
+	{
+		local arr=()
+		L_readarray -t -d $'\t' arr < <(printf "foo\tbar\tbaz\t")
+		L_unittest_arreq arr foo bar baz
+	}
+	# Test tab delimiter without -t
+	{
+		local arr=()
+		L_readarray -d $'\t' arr < <(printf "foo\tbar\tbaz\t")
+		L_unittest_arreq arr "foo"$'\t' "bar"$'\t' "baz"$'\t'
+	}
+	# Test comma delimiter with -t
+	{
+		local arr=()
+		L_readarray -t -d "," arr < <(printf "foo,bar,baz,")
+		L_unittest_arreq arr foo bar baz
+	}
+	# Test comma delimiter without -t
+	{
+		local arr=()
+		L_readarray -d "," arr < <(printf "foo,bar,baz,")
+		L_unittest_arreq arr "foo," "bar," "baz,"
+	}
+	# Test dot delimiter with -t
+	{
+		local arr=()
+		L_readarray -t -d "." arr < <(printf "foo.bar.baz.")
+		L_unittest_arreq arr foo bar baz
+	}
+	# Test dot delimiter without -t
+	{
+		local arr=()
+		L_readarray -d "." arr < <(printf "foo.bar.baz.")
+		L_unittest_arreq arr "foo." "bar." "baz."
+	}
+	# Test invalid variable name
+	{
+		L_unittest_checkexit 1 L_readarray -t "invalid-name" < <(printf "hello")
+		L_unittest_checkexit 1 L_readarray -t -d "," "invalid-name" < <(printf "hello")
+		L_unittest_checkexit 1 L_readarray -t "foo bar" < <(printf "hello")
+	}
 }
 
 _L_test_readarray_extra_1() {
-	local L_HAS_MAPFILE=0
+	local L_HAS_MAPFILE=0 L_HAS_MAPFILE_D=0
 	_L_test_readarray_extra_0
 }
