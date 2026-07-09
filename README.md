@@ -133,7 +133,7 @@ Below is a selection of the library's features. The library contains much more.
     [`L_html_escape`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_html_escape)
     [`L_urlencode`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_urlencode)
 - Split string without remote execution and understand `$''` sequences
-    [`L_string_unquote`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_string_unquote)
+    [`L_unquote`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_unquote)
 - Template output
     [`L_percent_format`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_percent_format)
     [`L_fstring`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_fstring)

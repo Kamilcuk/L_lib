@@ -3565,143 +3565,124 @@ L_string_count_lines_vL_RET() {
 # @option -q Without -v, instead of printing one word per line, output words quoted with `printf %q`.
 # shellcheck disable=SC1003
 # @example
-#   $ L_string_unquote -v cmd "ls -l 'somefile; rm -rf ~'"
+#   $ L_unquote -v cmd "ls -l 'somefile; rm -rf ~'"
 #   $ declare -p cmd
 #   declare -a cmd=([0]="ls" [1]="-l" [2]="somefile; rm -rf ~")
-L_string_unquote() {
-	# local -;set -x
-	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_comments=0 _L_ansic1='$' _L_ansic2="[$]'|" _L_q=0
+L_unquote() {
+	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_maybehash='"' _L_maybedollar='$' _L_q=0
 	while getopts v:cAqh _L_i; do
 		case "$_L_i" in
 			v) _L_v=$OPTARG ;;
-			c) _L_comments=1 ;;
-			A) _L_ansic1="" _L_ansic2="" ;;
+			c) _L_maybehash="#" ;;
+			A) _L_maybedollar='"' ;;
 			q) _L_q=1 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	local _L_input="$*" _L_output=() _L_mode="" _L_new="" _L_W=$' \t\r\n' _L_started=0
-	while [[ -n "$_L_input" ]]; do
-		case "$_L_mode" in
-		"")
-			if ((_L_comments)) && [[ "$_L_input" =~ ^[$_L_W]*#[^$'\n']*(.*)$ ]]; then
-				_L_input=${BASH_REMATCH[1]}
-				continue
-			fi
-			if [[ "$_L_input" =~ ^([$_L_W]*)(([^${_L_ansic1}\'\"\\$_L_W]+)|\'([^\']*)\'|\\(.)|${_L_ansic2}[${_L_ansic1}\'\"\\])?(.*)$ ]]; then
-				#                   1         23                               4            5                                     6
-				# declare -p BASH_REMATCH
-				if [[ -n "${BASH_REMATCH[1]}" ]] && ((_L_started)); then
-					_L_output+=("$_L_new")
+	local _L_input="$*" _L_output=() _L_new="" _L_started=0 _L_ansi_accum="" _L_prefix="" _L_esc="" _L_stripped="" _L_tmp=""
+	while (( 1 )); do
+		case "$_L_input" in
+			# Accumulate non-whitespaces and non-special characters.
+			[!$_L_maybedollar$_L_maybehash$'\'\"\\\t\r\n ']*)
+				_L_started=1
+				_L_prefix=${_L_input%%[$_L_maybedollar$_L_maybehash$'\'\"\\\t\r\n ']*}
+				_L_new+="$_L_prefix"
+				_L_input="${_L_input:${#_L_prefix}}"
+				;;
+			# Strip leading whitespace.
+			[$'\t\r\n ']*)
+				_L_input=${_L_input#"${_L_input%%[!$'\t\r\n ']*}"}
+				if (( _L_started )); then # Flush accumulated token.
 					_L_started=0
+					_L_output+=("$_L_new")
 					_L_new=""
 				fi
-				_L_input=${BASH_REMATCH[6]}
-				if [[ -n "${BASH_REMATCH[3]}" ]]; then
-					_L_started=1
-					_L_new+=${BASH_REMATCH[3]}
-				elif [[ -n "${BASH_REMATCH[4]}" ]]; then
-					_L_started=1
-					_L_new+=${BASH_REMATCH[4]}
-				elif [[ -n "${BASH_REMATCH[5]}" ]]; then
-					# Escaped character. Newline is removed when escaped.
-					if [[ "${BASH_REMATCH[5]}" != $'\n' ]]; then
-						_L_started=1
-						_L_new+=${BASH_REMATCH[5]}
-					fi
-				else
-					case "${BASH_REMATCH[2]}" in
-						"''") _L_started=1 _L_new+="" ;;  # empty BASH_REMATCH[4]
-						"\$'") _L_mode="\$'" ;;  # ANSI-C quoting start
-						'$') _L_started=1 _L_new+='$' ;;  # Dollar, but not $'
-						"'")
-							if [[ "$_L_input" != *"'"* ]]; then
-								L_func_error "No closing quotation '"
-								return "$L_EX_USAGE"
-							fi
-							_L_input="'"$_L_input
+				;;
+			# Handle single quotes.
+			"'"*"'"*) _L_tmp="${_L_input:1}" _L_new+="${_L_tmp%%\'*}" _L_input="${_L_tmp#*\'}" _L_started=1 ;;
+			# Handle double quotes.
+			'"'*)
+				_L_input="${_L_input:1}"
+				while (( 1 )); do
+					case "$_L_input" in
+						[!\"\\]*)
+							_L_started=1
+							_L_prefix=${_L_input%%[\"\\]*}
+							_L_new+="$_L_prefix"
+							_L_input="${_L_input:${#_L_prefix}}"
+							continue
 							;;
-						'"') _L_mode='"' ;;  # quoting started
-						'\')
-							if [[ -z "$_L_input" ]]; then
-								L_func_error "No escaped character"
-								return "$L_EX_USAGE"
-							fi
-							_L_input='\'$_L_input
+						# With continue 2, we jump over "No closing quotation" below.
+						'"'*) _L_started=1 _L_input="${_L_input:1}"; continue 2 ;;
+						'\'$'\n'*) ;;  # Escaped newline is nothing.
+						'\'[\$\`\\\"]*) _L_new+="${_L_input:1:1}" ;;
+						'\'?*) _L_new+="\\${_L_input:1:1}" ;;
+						'\') L_func_error "No closing quotation \""; return "$L_EX_DATAERR" ;;
+						'') break ;;
+						*)
+							L_func_error "INTERNAL ERROR: unhandled special character in \": ${_L_input:0:1}"
+ 							return "$L_EX_SOFTWARE"
 							;;
-						'') ;;
-						*) L_func_usage_error "INTERNAL ERROR 1: ${BASH_REMATCH[2]}"; return "$L_EX_SOFTWARE"
 					esac
-				fi
-			else
-				L_func_error "INTERNAL ERROR 2: $_L_input"; return "$L_EX_SOFTWARE"
-			fi
-			;;
-		"\$'")
-			# Match ' prefixed by nothing or non-slash.
-			# After nothing or non-slash there may be an even number of slashes.
-			# Match greedy from the back.
-			# When non-slash matches single quote, it is in front an odd number of slashes.
-			# Otherwise it would have matched first.
-			if [[ "$_L_input" =~ ((^|[^\'\\]|\\\')(\\\\)*)\'(.*)$ ]]; then
-				#                  12               3         4
-				# declare -p BASH_REMATCH
-				_L_i="${_L_input::${#_L_input}-${#BASH_REMATCH[0]}+${#BASH_REMATCH[1]}}"
-				_L_input=${BASH_REMATCH[4]}
-				# I feel confident.
-				eval "printf -v _L_i %s \$'$_L_i'"
-				# printf -v _L_i "%b" "$_L_i"
-				# _L_i=${_L_i//\\\?/?}
-				# _L_i=${_L_i//\\\'/\'}
-				# _L_i=${_L_i//\\\"/\"}
-				_L_started=1
-				_L_new+=$_L_i
-				_L_mode=""
-			else
-				L_func_error "No closing quotation $_L_mode"
-				return "$L_EX_USAGE"
-			fi
-			;;
-		'"')
-			if [[ "$_L_input" =~ ^([^\"\\]*)(\\([\$\`\"\\$'\n'])|\\.|\")(.*)$ ]]; then
-				#                   1         2  3                        4
-				_L_new+=${BASH_REMATCH[1]}
-				_L_input=${BASH_REMATCH[4]}
-				_L_started=1
-				if [[ -n "${BASH_REMATCH[3]}" ]]; then
-					if [[ "${BASH_REMATCH[3]}" != $'\n' ]]; then
-						# Add escaped character inside double quotes
-						_L_new+=${BASH_REMATCH[3]}
-					fi
-				elif [[ "${BASH_REMATCH[2]}" == "\"" ]]; then
-					# Quoting ends.
-					_L_mode=""
-				else
-					_L_new+=${BASH_REMATCH[2]}
-				fi
-			else
-				L_func_error "No closing quotation $_L_mode"
-				return "$L_EX_DATAERR"
-			fi
-			;;
-		*) L_func_usage_error "INTERNAL ERROR #4 _L_mode=$_L_mode"; return "$L_EX_SOFTWARE"
+					_L_started=1 _L_input="${_L_input:2}"
+				done
+				L_func_error "No closing quotation \""; return "$L_EX_DATAERR"
+				;;
+			# Escaped newline is nothing.
+			'\'$'\n'*) _L_input="${_L_input:2}" ;;
+			# Escape character handling.
+			'\'?*) _L_started=1 _L_new+="${_L_input:1:1}" _L_input="${_L_input:2}" ;;
+			"$_L_maybedollar'"*)
+				# Handle ANSI-C quoting $' . Maybe dollar is maybe a dollar, maybe something that will never match here.
+				_L_input="${_L_input:2}"
+				while (( 1 )) ; do
+					case "$_L_input" in
+						[!\'\\]*)
+							_L_prefix=${_L_input%%[\'\\]*}
+							_L_ansi_accum+="$_L_prefix"
+							_L_input="${_L_input:${#_L_prefix}}"
+							continue
+							;;
+						"'"*)
+							_L_started=1
+							eval "_L_new+=\$'${_L_ansi_accum}'" || return
+							_L_ansi_accum=""
+							_L_input="${_L_input:1}"
+							continue 2
+							;;
+						'\'?*) _L_ansi_accum+="\\${_L_input:1:1}" _L_input="${_L_input:2}" ;;
+						'\') L_func_error "No closing quotation \$'"; return "$L_EX_DATAERR" ;;
+						'') break ;;
+						*)
+							L_func_error "INTERNAL ERROR: unhandled special character in \$': ${_L_input:0:1}"
+							return "$L_EX_SOFTWARE"
+							;;
+					esac
+				done
+				L_func_error "No closing quotation \$'"; return "$L_EX_DATAERR"
+				;;
+ 			# $[^'] is just $ preserved. In non-ANSI-C mode, this is handled above anyway.
+			"$_L_maybedollar"*) _L_started=1 _L_new+='$' _L_input="${_L_input:1}" ;;
+			'\') L_func_error "No escaped character"; return "$L_EX_DATAERR" ;;
+			"'"*) L_func_error "No closing quotation '"; return "$L_EX_DATAERR" ;;
+			# When comments are enabled, maybehash is a hash, otherwise it is something that will never match.
+			"$_L_maybehash"*$'\n'*) _L_input="${_L_input#*$'\n'}" ;;
+			# Hash till the end of string, just empty it.
+			"$_L_maybehash"*) _L_input="" ;;
+			'') break ;;
+			*) L_func_error "INTERNAL ERROR: unhandled special character: ${_L_input:0:1}"; return "$L_EX_SOFTWARE" ;;
 		esac
 	done
-	if [[ -n "$_L_mode" ]]; then
-		L_func_error "No closing quotation $_L_mode"
-		return "$L_EX_DATAERR"
-	fi
-	if ((_L_started)); then
+	if (( _L_started )); then
 		_L_output+=("$_L_new")
 	fi
-	#
 	if [[ -n "$_L_v" ]]; then
 		L_array_assign "$_L_v" ${_L_output+"${_L_output[@]}"}
-	elif ((${#_L_output[@]})); then
-		if ((_L_q)); then
-			if ((${#_L_output[@]}>1)); then
+	elif (( ${_L_output[@]+1}0 )); then
+		if (( _L_q )); then
+			if (( ${#_L_output[@]} > 1 )); then
 				printf "%q " "${_L_output[@]::${#_L_output[@]}-1}"
 			fi
 			printf "%q\n" "${_L_output[@]:${#_L_output[@]}-1}"
