@@ -4545,7 +4545,7 @@ L_pretty_print() {
 _L_argskeywords_assert() {
 	if ! "${@:2}"; then
 		L_error -s 2 "%s" "${_L_errorprefix:+$_L_errorprefix }$1"
-		if ((_L_errorexit)); then
+		if (( _L_errorexit )); then
 			exit "$L_EX_USAGE"
 		else
 			return "$L_EX_USAGE"
@@ -4558,7 +4558,7 @@ _L_argskeywords_assert() {
 # @see L_argskeywords
 _L_argskeywords_assign() {
 	if [[ -n "$_L_asa" ]]; then
-		if ((_L_use_map)); then
+		if (( _L_use_map )); then
 			L_map_set "$_L_asa" "$1" "$2"
 		else
 			L_asa_set "$_L_asa" "$1" "$2"
@@ -4577,6 +4577,7 @@ _L_argskeywords_assign() {
 # @option -M Use L_map instead of associative array, for @@kwargs and -A option. Usefull for older Bash.
 # @option -E Exit on error
 # @option -e <str> Prefix error messages with this prefix. Default: "${FUNCNAME[1]}:L_argskeywords:"
+# @option -c <str> Automatically local-declare all argument variables and evaluate this command.
 # @option -h Print this help and return 0.
 # @arg $@ Python arguments format specification
 # @arg $2 <str> --
@@ -4607,18 +4608,32 @@ _L_argskeywords_assign() {
 L_argskeywords() {
 	{
 		# parse arguments
-		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]:-}:${FUNCNAME[0]:-}:" _L_asa="" _L_use_map=0
-		while getopts A:MEe:h _L_i; do
+		local OPTIND OPTARG OPTERR _L_i _L_errorexit=0 _L_errorprefix="${FUNCNAME[1]:-}:${FUNCNAME[0]:-}:" _L_asa="" _L_use_map=0 _L_subcall="" _L_subcall_local=":"
+		while getopts A:MEe:c:h _L_i; do
 			case $_L_i in
-			A) _L_asa=$OPTARG ;;
-			M) _L_use_map=1 ;;
-			E) _L_errorexit=1 ;;
-			e) _L_errorprefix=$OPTARG ;;
-			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+				A) _L_asa=$OPTARG ;;
+				M) _L_use_map=1 ;;
+				E) _L_errorexit=1 ;;
+				e) _L_errorprefix=$OPTARG ;;
+				c) _L_subcall=$OPTARG ;;
+				h) L_func_help; return 0 ;;
+				*) L_func_usage_error; return "$L_EX_USAGE" ;;
 			esac
 		done
 		shift "$((OPTIND-1))"
+		if [[ -n "$_L_subcall" ]]; then
+			if [[ -n "$_L_asa" ]]; then
+				# If storing the output in a map, we need to local the map, not variables.
+				_L_subcall_local=":"
+				if (( _L_use_map )); then
+					local "$_L_asa"
+				else
+					local -A "$_L_asa"
+				fi
+			else
+				_L_subcall_local="local"
+			fi
+		fi
 	}
 	{
 		# parse arguments specification
@@ -4626,7 +4641,7 @@ L_argskeywords() {
 		# _L_positional_cnt - the number of positional allowed arguments
 		# _L_nonkeyword_cnt - the number of only-positional arguments
 		local _L_arguments=() _L_positional_cnt="" _L_nonkeyword_cnt="" _L_seen_star=0 _L_seen_slash=0 _L_excess_positional="" _L_excess_keyword="" _L_isset=() IFS=' '
-		while (($#)); do
+		while (( $# )); do
 			case "$1" in
 			--) break ;;
 			@) # <positional or keyword> * <keyword only>
@@ -4645,9 +4660,11 @@ L_argskeywords() {
 				_L_argskeywords_assert "${1#@@} is not a valid variable name" L_is_valid_variable_name "${1#@@}" || return "$L_EX_USAGE"
 				_L_argskeywords_assert "arguments cannot follow var-keyword argument: ${2:-}" test "${2:-}" == "--" || return "$L_EX_USAGE"
 				_L_excess_keyword="${1#@@}"
-				if ((_L_use_map)); then
+				if (( _L_use_map )); then
+					"$_L_subcall_local" "$_L_excess_keyword"
 					L_map_clear "$_L_excess_keyword"
 				else
+					"$_L_subcall_local" -A "$_L_excess_keyword" || return
 					_L_argskeywords_assert "$1 must be an associative array" L_var_is_associative "$_L_excess_keyword" || return "$L_EX_USAGE"
 					eval "$_L_excess_keyword=()"
 				fi
@@ -4663,6 +4680,8 @@ L_argskeywords() {
 			*=*)
 				_L_argskeywords_assert "${1##=*} is not a valid variable name" L_is_valid_variable_name "${1%%=*}" || return "$L_EX_USAGE"
 				_L_argskeywords_assert "duplicate argument ${1##=*}" L_not L_args_contain "${1%%=*}" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return "$L_EX_USAGE"
+				# local has to be called before assign, and assign is called here.
+				"$_L_subcall_local" "${1%%=*}"
 				_L_argskeywords_assign "${1%%=*}" "${1#*=}"
 				_L_isset[${#_L_arguments[@]}]=1
 				_L_arguments+=("${1%%=*}")
@@ -4678,7 +4697,10 @@ L_argskeywords() {
 		done
 		_L_argskeywords_assert '"--" separator argument is missing' test "${1:-}" = "--" || return "$L_EX_USAGE"
 		shift
+		# Set defaults.
 		: "${_L_positional_cnt:=${#_L_arguments[@]}}" "${_L_nonkeyword_cnt:=0}"
+		# If subcalling, set local on local variables.
+		"$_L_subcall_local" ${_L_arguments[@]+"${_L_arguments[@]}"} $_L_excess_positional
 	}
 	{
 		# local -; set -x
@@ -4742,6 +4764,7 @@ L_argskeywords() {
 			_L_argskeywords_assert "missing $keyword_cnt required keyword-only arguments: $keyword_str" test "$keyword_cnt" -eq 0 || return "$L_EX_USAGE"
 		fi
 	}
+	eval "$_L_subcall"
 }
 
 # @description Compare version numbers.
@@ -11969,7 +11992,7 @@ _L_xargs_stop_input_last_dispatch() {
 _L_xargs_input_split_L_RET() {
 	if "$_L_x_eof_check_cb"; then
 		if (( ${_L_x_split:-1} )); then
-			L_string_unquote -v L_RET "${L_RET[*]:+${L_RET[*]}}" || return 1
+			L_unquote -v L_RET "${L_RET[*]:+${L_RET[*]}}" || return 1
 			if (( ${#L_RET[@]} == 0 )); then
 				return 0
 			fi
@@ -12088,7 +12111,7 @@ _L_x_finally() {
 # @option -s <max-chars> Use at most max-chars characters per command line.
 # @option -m <task-max-time> If a task is running longer then specified time, it is killed.
 # @option -M <global-max-time> If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
-# @option -z Split Mode: Parse internal Records into multiple Atoms using L_string_unquote.
+# @option -z Split Mode: Parse internal Records into multiple Atoms using L_unquote.
 # @option -Z Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
 # @option -u <fd> Read the input stream from the specified file descriptor.
 # @option -I <replace-str> Replace occurrences of replace-str in the command. Sets -n 1.
