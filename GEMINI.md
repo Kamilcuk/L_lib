@@ -38,5 +38,5 @@
 - **Task Management:** ALWAYS create a todo list using `write_todos` before starting any multi-step task. Update it as you progress.
 - **Brevity:** Maintain telegraphic communication. Avoid filler, apologies, and wordy explanations. Max 30 words of prose per turn.
 - **Parallelism:** Maximize parallel tool calls to reduce turns.
-- **Verification:** Always verify changes by running relevant tests. Do not run full tests unless required to and prefer to run with `-k` filter (e.g. `./tests/test.sh -k <filter_pattern>`).
+- **Verification:** ALWAYS verify changes by running relevant tests. DO NOT run full tests. Exclusively run tests with `-k` filter (e.g. `./tests/test.sh -k <filter_pattern>`).
 - **Style Alignment:** Strictly adhere to the `L_`/`_L_` prefixing and `snake_case` naming conventions.
