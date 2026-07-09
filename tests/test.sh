@@ -588,6 +588,11 @@ _L_test_other() {
 		L_unittest_cmd -e 1 L_float_cmp 1 -gt 1
 		L_unittest_cmd -e 0 L_float_cmp 1 -ge 1
 		L_unittest_cmd -e 10 L_float_cmp 1 '<=>' 1
+		#
+		L_unittest_cmd -o "2.2" L_float "1.1 * 2"
+		local float_res
+		L_float -v float_res "1.1 * 2"
+		L_unittest_eq "$float_res" "2.2"
 	}
 	{
 		L_unittest_cmd -o 'echo echo' L_quote_setx 'echo' 'echo'

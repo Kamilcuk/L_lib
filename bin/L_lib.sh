@@ -3362,9 +3362,11 @@ L_float_cmp() {
 }
 
 # @description A simple wrapper script around awk to evaluate float expressions.
+# @option -v <var> Store the output in variable instead of printing it.
 # @arg $1 Expression to evaluate.
-L_float() {
-	awk "BEGIN{print ($1);exit}" <&-
+L_float() { L_handle_v_scalar "$@"; }
+L_float_vL_RET() {
+	L_RET=$(awk "BEGIN{print ($1);exit}" <&-)
 }
 
 # @description Print a string with percent format.
