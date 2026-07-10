@@ -2135,8 +2135,12 @@ _L_test_sections_ok() {
 }
 
 _L_test_readme_links_ok() {
-	local links=() link section symbol file
-	L_readarray -t links < <(grep -oE 'https://kamilcuk.github.io/L_lib/[^)]+' README.md)
+	local links=() link section symbol file data
+	data=$(grep -oE 'https://kamilcuk.github.io/L_lib/[^)]+' README.md) || return
+	L_readarray -t links <<<"$data"
+	if (( !${links[@]+1}0 )); then
+		L_fatal "No links in readme"
+	fi
 	L_sort -u links
 	for link in "${links[@]}"; do
 		if L_regex_match "$link" "section/([^/#]+)"; then
