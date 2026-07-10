@@ -4666,7 +4666,7 @@ L_argskeywords() {
 					"$_L_subcall_local" "$_L_excess_keyword"
 					L_map_clear "$_L_excess_keyword"
 				else
-					"$_L_subcall_local" -A "$_L_excess_keyword" || return
+					"$_L_subcall_local" -A "$_L_excess_keyword=()" || return
 					_L_argskeywords_assert "$1 must be an associative array" L_var_is_associative "$_L_excess_keyword" || return "$L_EX_USAGE"
 					eval "$_L_excess_keyword=()"
 				fi
