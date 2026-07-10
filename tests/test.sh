@@ -2171,6 +2171,13 @@ skip_assoc() {
 
 newbash=(bash -c ". $L_LIB_SCRIPT && \"\$@\"" newbash)
 VARIABLES_BEFORE=$(get_all_variables)
+if L_hash ,nice; then
+	,nice -p $$
+else
+	renice -n 39 $$ 2>/dev/null || :
+	ionice -c 3 -p $$ 2>/dev/null || :
+	chrt -i -p 0 $$ 2>/dev/null || :
+fi
 
 if L_is_main; then
 	L_trap_err_enable
