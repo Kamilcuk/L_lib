@@ -19,7 +19,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: release
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -28,7 +29,7 @@ jobs:
         id: create_release
         with:
           config_path: '.github/bump.yml'
-          github_token: ${{ secrets.RELEASE_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           bump: ${{ github.event.inputs.bump }}
           dry_run: ${{ github.event.inputs.dry_run }}
           draft: ${{ github.event.inputs.draft }}
@@ -37,7 +38,7 @@ jobs:
           commit_email: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
       - uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ fromJSON(steps.create_release.outputs.release).upload_url }}
           asset_path: bin/L_lib.sh
