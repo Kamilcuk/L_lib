@@ -16,8 +16,7 @@ COPY tests/ /tests/
 COPY docs/ /docs/
 COPY mkdocs.yml .
 COPY README.md .
-ARG ARGS=""
-RUN /tests/citest.sh ${ARGS}
+ENTRYPOINT ["/tests/citest.sh"]
 
 FROM koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh /

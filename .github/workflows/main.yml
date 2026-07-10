@@ -43,11 +43,16 @@ jobs:
       - uses: docker/setup-buildx-action@v4
       - uses: docker/build-push-action@v7
         with:
+          context: .
           build-args: VERSION=${{ matrix.version }}
           target: test
+          load: true
+          tags: l_lib_test:${{ matrix.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           pull: ${{matrix.version == 'latest'}}
+      - name: Run tests inside Docker container
+        run: docker run --rm -e CI -e GITHUB_RUN_ID l_lib_test:${{ matrix.version }}
 
   test_ubuntu:
     runs-on: ubuntu-latest
