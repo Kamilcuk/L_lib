@@ -2952,7 +2952,7 @@ L_is_valid_variable_name() { [[ $1 == [a-zA-Z_]* && $1 != *[^a-zA-Z0-9_]* ]]; }
 #	L_is_valid_variable_or_array_element 'arr[elem]'  # true
 #	L_is_valid_variable_or_array_element 'arr[elem'   # false
 L_is_valid_variable_or_array_element() {
-	[[ ${1%%\[*} == [a-zA-Z_]* && ${1%%\[*} != *[^a-zA-Z0-9_]* && ( $1 != *\[* || ( $1 == *\] && ${1#*\[} != \] ) ) ]]  # ]]
+	[[ ${1%%\[*} == [a-zA-Z_]* && ${1%%\[*} != *[^a-zA-Z0-9_]* && ( $1 != *"["* || ( $1 == *"]" && ${1#*\[} != "]" ) ) ]]  # ]]
 }
 
 # @description Is the string a valid Bash opinionated function name?
@@ -3589,7 +3589,7 @@ L_unquote() {
 			# Accumulate non-whitespaces and non-special characters.
 			[!$_L_maybedollar$_L_maybehash$'\'\"\\\t\r\n ']*)
 				_L_started=1
-				_L_prefix=${_L_input%%[$_L_maybedollar$_L_maybehash$'\'\"\\\t\r\n ']*}
+				_L_prefix=${_L_input%%["$_L_maybedollar$_L_maybehash"$'\'\"\\\t\r\n ']*}
 				_L_new+="$_L_prefix"
 				_L_input="${_L_input:${#_L_prefix}}"
 				;;
@@ -4702,6 +4702,8 @@ L_argskeywords() {
 		# Set defaults.
 		: "${_L_positional_cnt:=${#_L_arguments[@]}}" "${_L_nonkeyword_cnt:=0}"
 		# If subcalling, set local on local variables.
+		# At this point, _L_excess_positional is either a valid variable name or empty, so unquotting is ok.
+		# shellcheck disable=SC2086
 		"$_L_subcall_local" ${_L_arguments[@]+"${_L_arguments[@]}"} $_L_excess_positional
 	}
 	{

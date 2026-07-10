@@ -14,7 +14,8 @@ COPY bin/L_lib.sh /bin/L_lib.sh
 RUN /bin/L_lib.sh --help
 COPY tests/ /tests/
 COPY docs/ /docs/
-COPY mkdocs.yml mkdocs.yml
+COPY mkdocs.yml .
+COPY README.md .
 ARG ARGS=""
 RUN /tests/citest.sh ${ARGS}
 
