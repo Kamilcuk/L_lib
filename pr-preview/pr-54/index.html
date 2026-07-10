@@ -1510,81 +1510,88 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
     <a href="https://kamilcuk.github.io/L_lib/section/argparse/"><code>L_argparse</code></a></li>
 <li>Logging library with levels and configurable output and filtering
     <a href="https://kamilcuk.github.io/L_lib/section/log/"><code>L_log_configure</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_info"><code>L_info</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_logrun"><code>L_logrun</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_run"><code>L_run</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_info"><code>L_info</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_logrun"><code>L_logrun</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_run"><code>L_run</code></a></li>
 <li>Pretty function stack printing usually on ERR trap
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_print_traceback"><code>L_print_traceback</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/trap/#L_lib.sh--L_print_traceback"><code>L_print_traceback</code></a></li>
 <li>Execute an action on EXIT, any terminating signal or RETURN trap of any function
     <a href="https://kamilcuk.github.io/L_lib/section/finally/"><code>L_finally</code></a></li>
 <li>Create temporary directory and <code>cd</code> to it for the duration of a function with auto removal after return
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_with_cd"><code>L_with_cd</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_with_cd_tmpdir"><code>L_with_cd_tmpdir</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_cd"><code>L_with_cd</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_cd_tmpdir"><code>L_with_cd_tmpdir</code></a></li>
 <li>Create unidirectional connected two file descriptors
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_pipe"><code>L_pipe</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_pipe"><code>L_pipe</code></a></li>
 <li>Create and manage multiple processes with separate file descriptors for standard input and standard output
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_proc_popen"><code>L_proc_popen</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_proc_communicate"><code>L_proc_communicate</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_proc_kill"><code>L_proc_kill</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_popen"><code>L_proc_popen</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_communicate"><code>L_proc_communicate</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_kill"><code>L_proc_kill</code></a></li>
 <li>Temporary enable or disable shell features <code>set -x</code> for the duration of a command
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_setx"><code>L_setx</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_unsetx"><code>L_unsetx</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_extglob"><code>L_extglob</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_setx"><code>L_setx</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_unsetx"><code>L_unsetx</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_shopt_extglob"><code>L_shopt_extglob</code></a></li>
 <li>Easily sort a Bash arrays containing any characters
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_sort"><code>L_sort</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/sort/#L_lib.sh--L_sort"><code>L_sort</code></a></li>
+<li>Print formatted data tables to the terminal
+    <a href="https://kamilcuk.github.io/L_lib/section/utilities/#L_lib.sh--L_table"><code>L_table</code></a></li>
+<li>Pretty print variables, arrays, and associative arrays
+    <a href="https://kamilcuk.github.io/L_lib/section/utilities/#L_lib.sh--L_pretty_print"><code>L_pretty_print</code></a></li>
 <li>Failure handling utilities
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_assert"><code>L_assert</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_die"><code>L_die</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_check"><code>L_check</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_panic"><code>L_panic</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_assert"><code>L_assert</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_die"><code>L_die</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_check"><code>L_check</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic"><code>L_panic</code></a></li>
 <li>Variables holding color codes depending on terminal support
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_color_detect"><code>L_color_detect</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--$L_RED"><code>$L_RED</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--$L_BLUE"><code>$L_BLUE</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--L_color_detect"><code>L_color_detect</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--$L_RED"><code>$L_RED</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--$L_BLUE"><code>$L_BLUE</code></a></li>
 <li>Checking Bash features and version
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_BASH_VERSION"><code>$L_BASH_VERSION</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_BASH4_0"><code>$L_HAS_BASH4_0</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_COMPGEN_V"><code>$L_HAS_COMPGEN_V</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_HAS_WAIT_N"><code>$L_HAS_WAIT_N</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_BASH_VERSION"><code>$L_BASH_VERSION</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_BASH4_0"><code>$L_HAS_BASH4_0</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_COMPGEN_V"><code>$L_HAS_COMPGEN_V</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_WAIT_N"><code>$L_HAS_WAIT_N</code></a></li>
 <li>Waiting on multiple PIDs with a timeout ignoring signals and collecting all exit codes
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_wait"><code>L_wait</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_wait"><code>L_wait</code></a></li>
+<li>Run parallel background tasks with controlled concurrency, timeout handling, and progress feedback
+    <a href="https://kamilcuk.github.io/L_lib/section/xargs/#L_lib.sh--L_xargs"><code>L_xargs</code></a></li>
 <li>Standard exit codes based on <code>sysexits.h</code>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_OK"><code>$L_EX_OK</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_USAGE"><code>$L_EX_USAGE</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_EX_TIMEOUT"><code>$L_EX_TIMEOUT</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_OK"><code>$L_EX_OK</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_USAGE"><code>$L_EX_USAGE</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_TIMEOUT"><code>$L_EX_TIMEOUT</code></a></li>
 <li>Simplify storing exit status of a command into a variable
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into"><code>L_exit_into</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_exit_into_10"><code>L_exit_into_10</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/exit_to/#L_lib.sh--L_exit_into"><code>L_exit_into</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/exit_to/#L_lib.sh--L_exit_into_10"><code>L_exit_into_10</code></a></li>
 <li>Help with path operations, with <code>PATH</code> or <code>PYTHONPATH</code> manipulation
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_stem"><code>L_path_stem</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_dir_is_empty"><code>L_dir_is_empty</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_append"><code>L_path_append</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_path_relative_to"><code>L_path_relative_to</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_stem"><code>L_path_stem</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_dir_is_empty"><code>L_dir_is_empty</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_append"><code>L_path_append</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_relative_to"><code>L_path_relative_to</code></a></li>
 <li>String utilities
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strip"><code>L_strip</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strupper"><code>L_strupper</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_strstr"><code>L_strstr</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_html_escape"><code>L_html_escape</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_urlencode"><code>L_urlencode</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strip"><code>L_strip</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strupper"><code>L_strupper</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strstr"><code>L_strstr</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_html_escape"><code>L_html_escape</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_urlencode"><code>L_urlencode</code></a></li>
 <li>Split string without remote execution and understand <code>$''</code> sequences
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_str_split"><code>L_str_split</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_unquote"><code>L_unquote</code></a></li>
 <li>Template output
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_percent_format"><code>L_percent_format</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_fstring"><code>L_fstring</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_percent_format"><code>L_percent_format</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_fstring"><code>L_fstring</code></a></li>
 <li>JSON escape
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_json_escape"><code>L_json_escape</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/json/#L_lib.sh--L_json_escape"><code>L_json_escape</code></a></li>
 <li>Cache commands execution with TTL in memory or file
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_cache"><code>L_cache</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_cache_decorate"><code>L_cache_decorate</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/cache/#L_lib.sh--L_cache"><code>L_cache</code></a></li>
 <li>Easy writing function utilities by supporting <code>-v &lt;var&gt;</code> option or extracting comment before function
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_handle_v_scalar"><code>L_handle_v_scalar</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_func_help"><code>L_func_help</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_func_usage_error"><code>L_func_usage_error</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_decorate"><code>L_decorate</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_handle_v_scalar"><code>L_handle_v_scalar</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_func_help"><code>L_func_help</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_func_usage_error"><code>L_func_usage_error</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_decorate"><code>L_decorate</code></a></li>
+<li>High-level loops with automatic trackers for index, first-element, and last-element flags
+    <a href="https://kamilcuk.github.io/L_lib/section/foreach/#L_lib.sh--L_foreach"><code>L_foreach</code></a></li>
 <li>All with support for any Bash versions from 3.2 to latest with portability functions
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_readarray"><code>L_readarray</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_epochrealtime_usec"><code>L_epochrealtime_usec</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/all/#L_lib.sh--L_compgen"><code>L_compgen -V</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/array/#L_lib.sh--L_readarray"><code>L_readarray</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/time/#L_lib.sh--L_epochrealtime_usec"><code>L_epochrealtime_usec</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_compgen"><code>L_compgen -V</code></a></li>
 </ul>
 <h1 id="talk-to-me">Talk to me<a class="headerlink" href="#talk-to-me" title="Permanent link">&para;</a></h1>
 <p>Kindly feel free to have conversations and ask questions on <a href="https://github.com/Kamilcuk/L_lib/discussions">GitHub discussion</a>.</p>
