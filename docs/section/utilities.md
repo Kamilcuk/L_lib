@@ -4,7 +4,7 @@ The `L_utilities` library provides self-contained helper functions for formattin
 
 ### Python-style Positional & Keyword Arguments (`L_argskeywords`)
 
-`L_argskeywords` makes writing complex functions with optional or keyword arguments simple and safe.
+`L_argskeywords` provides Python-style parameter binding for functions with optional or keyword arguments.
 
 #### Syntax & Special Symbols
 
@@ -18,14 +18,14 @@ The `L_utilities` library provides self-contained helper functions for formattin
 
 #### Associative Arrays & Compatibility Note
 
-For all Bash versions supporting associative arrays (Bash 4.0+), you **must** declare keyword-capture arrays and configuration destination arrays using `local -A`. On older Bash versions (such as Bash 3.2) that do not support native associative arrays, `L_argskeywords` seamlessly supports the `L_map` utility instead (enabled with the `-M` flag).
+For all Bash versions supporting associative arrays (Bash 4.0+), you **must** declare keyword-capture arrays and configuration destination arrays using `local -A`. On older Bash versions (such as Bash 3.2) that do not support native associative arrays, `L_argskeywords` supports the `L_map` utility instead (enabled with the `-M` flag).
 
 #### Special Command-Line Flags
 
 When calling `L_argskeywords`, you can supply options before the parameter specification:
 
 *   `-A <assoc_array>`: Store all parsed parameters as keys in the specified associative array instead of creating separate local variables.
-*   `-M`: Use the `L_map` interface instead of native associative arrays. Highly recommended for compatibility with older Bash versions (like 3.2).
+*   `-M`: Use the `L_map` interface instead of native associative arrays to support older Bash versions (like 3.2).
 *   `-E`: Exit the script immediately on parameter validation errors rather than returning a non-zero exit status.
 *   `-e <prefix>`: Prefix validation error messages with this custom string.
 *   `-c <command>`: Dynamically declare all arguments as local variables, bind them, and evaluate this command. This removes the need for manual `local` declarations in the calling function, as variables are kept strictly local and cleaned up automatically when `L_argskeywords` exits.
@@ -109,14 +109,15 @@ configure_server host="127.0.0.1" debug=true
 ```
 
 ##### Example E: Zero-Boilerplate Arguments using Subcall (`-c`)
-Rather than manually declaring `local start stop step`, use the `-c` option to automatically localize all arguments and evaluate the function's body inside `L_argskeywords`:
+Rather than manually declaring `local start stop step`, use the `-c` option to automatically localize all arguments and run the logic from a separate function inside `L_argskeywords`. Because the wrapper does nothing but call `L_argskeywords`, no `|| return` is needed — `L_argskeywords` already returns `L_EX_USAGE` on failure:
 ```bash
+_range() {
+    for (( i = start; i < stop; i += step )); do
+        echo "$i"
+    done
+}
 range() {
-    L_argskeywords -c '
-        for (( i = start; i < stop; i += step )); do
-            echo "$i"
-        done
-    ' start stop step=1 -- "$@" || return "$L_EX_USAGE"
+    L_argskeywords -c _range start stop step=1 -- "$@"
 }
 
 # Usage:
@@ -179,10 +180,10 @@ done
 
 ### Print Structured Tables (`L_table`)
 
-`L_table` is a lightweight, pure-Bash replacement for the standard `column -t` command. It formats space/tab-separated strings into perfectly aligned tables.
+`L_table` is a pure-Bash replacement for the standard `column -t` command. It formats space/tab-separated strings into aligned tables.
 
 ```bash
-# Print a simple table with right-aligned first and second columns
+# Print a table with right-aligned first and second columns
 L_table -R 1-2 "ID NAME SCORE" "1 Alice 95" "2 Bob 100"
 ```
 
