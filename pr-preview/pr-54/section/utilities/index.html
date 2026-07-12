@@ -2186,7 +2186,7 @@
 <h1 id="l_utilities-helper-utilities">L_utilities: Helper Utilities<a class="headerlink" href="#l_utilities-helper-utilities" title="Permanent link">&para;</a></h1>
 <p>The <code>L_utilities</code> library provides self-contained helper functions for formatting, parsing arguments, comparing versions, and parsing numeric ranges.</p>
 <h3 id="python-style-positional-keyword-arguments-l_argskeywords">Python-style Positional &amp; Keyword Arguments (<code>L_argskeywords</code>)<a class="headerlink" href="#python-style-positional-keyword-arguments-l_argskeywords" title="Permanent link">&para;</a></h3>
-<p><code>L_argskeywords</code> makes writing complex functions with optional or keyword arguments simple and safe.</p>
+<p><code>L_argskeywords</code> provides Python-style parameter binding for functions with optional or keyword arguments.</p>
 <h4 id="syntax-special-symbols">Syntax &amp; Special Symbols<a class="headerlink" href="#syntax-special-symbols" title="Permanent link">&para;</a></h4>
 <p><code>L_argskeywords</code> supports standard Python-like parameter binding using the following syntax and symbols:</p>
 <ul>
@@ -2197,12 +2197,12 @@
 <li><strong><code>@@kwargs</code> (Arbitrary keyword capture):</strong> Collects excess keyword arguments into an associative array named <code>kwargs</code> (similar to Python's <code>**kwargs</code>).</li>
 </ul>
 <h4 id="associative-arrays-compatibility-note">Associative Arrays &amp; Compatibility Note<a class="headerlink" href="#associative-arrays-compatibility-note" title="Permanent link">&para;</a></h4>
-<p>For all Bash versions supporting associative arrays (Bash 4.0+), you <strong>must</strong> declare keyword-capture arrays and configuration destination arrays using <code>local -A</code>. On older Bash versions (such as Bash 3.2) that do not support native associative arrays, <code>L_argskeywords</code> seamlessly supports the <code>L_map</code> utility instead (enabled with the <code>-M</code> flag).</p>
+<p>For all Bash versions supporting associative arrays (Bash 4.0+), you <strong>must</strong> declare keyword-capture arrays and configuration destination arrays using <code>local -A</code>. On older Bash versions (such as Bash 3.2) that do not support native associative arrays, <code>L_argskeywords</code> supports the <code>L_map</code> utility instead (enabled with the <code>-M</code> flag).</p>
 <h4 id="special-command-line-flags">Special Command-Line Flags<a class="headerlink" href="#special-command-line-flags" title="Permanent link">&para;</a></h4>
 <p>When calling <code>L_argskeywords</code>, you can supply options before the parameter specification:</p>
 <ul>
 <li><code>-A &lt;assoc_array&gt;</code>: Store all parsed parameters as keys in the specified associative array instead of creating separate local variables.</li>
-<li><code>-M</code>: Use the <code>L_map</code> interface instead of native associative arrays. Highly recommended for compatibility with older Bash versions (like 3.2).</li>
+<li><code>-M</code>: Use the <code>L_map</code> interface instead of native associative arrays to support older Bash versions (like 3.2).</li>
 <li><code>-E</code>: Exit the script immediately on parameter validation errors rather than returning a non-zero exit status.</li>
 <li><code>-e &lt;prefix&gt;</code>: Prefix validation error messages with this custom string.</li>
 <li><code>-c &lt;command&gt;</code>: Dynamically declare all arguments as local variables, bind them, and evaluate this command. This removes the need for manual <code>local</code> declarations in the calling function, as variables are kept strictly local and cleaned up automatically when <code>L_argskeywords</code> exits.</li>
@@ -2276,13 +2276,14 @@ log_event<span class="w"> </span><span class="s2">&quot;System updated&quot;</sp
 configure_server<span class="w"> </span><span class="nv">host</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="w"> </span><span class="nv">debug</span><span class="o">=</span><span class="nb">true</span>
 </code></pre></div></p>
 <h5 id="example-e-zero-boilerplate-arguments-using-subcall-c">Example E: Zero-Boilerplate Arguments using Subcall (<code>-c</code>)<a class="headerlink" href="#example-e-zero-boilerplate-arguments-using-subcall-c" title="Permanent link">&para;</a></h5>
-<p>Rather than manually declaring <code>local start stop step</code>, use the <code>-c</code> option to automatically localize all arguments and evaluate the function's body inside <code>L_argskeywords</code>:
-<div class="highlight"><pre><span></span><code>range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
-<span class="w">    </span>L_argskeywords<span class="w"> </span>-c<span class="w"> </span><span class="s1">&#39;</span>
-<span class="s1">        for (( i = start; i &lt; stop; i += step )); do</span>
-<span class="s1">            echo &quot;$i&quot;</span>
-<span class="s1">        done</span>
-<span class="s1">    &#39;</span><span class="w"> </span>start<span class="w"> </span>stop<span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+<p>Rather than manually declaring <code>local start stop step</code>, use the <code>-c</code> option to automatically localize all arguments and run the logic from a separate function inside <code>L_argskeywords</code>. Because the wrapper does nothing but call <code>L_argskeywords</code>, no <code>|| return</code> is needed — <code>L_argskeywords</code> already returns <code>L_EX_USAGE</code> on failure:
+<div class="highlight"><pre><span></span><code>_range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>start<span class="p">;</span><span class="w"> </span>i<span class="w"> </span>&lt;<span class="w"> </span>stop<span class="p">;</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>step<span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$i</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="o">}</span>
+range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>L_argskeywords<span class="w"> </span>-c<span class="w"> </span>_range<span class="w"> </span>start<span class="w"> </span>stop<span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
 <span class="o">}</span>
 
 <span class="c1"># Usage:</span>
@@ -2375,8 +2376,8 @@ L_parse_range_list<span class="w"> </span>-v<span class="w"> </span>selected_fie
 <span class="k">done</span>
 </code></pre></div>
 <h3 id="print-structured-tables-l_table">Print Structured Tables (<code>L_table</code>)<a class="headerlink" href="#print-structured-tables-l_table" title="Permanent link">&para;</a></h3>
-<p><code>L_table</code> is a lightweight, pure-Bash replacement for the standard <code>column -t</code> command. It formats space/tab-separated strings into perfectly aligned tables.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Print a simple table with right-aligned first and second columns</span>
+<p><code>L_table</code> is a pure-Bash replacement for the standard <code>column -t</code> command. It formats space/tab-separated strings into aligned tables.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Print a table with right-aligned first and second columns</span>
 L_table<span class="w"> </span>-R<span class="w"> </span><span class="m">1</span>-2<span class="w"> </span><span class="s2">&quot;ID NAME SCORE&quot;</span><span class="w"> </span><span class="s2">&quot;1 Alice 95&quot;</span><span class="w"> </span><span class="s2">&quot;2 Bob 100&quot;</span>
 </code></pre></div>
 <h3 id="debug-variables-l_pretty_print">Debug Variables (<code>L_pretty_print</code>)<a class="headerlink" href="#debug-variables-l_pretty_print" title="Permanent link">&para;</a></h3>
@@ -2768,7 +2769,7 @@ int 10 base=7
 
 <h3 id="L_lib.sh--L_version_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_version_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve/bin/L_lib.sh#L4780"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve/bin/L_lib.sh#L4779"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2841,7 +2842,7 @@ See:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2026 23:15:59 UTC">July 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 12, 2026 07:41:31 UTC">July 12, 2026</span>
   </span>
 
     
