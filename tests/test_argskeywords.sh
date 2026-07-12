@@ -10,9 +10,9 @@ _L_test_argskeywords() {
 		L_unittest_cmd -c L_argskeywords a b=4 -- 3
 		L_unittest_eq "$a $b" "3 4"
 		L_unittest_cmd -r "missing 1 required positional arguments: a" ! L_argskeywords a b=2 --
-		L_unittest_cmd -r "parameter without a default follows parameter with a default" ! L_argskeywords b=2 c --
+		L_unittest_cmd -r "missing 1 required positional arguments: c" ! L_argskeywords b=2 c --
 		L_unittest_cmd -r "separator argument is missing" ! L_argskeywords a b
-		L_unittest_cmd -r "parameter without a default follows parameter with a default" ! L_argskeywords a=1 b --
+		L_unittest_cmd -r "missing 1 required positional arguments: b" ! L_argskeywords a=1 b --
 	}
 	{
 		local either="" keyword_only=""

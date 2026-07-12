@@ -4689,7 +4689,6 @@ L_argskeywords() {
 				_L_arguments+=("${1%%=*}")
 				;;
 			*)
-				_L_argskeywords_assert "parameter without a default follows parameter with a default: $1" test "${#_L_isset[@]}" -eq 0 || return "$L_EX_USAGE"
 				_L_argskeywords_assert "$1 is not a valid variable name" L_is_valid_variable_name "$1" || return "$L_EX_USAGE"
 				_L_argskeywords_assert "duplicate argument $1" L_not L_args_contain "$1" ${_L_arguments[@]:+"${_L_arguments[@]}"} || return "$L_EX_USAGE"
 				_L_arguments+=("$1")
