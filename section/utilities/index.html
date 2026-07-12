@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#L_lib.sh--utilities" class="md-skip">
+        <a href="#l_utilities-helper-utilities" class="md-skip">
           Skip to content
         </a>
       
@@ -583,6 +583,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    time
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cache
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../json/" class="md-nav__link">
         
   
@@ -785,6 +841,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -827,12 +885,247 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#python-style-positional-keyword-arguments-l_argskeywords" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python-style Positional &amp; Keyword Arguments (L_argskeywords)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python-style Positional &amp; Keyword Arguments (L_argskeywords)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#syntax-special-symbols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax &amp; Special Symbols
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#associative-arrays-compatibility-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Associative Arrays &amp; Compatibility Note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#special-command-line-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Special Command-Line Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-a-basic-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example A: Basic Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-b-positional-only-and-keyword-only-and" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example B: Positional-Only and Keyword-Only (/ and @)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-c-capturing-excess-arguments-args-and-kwargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example C: Capturing Excess Arguments (@args and @@kwargs)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-d-parsing-into-an-associative-array-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example D: Parsing into an Associative Array (-A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-e-zero-boilerplate-arguments-using-subcall-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example E: Zero-Boilerplate Arguments using Subcall (-c)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-comparison-l_version_cmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version Comparison (L_version_cmp)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Version Comparison (L_version_cmp)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-operators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Operators
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segment-accuracy-option" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment Accuracy Option
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parse-cut-range-lists-l_parse_range_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parse Cut Range Lists (L_parse_range_list)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#print-structured-tables-l_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Print Structured Tables (L_table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debug-variables-l_pretty_print" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debug Variables (L_pretty_print)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compact-mode-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compact Mode (Default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiline-mode-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiline Mode (-C)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-documentation-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated documentation from source:
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#L_lib.sh--utilities" class="md-nav__link">
@@ -1484,12 +1777,247 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#python-style-positional-keyword-arguments-l_argskeywords" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Python-style Positional &amp; Keyword Arguments (L_argskeywords)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Python-style Positional &amp; Keyword Arguments (L_argskeywords)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#syntax-special-symbols" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax &amp; Special Symbols
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#associative-arrays-compatibility-note" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Associative Arrays &amp; Compatibility Note
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#special-command-line-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Special Command-Line Flags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#detailed-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Detailed Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Detailed Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#example-a-basic-defaults" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example A: Basic Defaults
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-b-positional-only-and-keyword-only-and" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example B: Positional-Only and Keyword-Only (/ and @)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-c-capturing-excess-arguments-args-and-kwargs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example C: Capturing Excess Arguments (@args and @@kwargs)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-d-parsing-into-an-associative-array-a" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example D: Parsing into an Associative Array (-A)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-e-zero-boilerplate-arguments-using-subcall-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example E: Zero-Boilerplate Arguments using Subcall (-c)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#version-comparison-l_version_cmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Version Comparison (L_version_cmp)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Version Comparison (L_version_cmp)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#supported-operators" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Operators
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#segment-accuracy-option" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Segment Accuracy Option
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parse-cut-range-lists-l_parse_range_list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parse Cut Range Lists (L_parse_range_list)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#print-structured-tables-l_table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Print Structured Tables (L_table)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#debug-variables-l_pretty_print" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debug Variables (L_pretty_print)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compact-mode-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compact Mode (Default)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#multiline-mode-c" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multiline Mode (-C)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#generated-documentation-from-source" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated documentation from source:
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#L_lib.sh--utilities" class="md-nav__link">
@@ -1655,11 +2183,228 @@
   
 
 
-  <h1>utilities</h1>
+<h1 id="l_utilities-helper-utilities">L_utilities: Helper Utilities<a class="headerlink" href="#l_utilities-helper-utilities" title="Permanent link">&para;</a></h1>
+<p>The <code>L_utilities</code> library provides self-contained helper functions for formatting, parsing arguments, comparing versions, and parsing numeric ranges.</p>
+<h3 id="python-style-positional-keyword-arguments-l_argskeywords">Python-style Positional &amp; Keyword Arguments (<code>L_argskeywords</code>)<a class="headerlink" href="#python-style-positional-keyword-arguments-l_argskeywords" title="Permanent link">&para;</a></h3>
+<p><code>L_argskeywords</code> provides Python-style parameter binding for functions with optional or keyword arguments.</p>
+<h4 id="syntax-special-symbols">Syntax &amp; Special Symbols<a class="headerlink" href="#syntax-special-symbols" title="Permanent link">&para;</a></h4>
+<p><code>L_argskeywords</code> supports standard Python-like parameter binding using the following syntax and symbols:</p>
+<ul>
+<li><strong><code>var=default</code> (Optional arguments):</strong> Assigns a default value to the variable if not specified by the caller.</li>
+<li><strong><code>/</code> (Positional-only separator):</strong> All arguments before <code>/</code> <strong>must</strong> be passed positionally. Arguments after <code>/</code> can be passed positionally or as keywords.</li>
+<li><strong><code>@</code> (Keyword-only separator):</strong> All arguments after <code>@</code> <strong>must</strong> be passed as keyword arguments (e.g., <code>key=value</code>).</li>
+<li><strong><code>@args</code> (Arbitrary positional capture):</strong> Collects excess positional arguments into a regular Bash array named <code>args</code> (similar to Python's <code>*args</code>).</li>
+<li><strong><code>@@kwargs</code> (Arbitrary keyword capture):</strong> Collects excess keyword arguments into an associative array named <code>kwargs</code> (similar to Python's <code>**kwargs</code>).</li>
+</ul>
+<h4 id="associative-arrays-compatibility-note">Associative Arrays &amp; Compatibility Note<a class="headerlink" href="#associative-arrays-compatibility-note" title="Permanent link">&para;</a></h4>
+<p>For all Bash versions supporting associative arrays (Bash 4.0+), you <strong>must</strong> declare keyword-capture arrays and configuration destination arrays using <code>local -A</code>. On older Bash versions (such as Bash 3.2) that do not support native associative arrays, <code>L_argskeywords</code> supports the <code>L_map</code> utility instead (enabled with the <code>-M</code> flag).</p>
+<h4 id="special-command-line-flags">Special Command-Line Flags<a class="headerlink" href="#special-command-line-flags" title="Permanent link">&para;</a></h4>
+<p>When calling <code>L_argskeywords</code>, you can supply options before the parameter specification:</p>
+<ul>
+<li><code>-A &lt;assoc_array&gt;</code>: Store all parsed parameters as keys in the specified associative array instead of creating separate local variables.</li>
+<li><code>-M</code>: Use the <code>L_map</code> interface instead of native associative arrays to support older Bash versions (like 3.2).</li>
+<li><code>-E</code>: Exit the script immediately on parameter validation errors rather than returning a non-zero exit status.</li>
+<li><code>-e &lt;prefix&gt;</code>: Prefix validation error messages with this custom string.</li>
+<li><code>-c &lt;command&gt;</code>: Dynamically declare all arguments as local variables, bind them, and evaluate this command. This removes the need for manual <code>local</code> declarations in the calling function, as variables are kept strictly local and cleaned up automatically when <code>L_argskeywords</code> exits.</li>
+</ul>
+<hr />
+<h4 id="detailed-examples">Detailed Examples<a class="headerlink" href="#detailed-examples" title="Permanent link">&para;</a></h4>
+<h5 id="example-a-basic-defaults">Example A: Basic Defaults<a class="headerlink" href="#example-a-basic-defaults" title="Permanent link">&para;</a></h5>
+<p>A function with positional and optional keyword arguments:
+<div class="highlight"><pre><span></span><code>range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>start<span class="w"> </span>stop<span class="w"> </span>step
+<span class="w">    </span>L_argskeywords<span class="w"> </span>start<span class="w"> </span>stop<span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
 
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>start<span class="p">;</span><span class="w"> </span>i<span class="w"> </span>&lt;<span class="w"> </span>stop<span class="p">;</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>step<span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$i</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="o">}</span>
+
+<span class="c1"># Usage:</span>
+range<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">5</span><span class="w">       </span><span class="c1"># prints: 1, 2, 3, 4</span>
+range<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="c1"># prints: 1, 3</span>
+</code></pre></div></p>
+<h5 id="example-b-positional-only-and-keyword-only-and">Example B: Positional-Only and Keyword-Only (<code>/</code> and <code>@</code>)<a class="headerlink" href="#example-b-positional-only-and-keyword-only-and" title="Permanent link">&para;</a></h5>
+<p>Force callers to pass the main argument positionally, and the configuration as keywords.
+Note: Pass only valid variable names (not special dividers <code>/</code> or <code>@</code>) to the <code>local</code> declaration.
+<div class="highlight"><pre><span></span><code>request<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="c1"># Declare only valid variable names as local</span>
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>url<span class="w"> </span>method<span class="w"> </span>headers<span class="w"> </span>timeout
+<span class="w">    </span>L_argskeywords<span class="w"> </span>url<span class="w"> </span>/<span class="w"> </span><span class="nv">method</span><span class="o">=</span><span class="s1">&#39;GET&#39;</span><span class="w"> </span><span class="nv">headers</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="w"> </span>@<span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">30</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Sending </span><span class="nv">$method</span><span class="s2"> to </span><span class="nv">$url</span><span class="s2"> (timeout: </span><span class="nv">$timeout</span><span class="s2">)...&quot;</span>
+<span class="o">}</span>
+
+<span class="c1"># Usage:</span>
+request<span class="w"> </span><span class="s2">&quot;https://example.com&quot;</span><span class="w"> </span><span class="nv">method</span><span class="o">=</span><span class="s2">&quot;POST&quot;</span><span class="w"> </span><span class="nv">timeout</span><span class="o">=</span><span class="m">10</span><span class="w"> </span><span class="c1"># OK</span>
+request<span class="w"> </span><span class="nv">url</span><span class="o">=</span><span class="s2">&quot;https://example.com&quot;</span><span class="w">                      </span><span class="c1"># Error: url is positional-only</span>
+request<span class="w"> </span><span class="s2">&quot;https://example.com&quot;</span><span class="w"> </span><span class="s2">&quot;GET&quot;</span><span class="w"> </span><span class="s2">&quot;&quot;</span><span class="w"> </span><span class="m">30</span><span class="w">              </span><span class="c1"># Error: takes 3 positional arguments but more were given: 30</span>
+</code></pre></div></p>
+<h5 id="example-c-capturing-excess-arguments-args-and-kwargs">Example C: Capturing Excess Arguments (<code>@args</code> and <code>@@kwargs</code>)<a class="headerlink" href="#example-c-capturing-excess-arguments-args-and-kwargs" title="Permanent link">&para;</a></h5>
+<p>Collect any additional arguments passed to the function. Associative arrays <strong>must</strong> be declared using <code>local -A</code> where supported.
+<div class="highlight"><pre><span></span><code>log_event<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="c1"># Declare only valid variable names as local</span>
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>message<span class="w"> </span>extra_args
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span>extra_kwargs<span class="w"> </span><span class="c1"># Required on Bash 4.0+</span>
+<span class="w">    </span>L_argskeywords<span class="w"> </span>message<span class="w"> </span>@extra_args<span class="w"> </span>@@extra_kwargs<span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Log: </span><span class="nv">$message</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="si">${#</span><span class="nv">extra_args</span><span class="p">[@]</span><span class="si">}</span><span class="w"> </span>&gt;<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Extra positional arguments: </span><span class="si">${</span><span class="nv">extra_args</span><span class="p">[*]</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="si">${#</span><span class="nv">extra_kwargs</span><span class="p">[@]</span><span class="si">}</span><span class="w"> </span>&gt;<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Extra keyword parameters:&quot;</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span>key<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="p">!extra_kwargs[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">            </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;  </span><span class="nv">$key</span><span class="s2"> = </span><span class="si">${</span><span class="nv">extra_kwargs</span><span class="p">[</span><span class="nv">$key</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+<span class="w">        </span><span class="k">done</span>
+<span class="w">    </span><span class="k">fi</span>
+<span class="o">}</span>
+
+<span class="c1"># Usage:</span>
+log_event<span class="w"> </span><span class="s2">&quot;System updated&quot;</span><span class="w"> </span><span class="s2">&quot;rebooted&quot;</span><span class="w"> </span><span class="s2">&quot;silently&quot;</span><span class="w"> </span><span class="nv">level</span><span class="o">=</span><span class="s2">&quot;info&quot;</span><span class="w"> </span><span class="nv">user</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span>
+</code></pre></div></p>
+<h5 id="example-d-parsing-into-an-associative-array-a">Example D: Parsing into an Associative Array (<code>-A</code>)<a class="headerlink" href="#example-d-parsing-into-an-associative-array-a" title="Permanent link">&para;</a></h5>
+<p>Rather than declaring many local variables, parse all arguments directly into a configuration associative array. The destination array <strong>must</strong> be declared using <code>local -A</code>.
+<div class="highlight"><pre><span></span><code>configure_server<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span>cfg<span class="w"> </span><span class="c1"># Required on Bash 4.0+</span>
+<span class="w">    </span>L_argskeywords<span class="w"> </span>-A<span class="w"> </span>cfg<span class="w"> </span><span class="nv">host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="w"> </span><span class="nv">port</span><span class="o">=</span><span class="m">8080</span><span class="w"> </span><span class="nv">debug</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_EX_USAGE</span><span class="s2">&quot;</span>
+
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Starting server on </span><span class="si">${</span><span class="nv">cfg</span><span class="p">[host]</span><span class="si">}</span><span class="s2">:</span><span class="si">${</span><span class="nv">cfg</span><span class="p">[port]</span><span class="si">}</span><span class="s2"> (Debug: </span><span class="si">${</span><span class="nv">cfg</span><span class="p">[debug]</span><span class="si">}</span><span class="s2">)&quot;</span>
+<span class="o">}</span>
+
+<span class="c1"># Usage:</span>
+configure_server<span class="w"> </span><span class="nv">host</span><span class="o">=</span><span class="s2">&quot;127.0.0.1&quot;</span><span class="w"> </span><span class="nv">debug</span><span class="o">=</span><span class="nb">true</span>
+</code></pre></div></p>
+<h5 id="example-e-zero-boilerplate-arguments-using-subcall-c">Example E: Zero-Boilerplate Arguments using Subcall (<code>-c</code>)<a class="headerlink" href="#example-e-zero-boilerplate-arguments-using-subcall-c" title="Permanent link">&para;</a></h5>
+<p>Rather than manually declaring <code>local start stop step</code>, use the <code>-c</code> option to automatically localize all arguments and run the logic from a separate function inside <code>L_argskeywords</code>. Because the wrapper does nothing but call <code>L_argskeywords</code>, no <code>|| return</code> is needed — <code>L_argskeywords</code> already returns <code>L_EX_USAGE</code> on failure:
+<div class="highlight"><pre><span></span><code>_range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>start<span class="p">;</span><span class="w"> </span>i<span class="w"> </span>&lt;<span class="w"> </span>stop<span class="p">;</span><span class="w"> </span><span class="nv">i</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>step<span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$i</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="k">done</span>
+<span class="o">}</span>
+range<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<span class="w">    </span>L_argskeywords<span class="w"> </span>-c<span class="w"> </span>_range<span class="w"> </span>start<span class="w"> </span>stop<span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">1</span><span class="w"> </span>--<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+<span class="o">}</span>
+
+<span class="c1"># Usage:</span>
+range<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">5</span><span class="w"> </span><span class="nv">step</span><span class="o">=</span><span class="m">2</span><span class="w"> </span><span class="c1"># prints: 1, 3</span>
+</code></pre></div></p>
+<hr />
+<h3 id="version-comparison-l_version_cmp">Version Comparison (<code>L_version_cmp</code>)<a class="headerlink" href="#version-comparison-l_version_cmp" title="Permanent link">&para;</a></h3>
+<p><code>L_version_cmp</code> compares version strings using standard comparison operators, fully aligning with PEP-0440 rules.</p>
+<h4 id="supported-operators">Supported Operators<a class="headerlink" href="#supported-operators" title="Permanent link">&para;</a></h4>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Operator</th>
+<th style="text-align: left;">Symbolic Alias</th>
+<th style="text-align: left;">Meaning</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>-lt</code></td>
+<td style="text-align: left;"><code>&lt;</code></td>
+<td style="text-align: left;">Less Than</td>
+<td style="text-align: left;">True if the first version is older than the second.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-le</code></td>
+<td style="text-align: left;"><code>&lt;=</code></td>
+<td style="text-align: left;">Less Than or Equal</td>
+<td style="text-align: left;">True if the first version is older than or equal to the second.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-eq</code></td>
+<td style="text-align: left;"><code>==</code></td>
+<td style="text-align: left;">Equal</td>
+<td style="text-align: left;">Strict string equality check on version segments.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-ne</code></td>
+<td style="text-align: left;"><code>!=</code></td>
+<td style="text-align: left;">Not Equal</td>
+<td style="text-align: left;">Strict string inequality check on version segments.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-gt</code></td>
+<td style="text-align: left;"><code>&gt;</code></td>
+<td style="text-align: left;">Greater Than</td>
+<td style="text-align: left;">True if the first version is newer than the second.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-ge</code></td>
+<td style="text-align: left;"><code>&gt;=</code></td>
+<td style="text-align: left;">Greater Than or Equal</td>
+<td style="text-align: left;">True if the first version is newer than or equal to the second.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>~=</code></td>
+<td style="text-align: left;"></td>
+<td style="text-align: left;">Compatible Release</td>
+<td style="text-align: left;">Compatible with a version range (per PEP-0440 rules).</td>
+</tr>
+</tbody>
+</table>
+<h4 id="segment-accuracy-option">Segment Accuracy Option<a class="headerlink" href="#segment-accuracy-option" title="Permanent link">&para;</a></h4>
+<p>An optional fourth argument <code>accuracy</code> specifies the maximum number of segments (dot-separated numbers) to compare. The default is <code>3</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compare versions with standard operators (-lt, -le, -eq, -ne, -gt, -ge)</span>
+<span class="k">if</span><span class="w"> </span>L_version_cmp<span class="w"> </span><span class="s2">&quot;1.2.3&quot;</span><span class="w"> </span><span class="s2">&quot;-gt&quot;</span><span class="w"> </span><span class="s2">&quot;1.2.0&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Version is greater&quot;</span>
+<span class="k">fi</span>
+
+<span class="c1"># Compare with symbolic operators or ~= compatibility operator</span>
+<span class="k">if</span><span class="w"> </span>L_version_cmp<span class="w"> </span><span class="s2">&quot;1.5.0&quot;</span><span class="w"> </span><span class="s2">&quot;~=&quot;</span><span class="w"> </span><span class="s2">&quot;1.5&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Version is compatible&quot;</span>
+<span class="k">fi</span>
+
+<span class="c1"># Compare up to a maximum segments accuracy of 2 (ignores minor segments)</span>
+<span class="k">if</span><span class="w"> </span>L_version_cmp<span class="w"> </span><span class="s2">&quot;1.2.9&quot;</span><span class="w"> </span><span class="s2">&quot;==&quot;</span><span class="w"> </span><span class="s2">&quot;1.2.0&quot;</span><span class="w"> </span><span class="m">2</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Major and minor versions are identical (1.2)&quot;</span>
+<span class="k">fi</span>
+</code></pre></div>
+<h3 id="parse-cut-range-lists-l_parse_range_list">Parse Cut Range Lists (<code>L_parse_range_list</code>)<a class="headerlink" href="#parse-cut-range-lists-l_parse_range_list" title="Permanent link">&para;</a></h3>
+<p><code>L_parse_range_list</code> expands standard cut-like range sequences (e.g. <code>1-3,5</code>) into a dense array of indexes.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Expand a range list</span>
+<span class="nb">local</span><span class="w"> </span>-a<span class="w"> </span>selected_fields
+L_parse_range_list<span class="w"> </span>-v<span class="w"> </span>selected_fields<span class="w"> </span><span class="m">10</span><span class="w"> </span><span class="s2">&quot;1-3,5,8-&quot;</span>
+
+<span class="c1"># &#39;selected_fields&#39; now contains indices: 1, 2, 3, 5, 8, 9, 10</span>
+<span class="k">for</span><span class="w"> </span>field<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">selected_fields</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Processing field </span><span class="nv">$field</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+</code></pre></div>
+<h3 id="print-structured-tables-l_table">Print Structured Tables (<code>L_table</code>)<a class="headerlink" href="#print-structured-tables-l_table" title="Permanent link">&para;</a></h3>
+<p><code>L_table</code> is a pure-Bash replacement for the standard <code>column -t</code> command. It formats space/tab-separated strings into aligned tables.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Print a table with right-aligned first and second columns</span>
+L_table<span class="w"> </span>-R<span class="w"> </span><span class="m">1</span>-2<span class="w"> </span><span class="s2">&quot;ID NAME SCORE&quot;</span><span class="w"> </span><span class="s2">&quot;1 Alice 95&quot;</span><span class="w"> </span><span class="s2">&quot;2 Bob 100&quot;</span>
+</code></pre></div>
+<h3 id="debug-variables-l_pretty_print">Debug Variables (<code>L_pretty_print</code>)<a class="headerlink" href="#debug-variables-l_pretty_print" title="Permanent link">&para;</a></h3>
+<p><code>L_pretty_print</code> formats variables, sparse arrays, and associative arrays for debugging.</p>
+<h4 id="compact-mode-default">Compact Mode (Default)<a class="headerlink" href="#compact-mode-default" title="Permanent link">&para;</a></h4>
+<p>By default, arrays are printed as a single compact line:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span><span class="nv">config</span><span class="o">=([</span>host<span class="o">]=</span><span class="s2">&quot;localhost&quot;</span><span class="w"> </span><span class="o">[</span>port<span class="o">]=</span><span class="s2">&quot;8080&quot;</span><span class="o">)</span>
+L_pretty_print<span class="w"> </span>config
+<span class="c1"># Prints:</span>
+<span class="c1"># config=([host]=localhost [port]=8080)</span>
+</code></pre></div></p>
+<h4 id="multiline-mode-c">Multiline Mode (<code>-C</code>)<a class="headerlink" href="#multiline-mode-c" title="Permanent link">&para;</a></h4>
+<p>Using the non-compact <code>-C</code> option forces associative and sparse arrays to be pretty printed on separate lines:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span><span class="nv">config</span><span class="o">=([</span>host<span class="o">]=</span><span class="s2">&quot;localhost&quot;</span><span class="w"> </span><span class="o">[</span>port<span class="o">]=</span><span class="s2">&quot;8080&quot;</span><span class="w"> </span><span class="o">[</span>debug<span class="o">]=</span><span class="s2">&quot;true&quot;</span><span class="o">)</span>
+L_pretty_print<span class="w"> </span>-C<span class="w"> </span>config
+<span class="c1"># Prints:</span>
+<span class="c1"># config=(</span>
+<span class="c1">#   [debug]=true</span>
+<span class="c1">#   [host]=localhost</span>
+<span class="c1">#   [port]=8080</span>
+<span class="c1"># )</span>
+</code></pre></div></p>
+<hr />
+<h2 id="generated-documentation-from-source">Generated documentation from source:<a class="headerlink" href="#generated-documentation-from-source" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--utilities">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     utilities
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4093"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4311"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1689,7 +2434,7 @@
 
 <h3 id="L_lib.sh--L_table">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_table
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4109"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4327"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1764,7 +2509,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_parse_range_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_parse_range_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4184"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4402"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1836,7 +2581,7 @@ Option:
 
 <h3 id="L_lib.sh--L_parse_range_list_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_parse_range_list_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4185"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4403"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1863,7 +2608,7 @@ Option:
 
 <h3 id="L_lib.sh--L_pretty_print">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_pretty_print
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4219"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4460"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1923,7 +2668,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_argskeywords">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argskeywords
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4364"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4609"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1979,6 +2724,9 @@ int 10 base=7
 </li><li>                <strong><code>-e &lt;str&gt;</code></strong>
     Prefix error messages with this prefix. Default: "${FUNCNAME[1]}:L_argskeywords:"
 
+</li><li>                <strong><code>-c &lt;str&gt;</code></strong>
+    Automatically local-declare all argument variables and evaluate this command.
+
 </li><li>                <strong><code>-h</code></strong>
     Print this help and return 0.
 
@@ -2021,7 +2769,7 @@ int 10 base=7
 
 <h3 id="L_lib.sh--L_version_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_version_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4511"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4779"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2094,7 +2842,7 @@ See:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 25, 2026 13:32:13 UTC">June 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 12, 2026 07:41:31 UTC">July 12, 2026</span>
   </span>
 
     

@@ -12,13 +12,13 @@
         <meta name="author" content="Kamil Cukrowski">
       
       
-        <link rel="canonical" href="https://kamilcuk.github.io/L_lib/section/unittest/">
+        <link rel="canonical" href="https://kamilcuk.github.io/L_lib/section/time/">
       
       
-        <link rel="prev" href="../with/">
+        <link rel="prev" href="../stdlib/">
       
       
-        <link rel="next" href="../map/">
+        <link rel="next" href="../cache/">
       
       
         
@@ -29,7 +29,7 @@
     
     
       
-        <title>unittest - L_lib</title>
+        <title>time - L_lib</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#l_unittest" class="md-skip">
+        <a href="#time-utilities" class="md-skip">
           Skip to content
         </a>
       
@@ -120,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              unittest
+              time
             
           </span>
         </div>
@@ -580,10 +580,37 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../time/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    time
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -599,6 +626,346 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#usage-guide" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#measuring-command-execution-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measuring Command Execution Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#parsing-and-converting-durations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing and Converting Durations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#date-formatting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Date Formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#microsecond-epoch-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Microsecond Epoch Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeouts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> time
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="time">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_date
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_date_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_date_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_epochrealtime_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_epochrealtime_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_epochrealtime_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_epochrealtime_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_sec_to_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sec_to_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_sec_to_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sec_to_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_sec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_sec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_usec_to_sec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_sec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_init_into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_init_into
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_init_usec_into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_init_usec_into
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_is_expired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_is_expired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1000,37 +1367,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    unittest
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../unittest/" class="md-nav__link">
         
   
   
@@ -1046,225 +1386,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#standalone-usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Standalone Usage
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#using-the-test-runner-l_unittest_main" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Using the Test Runner (L_unittest_main)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Using the Test Runner (L_unittest_main)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#writing-and-running-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Writing and Running Tests
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#L_lib.sh--unittest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> unittest
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="unittest">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_skip" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_skip
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_main" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_main
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_checkexit" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_checkexit
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_success" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_success
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_failure" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_failure
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_failure_capture" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_failure_capture
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_cmd" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_cmd
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_vareq" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_vareq
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_eq" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_eq
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_arreq" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_arreq
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_ne" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_ne
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_regex" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_regex
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_contains" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_contains
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1670,33 +1791,66 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#standalone-usage" class="md-nav__link">
+  <a href="#usage-guide" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Standalone Usage
+        Usage Guide
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Guide">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#measuring-command-execution-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Measuring Command Execution Time
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#using-the-test-runner-l_unittest_main" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#parsing-and-converting-durations" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Using the Test Runner (L_unittest_main)
+        Parsing and Converting Durations
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Using the Test Runner (L_unittest_main)">
-      <ul class="md-nav__list">
+</li>
         
           <li class="md-nav__item">
-  <a href="#writing-and-running-tests" class="md-nav__link">
+  <a href="#date-formatting" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Writing and Running Tests
+        Date Formatting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#microsecond-epoch-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Microsecond Epoch Time
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeouts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeouts
       
     </span>
   </a>
@@ -1709,22 +1863,33 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#L_lib.sh--unittest" class="md-nav__link">
+  <a href="#api-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> unittest
+        API Reference
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="unittest">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> time
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="time">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_skip" class="md-nav__link">
+  <a href="#L_lib.sh--L_time" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_skip
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_time
       
     </span>
   </a>
@@ -1732,10 +1897,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_main" class="md-nav__link">
+  <a href="#L_lib.sh--L_duration_to_usec" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_main
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec
       
     </span>
   </a>
@@ -1743,10 +1908,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_checkexit" class="md-nav__link">
+  <a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_checkexit
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_duration_to_usec_vL_RET
       
     </span>
   </a>
@@ -1754,10 +1919,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_success" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_duration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_success
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration
       
     </span>
   </a>
@@ -1765,10 +1930,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_failure" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_failure
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_duration_vL_RET
       
     </span>
   </a>
@@ -1776,10 +1941,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_failure_capture" class="md-nav__link">
+  <a href="#L_lib.sh--L_date" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_failure_capture
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_date
       
     </span>
   </a>
@@ -1787,10 +1952,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_cmd" class="md-nav__link">
+  <a href="#L_lib.sh--L_date_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_cmd
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_date_vL_RET
       
     </span>
   </a>
@@ -1798,10 +1963,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_vareq" class="md-nav__link">
+  <a href="#L_lib.sh--L_epochrealtime_usec" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_vareq
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_epochrealtime_usec
       
     </span>
   </a>
@@ -1809,10 +1974,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_eq" class="md-nav__link">
+  <a href="#L_lib.sh--L_epochrealtime_usec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_eq
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_epochrealtime_usec_vL_RET
       
     </span>
   </a>
@@ -1820,10 +1985,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_arreq" class="md-nav__link">
+  <a href="#L_lib.sh--L_sec_to_usec" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_arreq
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sec_to_usec
       
     </span>
   </a>
@@ -1831,10 +1996,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_ne" class="md-nav__link">
+  <a href="#L_lib.sh--L_sec_to_usec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_ne
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_sec_to_usec_vL_RET
       
     </span>
   </a>
@@ -1842,10 +2007,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_regex" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_sec" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_regex
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_sec
       
     </span>
   </a>
@@ -1853,10 +2018,87 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_unittest_contains" class="md-nav__link">
+  <a href="#L_lib.sh--L_usec_to_sec_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_unittest_contains
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_usec_to_sec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_init_into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_init_into
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_init_usec_into" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_init_usec_into
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_is_expired" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_is_expired
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_usec" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_usec
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_usec_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_usec_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_timeout_left_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_timeout_left_vL_RET
       
     </span>
   </a>
@@ -1933,7 +2175,7 @@
 
 
   
-    <a href="https://github.com/kamilcuk/L_lib/edit/main/docs/section/unittest.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/kamilcuk/L_lib/edit/main/docs/section/time.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1942,79 +2184,118 @@
     
       
     
-    <a href="https://github.com/kamilcuk/L_lib/raw/main/docs/section/unittest.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/kamilcuk/L_lib/raw/main/docs/section/time.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
   
 
 
-<h1 id="l_unittest">L_unittest<a class="headerlink" href="#l_unittest" title="Permanent link">&para;</a></h1>
-<p>The <code>L_lib.sh</code> framework includes a built-in, standalone unit testing facility. It is designed to be lightweight, fast, and easy to integrate into any Bash project.</p>
-<h2 id="standalone-usage">Standalone Usage<a class="headerlink" href="#standalone-usage" title="Permanent link">&para;</a></h2>
-<p>The core testing functions (like <code>L_unittest_eq</code>, <code>L_unittest_cmd</code>, <code>L_unittest_checkexit</code>) are entirely standalone. They do not require a test runner or any special environment.</p>
-<p>If an assertion fails, these functions will print an error message to standard error and return a non-zero exit code. If the <code>L_unittest_exit_on_error</code> variable is set to a non-zero value, they will call <code>exit</code> immediately.</p>
-<div class="highlight"><pre><span></span><code>.<span class="w"> </span>L_lib.sh<span class="w"> </span>-s
-
-<span class="c1"># A simple standalone test</span>
-<span class="nv">my_var</span><span class="o">=</span><span class="s2">&quot;hello&quot;</span>
-L_unittest_eq<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$my_var</span><span class="s2">&quot;</span><span class="w"> </span><span class="s2">&quot;hello&quot;</span>
-
-<span class="c1"># A standalone test of a command</span>
-L_unittest_cmd<span class="w"> </span>-e<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;world&quot;</span>
+<h1 id="time-utilities">Time Utilities<a class="headerlink" href="#time-utilities" title="Permanent link">&para;</a></h1>
+<p>Functions for managing time, parsing and formatting durations, and implementing timeout-based operations.</p>
+<h2 id="usage-guide">Usage Guide<a class="headerlink" href="#usage-guide" title="Permanent link">&para;</a></h2>
+<h3 id="measuring-command-execution-time">Measuring Command Execution Time<a class="headerlink" href="#measuring-command-execution-time" title="Permanent link">&para;</a></h3>
+<p>Use <code>L_time</code> to measure and print execution time of a command.</p>
+<div class="highlight"><pre><span></span><code>L_time<span class="w"> </span>sleep<span class="w"> </span><span class="m">1</span>
+<span class="c1"># Output:</span>
+<span class="c1"># real=0m1.002581s user=0m0.002502s system=0m0.000000s [sleep 1]</span>
 </code></pre></div>
-<h2 id="using-the-test-runner-l_unittest_main">Using the Test Runner (L_unittest_main)<a class="headerlink" href="#using-the-test-runner-l_unittest_main" title="Permanent link">&para;</a></h2>
-<p>For larger test suites, you can use the <code>L_unittest_main</code> test runner. It discovers tests based on function prefixes, runs them (optionally in parallel), captures output, and generates a summary report.</p>
-<h3 id="writing-and-running-tests">Writing and Running Tests<a class="headerlink" href="#writing-and-running-tests" title="Permanent link">&para;</a></h3>
-<p>Tests are simply Bash functions. By convention, they should start with a specific prefix, like <code>test_</code>.</p>
-<p>Create a single file for your tests, for example <code>run_tests.sh</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="ch">#!/usr/bin/env bash</span>
-.<span class="w"> </span>L_lib.sh<span class="w"> </span>-s
+<h3 id="parsing-and-converting-durations">Parsing and Converting Durations<a class="headerlink" href="#parsing-and-converting-durations" title="Permanent link">&para;</a></h3>
+<p>Convert duration strings to microseconds with <code>L_duration_to_usec</code>, or convert microseconds back to duration strings with <code>L_usec_to_duration</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Parse 5m30s to microseconds</span>
+L_duration_to_usec<span class="w"> </span><span class="s2">&quot;5m30s&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Microseconds: </span><span class="nv">$L_RET</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 330000000</span>
 
-test_my_math<span class="o">()</span><span class="w"> </span><span class="o">{</span>
-<span class="w">    </span><span class="nb">local</span><span class="w"> </span><span class="nv">result</span><span class="o">=</span><span class="k">$((</span><span class="m">1</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="m">1</span><span class="k">))</span>
-<span class="w">    </span>L_unittest_eq<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$result</span><span class="s2">&quot;</span><span class="w"> </span><span class="m">2</span>
-<span class="o">}</span>
-
-test_my_string<span class="o">()</span><span class="w"> </span><span class="o">{</span>
-<span class="w">    </span><span class="nb">local</span><span class="w"> </span><span class="nv">str</span><span class="o">=</span><span class="s2">&quot;foo&quot;</span>
-<span class="w">    </span>L_unittest_vareq<span class="w"> </span>str<span class="w"> </span><span class="s2">&quot;foo&quot;</span>
-<span class="o">}</span>
-
-<span class="c1"># You can source other files containing tests here if your suite grows</span>
-<span class="c1"># . ./more_tests.sh</span>
-
-<span class="c1"># Run all functions starting with &#39;test_&#39;</span>
-L_unittest_main<span class="w"> </span>-p<span class="w"> </span><span class="s2">&quot;test_&quot;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+<span class="c1"># Convert back to Prometheus duration string</span>
+L_usec_to_duration<span class="w"> </span><span class="m">330000000</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Duration: </span><span class="nv">$L_RET</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 5m30s</span>
 </code></pre></div>
-<p>Then, you can run your test file:</p>
-<div class="highlight"><pre><span></span><code>chmod<span class="w"> </span>+x<span class="w"> </span>run_tests.sh
-./run_tests.sh
+<h3 id="date-formatting">Date Formatting<a class="headerlink" href="#date-formatting" title="Permanent link">&para;</a></h3>
+<p>Use <code>L_date</code> for date formatting, supporting <code>%f</code> (microseconds) and subsecond timepoints. It selects the optimal method based on available capabilities and the format string.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Print current time with microseconds</span>
+L_date<span class="w"> </span><span class="s2">&quot;%Y-%m-%d %H:%M:%S.%f&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
+
+<span class="c1"># Format a specific unix timestamp</span>
+L_date<span class="w"> </span><span class="s2">&quot;%H:%M:%S&quot;</span><span class="w"> </span><span class="m">1700000000</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
 </code></pre></div>
-<h2 id="L_lib.sh--unittest">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
-    unittest
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6175"
+<h3 id="microsecond-epoch-time">Microsecond Epoch Time<a class="headerlink" href="#microsecond-epoch-time" title="Permanent link">&para;</a></h3>
+<p>Retrieve the current epoch time in microseconds. It works across different environments and Bash versions, including those where the native <code>${EPOCHREALTIME}</code> variable is not available.</p>
+<div class="highlight"><pre><span></span><code>L_epochrealtime_usec
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current epoch (usec): </span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
+</code></pre></div>
+<h3 id="timeouts">Timeouts<a class="headerlink" href="#timeouts" title="Permanent link">&para;</a></h3>
+<p>Implement timeouts with helper functions:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Initialize a 5-second timeout variable</span>
+L_timeout_init_into<span class="w"> </span>timeout<span class="w"> </span><span class="m">5</span>
+
+<span class="k">while</span><span class="w"> </span>!<span class="w"> </span>L_timeout_is_expired<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$timeout</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="c1"># Perform some task...</span>
+<span class="w">    </span>L_timeout_left<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$timeout</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Time remaining: </span><span class="nv">$L_RET</span><span class="s2"> seconds&quot;</span>
+<span class="w">    </span>sleep<span class="w"> </span><span class="m">0</span>.5
+<span class="k">done</span>
+</code></pre></div>
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<h2 id="L_lib.sh--time">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
+    time
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2394"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--unittest" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#L_lib.sh--time" class="headerlink" title="Permanent link">&para;</a></h2>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+<h3 id="L_lib.sh--L_time">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_time
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2398"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_time" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            <p>Testing library</p>
-<p>Simple unittesting library that does simple comparison.
-Testing library for testing if variables are commands are returning as expected.</p>
+            Measure time with the command, but include the command in the time message output and use %6l format.
 
     </p>
 
-      <div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>rather stable</p>
-</div>
-      <div class="admonition example">
-<p class="admonition-title">Example</p>
-<pre><code>L_unittest_eq 1 1
-</code></pre>
-</div>
   
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$@</code></strong>
+    command to measure.
+
+    </p>
+
+
+
+  
+  
+
+
   
   
   
@@ -2022,25 +2303,15 @@ Testing library for testing if variables are commands are returning as expected.
   
 
 
-  
-  
-
-
-  
-  
-  
-  
-  
-
-<h3 id="L_lib.sh--L_unittest_skip">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_skip
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6335"
+<h3 id="L_lib.sh--L_duration_to_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_duration_to_usec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2409"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_skip" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_duration_to_usec" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Skip the current unit test with a specified reason.
+            Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
 
     </p>
 
@@ -2052,34 +2323,160 @@ Testing library for testing if variables are commands are returning as expected.
         <strong>
 Option:
         </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
             <strong><code>$1</code></strong>
-    Skipping reason.
+    Duration string.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file">https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
+</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_duration_to_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_duration_to_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2411"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_duration_to_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2211">SC2211</a>
+        <a href="https://www.shellcheck.net/wiki/SC2035">SC2035</a>
+        <a href="https://www.shellcheck.net/wiki/SC2035">SC2035</a>
+        <a href="https://www.shellcheck.net/wiki/SC1102">SC1102</a>
+    </p>
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_usec_to_duration">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_duration
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2426"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_usec_to_duration" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert microseconds to Prometheus duration string using L_RET.
 
     </p>
 
   
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Microseconds (integer).
+
+    </p>
+
+
+
+  
+  
 
 
   
   
-
-
-  
-  
   
   
   
 
 
-<h3 id="L_lib.sh--L_unittest_main">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_main
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6509"
+<h3 id="L_lib.sh--L_usec_to_duration_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_duration_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2427"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_main" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_usec_to_duration_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_date">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_date
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2464"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_date" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Uninteresting unittesting suite runner.
+            <p>Print date in the format.</p>
+<p>If the format string contains %N or the timepoint is not a number, use date command.
+Otherwise, try to use printf %(fmt)T.</p>
 
     </p>
 
@@ -2089,234 +2486,21 @@ Option:
   
       <p>
         <strong>Options:</strong>
-<ul><li>                <strong><code>-p &lt;prefix&gt;</code></strong>
-    Get functions with this prefix to test
-
-</li><li>                <strong><code>-k &lt;expr&gt;</code></strong>
-    <p>Run only tests whose names match EXPR. EXPR is a boolean filter:</p>
-<pre><code>PATTERN            match tests containing PATTERN (regex)
-! EXPR             negate
-EXPR &amp;&amp; EXPR       both must match
-EXPR &amp; EXPR        both must match
-EXPR || EXPR       either must match
-EXPR | EXPR        either must match
-( EXPR )           grouping
-</code></pre>
-<p>Examples:
-  -k foo             tests matching 'foo'
-  -k 'foo &amp;&amp; bar'    tests matching both 'foo' and 'bar'
-  -k '! slow'        tests not matching 'slow'
-  -k '(foo || bar) &amp;&amp; ! slow'</p>
-
-</li><li>                <strong><code>-E</code></strong>
-    exit on error
-
-</li><li>                <strong><code>-P &lt;nproc&gt;</code></strong>
-    Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
-
-</li><li>                <strong><code>-l</code></strong>
-    Do not run the tests. Instead print the tests to exeucte.
-
-</li><li>                <strong><code>-q</code></strong>
-    <p>Run tests in command substitution. Print only failed tests output.</p>
-<p>Great for LLM for reducing context size.</p>
-
-</li><li>                <strong><code>-d &lt;int&gt;</code></strong>
-    Print a list of the slowest number of tests. Negative to print all.
-
-</li><li>                <strong><code>-x</code></strong>
-    Exit after the first failure.
-
-</li><li>                <strong><code>-s</code></strong>
-    Stream output directly to terminal. Do not capture stdout and stderr.
-
-</li><li>                <strong><code>-S</code></strong>
-    Do not stream output directly to terminal. Capture stdout and stderr. The default.
-
-</li><li>                <strong><code>-c</code></strong>
-    Execute in current shell execution context. No subshell.
-
-</li><li>                <strong><code>-v</code></strong>
-    Increase verbosity. Call L_log_level_inc.
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Store the output in variable instead of printing it.
 
 </li><li>                <strong><code>-h</code></strong>
-    Print this help and return 0.
+    Print this help and exit.
 
 </li></ul>    </p>
 
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$@</code></strong>
-    <p>Specify a space, tab or newline separated list of funtions to execute.</p>
-<p>For example output of compgen.</p>
-
-    </p>
-
-
-
-  
-  
-
-    <p>
-      <strong>Shellcheck disable=</strong>
-        <a href="https://www.shellcheck.net/wiki/SC2179">SC2179</a>
-    </p>
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_checkexit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_checkexit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6693"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_checkexit" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Check if command exits with specified exitcode.
-
-    </p>
-
-  
-  
-  
-  
-  
       <p>
         <strong>Arguments:</strong>
 <ul><li>                <strong><code>$1</code></strong>
-    <int> exit code the command should exit with
+    Format string, without leading +.
 
-</li><li>                <strong><code>$@</code></strong>
-    command to execute
-
-</li></ul>    </p>
-
-
-
-  
-  
-
-    <p>
-      <strong>Shellcheck disable=</strong>
-        <a href="https://www.shellcheck.net/wiki/SC2035">SC2035</a>
-    </p>
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_success">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_success
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6709"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_success" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Check if command exits with 0
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$@</code></strong>
-    command to execute
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_failure">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_failure
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6715"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_failure" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Check if command exits with non zero
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$@</code></strong>
-    command to execute
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_failure_capture">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_failure_capture
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6722"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_failure_capture" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            capture stdout and stderr into variables of a failed command
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    var stdout and stderr output
-
-</li><li>                <strong><code>$@</code></strong>
-    command to execute
+</li><li>                <strong><code>[$2]</code></strong>
+    Optional timepoint in seconds with optional digit or any date understood format.
 
 </li></ul>    </p>
 
@@ -2333,25 +2517,117 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_unittest_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6755"
+<h3 id="L_lib.sh--L_date_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_date_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2465"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_cmd" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_date_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_epochrealtime_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_epochrealtime_usec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2531"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_epochrealtime_usec" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            <p>Test execution of a command and capture and test it's stdout and/or stderr output.</p>
-<p>Local variables used by this function start with _L_u<em>. Options with <em>L_uopt</em></em>.
-This function optionally runs the command in the current shell or not depending on options.</p>
+            <p>Return time in microseconds.</p>
+<p>The dot or comma is removed from EPOCHREALTIME.
+Uses EPOCHREALTIME in newer Bash.
+In older Bash tries GNU date, gdate, perl, /proc/uptime, python, busybox adjtimex.</p>
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_epochrealtime_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_epochrealtime_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2532"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_epochrealtime_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_sec_to_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_sec_to_usec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2562"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_sec_to_usec" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert float seconds to microseconds.
 
     </p>
 
       <div class="admonition example">
 <p class="admonition-title">Example</p>
-<pre><code>echo Hello world /tmp/1
-L_unittest_cmd -r 'world' grep world /tmp/1
-L_unittest_cmd -r 'No such file or directory' ! grep something not_existing_file
+<pre><code>L_sec_to_usec 1.5 -&gt; 1500000
 </code></pre>
 </div>
   
@@ -2359,58 +2635,279 @@ L_unittest_cmd -r 'No such file or directory' ! grep something not_existing_file
   
   
       <p>
-        <strong>Options:</strong>
-<ul><li>                <strong><code>-h</code></strong>
-    Print this help and return 0.
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
 
-</li><li>                <strong><code>-c</code></strong>
-    Run in current execution environment, instead of using a subshell.
+    </p>
 
-</li><li>                <strong><code>-i</code></strong>
-    Invert exit status. You can also use <code>!</code> or <code>L_not</code> in front of the command.
+  
 
-</li><li>                <strong><code>-I</code></strong>
-    Do not close stdin &lt;&amp;1 . By default it is closed.
 
-</li><li>                <strong><code>-f</code></strong>
-    Expect the command to fail. Equal to <code>-i -j -N</code>.
+  
+  
 
-</li><li>                <strong><code>-N</code></strong>
-    Redirect stdout of the command to &gt;/dev/null.
 
-</li><li>                <strong><code>-j</code></strong>
-    Redirect stderr to stdout of the command. 2&gt;&amp;1
+  
+  
+  
+  
+  
 
-</li><li>                <strong><code>-x</code></strong>
-    Run the command inside set -x
 
-</li><li>                <strong><code>-X</code></strong>
-    Do not modify set -x
+<h3 id="L_lib.sh--L_sec_to_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_sec_to_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2563"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_sec_to_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
 
-</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
-    Store the output in variable instead of printing it.
 
-</li><li>                <strong><code>-r &lt;regex&gt;</code></strong>
-    Compare output of the command with this regex.
+  
+  
 
-</li><li>                <strong><code>-o &lt;str&gt;</code></strong>
-    Compare output of the command with this string.
 
-</li><li>                <strong><code>-e &lt;int&gt;</code></strong>
-    Command should exit with this exit status (default: 0)
+  
+  
+  
+  
+  
 
-</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
-    Stack up
+
+<h3 id="L_lib.sh--L_usec_to_sec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_sec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2572"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_usec_to_sec" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert microseconds to seconds with 6 digits after comma.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_usec_to_sec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_usec_to_sec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2573"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_usec_to_sec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_timeout_init_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_init_into
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2582"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_timeout_init_into" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Calculate timeout value.</p>
+<p>The timeout value is stored in microseconds.</p>
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    Variable to assign with the timeout value in usec.
+
+</li><li>                <strong><code>$2</code></strong>
+    Timeout in seconds. May be a fraction.
 
 </li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_epochrealtime_usec">L_epochrealtime_usec</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_timeout_init_usec_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_init_usec_into
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2590"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_timeout_init_usec_into" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Initialize a timer with a timeout in microseconds.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    Variable to assign with the timeout value in usec.
+
+</li><li>                <strong><code>$2</code></strong>
+    Timeout in microseconds.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_timeout_is_expired">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_is_expired
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2597"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_timeout_is_expired" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Is the timeout expired?
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    timeout value in usec.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_timeout_left_usec">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_left_usec
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2605"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_timeout_left_usec" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Get the number of microseconds left in the timer.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    Store the output in variable instead of printing it.
+
+    </p>
 
       <p>
         <strong>
 Argument:
         </strong>
-            <strong><code>$@</code></strong>
-    <p>Command to execute.</p>
-<p>If a command starts with <code>!</code>, this implies -i and, if one of -v -r -o option is used, it implies -j.</p>
+            <strong><code>$1</code></strong>
+    timeout value in usec.
 
     </p>
 
@@ -2427,36 +2924,20 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_unittest_vareq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_vareq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6890"
+<h3 id="L_lib.sh--L_timeout_left_usec_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_left_usec_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2606"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_vareq" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Test if a variable has specific value.
-
-    </p>
-
+<a href="#L_lib.sh--L_timeout_left_usec_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
   
   
   
   
   
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    variable nameref
-
-</li><li>                <strong><code>$2</code></strong>
-    value
-
-</li><li>                <strong><code>$2</code></strong>
-    Message to print on failure.
-
-</li></ul>    </p>
-
+  
+  
 
 
   
@@ -2470,15 +2951,15 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_unittest_eq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_eq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6903"
+<h3 id="L_lib.sh--L_timeout_left">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_left
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2613"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_eq" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_timeout_left" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Test if two strings are equal.
+            Get the number of seconds left in the timer.
 
     </p>
 
@@ -2486,16 +2967,23 @@ Argument:
   
   
   
-  
       <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    one string
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    Store the output in variable instead of printing it.
 
-</li><li>                <strong><code>$2</code></strong>
-    second string
+    </p>
 
-</li></ul>    </p>
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    timeout value in usec.
+
+    </p>
 
 
 
@@ -2510,152 +2998,13 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_unittest_arreq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_arreq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6916"
+<h3 id="L_lib.sh--L_timeout_left_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_timeout_left_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L2614"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_unittest_arreq" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Test if array is equal to elements.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    array variable
-
-</li><li>                <strong><code>$@</code></strong>
-    values
-
-</li></ul>    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_ne">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_ne
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6943"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_ne" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Test two strings are not equal.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    one string
-
-</li><li>                <strong><code>$2</code></strong>
-    second string
-
-</li></ul>    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_regex">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_regex
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6954"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_regex" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            test if a string matches regex
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    string
-
-</li><li>                <strong><code>$2</code></strong>
-    regex
-
-</li></ul>    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_unittest_contains">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_unittest_contains
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6967"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_unittest_contains" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Test if a string contains other string.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    string
-
-</li><li>                <strong><code>$2</code></strong>
-    needle
-
-</li></ul>    </p>
+<a href="#L_lib.sh--L_timeout_left_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
 
 
 
@@ -2676,7 +3025,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 10, 2026 19:50:30 UTC">March 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 6, 2026 00:33:58 UTC">July 6, 2026</span>
   </span>
 
     
@@ -2766,7 +3115,7 @@ Argument:
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../with/" class="md-footer__link md-footer__link--prev" aria-label="Previous: with">
+          <a href="../stdlib/" class="md-footer__link md-footer__link--prev" aria-label="Previous: stdlib">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2776,20 +3125,20 @@ Argument:
                 Previous
               </span>
               <div class="md-ellipsis">
-                with
+                stdlib
               </div>
             </div>
           </a>
         
         
           
-          <a href="../map/" class="md-footer__link md-footer__link--next" aria-label="Next: map">
+          <a href="../cache/" class="md-footer__link md-footer__link--next" aria-label="Next: cache">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                map
+                cache
               </div>
             </div>
             <div class="md-footer__button md-icon">

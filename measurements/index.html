@@ -579,6 +579,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../section/time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    time
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../section/cache/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cache
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../section/json/" class="md-nav__link">
         
   
@@ -1466,6 +1522,56 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#variable-name-validation-l_is_valid_variable_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Name Validation (L_is_valid_variable_name)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#numeric-validation-l_is_integer-l_is_float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Validation (L_is_integer, L_is_float)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numeric Validation (L_is_integer, L_is_float)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integer-validation-l_is_integer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integer Validation (L_is_integer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#float-validation-l_is_float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Float Validation (L_is_float)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#real-time-throughput" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1615,6 +1721,56 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variable-name-validation-l_is_valid_variable_name" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Name Validation (L_is_valid_variable_name)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#numeric-validation-l_is_integer-l_is_float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Numeric Validation (L_is_integer, L_is_float)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Numeric Validation (L_is_integer, L_is_float)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#integer-validation-l_is_integer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integer Validation (L_is_integer)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#float-validation-l_is_float" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Float Validation (L_is_float)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -2210,6 +2366,127 @@
 </tbody>
 </table>
 <p>Result: <code>eval "${cb:-}"</code> is the fastest when a callback is present.</p>
+<h3 id="variable-name-validation-l_is_valid_variable_name">Variable Name Validation (L_is_valid_variable_name)<a class="headerlink" href="#variable-name-validation-l_is_valid_variable_name" title="Permanent link">&para;</a></h3>
+<p>We compared six different implementations for validating variable names over a test suite of 16 representative valid and invalid names (including <code>a</code>, <code>ab</code>, <code>_ac</code>, <code>_a9</code>, <code>9</code>, <code>9a</code>, <code>a-</code>, <code>-a</code>, <code>a</code>, <code>a</code>, <code>a</code>, <code>a=b</code>, <code>a[0]</code>, <code>`,</code>$((a))<code>,</code>rm -rf`).</p>
+<p>Measurements were taken using the QEMU deterministic instruction count method:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions (16 inputs)</th>
+<th style="text-align: left;">Relative Cost</th>
+<th style="text-align: left;">Correctness</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Regex Match</strong> (<code>[[ "$v" =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]]</code>)</td>
+<td style="text-align: left;">4,225,700</td>
+<td style="text-align: left;">100.0%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">Invokes heavy <code>regcomp</code>/<code>regexec</code> engine.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Declare Check</strong> (<code>declare -- "$v" 2&gt;&amp;1</code>)</td>
+<td style="text-align: left;">529,870</td>
+<td style="text-align: left;">12.5%</td>
+<td style="text-align: left;"><strong>Incorrect</strong></td>
+<td style="text-align: left;">Incorrectly marks <code>a=b</code> and <code>a[0]</code> as valid.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Substring Slice</strong> (<code>[[ ${v:0:1} == [a-zA-Z_] &amp;&amp; ... ]]</code>)</td>
+<td style="text-align: left;">464,940</td>
+<td style="text-align: left;">11.0%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">Complex multi-conditional logic.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Extglob Match</strong> (<code>[[ $v == [a-zA-Z_]*([a-zA-Z0-9_]) ]]</code>)</td>
+<td style="text-align: left;">303,088</td>
+<td style="text-align: left;">7.1%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">Requires <code>extglob</code> to be enabled.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>3-Glob Check</strong> (<code>-n $v &amp;&amp; != *[^...] &amp;&amp; != [0-9]*</code>)</td>
+<td style="text-align: left;">331,722</td>
+<td style="text-align: left;">7.8%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">Simple, portable pattern match.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>2-Glob Check</strong> (<code>== [a-zA-Z_]* &amp;&amp; != *[^...]</code>)</td>
+<td style="text-align: left;">306,723</td>
+<td style="text-align: left;">7.2%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;"><strong>Fastest &amp; most robust correct portable method.</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Result: The <strong>2-glob check</strong> method is the fastest correct way to validate a variable name, avoiding the massive dynamic memory and regex compilation overhead of <code>=~</code> (~13.7x faster) while remaining portable and independent of <code>extglob</code>.</p>
+<h3 id="numeric-validation-l_is_integer-l_is_float">Numeric Validation (L_is_integer, L_is_float)<a class="headerlink" href="#numeric-validation-l_is_integer-l_is_float" title="Permanent link">&para;</a></h3>
+<p>We compared the performance of pure glob-based validation vs. regex-based validation (<code>=~</code>) for integers and floats.</p>
+<p>Measurements were taken using the QEMU deterministic instruction count method:</p>
+<h4 id="integer-validation-l_is_integer">Integer Validation (L_is_integer)<a class="headerlink" href="#integer-validation-l_is_integer" title="Permanent link">&para;</a></h4>
+<p>Tested over 12 typical valid and invalid integer inputs (including signs and trailing characters):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions (12 inputs)</th>
+<th style="text-align: left;">Relative Cost</th>
+<th style="text-align: left;">Correctness</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Regex Match</strong> (<code>[[ "$1" =~ ^[-+]?[0-9]+$ ]]</code>)</td>
+<td style="text-align: left;">2,733,340</td>
+<td style="text-align: left;">100.0%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">Invokes regular expression engine.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Pure Glob</strong> (<code>[[ -n ${1#[+-]} &amp;&amp; ${1#[+-]} != *[^0-9]* ]]</code>)</td>
+<td style="text-align: left;">616,425</td>
+<td style="text-align: left;">22.6%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;"><strong>Fastest (4.4x faster)</strong>, entirely native.</td>
+</tr>
+</tbody>
+</table>
+<h4 id="float-validation-l_is_float">Float Validation (L_is_float)<a class="headerlink" href="#float-validation-l_is_float" title="Permanent link">&para;</a></h4>
+<p>Tested over 16 representative float patterns (e.g., <code>.2</code>, <code>1.2</code>, <code>1.</code>, <code>-.2</code>, <code>-.</code>, <code>abc</code>, <code>1.2.3</code>):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions (16 inputs)</th>
+<th style="text-align: left;">Relative Cost</th>
+<th style="text-align: left;">Correctness</th>
+<th style="text-align: left;">Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Regex Match</strong> (<code>[[ "$1" =~ ^[+-]?([0-9]*[.]?[0-9]+|[0-9]+[.])$ ]]</code>)</td>
+<td style="text-align: left;">9,744,211</td>
+<td style="text-align: left;">100.0%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;">High regex engine overhead.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Pure Glob</strong> (conditional block with split)</td>
+<td style="text-align: left;">1,850,228</td>
+<td style="text-align: left;">19.0%</td>
+<td style="text-align: left;"><strong>Correct</strong></td>
+<td style="text-align: left;"><strong>Fastest (5.2x faster)</strong>, entirely native.</td>
+</tr>
+</tbody>
+</table>
+<p>Result: Switching from regular expressions (<code>=~</code>) to native Bash glob patterns/parameter expansions for numeric validation yields a <strong>4x to 5x performance improvement</strong> by entirely bypassing regex compilation and memory allocations.</p>
 <h3 id="real-time-throughput">Real-time Throughput<a class="headerlink" href="#real-time-throughput" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -2247,7 +2524,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 25, 2026 13:32:13 UTC">June 25, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2026 22:58:33 UTC">July 9, 2026</span>
   </span>
 
     
