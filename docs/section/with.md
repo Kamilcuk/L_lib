@@ -20,7 +20,7 @@ my_function() {
 }
 ```
 
-### Temporary Files (`L_with_tmpfile_to`)
+### Temporary Files (`L_with_tmpfile_into`)
 
 Create a temporary file that is automatically deleted when the function returns.
 
@@ -28,7 +28,7 @@ Create a temporary file that is automatically deleted when the function returns.
 process_data() {
     local temp_file
     # Create temp file and store path in 'temp_file'
-    L_with_tmpfile_to temp_file
+    L_with_tmpfile_into temp_file
     
     echo "some data" > "$temp_file"
     process "$temp_file"
@@ -37,7 +37,7 @@ process_data() {
 }
 ```
 
-### Temporary Directories (`L_with_tmpdir_to`, `L_with_cd_tmpdir`)
+### Temporary Directories (`L_with_tmpdir_into`, `L_with_cd_tmpdir`)
 
 You can create a temporary directory or create it and immediately `cd` into it.
 
@@ -45,7 +45,7 @@ You can create a temporary directory or create it and immediately `cd` into it.
 # Create a temp dir, use it, and have it removed automatically
 use_temp_dir() {
     local dir
-    L_with_tmpdir_to dir
+    L_with_tmpdir_into dir
     touch "$dir/file1"
 }
 
@@ -58,7 +58,7 @@ work_in_isolation() {
 }
 ```
 
-### Redirecting Stdout to Variable (`L_with_redirect_stdout_to`)
+### Redirecting Stdout to Variable (`L_with_redirect_stdout_into`)
 
 This function allows you to capture the standard output of the current function into a variable. It avoids the performance penalty and subshell isolation of `$(...)`.
 
@@ -68,7 +68,7 @@ This function allows you to capture the standard output of the current function 
 # Capture stdout of this function into the variable named by $1
 get_config_data() {
     # $1 is the name of the variable to store result in
-    L_with_redirect_stdout_to "$1"
+    L_with_redirect_stdout_into "$1"
     
     echo "key=value"
     echo "status=ok"
