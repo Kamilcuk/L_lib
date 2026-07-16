@@ -232,3 +232,96 @@ count). Both snippets produce identical `tmp` (verified: `[value][value]`).
 cheaper in the common case and ~80% cheaper when early patterns miss. If `if` is
 required, keep the assignment inside the branch (the +20% variant) rather than the
 pre-assignment form (+42% / +82%).
+
+### Leading Whitespace Trim of a JSON string (`_L_json`)
+
+**Task:** strip leading whitespace. Source under test: `temp/trim_functions.sh`.
+Benchmarked with `L_bash_profile compare` (QEMU deterministic instruction counts
+and wall-clock time). Input: 1KB JSON with 3 leading spaces (`_L_json_1k`).
+
+**Why each approach was presented:**
+- `trim_orig` / `trim_simple` — single expression `${_L_json#${_L_json%%[![:space:]]*}}`.
+  `%%[![:space:]]*` finds the leading whitespace run (greedy scan to first
+  non-space), then `#` strips it. `trim_orig` quotes the nested expansion;
+  `trim_simple` does not. Edge case: when there is no leading whitespace,
+  `%%[![:space:]]*` returns the whole string, so `#` strips the first char
+  (off-by-one bug).
+- `trim_fixed` / `trim_fixed_opt` / `trim_fixed_long` / `trim_orig_opt` — split
+  into a local variable + conditional, so when the run is empty nothing is
+  stripped. Compared `[[ -n "$x" ]]` vs `(( ${#x} ))`, and short (`x`) vs long
+  (`leading_ws`) variable name.
+- `trim_extglob` — `##+([[:space:]])` (requires `extglob`). Matches and removes
+  the longest leading whitespace run.
+- `trim_read` / `trim_shortest` / `trim_regex` / `trim_printf` — alternatives.
+  `trim_read` (`read -r _L_json <<< "$_L_json"`) truncates at the first newline,
+  so it is incorrect for multi-line JSON.
+
+**Results (QEMU instruction counts, 1KB JSON):**
+
+| Function | Instructions | Δ vs best | % |
+| :--- | :--- | :--- | :--- |
+| `trim_orig_opt` | 284,528 | — | baseline |
+| `trim_fixed_opt` | 285,015 | +487 | +0.17% |
+| `trim_fixed` (`[[ -n ]]`, short x) | 288,000 | +3,472 | +1.22% |
+| `trim_fixed_long` (long var) | 290,593 | +6,065 | +2.13% |
+| `trim_simple` | 402,930 | +118,402 | +41.6% |
+| `trim_extglob` | 454,907 | +170,379 | +59.9% |
+
+`trim_orig_opt` wins (short var `x` + `(( ${#x} ))`). `trim_fixed_opt` is
+functionally identical (same body, 487-instruction gap is noise). Long variable
+name adds ~2%. `[[ -n ]]` adds ~1% over `(( ${#x} ))`.
+
+**Why `trim_extglob` is slow (O(n²)):**
+
+`+([[:space:]])` is implemented in bash's `EXTMATCH` ('+') branch of `GMATCH`
+(`patmatch.c`). The match clause is:
+
+```
+for (srest = s; srest <= se; srest++) {
+    m1 = GMATCH(s, srest, psub, pnext - 1) == 0;        /* match subpattern once */
+    if (m1) {
+        m2 = (GMATCH(srest, se, prest, pe) == 0) ||
+              (s != srest && GMATCH(srest, se, p - 1, pe) == 0);  /* re-match whole extglob */
+    }
+    if (m1 && m2) return 0;
+}
+```
+
+The second `GMATCH` clause re-matches the entire `+([[:space:]])` pattern
+against the remainder. To match `n` spaces, `EXTMATCH` recurses `n` times; each
+level's inner `srest` loop scans positions from the current offset. Total work ≈
+Σ(1..n) = **O(n²)**. At 1KB the gap is ~60%; it grows quadratically with the
+length of the leading whitespace run.
+
+By contrast `%%[![:space:]]*` is one greedy left-to-right scan for the first
+non-space character: **O(n)**, no recursion. This is why every `trim_*` variant
+using `%%[![:space:]]*` beats `trim_extglob`.
+
+**Throughput reference:** ~1.6 GIPS (1M instructions ≈ 600–800µs) →
+`trim_orig_opt` at 284,528 instructions ≈ 178µs per call.
+
+**All `trim_*` source (from `temp/trim_functions.sh`):**
+
+```bash
+trim_orig() { _L_json="${_L_json#"${_L_json%%[![:space:]]*}"}"; }
+
+trim_simple() { _L_json="${_L_json#${_L_json%%[![:space:]]*}}"; }
+
+trim_fixed() { local leading_ws=${_L_json%%[![:space:]]*}; if [[ -n "$leading_ws" ]]; then _L_json=${_L_json#"$leading_ws"}; fi; }
+
+trim_extglob() { _L_json=${_L_json##+([[:space:]])}; }
+
+trim_fixed_opt() { local x=${_L_json%%[![:space:]]*}; if (( ${#x} )); then _L_json=${_L_json#"$x"}; fi; }
+
+trim_fixed_long() { local leading_ws=${_L_json%%[![:space:]]*}; if (( ${#leading_ws} )); then _L_json=${_L_json#"$leading_ws"}; fi; }
+
+trim_orig_opt() { local x=${_L_json%%[![:space:]]*}; if (( ${#x} )); then _L_json=${_L_json#"$x"}; fi; }
+
+trim_read() { read -r _L_json <<< "$_L_json"; }
+
+trim_shortest() { _L_json="${_L_json#*[![:space:]]}"; _L_json="${_L_json#"${_L_json%%[![:space:]]*}"}"; }
+
+trim_regex() { [[ "$_L_json" =~ ^[[:space:]]*(.*) ]]; _L_json="${BASH_REMATCH[1]}"; }
+
+trim_printf() { printf -v _L_json '%s' "$_L_json"; }
+```
