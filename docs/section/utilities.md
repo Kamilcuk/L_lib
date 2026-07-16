@@ -187,9 +187,25 @@ done
 L_table -R 1-2 "ID NAME SCORE" "1 Alice 95" "2 Bob 100"
 ```
 
-### Debug Variables (`L_pretty_print`)
+### Debug Variables (`L_pretty_print` / `L_pp`)
 
-`L_pretty_print` formats variables, sparse arrays, and associative arrays for debugging.
+`L_pretty_print` formats variables, sparse arrays, and associative arrays for debugging. `L_pp` is a shorter alias.
+
+**Options:**
+- `-C` / `-m` — Multiline output for arrays (default: compact single-line)
+- `-c` — Force compact single-line output
+- `-w <width>` — Set output width for compact mode (default: `$COLUMNS` or 80)
+- `-p <prefix>` — Prefix each output line
+- `-v <var>` — Store output in variable instead of printing
+
+#### Variable Prefix Expansion (`VAR*`)
+Pass a variable name ending with `*` (e.g., `config_*`) to pretty-print all variables matching that prefix:
+```bash
+local config_host="localhost" config_port=8080 config_debug=true
+L_pretty_print config_*
+# Prints:
+# config_*{ config_debug=true config_host=localhost config_port=8080 }
+```
 
 #### Compact Mode (Default)
 By default, arrays are printed as a single compact line:
@@ -212,6 +228,33 @@ L_pretty_print -C config
 #   [port]=8080
 # )
 ```
+
+#### Variable Output (`-v`)
+Store output in a variable instead of printing:
+```bash
+local -A assoc=([x]=1)
+L_pretty_print -v out assoc
+# out="assoc=([x]=1)"
+```
+
+#### Sparse Arrays
+Sparse arrays show their indices explicitly:
+```bash
+local sparse=([0]=first [2]=third)
+L_pretty_print sparse
+# Prints: sparse=([0]=first [2]=third)
+```
+
+#### Namerefs
+Namereferences show the reference chain:
+```bash
+local -n ref=assoc
+L_pretty_print ref
+# Prints: ref->assoc=([x]=1)
+```
+
+#### Literal Strings
+Arguments that are not variable names are printed as literal strings.
 
 ---
 

@@ -184,3 +184,51 @@ Result: Switching from regular expressions (`=~`) to native Bash glob patterns/p
 | Instruction Count | Real Time (Estimated) | Throughput |
 | :--- | :--- | :--- |
 | 1,000,000 (1M) | 600µs – 800µs | ~1.6 GIPS |
+
+
+### String Prefix Dispatch: `case` vs `if` with prefix-strip
+
+Two idioms for dispatching on a string prefix and stripping it. Both use the
+same strip mechanism (`${str#$pat}`) but differ in control-flow:
+
+- **`case`**: `case "$str" in "$pat"*) tmp=${str#"$pat"} ;; "$pat2"*) tmp=${str#"$pat2"} ;; esac`
+- **`if`**: `if tmp=${str#"$pat"}; [[ "$tmp" != "$str" ]]; then :; else tmp=${str#"$pat2"}; [[ "$tmp" != "$str" ]] && :; fi`
+
+Profiled with `L_bash_profile compare -m qemu` (deterministic instruction
+count). Both snippets produce identical `tmp` (verified: `[value][value]`).
+
+**Scenario 1 — first pattern matches (common case):**
+
+| Implementation | Instructions | Δ |
+| :--- | :--- | :--- |
+| `case "$str" in "$pat"*) tmp=${str#"$pat"} ;; "$pat2"*) ... ;; esac` | **65 644** | — |
+| `if tmp=${str#"$pat"}; [[ "$tmp" != "$str" ]]; then ...` | 92 974 | +27 330 (+42%) |
+
+**Scenario 2 — first pattern fails, second matches:**
+
+| Implementation | Instructions | Δ |
+| :--- | :--- | :--- |
+| `case ...` | **67 620** | — |
+| `if ...` | 123 204 | +55 584 (+82%) |
+
+**Variant — `if` with the assignment moved inside the branch**
+(`if [[ "${str#"$pat"}" != "$str" ]]; then tmp=${str#"$pat"}; else tmp=${str#"$pat2"}; fi`):
+
+| Implementation | Instructions | Δ |
+| :--- | :--- | :--- |
+| `case ...` | **92 624** | — |
+| `if` (assignment inside branch) | 111 290 | +18 666 (+20%) |
+
+**Why `case` wins:**
+1. The `if` idiom computes and assigns `${str#"$pat"}` *unconditionally* before the
+   test, even when the pattern misses and the `else` branch runs instead. `case`
+   only evaluates the matching branch body.
+2. `[[ "$tmp" != "$str" ]]` is a separate command with its own parse/eval overhead;
+   `case` folds the match-test and dispatch into one builtin operation.
+3. Even the improved `if` variant computes `${str#"$pat"}` twice in the taken branch
+   (once in the `[[ ]]` test, once in the assignment).
+
+**Recommendation:** prefer `case` for multi-pattern prefix dispatch — it is ~40%
+cheaper in the common case and ~80% cheaper when early patterns miss. If `if` is
+required, keep the assignment inside the branch (the +20% variant) rather than the
+pre-assignment form (+42% / +82%).
