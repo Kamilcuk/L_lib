@@ -2315,8 +2315,12 @@ fi
 # @see L_var_is_nameref
 L_var_get_nameref() { L_handle_v_scalar "$@"; }
 L_var_get_nameref_vL_RET() {
-	[[ "$(LC_ALL=C declare -p "$1")" =~ ^declare\ -n\ [^=]+=\"?([^=\"]+)\"?$ ]] &&
-		L_RET=${BASH_REMATCH[1]}
+	if L_RET="$(LC_ALL=C declare -p "$1")" && [[ "$L_RET" == declare\ -n\ ?*=* ]]; then
+		L_RET=${L_RET##*=} && L_RET=${L_RET//\"}
+	else
+		L_RET=""
+		return 1
+	fi
 }
 
 # @description Return 0 if the variable is a namereference.

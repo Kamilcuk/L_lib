@@ -33,6 +33,7 @@ USR2_CNT=0
 . "$dir"/test_L_date.sh
 . "$dir"/test_asserts.sh
 . "$dir"/test_var_to_string2.sh
+. "$dir"/test_var_get_nameref.sh
 . "$dir"/test_format.sh
 . "$dir"/test_finally.sh
 . "$dir"/test_pretty_print.sh
