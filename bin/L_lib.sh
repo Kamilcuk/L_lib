@@ -1428,7 +1428,7 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_scalar() {
 		case "${1:-}" in
-		-vL_vL_RET)
+		-vL_RET)
 			if [[ "${2:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
@@ -1478,7 +1478,7 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_array() {
 		case "${1:-}" in
-		-vL_vL_RET)
+		-vL_RET)
 			if [[ "${2:-}" == -- ]]; then
 				"${FUNCNAME[1]}"_vL_RET "${@:3}"
 			else
@@ -1898,7 +1898,7 @@ L_return() { return "$1"; }
 # @description Runs the command with extglob restoring the option after return.
 # @arg $@ Command to execute
 L_shopt_extglob() {
-	if shopt -p extglob >/dev/null; then "$@"
+	if shopt -q extglob; then "$@"
 	else shopt -s extglob; "$@"; eval "shopt -u extglob; return \"$?\""; fi
 }
 
@@ -1906,7 +1906,7 @@ L_shopt_extglob() {
 # @arg $1 shopt option name (e.g., nullglob)
 # @arg $@ command to execute
 L_shopt() {
-	if shopt -p "$1" >/dev/null; then "${@:2}"
+	if shopt -q "$1"; then "${@:2}"
 	else shopt -s "$1"; "${@:2}"; eval "shopt -u \$1; return \"$?\""; fi
 }
 
@@ -4132,17 +4132,15 @@ L_array_contains() {
 #  L_array_filter_eval arr '[[ "$1" == "Hello" ]]'
 #  echo "${arr[@]}"  # prints Hello
 L_array_filter_eval() {
-	local L_i _L_array _L_expr _L_v
-	_L_v="$1[@]"
-	_L_array=(${!_L_v+"${!_L_v}"})
-	_L_expr=${*:2}
-	for ((L_i = ${#_L_array[@]} - 1; L_i >= 0; --L_i )); do
-		set -- "${_L_array[L_i]}"
+	local _L_arr=$1 _L_expr=$2 _L_i _L_v
+	L_is_valid_variable_name "$1" || return "$L_EX_USAGE"
+	eval 'for _L_i in "${!'"$1"'[@]}"; do
+		_L_v='"$1"'[$_L_i]
+		set -- "${!_L_v}"
 		if ! eval "$_L_expr"; then
-			unset -v "_L_array[$L_i]"
+			unset -v "'"$1"'[$_L_i]"
 		fi
-	done
-	eval "${_L_v%[*}=(\${_L_array[@]+\"\${_L_array[@]}\"})"
+	done'
 }
 
 # @description Find an index of an element in the array equal to second argument.
