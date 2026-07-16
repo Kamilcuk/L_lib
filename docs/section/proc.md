@@ -14,20 +14,20 @@ The most common use case is opening a process, writing to it, and reading from i
 # Open a process (cat) that reads from stdin and writes to stdout
 # -I pipe: We want to write to its stdin
 # -O pipe: We want to read from its stdout
-L_proc_popen -I pipe -O pipe proc cat
+L_proc_popen -I pipe -O pipe pid cat
 
 # Write to the process's stdin
-L_proc_printf "$proc" "Hello World\n"
+L_proc_printf "$pid" "Hello World\n"
 
 # Close stdin to signal EOF to the process (cat will then finish and exit)
-L_proc_close_stdin "$proc"
+L_proc_close_stdin "$pid"
 
 # Read the process's output
-L_proc_read "$proc" line
+L_proc_read "$pid" line
 echo "Got: $line"
 
 # Wait for the process to clean up
-L_proc_wait "$proc"
+L_proc_wait "$pid"
 ```
 
 ### Input/Output Modes
@@ -39,7 +39,7 @@ L_proc_wait "$proc"
 Use `pipe` when you want to interact with the stream using `L_proc_printf`, `L_proc_read`, or `L_proc_communicate`.
 
 ```bash
-L_proc_popen -I pipe -O pipe -E pipe proc my_command
+L_proc_popen -I pipe -O pipe -E pipe pid my_command
 # Now you can write to proc stdin, and read from proc stdout and stderr
 ```
 
@@ -49,8 +49,8 @@ Use `-I input` with `-i "string"` to pass a fixed string to the process's stdin 
 
 ```bash
 # Pass "hello" to grep's stdin
-L_proc_popen -I input -i "hello" -O pipe proc grep "h"
-L_proc_communicate -o output "$proc"
+L_proc_popen -I input -i "hello" -O pipe pid grep "h"
+L_proc_communicate -o output "$pid"
 echo "$output" # hello
 ```
 
@@ -60,16 +60,16 @@ Redirect streams directly to or from files using `file`. This avoids the overhea
 
 ```bash
 # Write stdout directly to a file
-L_proc_popen -O file -o "/tmp/output.log" proc echo "log entry"
-L_proc_wait "$proc"
+L_proc_popen -O file -o "/tmp/output.log" pid echo "log entry"
+L_proc_wait "$pid"
 cat /tmp/output.log
 ```
 
 ```bash
 # Read stdin directly from a file
 echo "data" > /tmp/input.txt
-L_proc_popen -I file -i "/tmp/input.txt" -O pipe proc cat
-L_proc_communicate -o output "$proc"
+L_proc_popen -I file -i "/tmp/input.txt" -O pipe pid cat
+L_proc_communicate -o output "$pid"
 ```
 
 #### Discarding Output (Null)
@@ -78,7 +78,7 @@ Use `null` to redirect a stream to `/dev/null`.
 
 ```bash
 # Ignore stderr
-L_proc_popen -O pipe -E null proc command_with_noisy_stderr
+L_proc_popen -O pipe -E null pid command_with_noisy_stderr
 ```
 
 #### Closing Streams
@@ -87,7 +87,7 @@ Use `close` to completely close the file descriptor for the process.
 
 ```bash
 # Process will receive "Bad file descriptor" if it tries to write to stdout
-L_proc_popen -O close proc echo "this will fail"
+L_proc_popen -O close pid echo "this will fail"
 ```
 
 #### Existing File Descriptors
@@ -96,7 +96,7 @@ Use `fd` to connect streams to existing file descriptors open in your current sh
 
 ```bash
 # Connect process stderr to the current shell's stderr (pass-through)
-L_proc_popen -E fd -e 2 proc my_command
+L_proc_popen -E fd -e 2 pid my_command
 ```
 
 ### Automatic Cleanup
@@ -106,14 +106,14 @@ You can register a "finally" trap to ensure the process is waited upon when your
 ```bash
 my_func() {
     # -W 0 registers a cleanup handler for the current stack level
-    L_proc_popen -W 0 -I pipe -O pipe proc sleep 10
+    L_proc_popen -W 0 -I pipe -O pipe pid sleep 10
     # Even if we return early or error out here, the process will be cleaned up
 }
 ```
 
 ### Managing Multiple Processes
 
-Since `L_proc_popen` uses variables to store handles, you can manage multiple processes easily using arrays.
+Since `L_proc_popen` uses variables to store PIDs, you can manage multiple processes easily using arrays.
 
 ```bash
 --8<-- "scripts/proc_example.sh"

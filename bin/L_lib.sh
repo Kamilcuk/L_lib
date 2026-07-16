@@ -10160,21 +10160,20 @@ L_proc_free() {
 #    This is less then ideal, but I do not know at this time how to fix it better.
 #    Potentially, this can cause unrelated file descriptors to get closed.
 #    This might change in the future.
-# @example L_finally proc -W sleep infinity
 # @example
-#    L_finally proc sleep infinity
-#    L_finally L_proc_popen_finally "$proc"
+#    L_proc_popen pid sleep infinity
+#    L_finally L_proc_popen_finally "$pid"
 #
-#    # or
-#    L_finally proc sleep infinity
-#    L_finally L_eval 'L_proc_popen_finally "${!1}"' proc
+#    # or, defer reading the variable until cleanup runs (e.g. if it may go out of scope):
+#    L_proc_popen pid sleep infinity
+#    L_finally L_eval 'L_proc_popen_finally "${!1}"' pid
 L_proc_popen_finally() {
-	local proc="$1"
-	L_proc_close proc
+	local pid="$1"
+	L_proc_close "$pid"
 	if [[ "$L_SIGNAL" == SIG* ]]; then
-		L_proc_send_signal proc "$L_SIGNAL"
+		L_proc_send_signal "$pid" "$L_SIGNAL"
 	fi
-	L_proc_wait proc
+	L_proc_wait "$pid"
 }
 
 # @description Write printf formatted string to coproc.
