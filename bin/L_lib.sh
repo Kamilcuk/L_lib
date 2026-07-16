@@ -4433,13 +4433,13 @@ L_parse_range_list_vL_RET() {
 
 _L_pretty_print_output() {
 	if [[ -z "$_L_pp_out" ]]; then
-		_L_pp_out+="$1"
+		_L_pp_out="$_L_pp_prefix$1"
 		_L_pp_line_len=${#1}
 	elif (( _L_pp_oneline && _L_pp_line_len + 1 + ${#1} <= _L_pp_width )); then
 		_L_pp_out+=" $1"
 		(( _L_pp_line_len += 1 + ${#1} ))
 	else
-		_L_pp_out+=$'\n'"$1"
+		_L_pp_out+=$'\n'"$_L_pp_prefix$1"
 		_L_pp_line_len=${#1}
 	fi
 }
@@ -4449,8 +4449,66 @@ _L_pretty_print_output_array() {
 		_L_pp_out+="$2$1"
 		(( _L_pp_line_len += ${#2} + ${#1} ))
 	else
-		_L_pp_out+=$'\n  '"$1"
+		_L_pp_out+=$'\n'"$_L_pp_prefix  $1"
 		(( _L_pp_line_len = 2 + ${#1} ))
+	fi
+}
+
+_L_pretty_print_declare() {
+	# Extract variable flags from declare output.
+	local _L_pp_declare_opts=${_L_pp_declare#declare }
+	_L_pp_declare_opts=${_L_pp_declare_opts%% *}
+	local _L_flags=""
+	case "$_L_pp_declare_opts" in
+		""|--|-a|-A) ;;
+		*) _L_flags="${_L_pp_declare_opts} " ;;
+	esac
+	if [[ "$_L_pp_declare" != *=* ]]; then
+		_L_pretty_print_output "$1 is null"
+	elif [[ "$_L_pp_declare_opts" == -[Aa]* ]]; then
+		# Array or associative array
+		_L_pretty_print_output "${_L_flags}$1=("
+		local _L_pp_nonfirst_sep=""
+		if (( _L_pp_oneline )) && [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
+			# Dense normal array
+			L_array_len -v _L_pp_len "$1"
+			for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
+				_L_pp_v="$1[$_L_pp_i]"
+				printf -v _L_pp_v "%q" "${!_L_pp_v}"
+				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				_L_pp_nonfirst_sep=" "
+			done
+		else
+			# Sparse array or associative array
+			L_array_keys -v _L_pp_keys "$1"
+			if [[ "$_L_pp_declare_opts" == -A* ]]; then
+				L_sort -z _L_pp_keys
+			fi
+			for _L_pp_k in "${_L_pp_keys[@]}"; do
+				eval "_L_pp_v=\${$1[\"\$_L_pp_k\"]}"
+				printf -v _L_pp_v "[%q]=%q" "$_L_pp_k" "$_L_pp_v"
+				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				_L_pp_nonfirst_sep=" "
+			done
+		fi
+		# Close paren
+		if (( _L_pp_oneline && ( ${_L_pp_nonfirst_sep:+1}0 || _L_pp_line_len + 1 <= _L_pp_width ) )); then
+			_L_pp_out+=")"
+			(( _L_pp_line_len += 1 ))
+		else
+			_L_pp_out+=$'\n'"$_L_pp_prefix)"
+			_L_pp_line_len=1
+		fi
+	elif [[ "$_L_pp_declare_opts" == -*n* ]]; then
+		# Namereference
+		local _L_pp_nameref=${_L_pp_declare##*=}
+		_L_pp_nameref=${_L_pp_nameref//'"'}
+		printf -v _L_pp_current "%s->%s${!1+=%q}" "$1" "$_L_pp_nameref" ${!1+"${!1}"}
+		_L_pretty_print_output "${_L_flags}${_L_pp_current}"
+	else
+		# Scalar
+		printf -v _L_pp_current "%s=%q" "$1" "${!1:-}"
+		_L_pretty_print_output "${_L_flags}${_L_pp_current}"
 	fi
 }
 
@@ -4459,7 +4517,8 @@ _L_pretty_print_output_array() {
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -w <int> Set output width for compact output.
 # @option -c Make the output compact. The default.
-# @option -C Make the output not compact.
+# @option -m Multiline output. Invert of -c.
+# @option -C Alias for -m.
 # @option -h Print this help and return 0.
 # @arg $@ variable names to pretty print
 L_pretty_print() {
@@ -4468,79 +4527,36 @@ L_pretty_print() {
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
 		_L_pp_line_len=0
-	while getopts p:v:w:cCh _L_pp_i; do
+	while getopts p:v:w:cmCh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
 			v) _L_pp_var=$OPTARG ;;
 			w) _L_pp_width=$OPTARG ;;
 			c) _L_pp_oneline=1 ;;
-			C) _L_pp_oneline=0 ;;
+			m|C) _L_pp_oneline=0 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
 	while (($#)); do
-		if _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
-			# Extract variable flags from declare output.
-			local _L_pp_declare_opts=${_L_pp_declare#declare }
-			_L_pp_declare_opts=${_L_pp_declare_opts%% *}
-			local _L_flags=""
-			case "$_L_pp_declare_opts" in
-				""|--|-a|-A) ;;
-				*) _L_flags="${_L_pp_declare_opts} " ;;
-			esac
-			if [[ "$_L_pp_declare" != *=* ]]; then
-				_L_pretty_print_output "$1 is null"
-			elif [[ "$_L_pp_declare_opts" == -[Aa]* ]]; then
-				# Array or associative array
-				_L_pretty_print_output "${_L_flags}$1=("
-				local _L_pp_nonfirst_sep=""
-				if (( _L_pp_oneline )) && [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
-					# Dense normal array
-					L_array_len -v _L_pp_len "$1"
-					for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
-						_L_pp_v="$1[$_L_pp_i]"
-						printf -v _L_pp_v "%q" "${!_L_pp_v}"
-						_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
-						_L_pp_nonfirst_sep=" "
-					done
-				else
-					# Sparse array or associative array
-					L_array_keys -v _L_pp_keys "$1"
-					if [[ "$_L_pp_declare_opts" == -A* ]]; then
-						L_sort -z _L_pp_keys
-					fi
-					for _L_pp_k in "${_L_pp_keys[@]}"; do
-						eval "_L_pp_v=\${$1[\"\$_L_pp_k\"]}"
-						printf -v _L_pp_v "[%q]=%q" "$_L_pp_k" "$_L_pp_v"
-						_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
-						_L_pp_nonfirst_sep=" "
-					done
-				fi
-				# Close paren
-				if (( _L_pp_oneline && ( ${_L_pp_nonfirst_sep:+1}0 || _L_pp_line_len + 1 <= _L_pp_width ) )); then
-					_L_pp_out+=")"
-					(( _L_pp_line_len += 1 ))
-				else
-					_L_pp_out+=$'\n)'
-					_L_pp_line_len=1
-				fi
-			else
-				# Scalar
-				printf -v _L_pp_current "%s=%q" "$1" "${!1}"
-				_L_pretty_print_output "${_L_flags}${_L_pp_current}"
-			fi
+		if [[ "$1" == *\* ]] && L_is_valid_variable_name "${1::${#1}-1}" && L_compgen -V _L_pp_i -A variable -- "${1::${#1}-1}"; then
+			_L_pretty_print_output "$1{"
+			for _L_pp_i in "${_L_pp_i[@]}"; do
+				_L_pp_declare=$(declare -p "$_L_pp_i")
+				_L_pp_prefix+="  "
+				_L_pretty_print_declare "$_L_pp_i"
+				_L_pp_prefix=${_L_pp_prefix::${#_L_pp_prefix}-2}
+			done
+			_L_pretty_print_output "}"
+		elif _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
+			_L_pretty_print_declare "$1"
 		else
 			# Literal string arg (not a variable name)
 			_L_pretty_print_output "$1"
 		fi
 		shift
 	done
-	if [[ -n "$_L_pp_prefix" ]]; then
-		_L_pp_out="${_L_pp_out//$'\n'/$'\n'$_L_pp_prefix}"
-		_L_pp_out="$_L_pp_prefix$_L_pp_out"
-	fi
 	if [[ -z "$_L_pp_var" ]]; then
 		printf "%s\n" "$_L_pp_out"
 	else
@@ -4558,6 +4574,10 @@ _L_argskeywords_assert() {
 		fi
 	fi
 }
+
+# @see L_pretty_print
+# @alias L_pp
+L_pp() { L_pretty_print "$@"; }
 
 # @arg $1 variable
 # @arg $2 value
