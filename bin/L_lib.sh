@@ -6606,7 +6606,8 @@ L_unittest_main() {
 	fi
 	# Create a temporary directory with our context.
 	L_with_tmpdir_into _L_u_tmpd
-	L_finally -v _L_u_finally_idx eval 'echo "Exiting because received $L_SIGNAL"'
+	# kill 0 is required for properly cleanup of subshells (...) that ignore SIGINT.
+	L_finally -v _L_u_finally_idx eval 'kill 0 || :; echo "Exiting because received $L_SIGNAL" >&2'
 	# echo "Using directory $_L_u_tmpd"
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
@@ -12109,6 +12110,7 @@ _L_x_finally() {
 	if (( ${#_L_X_CLEANUP[@]} )); then
 		kill "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
 		wait "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
+		_L_X_CLEANUP=()
 	fi
 }
 
@@ -12175,7 +12177,7 @@ L_xargs() {
 			_L_x_forker=_L_xargs_forker _L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
 			_L_x_foreground=0 _L_x_feeder_id="" \
 			_L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output=() _L_x_dobuf_prefix=() _L_x_dobuf_finished _L_x_dobuf_next=0 \
-			L_UV=() _L_x_finally_idx
+			L_UV=() _L_x_finally_idx _L_x_mypid
 	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:Fh _L_i; do
 		case "$_L_i" in
 			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
@@ -12231,17 +12233,23 @@ L_xargs() {
 	done
 	shift $((OPTIND - 1))
 	# Register common cleanup handler variables.
-	if (( ${_L_X_CLEANUP_SUBSHELL:--1} != BASH_SUBSHELL )); then
-		local _L_X_CLEANUP_SUBSHELL=$BASH_SUBSHELL _L_X_CLEANUP=()
+	L_bashpid_into _L_x_mypid
+	if (( ${_L_X_CLEANUP_PID:--1} != _L_x_mypid )); then
+		local _L_X_CLEANUP_PID=$_L_x_mypid _L_X_CLEANUP_NEST=1 _L_x_finally_idx
+		_L_X_CLEANUP=()
+		L_finally -v _L_x_finally_idx _L_x_finally
+	else
+		(( ++_L_X_CLEANUP_NEST ))
 	fi
-	L_finally -v _L_x_finally_idx _L_x_finally
 	# Store command int variable.
 	local _L_x_cmd=("${@:-L_quote_printf}")
 	# Start the loop over records.
 	L_uv_add_once eval '_L_xargs_pulse;L_uv_poke'
 	L_uv_run
 	# Unregister killing all tasks if everything is ok.
-	L_finally_pop -n -i "$_L_x_finally_idx"
+	if (( --_L_X_CLEANUP_NEST == 0 )); then
+		L_finally_pop -i "$_L_x_finally_idx"
+	fi
 	return "$_L_x_return"
 }
 
