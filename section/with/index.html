@@ -1054,10 +1054,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#temporary-files-l_with_tmpfile_to" class="md-nav__link">
+  <a href="#temporary-files-l_with_tmpfile_into" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Files (L_with_tmpfile_to)
+        Temporary Files (L_with_tmpfile_into)
       
     </span>
   </a>
@@ -1065,10 +1065,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#temporary-directories-l_with_tmpdir_to-l_with_cd_tmpdir" class="md-nav__link">
+  <a href="#temporary-directories-l_with_tmpdir_into-l_with_cd_tmpdir" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Directories (L_with_tmpdir_to, L_with_cd_tmpdir)
+        Temporary Directories (L_with_tmpdir_into, L_with_cd_tmpdir)
       
     </span>
   </a>
@@ -1076,10 +1076,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#redirecting-stdout-to-variable-l_with_redirect_stdout_to" class="md-nav__link">
+  <a href="#redirecting-stdout-to-variable-l_with_redirect_stdout_into" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Redirecting Stdout to Variable (L_with_redirect_stdout_to)
+        Redirecting Stdout to Variable (L_with_redirect_stdout_into)
       
     </span>
   </a>
@@ -1643,10 +1643,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#temporary-files-l_with_tmpfile_to" class="md-nav__link">
+  <a href="#temporary-files-l_with_tmpfile_into" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Files (L_with_tmpfile_to)
+        Temporary Files (L_with_tmpfile_into)
       
     </span>
   </a>
@@ -1654,10 +1654,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#temporary-directories-l_with_tmpdir_to-l_with_cd_tmpdir" class="md-nav__link">
+  <a href="#temporary-directories-l_with_tmpdir_into-l_with_cd_tmpdir" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Temporary Directories (L_with_tmpdir_to, L_with_cd_tmpdir)
+        Temporary Directories (L_with_tmpdir_into, L_with_cd_tmpdir)
       
     </span>
   </a>
@@ -1665,10 +1665,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#redirecting-stdout-to-variable-l_with_redirect_stdout_to" class="md-nav__link">
+  <a href="#redirecting-stdout-to-variable-l_with_redirect_stdout_into" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Redirecting Stdout to Variable (L_with_redirect_stdout_to)
+        Redirecting Stdout to Variable (L_with_redirect_stdout_into)
       
     </span>
   </a>
@@ -1872,12 +1872,12 @@
 <span class="w">    </span><span class="c1"># When my_function returns, we automatically cd back to where we started.</span>
 <span class="o">}</span>
 </code></pre></div>
-<h3 id="temporary-files-l_with_tmpfile_to">Temporary Files (<code>L_with_tmpfile_to</code>)<a class="headerlink" href="#temporary-files-l_with_tmpfile_to" title="Permanent link">&para;</a></h3>
+<h3 id="temporary-files-l_with_tmpfile_into">Temporary Files (<code>L_with_tmpfile_into</code>)<a class="headerlink" href="#temporary-files-l_with_tmpfile_into" title="Permanent link">&para;</a></h3>
 <p>Create a temporary file that is automatically deleted when the function returns.</p>
 <div class="highlight"><pre><span></span><code>process_data<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <span class="w">    </span><span class="nb">local</span><span class="w"> </span>temp_file
 <span class="w">    </span><span class="c1"># Create temp file and store path in &#39;temp_file&#39;</span>
-<span class="w">    </span>L_with_tmpfile_to<span class="w"> </span>temp_file
+<span class="w">    </span>L_with_tmpfile_into<span class="w"> </span>temp_file
 
 <span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;some data&quot;</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$temp_file</span><span class="s2">&quot;</span>
 <span class="w">    </span>process<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$temp_file</span><span class="s2">&quot;</span>
@@ -1885,12 +1885,12 @@
 <span class="w">    </span><span class="c1"># temp_file is removed automatically here</span>
 <span class="o">}</span>
 </code></pre></div>
-<h3 id="temporary-directories-l_with_tmpdir_to-l_with_cd_tmpdir">Temporary Directories (<code>L_with_tmpdir_to</code>, <code>L_with_cd_tmpdir</code>)<a class="headerlink" href="#temporary-directories-l_with_tmpdir_to-l_with_cd_tmpdir" title="Permanent link">&para;</a></h3>
+<h3 id="temporary-directories-l_with_tmpdir_into-l_with_cd_tmpdir">Temporary Directories (<code>L_with_tmpdir_into</code>, <code>L_with_cd_tmpdir</code>)<a class="headerlink" href="#temporary-directories-l_with_tmpdir_into-l_with_cd_tmpdir" title="Permanent link">&para;</a></h3>
 <p>You can create a temporary directory or create it and immediately <code>cd</code> into it.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Create a temp dir, use it, and have it removed automatically</span>
 use_temp_dir<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <span class="w">    </span><span class="nb">local</span><span class="w"> </span>dir
-<span class="w">    </span>L_with_tmpdir_to<span class="w"> </span>dir
+<span class="w">    </span>L_with_tmpdir_into<span class="w"> </span>dir
 <span class="w">    </span>touch<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$dir</span><span class="s2">/file1&quot;</span>
 <span class="o">}</span>
 
@@ -1902,13 +1902,13 @@ work_in_isolation<span class="o">()</span><span class="w"> </span><span class="o
 <span class="w">    </span><span class="c1"># On return: cd back to original dir, and remove the temp dir.</span>
 <span class="o">}</span>
 </code></pre></div>
-<h3 id="redirecting-stdout-to-variable-l_with_redirect_stdout_to">Redirecting Stdout to Variable (<code>L_with_redirect_stdout_to</code>)<a class="headerlink" href="#redirecting-stdout-to-variable-l_with_redirect_stdout_to" title="Permanent link">&para;</a></h3>
+<h3 id="redirecting-stdout-to-variable-l_with_redirect_stdout_into">Redirecting Stdout to Variable (<code>L_with_redirect_stdout_into</code>)<a class="headerlink" href="#redirecting-stdout-to-variable-l_with_redirect_stdout_into" title="Permanent link">&para;</a></h3>
 <p>This function allows you to capture the standard output of the current function into a variable. It avoids the performance penalty and subshell isolation of <code>$(...)</code>.</p>
 <p><strong>Important:</strong> The capture happens when the function <em>returns</em>. Therefore, the target variable must be visible after the function returns (e.g., a global variable, or a local variable in the calling function, or a nameref).</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Capture stdout of this function into the variable named by $1</span>
 get_config_data<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <span class="w">    </span><span class="c1"># $1 is the name of the variable to store result in</span>
-<span class="w">    </span>L_with_redirect_stdout_to<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span>
+<span class="w">    </span>L_with_redirect_stdout_into<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$1</span><span class="s2">&quot;</span>
 
 <span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;key=value&quot;</span>
 <span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;status=ok&quot;</span>
@@ -1923,7 +1923,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--with">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     with
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6069"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6091"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1953,7 +1953,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_cd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6076"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6098"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1994,7 +1994,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_tmpfile_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpfile_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6085"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6107"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2035,7 +2035,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_tmpdir_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpdir_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6096"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6118"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2076,7 +2076,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_cd_tmpdir">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd_tmpdir
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6110"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6132"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2117,7 +2117,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_with_process_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_process_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6137"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6159"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2167,7 +2167,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_with_redirect_stdout_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_redirect_stdout_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6165"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6187"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2212,7 +2212,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="February 6, 2026 12:32:30 UTC">February 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 13, 2026 21:49:31 UTC">July 13, 2026</span>
   </span>
 
     

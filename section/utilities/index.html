@@ -1078,16 +1078,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#debug-variables-l_pretty_print" class="md-nav__link">
+  <a href="#debug-variables-l_pretty_print-l_pp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Debug Variables (L_pretty_print)
+        Debug Variables (L_pretty_print / L_pp)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print)">
+    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print / L_pp)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#variable-prefix-expansion-var" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Prefix Expansion (VAR*)
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#compact-mode-default" class="md-nav__link">
@@ -1105,6 +1116,50 @@
     <span class="md-ellipsis">
       
         Multiline Mode (-C)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variable-output-v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Output (-v)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparse-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sparse Arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namerefs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namerefs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#literal-strings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Literal Strings
       
     </span>
   </a>
@@ -1177,6 +1232,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_pretty_print
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_pp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_pp
       
     </span>
   </a>
@@ -1970,16 +2036,27 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#debug-variables-l_pretty_print" class="md-nav__link">
+  <a href="#debug-variables-l_pretty_print-l_pp" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Debug Variables (L_pretty_print)
+        Debug Variables (L_pretty_print / L_pp)
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print)">
+    <nav class="md-nav" aria-label="Debug Variables (L_pretty_print / L_pp)">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#variable-prefix-expansion-var" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Prefix Expansion (VAR*)
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#compact-mode-default" class="md-nav__link">
@@ -1997,6 +2074,50 @@
     <span class="md-ellipsis">
       
         Multiline Mode (-C)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#variable-output-v" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Variable Output (-v)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sparse-arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sparse Arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namerefs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namerefs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#literal-strings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Literal Strings
       
     </span>
   </a>
@@ -2069,6 +2190,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_pretty_print
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_pp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_pp
       
     </span>
   </a>
@@ -2380,8 +2512,21 @@ L_parse_range_list<span class="w"> </span>-v<span class="w"> </span>selected_fie
 <div class="highlight"><pre><span></span><code><span class="c1"># Print a table with right-aligned first and second columns</span>
 L_table<span class="w"> </span>-R<span class="w"> </span><span class="m">1</span>-2<span class="w"> </span><span class="s2">&quot;ID NAME SCORE&quot;</span><span class="w"> </span><span class="s2">&quot;1 Alice 95&quot;</span><span class="w"> </span><span class="s2">&quot;2 Bob 100&quot;</span>
 </code></pre></div>
-<h3 id="debug-variables-l_pretty_print">Debug Variables (<code>L_pretty_print</code>)<a class="headerlink" href="#debug-variables-l_pretty_print" title="Permanent link">&para;</a></h3>
-<p><code>L_pretty_print</code> formats variables, sparse arrays, and associative arrays for debugging.</p>
+<h3 id="debug-variables-l_pretty_print-l_pp">Debug Variables (<code>L_pretty_print</code> / <code>L_pp</code>)<a class="headerlink" href="#debug-variables-l_pretty_print-l_pp" title="Permanent link">&para;</a></h3>
+<p><code>L_pretty_print</code> formats variables, sparse arrays, and associative arrays for debugging. <code>L_pp</code> is a shorter alias.</p>
+<p><strong>Options:</strong>
+- <code>-C</code> / <code>-m</code> — Multiline output for arrays (default: compact single-line)
+- <code>-c</code> — Force compact single-line output
+- <code>-w &lt;width&gt;</code> — Set output width for compact mode (default: <code>$COLUMNS</code> or 80)
+- <code>-p &lt;prefix&gt;</code> — Prefix each output line
+- <code>-v &lt;var&gt;</code> — Store output in variable instead of printing</p>
+<h4 id="variable-prefix-expansion-var">Variable Prefix Expansion (<code>VAR*</code>)<a class="headerlink" href="#variable-prefix-expansion-var" title="Permanent link">&para;</a></h4>
+<p>Pass a variable name ending with <code>*</code> (e.g., <code>config_*</code>) to pretty-print all variables matching that prefix:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span><span class="nv">config_host</span><span class="o">=</span><span class="s2">&quot;localhost&quot;</span><span class="w"> </span><span class="nv">config_port</span><span class="o">=</span><span class="m">8080</span><span class="w"> </span><span class="nv">config_debug</span><span class="o">=</span><span class="nb">true</span>
+L_pretty_print<span class="w"> </span>config_*
+<span class="c1"># Prints:</span>
+<span class="c1"># config_*{ config_debug=true config_host=localhost config_port=8080 }</span>
+</code></pre></div></p>
 <h4 id="compact-mode-default">Compact Mode (Default)<a class="headerlink" href="#compact-mode-default" title="Permanent link">&para;</a></h4>
 <p>By default, arrays are printed as a single compact line:
 <div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span><span class="nv">config</span><span class="o">=([</span>host<span class="o">]=</span><span class="s2">&quot;localhost&quot;</span><span class="w"> </span><span class="o">[</span>port<span class="o">]=</span><span class="s2">&quot;8080&quot;</span><span class="o">)</span>
@@ -2400,11 +2545,31 @@ L_pretty_print<span class="w"> </span>-C<span class="w"> </span>config
 <span class="c1">#   [port]=8080</span>
 <span class="c1"># )</span>
 </code></pre></div></p>
+<h4 id="variable-output-v">Variable Output (<code>-v</code>)<a class="headerlink" href="#variable-output-v" title="Permanent link">&para;</a></h4>
+<p>Store output in a variable instead of printing:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span>-A<span class="w"> </span><span class="nv">assoc</span><span class="o">=([</span>x<span class="o">]=</span><span class="m">1</span><span class="o">)</span>
+L_pretty_print<span class="w"> </span>-v<span class="w"> </span>out<span class="w"> </span>assoc
+<span class="c1"># out=&quot;assoc=([x]=1)&quot;</span>
+</code></pre></div></p>
+<h4 id="sparse-arrays">Sparse Arrays<a class="headerlink" href="#sparse-arrays" title="Permanent link">&para;</a></h4>
+<p>Sparse arrays show their indices explicitly:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span><span class="nv">sparse</span><span class="o">=([</span><span class="m">0</span><span class="o">]=</span>first<span class="w"> </span><span class="o">[</span><span class="m">2</span><span class="o">]=</span>third<span class="o">)</span>
+L_pretty_print<span class="w"> </span>sparse
+<span class="c1"># Prints: sparse=([0]=first [2]=third)</span>
+</code></pre></div></p>
+<h4 id="namerefs">Namerefs<a class="headerlink" href="#namerefs" title="Permanent link">&para;</a></h4>
+<p>Namereferences show the reference chain:
+<div class="highlight"><pre><span></span><code><span class="nb">local</span><span class="w"> </span>-n<span class="w"> </span><span class="nv">ref</span><span class="o">=</span>assoc
+L_pretty_print<span class="w"> </span>ref
+<span class="c1"># Prints: ref-&gt;assoc=([x]=1)</span>
+</code></pre></div></p>
+<h4 id="literal-strings">Literal Strings<a class="headerlink" href="#literal-strings" title="Permanent link">&para;</a></h4>
+<p>Arguments that are not variable names are printed as literal strings.</p>
 <hr />
 <h2 id="generated-documentation-from-source">Generated documentation from source:<a class="headerlink" href="#generated-documentation-from-source" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--utilities">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     utilities
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4311"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4313"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2434,7 +2599,7 @@ L_pretty_print<span class="w"> </span>-C<span class="w"> </span>config
 
 <h3 id="L_lib.sh--L_table">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_table
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4327"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4329"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2509,7 +2674,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_parse_range_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_parse_range_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4402"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4404"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2581,7 +2746,7 @@ Option:
 
 <h3 id="L_lib.sh--L_parse_range_list_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_parse_range_list_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4403"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4405"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2608,7 +2773,7 @@ Option:
 
 <h3 id="L_lib.sh--L_pretty_print">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_pretty_print
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4460"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4521"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2636,8 +2801,11 @@ Option:
 </li><li>                <strong><code>-c</code></strong>
     Make the output compact. The default.
 
+</li><li>                <strong><code>-m</code></strong>
+    Multiline output. Invert of -c.
+
 </li><li>                <strong><code>-C</code></strong>
-    Make the output not compact.
+    Alias for -m.
 
 </li><li>                <strong><code>-h</code></strong>
     Print this help and return 0.
@@ -2666,9 +2834,43 @@ Argument:
   
 
 
+<h3 id="L_lib.sh--L_pp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_pp
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4577"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_pp" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_pretty_print">L_pretty_print</a>
+
+    </p>
+
+
+
 <h3 id="L_lib.sh--L_argskeywords">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argskeywords
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4609"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4631"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2769,7 +2971,7 @@ int 10 base=7
 
 <h3 id="L_lib.sh--L_version_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_version_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4779"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4801"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2842,7 +3044,7 @@ See:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 12, 2026 07:41:31 UTC">July 12, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 16, 2026 10:59:13 UTC">July 16, 2026</span>
   </span>
 
     

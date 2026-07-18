@@ -1582,6 +1582,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#string-prefix-dispatch-case-vs-if-with-prefix-strip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Prefix Dispatch: case vs if with prefix-strip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leading-whitespace-trim-of-a-json-string-_l_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leading Whitespace Trim of a JSON string (_L_json)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -1779,6 +1801,28 @@
     <span class="md-ellipsis">
       
         Real-time Throughput
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#string-prefix-dispatch-case-vs-if-with-prefix-strip" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Prefix Dispatch: case vs if with prefix-strip
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#leading-whitespace-trim-of-a-json-string-_l_json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Leading Whitespace Trim of a JSON string (_L_json)
       
     </span>
   </a>
@@ -2504,6 +2548,211 @@
 </tr>
 </tbody>
 </table>
+<h3 id="string-prefix-dispatch-case-vs-if-with-prefix-strip">String Prefix Dispatch: <code>case</code> vs <code>if</code> with prefix-strip<a class="headerlink" href="#string-prefix-dispatch-case-vs-if-with-prefix-strip" title="Permanent link">&para;</a></h3>
+<p>Two idioms for dispatching on a string prefix and stripping it. Both use the
+same strip mechanism (<code>${str#$pat}</code>) but differ in control-flow:</p>
+<ul>
+<li><strong><code>case</code></strong>: <code>case "$str" in "$pat"*) tmp=${str#"$pat"} ;; "$pat2"*) tmp=${str#"$pat2"} ;; esac</code></li>
+<li><strong><code>if</code></strong>: <code>if tmp=${str#"$pat"}; [[ "$tmp" != "$str" ]]; then :; else tmp=${str#"$pat2"}; [[ "$tmp" != "$str" ]] &amp;&amp; :; fi</code></li>
+</ul>
+<p>Profiled with <code>L_bash_profile compare -m qemu</code> (deterministic instruction
+count). Both snippets produce identical <code>tmp</code> (verified: <code>[value][value]</code>).</p>
+<p><strong>Scenario 1 — first pattern matches (common case):</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions</th>
+<th style="text-align: left;">Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>case "$str" in "$pat"*) tmp=${str#"$pat"} ;; "$pat2"*) ... ;; esac</code></td>
+<td style="text-align: left;"><strong>65 644</strong></td>
+<td style="text-align: left;">—</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>if tmp=${str#"$pat"}; [[ "$tmp" != "$str" ]]; then ...</code></td>
+<td style="text-align: left;">92 974</td>
+<td style="text-align: left;">+27 330 (+42%)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Scenario 2 — first pattern fails, second matches:</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions</th>
+<th style="text-align: left;">Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>case ...</code></td>
+<td style="text-align: left;"><strong>67 620</strong></td>
+<td style="text-align: left;">—</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>if ...</code></td>
+<td style="text-align: left;">123 204</td>
+<td style="text-align: left;">+55 584 (+82%)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variant — <code>if</code> with the assignment moved inside the branch</strong>
+(<code>if [[ "${str#"$pat"}" != "$str" ]]; then tmp=${str#"$pat"}; else tmp=${str#"$pat2"}; fi</code>):</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Implementation</th>
+<th style="text-align: left;">Instructions</th>
+<th style="text-align: left;">Δ</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>case ...</code></td>
+<td style="text-align: left;"><strong>92 624</strong></td>
+<td style="text-align: left;">—</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>if</code> (assignment inside branch)</td>
+<td style="text-align: left;">111 290</td>
+<td style="text-align: left;">+18 666 (+20%)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why <code>case</code> wins:</strong>
+1. The <code>if</code> idiom computes and assigns <code>${str#"$pat"}</code> <em>unconditionally</em> before the
+   test, even when the pattern misses and the <code>else</code> branch runs instead. <code>case</code>
+   only evaluates the matching branch body.
+2. <code>[[ "$tmp" != "$str" ]]</code> is a separate command with its own parse/eval overhead;
+   <code>case</code> folds the match-test and dispatch into one builtin operation.
+3. Even the improved <code>if</code> variant computes <code>${str#"$pat"}</code> twice in the taken branch
+   (once in the <code>[[ ]]</code> test, once in the assignment).</p>
+<p><strong>Recommendation:</strong> prefer <code>case</code> for multi-pattern prefix dispatch — it is ~40%
+cheaper in the common case and ~80% cheaper when early patterns miss. If <code>if</code> is
+required, keep the assignment inside the branch (the +20% variant) rather than the
+pre-assignment form (+42% / +82%).</p>
+<h3 id="leading-whitespace-trim-of-a-json-string-_l_json">Leading Whitespace Trim of a JSON string (<code>_L_json</code>)<a class="headerlink" href="#leading-whitespace-trim-of-a-json-string-_l_json" title="Permanent link">&para;</a></h3>
+<p><strong>Task:</strong> strip leading whitespace. Source under test: <code>temp/trim_functions.sh</code>.
+Benchmarked with <code>L_bash_profile compare</code> (QEMU deterministic instruction counts
+and wall-clock time). Input: 1KB JSON with 3 leading spaces (<code>_L_json_1k</code>).</p>
+<p><strong>Why each approach was presented:</strong>
+- <code>trim_orig</code> / <code>trim_simple</code> — single expression <code>${_L_json#${_L_json%%[![:space:]]*}}</code>.
+  <code>%%[![:space:]]*</code> finds the leading whitespace run (greedy scan to first
+  non-space), then <code>#</code> strips it. <code>trim_orig</code> quotes the nested expansion;
+  <code>trim_simple</code> does not. Edge case: when there is no leading whitespace,
+  <code>%%[![:space:]]*</code> returns the whole string, so <code>#</code> strips the first char
+  (off-by-one bug).
+- <code>trim_fixed</code> / <code>trim_fixed_opt</code> / <code>trim_fixed_long</code> / <code>trim_orig_opt</code> — split
+  into a local variable + conditional, so when the run is empty nothing is
+  stripped. Compared <code>[[ -n "$x" ]]</code> vs <code>(( ${#x} ))</code>, and short (<code>x</code>) vs long
+  (<code>leading_ws</code>) variable name.
+- <code>trim_extglob</code> — <code>##+([[:space:]])</code> (requires <code>extglob</code>). Matches and removes
+  the longest leading whitespace run.
+- <code>trim_read</code> / <code>trim_shortest</code> / <code>trim_regex</code> / <code>trim_printf</code> — alternatives.
+  <code>trim_read</code> (<code>read -r _L_json &lt;&lt;&lt; "$_L_json"</code>) truncates at the first newline,
+  so it is incorrect for multi-line JSON.</p>
+<p><strong>Results (QEMU instruction counts, 1KB JSON):</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Function</th>
+<th style="text-align: left;">Instructions</th>
+<th style="text-align: left;">Δ vs best</th>
+<th style="text-align: left;">%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>trim_orig_opt</code></td>
+<td style="text-align: left;">284,528</td>
+<td style="text-align: left;">—</td>
+<td style="text-align: left;">baseline</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trim_fixed_opt</code></td>
+<td style="text-align: left;">285,015</td>
+<td style="text-align: left;">+487</td>
+<td style="text-align: left;">+0.17%</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trim_fixed</code> (<code>[[ -n ]]</code>, short x)</td>
+<td style="text-align: left;">288,000</td>
+<td style="text-align: left;">+3,472</td>
+<td style="text-align: left;">+1.22%</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trim_fixed_long</code> (long var)</td>
+<td style="text-align: left;">290,593</td>
+<td style="text-align: left;">+6,065</td>
+<td style="text-align: left;">+2.13%</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trim_simple</code></td>
+<td style="text-align: left;">402,930</td>
+<td style="text-align: left;">+118,402</td>
+<td style="text-align: left;">+41.6%</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>trim_extglob</code></td>
+<td style="text-align: left;">454,907</td>
+<td style="text-align: left;">+170,379</td>
+<td style="text-align: left;">+59.9%</td>
+</tr>
+</tbody>
+</table>
+<p><code>trim_orig_opt</code> wins (short var <code>x</code> + <code>(( ${#x} ))</code>). <code>trim_fixed_opt</code> is
+functionally identical (same body, 487-instruction gap is noise). Long variable
+name adds ~2%. <code>[[ -n ]]</code> adds ~1% over <code>(( ${#x} ))</code>.</p>
+<p><strong>Why <code>trim_extglob</code> is slow (O(n²)):</strong></p>
+<p><code>+([[:space:]])</code> is implemented in bash's <code>EXTMATCH</code> ('+') branch of <code>GMATCH</code>
+(<code>patmatch.c</code>). The match clause is:</p>
+<div class="highlight"><pre><span></span><code>for (srest = s; srest &lt;= se; srest++) {
+    m1 = GMATCH(s, srest, psub, pnext - 1) == 0;        /* match subpattern once */
+    if (m1) {
+        m2 = (GMATCH(srest, se, prest, pe) == 0) ||
+              (s != srest &amp;&amp; GMATCH(srest, se, p - 1, pe) == 0);  /* re-match whole extglob */
+    }
+    if (m1 &amp;&amp; m2) return 0;
+}
+</code></pre></div>
+<p>The second <code>GMATCH</code> clause re-matches the entire <code>+([[:space:]])</code> pattern
+against the remainder. To match <code>n</code> spaces, <code>EXTMATCH</code> recurses <code>n</code> times; each
+level's inner <code>srest</code> loop scans positions from the current offset. Total work ≈
+Σ(1..n) = <strong>O(n²)</strong>. At 1KB the gap is ~60%; it grows quadratically with the
+length of the leading whitespace run.</p>
+<p>By contrast <code>%%[![:space:]]*</code> is one greedy left-to-right scan for the first
+non-space character: <strong>O(n)</strong>, no recursion. This is why every <code>trim_*</code> variant
+using <code>%%[![:space:]]*</code> beats <code>trim_extglob</code>.</p>
+<p><strong>Throughput reference:</strong> ~1.6 GIPS (1M instructions ≈ 600–800µs) →
+<code>trim_orig_opt</code> at 284,528 instructions ≈ 178µs per call.</p>
+<p><strong>All <code>trim_*</code> source (from <code>temp/trim_functions.sh</code>):</strong></p>
+<div class="highlight"><pre><span></span><code>trim_orig<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="s2">&quot;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_simple<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_fixed<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="nv">leading_ws</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$leading_ws</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="nv">$leading_ws</span><span class="s2">&quot;</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">fi</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_extglob<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">##+([[:</span><span class="nv">space</span><span class="p">:]])</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_fixed_opt<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="nv">x</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="si">${#</span><span class="nv">x</span><span class="si">}</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="nv">$x</span><span class="s2">&quot;</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">fi</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_fixed_long<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="nv">leading_ws</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="si">${#</span><span class="nv">leading_ws</span><span class="si">}</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="nv">$leading_ws</span><span class="s2">&quot;</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">fi</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_orig_opt<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">local</span><span class="w"> </span><span class="nv">x</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="o">((</span><span class="w"> </span><span class="si">${#</span><span class="nv">x</span><span class="si">}</span><span class="w"> </span><span class="o">))</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="nv">$x</span><span class="s2">&quot;</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">fi</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_read<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">read</span><span class="w"> </span>-r<span class="w"> </span>_L_json<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$_L_json</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_shortest<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#*[![:</span><span class="nv">space</span><span class="p">:]]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">#</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">_L_json</span><span class="p">%%[![:</span><span class="nv">space</span><span class="p">:]]*</span><span class="si">}</span><span class="s2">&quot;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_regex<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$_L_json</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">=</span>~<span class="w"> </span>^<span class="o">[[</span>:space:<span class="o">]]</span>*<span class="o">(</span>.*<span class="o">)</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="nv">_L_json</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">BASH_REMATCH</span><span class="p">[1]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+
+trim_printf<span class="o">()</span><span class="w"> </span><span class="o">{</span><span class="w"> </span><span class="nb">printf</span><span class="w"> </span>-v<span class="w"> </span>_L_json<span class="w"> </span><span class="s1">&#39;%s&#39;</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$_L_json</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="o">}</span>
+</code></pre></div>
 
 
 
@@ -2524,7 +2773,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2026 22:58:33 UTC">July 9, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 16, 2026 20:18:25 UTC">July 16, 2026</span>
   </span>
 
     
