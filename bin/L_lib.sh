@@ -12242,7 +12242,7 @@ L_xargs() {
 		(( ++_L_X_CLEANUP_NEST ))
 	fi
 	# Store command int variable.
-	local _L_x_cmd=("${@:-L_quote_printf}")
+	local _L_x_cmd=("${@:-echo}")
 	# Start the loop over records.
 	L_uv_add_once eval '_L_xargs_pulse;L_uv_poke'
 	L_uv_run

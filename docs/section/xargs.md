@@ -11,7 +11,7 @@ Unlike the standard GNU `xargs` which is a compiled binary, `L_xargs` runs withi
 `L_xargs` operates on two levels of input units:
 
 1.  **Records:** These are the primary chunks of input, separated by a delimiter. By default, the delimiter is a newline character (`\n`), so each line of input is one record. You can change this with the `-d` (delimiter) or `-0` (null character) options.
-2.  **Atoms:** These are the final arguments that are passed to the command being executed. By default, each Record is treated as a single, solid Atom. However, if you use the `-s` (split mode) option, `L_xargs` will parse the Record using shell-like quoting rules, potentially splitting one Record into multiple Atoms.
+2.  **Atoms:** These are the final arguments that are passed to the command being executed. By default, `L_xargs` splits each Record into Atoms using shell-like quoting rules (split mode). Use `-Z` to treat each Record as a single, solid Atom.
 
 The command is executed when either the number of accumulated Atoms reaches the limit set by `-n`, or the number of Records reaches the limit set by `-L`.
 
@@ -26,9 +26,11 @@ The command is executed when either the number of accumulated Atoms reaches the 
 
 ```bash
 # Reads newline-separated items from stdin and passes them as arguments to echo
-printf "item1\nitem2\nitem3" | L_xargs echo
+printf "item1\nitem2\nitem3" | L_xargs
 # Output: item1 item2 item3
 ```
+
+**Default command**: `echo`. Use an explicit command like `L_quote_printf` if you want shell-quoted output.
 
 ### Options and Examples
 
@@ -36,7 +38,7 @@ printf "item1\nitem2\nitem3" | L_xargs echo
 
 This is a primary use case for `L_xargs`. The function does not need to be exported. Because `L_xargs` operates within the same shell, the function can also access any variables or other functions from your script.
 
-Crucially, if the `-P` (parallel) option is **not** used, the function is executed in the *current shell execution environment*. This means any modifications to variables made by the function will persist after `L_xargs` has finished.
+By default, `L_xargs` executes commands in a subshell (forked process). To run the function in the *current shell execution environment* (so modifications to variables persist), use the `-F` (foreground) option.
 
 ```bash
 #!/usr/bin/env bash
@@ -51,7 +53,8 @@ process_item() {
   (( counter++ ))
 }
 
-L_xargs -n 1 process_item <<<$'A\nB\nC'
+# Use -F to run in current shell so counter persists
+L_xargs -F -n 1 process_item <<<$'A\nB\nC'
 
 echo "Total items processed: $counter"
 # Output:
@@ -61,9 +64,9 @@ echo "Total items processed: $counter"
 # Total items processed: 3
 ```
 
-#### Input from an Array (-a)
+#### Input from an Array (-A)
 
-Use the `-a` option to read input directly from a Bash array.
+Use the `-A` option to read input directly from a Bash array.
 
 ```bash
 my_items=("First item" "Second item" "Third item")
@@ -75,9 +78,9 @@ L_xargs -Z -A my_items -n 1 echo
 # Third item
 ```
 
-#### Input from a Callback Function (-c)
+#### Input from a Callback Function (-C)
 
-The `-c` option allows you to provide a string that will be `eval`ed to generate input Records. The evaluated string must populate the `L_RET` variable (as an array) and return 0 for success. A non-zero return code signals the end of input.
+The `-C` option allows you to provide a string that will be `eval`ed to generate input Records. The evaluated string must populate the `L_RET` variable (as an array) and return 0 for success. A non-zero return code signals the end of input.
 
 ```bash
 i=0
@@ -100,20 +103,20 @@ L_xargs -n 1 -C 'generate_items' echo
 
 By default, `L_xargs` uses a newline to separate records. `-d` changes the delimiter. `-0` is a shorthand for `-d ''`, using the null character, which is useful for working with `find -print0`.
 
-The default behavior is to treat each record as a single "solid" atom. This is equivalent to `-S`. If you need to split records based on whitespace and shell quoting, use `-s`.
+By default, `L_xargs` splits each record into atoms using shell-like quoting rules (split mode). Use `-Z` to treat each record as a single, solid atom.
 
 ```bash
-# Default behavior (Solid mode)
+# Default behavior (Split mode)
 printf "A B\nC" | L_xargs -n 1 echo
-# Output:
-# A B
-# C
-
-# Split mode
-printf "A B\nC" | L_xargs -z -n 1 echo
 # Output:
 # A
 # B
+# C
+
+# Solid mode
+printf "A B\nC" | L_xargs -Z -n 1 echo
+# Output:
+# A B
 # C
 ```
 

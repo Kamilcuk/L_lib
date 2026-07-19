@@ -28,7 +28,7 @@ _L_test_L_xargs_callback_empty() {
     }
     local i=0
     local output
-    output=$(L_xargs -Z -L 1 -t -C 'callback_func')
+    output=$(L_xargs -Z -L 1 -t -C 'callback_func' L_quote_printf)
     L_unittest_eq "$output" $'\'\'\n\'\' \'\'\n\'\' a'
 }
 
