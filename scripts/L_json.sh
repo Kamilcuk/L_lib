@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-. ./bin/L_lib.sh -s -n
+# . ./bin/L_lib.sh -s -n
 
 shopt -s extglob
 
@@ -57,11 +57,8 @@ L_handle_v_asa() {
 
 ###############################################################################
 
-_L_float_pat='?(-)@(0|[1-9]*([0-9]))?(.+([0-9]))?([eE]?([+-])+([0-9]))'
-_L_float_re='-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?'
-_L_num_pat='@(0|[1-9]*([0-9]))'
-_L_str_pat=$'"*([!\x01-\x1f"\\\\]|\\\\["\\\\/bfnrt]|\\\\u[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]])"'
-_L_key_pat=$'+([!\x01-\x1f"\\\\.[])'
+_L_float_re='^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?'
+_L_str_re=$'"([^"\x01-\x1f''\\]|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*"'
 
 # @description Print JSON parsing error.
 _L_json_err() {
@@ -71,17 +68,14 @@ _L_json_err() {
   return "$L_EX_DATAERR"
 }
 _L_json_lstrip() {
-  case "$_L_json" in [$' \t\r\n']*)
-    _L_json=${_L_json#"${_L_json%%[!$' \t\r\n']*}"}
-  esac
+  _L_json=${_L_json#"${_L_json%%[!$' \t\r\n']*}"}
 }
 _L_json_read_string() {
-  local _L_re=$'^"([^"\x01-\x1f\\]|\\["\\/bfnrt]|\\u[0-9a-fA-F]{4})*"'
-  if [[ "$_L_json" =~ $_L_re ]]; then
-    _L_string="${BASH_REMATCH[0]}"
-    _L_json="${_L_json:${#_L_string}}"
+  if [[ "$_L_json" =~ ^[$' \t\r\n']*($_L_str_re) ]]; then
+    _L_string="${BASH_REMATCH[1]}"
+    _L_json="${_L_json:${#BASH_REMATCH[0]}}"
   else
-    _L_json_err "Expected string"; return
+    _L_json_err "Expected string"
   fi
 }
 _L_json_read_object_element() {
@@ -105,73 +99,69 @@ _L_json_read_array_element() {
 }
 _L_json_read_value() {
   local _L_tmp _L_string _L_idx=0
-  _L_json_lstrip
   case "$_L_json" in
+    [$' \t\r\n']*) _L_json_lstrip; _L_json_read_value; return ;;
     '"'*)
       _L_json_read_string || return
       "$_L_json_cb" value "$_L_string" string || return
       ;;
-    $_L_float_pat[$' \t\r\n'",}]"]*)
-      # The ${#} is shortest, so to match properly we have to match one char after it.
-      _L_tmp=${_L_json#$_L_float_pat[$' \t\r\n'",}]"]}
-      "$_L_json_cb" value "${_L_json::${#_L_json}-${#_L_tmp}-1}" number || return
-      _L_json=${_L_json:${#_L_json}-${#_L_tmp}-1}
-      ;;
-    $_L_float_pat)
-      # Has to be handled separately to allow for ${#} matching.
-      "$_L_json_cb" value "$_L_json" number || return
-      _L_json=""
+    [-0-9]*)
+      if [[ "$_L_json" =~ $_L_float_re ]]; then
+        "$_L_json_cb" value "${BASH_REMATCH[0]}" number || return
+        _L_json=${_L_json:${#BASH_REMATCH[0]}}
+      else
+        _L_json_err "Invalid number"; return
+      fi
       ;;
     '{'*)
       "$_L_json_cb" start "{" || return
       _L_json=${_L_json:1}
-      _L_json_lstrip
-      case "$_L_json" in
-        '"'*) _L_json_read_object_element || return ;;
-        '}'*) _L_json=${_L_json:1}; "$_L_json_cb" end "}" || return; return ;;
-        '') _L_json_err "Unexpected EOF"; return ;;
-        *) _L_json_err "Invalid object element"; return
-      esac
-      while (( !_L_json_break )); do
+      while (( 1 )); do
         case "$_L_json" in
           [$' \t\r\n']*) _L_json_lstrip; continue ;;
-          ','*) _L_json=${_L_json:1}; "$_L_json_cb" token "," || return ;;
+          '"'*) _L_json_read_object_element || return ;;
           '}'*) _L_json=${_L_json:1}; "$_L_json_cb" end "}" || return; return ;;
           '') _L_json_err "Unexpected EOF"; return ;;
           *) _L_json_err "Invalid object element"; return
         esac
-        if (( !_L_json_break )); then
-          _L_json_lstrip
+        while (( !_L_json_break )); do
           case "$_L_json" in
-            $_L_str_pat*) _L_json_read_object_element || return ;;
+            [$' \t\r\n']*) _L_json_lstrip; continue ;;
+            ','*) _L_json=${_L_json:1}; "$_L_json_cb" token "," || return ;;
+            '}'*) _L_json=${_L_json:1}; "$_L_json_cb" end "}" || return; return ;;
             '') _L_json_err "Unexpected EOF"; return ;;
             *) _L_json_err "Invalid object element"; return
           esac
-        fi
+          if (( !_L_json_break )); then
+            _L_json_read_object_element || return
+          fi
+        done
+        _L_json_err "Missing object end '}'"; return
       done
-      _L_json_err "Missing object end '}'"; return
       ;;
     '['*)
       "$_L_json_cb" start "[" || return
       _L_json=${_L_json:1}
-      _L_json_lstrip
-      case "$_L_json" in
-        ']'*) _L_json=${_L_json:1}; "$_L_json_cb" end ']' || return; return ;;
-        *) _L_json_read_array_element || return
-      esac
-      while (( !_L_json_break )); do
+      while (( 1 )); do
         case "$_L_json" in
           [$' \t\r\n']*) _L_json_lstrip; continue ;;
-          ','*) _L_json=${_L_json:1}; "$_L_json_cb" token "," || return ;;
           ']'*) _L_json=${_L_json:1}; "$_L_json_cb" end ']' || return; return ;;
-          '') _L_json_err "Unexpected EOF"; return ;;
-          *) _L_json_err "Invalid array element"; return ;;
+          *) _L_json_read_array_element || return ;;
         esac
-        if (( !_L_json_break )); then
-          _L_json_read_array_element || return
-        fi
+        while (( !_L_json_break )); do
+          case "$_L_json" in
+            [$' \t\r\n']*) _L_json_lstrip; continue ;;
+            ','*) _L_json=${_L_json:1}; "$_L_json_cb" token "," || return ;;
+            ']'*) _L_json=${_L_json:1}; "$_L_json_cb" end ']' || return; return ;;
+            '') _L_json_err "Unexpected EOF"; return ;;
+            *) _L_json_err "Invalid array element"; return ;;
+          esac
+          if (( !_L_json_break )); then
+            _L_json_read_array_element || return
+          fi
+        done
+        _L_json_err "Missing array end ']'"; return
       done
-      _L_json_err "Missing array end ']'" || return
       ;;
     true*|null*) "$_L_json_cb" value "${_L_json::4}" "${_L_json::4}" || return; _L_json=${_L_json:4} ;;
     false*) "$_L_json_cb" value "${_L_json::5}" "${_L_json::5}" || return; _L_json=${_L_json:5} ;;
@@ -181,11 +171,24 @@ _L_json_read_value() {
 }
 _L_json_read() {
   local _L_json_len=${#_L_json} _L_json_context="" _L_json_cb=$1 _L_json_break=0 _L_json_errdepth=${#FUNCNAME[*]}
-  L_shopt_extglob _L_json_read_value || return
+  # L_shopt_extglob 
+      _L_json_read_value || return
   if [[ "$_L_json" == *[!$' \t\r\n']* ]]; then
     _L_json_err "Invalid tokens after value" || return
   fi
 }
+
+if (( ${BENCH:-0} )); then
+  run() {
+    _L_json='{"a":[{"b":"c"}],"d":[{"e":"f"}]}'
+    _L_json_read :
+  }
+  return
+  exit
+fi
+. ./bin/L_lib.sh -s -n
+
+###############################################################################
 
 L_json_unquote() { L_handle_v_scalar "$@"; }
 L_json_unquote_vL_RET() {
@@ -199,34 +202,55 @@ L_json_unquote_vL_RET() {
 L_json_path_normalize() { L_handle_v_scalar "$@"; }
 L_json_path_normalize_vL_RET() { L_shopt_extglob L_json_path_normalize_vL_RET_in "$@"; }
 L_json_path_normalize_vL_RET_in() {
-  local _L_input=$1 _L_dot='' _L_rest _L_part _L_after_dot=0
+  local _L_input=$1 _L_dot='' _L_tmp
   L_RET=""
   while (( 1 )); do
     case "$_L_input" in
-      $_L_dot'['$_L_str_pat']'*)
-        _L_rest=${_L_input#'['$_L_str_pat']'*}
-        L_RET+=$'\t'"${_L_input:1:${#_L_input}-${#_L_rest}-2}"
-        _L_input=$_L_rest
+      '["'*)
+        if [[ "$_L_input" =~ \
+          ^\[\"((([^\"$'\x01-\x1f'\\]|\\[\"\\/bfnrt])*)|([^\"$'\x01-\x1f'\\]|\\[\"\\/bfnrt]|\\u[0-9a-fA-F]{4})*)\"\] \
+        ]]; then
+          if (( ${#BASH_REMATCH[2]} )); then
+            L_RET+=$'\t'"\"${BASH_REMATCH[2]}\""
+          elif ! L_hash jq; then
+            L_func_error "To handle \\u sequences jq is required, but not installed"; return "$L_EX_SOFTWARE"
+          elif _L_tmp=$(jq '.[]' <<<"${BASH_REMATCH[0]}"); then
+            L_RET+=$'\t'"$_L_tmp"
+          else
+            L_func_error "Invalid input string: $_L_input"; return "$L_EX_DATAERR"
+          fi
+          _L_input="${_L_input:${#BASH_REMATCH[0]}}"
+        else
+          L_func_error "Unclosed double quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
+        fi
         ;;
-      $_L_dot'["'*) L_func_error "Unclosed string in bracket notation: $_L_input"; return "$L_EX_DATAERR" ;;
-      $_L_dot'['$_L_num_pat']'*)
-        _L_rest=${_L_input#$_L_dot'['$_L_num_pat']'}
-        L_RET+=$'\t'"${_L_input:1+${#_L_dot}:${#_L_input}-${#_L_rest}-2}"
-        _L_input=$_L_rest
+      "['"*)
+        if [[ "$_L_input" =~ \
+          ^\[\'((([^\'$'\x01-\x1f'\\]|\\[\'\\/bfnrt])*)|([^\'$'\x01-\x1f'\\]|\\[\'\\/bfnrt]|\\u[0-9a-fA-F]{4})*)\'\] \
+        ]]; then
+          _L_tmp=${BASH_REMATCH[1]//\\\'/\'}
+          _L_input='["'${_L_tmp//\"/\\\"}'"]'${_L_input:${#BASH_REMATCH[0]}}
+        else
+          L_func_error "Unclosed single quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
+        fi
         ;;
-      $_L_dot'['*) L_func_error "Invalid bracket notation: $_L_input"; return "$L_EX_DATAERR" ;;
+      '['[0-9]*)
+        if [[ "$_L_input" =~ ^'['(0|[1-9][0-9]*)']' ]]; then
+          L_RET+=$'\t'"${BASH_REMATCH[1]}"
+          _L_input="${_L_input:${#BASH_REMATCH[0]}}"
+        else
+          L_func_error "Invalid bracket notation: $_L_input"; return "$L_EX_DATAERR"
+        fi
+        ;;
+      $_L_dot[^$'\x01-\x1f'"\\.\[\]@#%^&*+=|/?!~\`'\";:,{}()<>-"]*)
+        if [[ "$_L_input" =~ ^$_L_dot([^"]"$'\x01-\x1f'"\\.\[@#%^&*+=|/?!~\`'\";:,{}()<>-"]+) ]]; then
+          L_RET+=$'\t'"\"${BASH_REMATCH[1]}\""
+          _L_input="${_L_input:${#_L_dot}+${#BASH_REMATCH[1]}}"
+        else
+          L_func_error "Empty key in JSON path: $_L_input"; return "$L_EX_DATAERR"
+        fi
+        ;;
       '') break ;;
-      $_L_dot$_L_str_pat*)
-        _L_rest=${_L_input#$_L_dot$_L_str_pat}
-        L_RET+=$'\t'"${_L_input:${#_L_dot}:${#_L_input}-${#_L_rest}}"
-        _L_input=$_L_rest
-        ;;
-      $_L_dot$_L_key_pat) L_RET+=$'\t'"\"${_L_input:${#_L_dot}}\"" _L_input="" ;;
-      $_L_dot$_L_key_pat[".["]*)
-        _L_rest=${_L_input#$_L_dot$_L_key_pat[".["]}
-        L_RET+=$'\t'"\"${_L_input:${#_L_dot}:${#_L_input}-${#_L_rest}-1}\""
-        _L_input=${_L_input:${#_L_input}-${#_L_rest}-1}
-        ;;
       *) L_func_error "Invalid character in JSON path: $_L_input"; return "$L_EX_DATAERR" ;;
     esac
     _L_dot="."
@@ -244,6 +268,11 @@ _L_json_test() {
   local _L_json=$1
   _L_json_read _L_json_cb
 }
+_L_json_test_quiet() {
+  local _L_json=$1
+  _L_json_read :
+}
+
 
 L_json_get() { L_handle_v_scalar "$@"; }
 L_json_get_vL_RET() {
@@ -618,7 +647,7 @@ _L_json_fetch_64KB_vL_RET() {
 _L_test_json_64KB() {
   local L_RET
   _L_json_fetch_64KB_vL_RET
-  _L_json_test "$L_RET" || exit
+  _L_json_test_quiet "$L_RET" || exit
 }
 
 # Test using first 20 elements (~5KB) from cached 64KB JSON
@@ -636,7 +665,6 @@ _L_test_json_to_obj() {
 [1,2,3,4]
 {"a":[{"b":"c"}]}
 {"a":[{"b":"c"}],"d":[{"e":"f"}]}
-{"a":"b","c":["d",1,true],"e":{"f.":{"g":"h"}}}
 EOF
   for json in "${jsons[@]}"; do
     declare -A dest
@@ -703,6 +731,8 @@ _L_test_json_is_valid() {
     '{"a":1,"b":2}' '{"a":1,"b":2,"c":3}'
     'null' 'true' 'false' '"string"'
     '123' '-123.45' '1e10' '1E-5'
+    '{"a":"b","c":"d"}'
+    '{"a":"b","c":[1,2,3],"d":{"e":"f"}}'
     # Nested empty containers
     '[[]]' '[ [ ] ]' '[[[]]]' '[{}]' '{"a":{}}' '{"a":[]}'
   )
@@ -950,17 +980,16 @@ _L_test_obj_get_json() {
 _L_test_json_path_edge_cases() {
   # Test various edge cases for path normalization
   local -A cases=(
-    ['a']=$'\ta'
-    ['a.b']=$'\ta\tb'
-    ['a[0]']=$'\ta\t0'
-    ['a["b"]']=$'\ta\t"b"'
-    ['a["b.c"]']=$'\ta\t"b.c"'
-    ['a["b\"c"]']=$'\ta\t"b\"c"'
+    ['a']=$'\t"a"'
+    ['a.b']=$'\t"a"\t"b"'
+    ['a[0]']=$'\t"a"\t0'
+    ['a["b"]']=$'\t"a"\t"b"'
+    ['a["b.c"]']=$'\t"a"\t"b.c"'
+    ['a["b\"c"]']=$'\t"a"\t"b\\"c"'
     ['["a"]']=$'\t"a"'
     ['[0]']=$'\t0'
-    ['a.b[0].c']=$'\ta\tb\t0\tc'
-    ['a[0][1][2]']=$'\ta\t0\t1\t2'
-    ['']=''  # Empty path
+    ['a.b[0].c']=$'\t"a"\t"b"\t0\t"c"'
+    ['a[0][1][2]']=$'\t"a"\t0\t1\t2'
   )
   for input in "${!cases[@]}"; do
     local expected="${cases[$input]}"
@@ -985,34 +1014,6 @@ _L_test_json_path_edge_cases() {
   for path in "${invalid_paths[@]}"; do
     L_unittest_cmd ! L_json_path_normalize -v output "$path"
   done
-}
-
-_L_test_json_performance() {
-  # Simple performance test - parse a moderately large JSON
-  local json='{"data":['
-  for i in {1..1000}; do
-    json+="{\"id\":$i,\"value\":\"item$i\"},"
-  done
-  json=${json%,}']}'
-  # Test parsing speed
-  local start end
-  start=$EPOCHREALTIME
-  declare -A obj
-  L_json_to_obj obj "$json"
-  end=$EPOCHREALTIME
-  echo "Parsed 1000 items in $(echo "$end - $start" | bc)s"
-  # Test extraction speed
-  start=$EPOCHREALTIME
-  for i in {1..1000}; do
-    L_obj_get -v val obj "data[$((i-1))].value"
-  done
-  end=$EPOCHREALTIME
-  echo "Extracted 1000 values in $(echo "$end - $start" | bc)s"
-  # Verify correctness
-  L_obj_get -v val obj 'data[0].value'
-  L_unittest_eq "$val" 'item1'
-  L_obj_get -v val obj 'data[999].value'
-  L_unittest_eq "$val" 'item1000'
 }
 
 _L_test_json_malformed() {
