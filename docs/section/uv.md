@@ -241,4 +241,6 @@ When `read -t` is used with a delimiter (`-d`), a timeout that expires exactly a
 
 Using a 1-second timeout significantly reduces the probability of hitting this timing window under high system load. For high-performance stream processing where 1-second latency is unacceptable, applications should consider implementing their own raw chunked reading logic to bypass Bash's delimited read entirely.
 
+## API Reference
+
 ::: bin/L_lib.sh uv

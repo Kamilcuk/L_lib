@@ -2135,6 +2135,47 @@ _L_test_sections_ok() {
 	# L_unittest_eq "$vim_sections" "$list_sections"
 }
 
+_L_test_doc_sections_have_proper_links() {
+	# Check that all docs/section/*.md files have the proper mkdocstrings directive
+	# and that the directive is not preceded by a heading (which breaks the TOC).
+	#
+	# The issue: When a markdown file has a "# Heading" right before the
+	# "::: bin/L_lib.sh section" directive, mkdocstrings generates the API
+	# reference under that heading instead of creating its own section.
+	# This causes the generated API reference to not appear in the right
+	# sidebar table of contents because mkdocs-material's TOC only includes
+	# h2 and h3 headings from the page content, not from generated content
+	# that's nested under an h1.
+	#
+	# For example, this is BAD:
+	#   # Generated documentation from source:
+	#   ::: bin/L_lib.sh foreach
+	#
+	# This is GOOD:
+	#   ## API Reference
+	#   ::: bin/L_lib.sh foreach
+	#
+	# The test checks:
+	# 1. The last 3 lines are exactly: "## API Reference", "", "::: bin/L_lib.sh <section>"
+	# 2. If file has content before the API Reference section, there must be an empty line before it
+	local dir="$(dirname "${BASH_SOURCE[0]}")/../docs/section"
+	local file section basename arr
+	for file in "$dir"/*.md; do
+		basename="${file##*/}"
+		section="${basename%.md}"
+		# Skip all.md
+		[[ "$section" == "all" ]] && continue
+		L_readarray -t arr < "$file"
+		local last3=("${arr[@]:${#arr[@]}-3:3}")
+		L_unittest_arreq last3 "## API Reference" "" "::: bin/L_lib.sh $section"
+		# If file has more than 3 lines, check that line before "## API Reference" is empty
+		if (( ${#arr[@]} > 3 )); then
+			L_unittest_eq "${arr[${#arr[@]}-4]}" ""
+		fi
+	done
+	L_info "All section files have proper ::: directives"
+}
+
 _L_test_readme_links_ok() {
 	local links=() link section symbol file data
 	data=$(grep -oE 'https://kamilcuk.github.io/L_lib/[^)]+' README.md) || return

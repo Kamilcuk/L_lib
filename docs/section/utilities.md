@@ -258,6 +258,6 @@ Arguments that are not variable names are printed as literal strings.
 
 ---
 
-## Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh utilities

@@ -118,7 +118,7 @@ Without the `-n` flag, `110` would appear before `22` because it starts with the
 You can also sort keys numerically using `-n` or in reverse order using `-r`.
 
 ```bash
-declare -A data=([2]=alpha [10]=beta [1]=gamma)
+data=([2]=alpha [10]=beta [1]=gamma)
 
 echo "--- Keys sorted numerically ---"
 while L_foreach -s -n -k key val : data; do
@@ -142,8 +142,8 @@ Key 10: beta
 This is useful for processing consecutive lists of data.
 
 ```bash
-local users=("alice" "bob")
-local roles=("admin" "editor")
+users=("alice" "bob")
+roles=("admin" "editor")
 
 # The loop processes 'users', then continues with 'roles'
 while L_foreach identity : users roles; do
@@ -207,8 +207,8 @@ echo # for a final newline
 When iterating over sparse arrays or combining multiple associative arrays where some keys might be missing, you can use the `-e <var>` flag to check if an element was actually present. This stores an array in `<var>` where each index corresponds to the assigned variable, containing `1` if the element existed, and an empty string otherwise.
 
 ```bash
-local -A arr1=([0]=a [1]=b)
-local -A arr2=([0]=c [2]=d)
+arr1=([0]=a [1]=b)
+arr2=([0]=c [2]=d)
 
 # Iterate over all keys from both arrays, sorted by key
 while L_foreach -s -k key -e exists -- val1 val2 : arr1 arr2; do
@@ -224,9 +224,9 @@ Key 1: arr1 has b, arr2 missing
 Key 2: arr1 missing, arr2 has d
 ```
 
-## Advanced Array Assignment (-n)
+## Advanced Array Assignment (-R)
 
-If you want to assign elements into an array instead of separate variables, you can use the `-n <num>` flag. It dynamically repeats each specified variable name as an array index from `0` to `num - 1`.
+If you want to assign elements into an array instead of separate variables, you can use the `-R <num>` flag. It dynamically repeats each specified variable name as an array index from `0` to `num - 1`.
 
 ```bash
 data=("apple" "banana" "cherry" "date")
@@ -259,7 +259,6 @@ Assigned 2 variables: a=A, b=B
 Assigned 1 variables: a=C, b=unset
 ```
 
-# Generated documentation from source:
-
+## API Reference
 
 ::: bin/L_lib.sh foreach

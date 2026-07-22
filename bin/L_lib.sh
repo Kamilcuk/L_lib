@@ -4574,7 +4574,6 @@ _L_argskeywords_assert() {
 }
 
 # @see L_pretty_print
-# @alias L_pp
 L_pp() { L_pretty_print "$@"; }
 
 # @arg $1 variable

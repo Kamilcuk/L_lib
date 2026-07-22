@@ -720,4 +720,6 @@ The current implementation flattens the parser data structure into standard Bash
 
 This library was created as an alternative to tools like `argbash` that rely on code generation. The goal was a self-contained library that could be sourced and used directly as a single function call, without any build steps.
 
+## API Reference
+
 ::: bin/L_lib.sh argparse

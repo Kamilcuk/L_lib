@@ -12,5 +12,6 @@ It is all built around [`L_print_traceback`](#L_lib.sh--L_print_traceback) funct
 
 Then there are [`L_trap_push`](#L_lib.sh--L_trap_push) and [`L_trap_pop`](#L_lib.sh--L_trap_pop) functions to push and pop another code block with a newline to the trap handler. This is a work in progress, as it would be amazing to handle `$?` correctly.
 
-::: bin/L_lib.sh trap
+## API Reference
 
+::: bin/L_lib.sh trap

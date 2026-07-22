@@ -181,4 +181,6 @@ printf "A\nB" | L_xargs -n 1 -^ -- L_eval 'echo "Line 1 of $1"; echo "Line 2 of 
 # B: Line 2 of B
 ```
 
+## API Reference
+
 ::: bin/L_lib.sh xargs

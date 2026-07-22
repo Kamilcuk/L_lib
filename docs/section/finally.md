@@ -112,6 +112,6 @@ Inside an `L_finally` handler (the command you registered), you can access:
 
 ---
 
-# Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh finally
