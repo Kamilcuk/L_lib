@@ -20,6 +20,6 @@ The functions here should be bare bones.
 L_ansi_24bit_fg 200 100 200; echo Hello in pink $RESET
 ```
 
-## Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh ansi

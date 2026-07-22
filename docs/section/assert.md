@@ -1,5 +1,5 @@
 These functions are used to terminate the control flow in case or errors.
 
-# Generated section documentation:
+## API Reference
 
 ::: bin/L_lib.sh assert

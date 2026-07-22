@@ -24,6 +24,6 @@ L_color_detect >&$logfd
 echo "$L_GREEN""Hello world""$L_RESET" >&$logfd
 ```
 
-## Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh colors

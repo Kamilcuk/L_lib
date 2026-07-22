@@ -173,6 +173,6 @@ declare -p results
 
 ---
 
-# Generated section documentation:
+## API Reference
 
 ::: bin/L_lib.sh string

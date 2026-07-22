@@ -23,6 +23,6 @@ See [sysexits(3head)](https://man7.org/linux/man-pages/man3/sysexits.h.3head.htm
 | `L_EX_CONFIG` | 78 | Configuration error. |
 | `L_EX_TIMEOUT` | 124 | The command timed out. |
 
-## Generated documentation from source:
+## API Reference
 
 ::: bin/L_lib.sh sysexits
