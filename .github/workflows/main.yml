@@ -140,6 +140,8 @@ jobs:
           else
             make docs_build
           fi
+          # Create .nojekyll to prevent GitHub Pages from ignoring files starting with underscore
+          touch site/.nojekyll
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
