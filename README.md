@@ -103,8 +103,8 @@ Below is a selection of the library's features. The library contains much more.
     [`L_panic`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic)
 - Variables holding color codes depending on terminal support
     [`L_color_detect`](https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--L_color_detect)
-    [`$L_RED`](https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--$L_RED)
-    [`$L_BLUE`](https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--$L_BLUE)
+    [`$L_RED`](https://kamilcuk.github.io/L_lib/section/colors/)
+    [`$L_BLUE`](https://kamilcuk.github.io/L_lib/section/colors/)
 - Checking Bash features and version
     [`$L_BASH_VERSION`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_BASH_VERSION)
     [`$L_HAS_BASH4_0`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_BASH4_0)
