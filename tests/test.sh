@@ -2166,11 +2166,13 @@ _L_test_doc_sections_have_proper_links() {
 		# Skip all.md
 		[[ "$section" == "all" ]] && continue
 		L_readarray -t arr < "$file"
+		# Strip \r characters from CRLF line endings (Windows line endings)
+		arr=("${arr[@]//$'\r'}")
 		local last3=("${arr[@]:${#arr[@]}-3:3}")
 		L_unittest_arreq last3 "## API Reference" "" "::: bin/L_lib.sh $section"
 		# If file has more than 3 lines, check that line before "## API Reference" is empty
 		if (( ${#arr[@]} > 3 )); then
-			L_unittest_eq "${arr[${#arr[@]}-4]}" ""
+			L_unittest_eq "${arr[${#arr[@]}-4]//$'\r'}" ""
 		fi
 	done
 	L_info "All section files have proper ::: directives"
