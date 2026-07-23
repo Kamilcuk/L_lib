@@ -475,6 +475,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#color-and-style-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color and Style Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constant-ansi-variables-always-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constant ANSI Variables (Always Available)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#api-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -496,6 +518,17 @@
   
     <nav class="md-nav" aria-label="colors">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_COLOR_VARIABLES" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code> $L_COLOR_VARIABLES
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#L_lib.sh--L_color_enable" class="md-nav__link">
@@ -1316,6 +1349,17 @@
     <span class="md-ellipsis">
       
         <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code> $L_ANSI_BG_WHITE
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_ANSI_BG_DEFAULT" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code> $L_ANSI_BG_DEFAULT
       
     </span>
   </a>
@@ -2346,6 +2390,28 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#color-and-style-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Color and Style Variables
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#constant-ansi-variables-always-available" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Constant ANSI Variables (Always Available)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#api-reference" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2367,6 +2433,17 @@
   
     <nav class="md-nav" aria-label="colors">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_COLOR_VARIABLES" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code> $L_COLOR_VARIABLES
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#L_lib.sh--L_color_enable" class="md-nav__link">
@@ -3194,6 +3271,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#L_lib.sh--L_ANSI_BG_DEFAULT" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code> $L_ANSI_BG_DEFAULT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#L_lib.sh--L_ANSI_COLORRESET" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3315,6 +3403,614 @@
 L_color_detect &gt;&amp;$logfd
 echo &quot;$L_GREEN&quot;&quot;Hello world&quot;&quot;$L_RESET&quot; &gt;&amp;$logfd
 </code></pre></div>
+<h2 id="color-and-style-variables">Color and Style Variables<a class="headerlink" href="#color-and-style-variables" title="Permanent link">&para;</a></h2>
+<p>All variables listed in <code>L_COLOR_VARIABLES</code> are set by <code>L_color_enable</code> and cleared by <code>L_color_disable</code>/<code>L_color_detect</code> (when color is not supported).</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Variables</th>
+<th>ANSI Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Reset</strong></td>
+<td><code>L_RESET</code>, <code>L_COLORRESET</code></td>
+<td><code>\E[m</code> / <code>\E[0m</code></td>
+<td>Reset all attributes</td>
+</tr>
+<tr>
+<td><strong>Text Styles</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BOLD</code>, <code>L_BRIGHT</code></td>
+<td><code>\E[1m</code></td>
+<td>Bold / increased intensity</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_DIM</code>, <code>L_FAINT</code></td>
+<td><code>\E[2m</code></td>
+<td>Faint / decreased intensity</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_ITALIC</code>, <code>L_STANDOUT</code></td>
+<td><code>\E[3m</code></td>
+<td>Italic</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_UNDERLINE</code></td>
+<td><code>\E[4m</code></td>
+<td>Single underline</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BLINK</code></td>
+<td><code>\E[5m</code></td>
+<td>Slow blink</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_REVERSE</code></td>
+<td><code>\E[7m</code></td>
+<td>Reverse video (swap fg/bg)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_CONCEAL</code>, <code>L_HIDDEN</code></td>
+<td><code>\E[8m</code></td>
+<td>Conceal / hidden</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_CROSSEDOUT</code></td>
+<td><code>\E[9m</code></td>
+<td>Crossed out / strikethrough</td>
+</tr>
+<tr>
+<td><strong>Fonts</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_FONT0</code>–<code>L_FONT9</code></td>
+<td><code>\E[10m</code>–<code>\E[19m</code></td>
+<td>Font selection (0=default, 1-9=alternatives)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_FRAKTUR</code></td>
+<td><code>\E[20m</code></td>
+<td>Fraktur (Gothic) font</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_DOUBLE_UNDERLINE</code></td>
+<td><code>\E[21m</code></td>
+<td>Double underline</td>
+</tr>
+<tr>
+<td><strong>Style Resets</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NODIM</code></td>
+<td><code>\E[22m</code></td>
+<td>Reset dim/faint (turn off bold/dim)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOSTANDOUT</code></td>
+<td><code>\E[23m</code></td>
+<td>Reset italic/standout</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOUNDERLINE</code></td>
+<td><code>\E[24m</code></td>
+<td>Reset underline</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOBLINK</code></td>
+<td><code>\E[25m</code></td>
+<td>Reset blink</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOREVERSE</code></td>
+<td><code>\E[27m</code></td>
+<td>Reset reverse</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOHIDDEN</code>, <code>L_REVEAL</code></td>
+<td><code>\E[28m</code></td>
+<td>Reset conceal/hidden</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOCROSSEDOUT</code></td>
+<td><code>\E[29m</code></td>
+<td>Reset crossed out</td>
+</tr>
+<tr>
+<td><strong>Foreground Colors (Standard)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BLACK</code></td>
+<td><code>\E[30m</code></td>
+<td>Black</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_RED</code></td>
+<td><code>\E[31m</code></td>
+<td>Red</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_GREEN</code></td>
+<td><code>\E[32m</code></td>
+<td>Green</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_YELLOW</code></td>
+<td><code>\E[33m</code></td>
+<td>Yellow</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BLUE</code></td>
+<td><code>\E[34m</code></td>
+<td>Blue</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_MAGENTA</code></td>
+<td><code>\E[35m</code></td>
+<td>Magenta</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_CYAN</code></td>
+<td><code>\E[36m</code></td>
+<td>Cyan</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_GRAY</code></td>
+<td><code>\E[37m</code></td>
+<td>Light gray / white</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_DEFAULT</code>, <code>L_FOREGROUND_DEFAULT</code></td>
+<td><code>\E[39m</code></td>
+<td>Default foreground</td>
+</tr>
+<tr>
+<td><strong>Foreground Colors (Bright/High-intensity)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_DARK_GRAY</code></td>
+<td><code>\E[90m</code></td>
+<td>Dark gray (bright black)</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_RED</code></td>
+<td><code>\E[91m</code></td>
+<td>Light red</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_GREEN</code></td>
+<td><code>\E[92m</code></td>
+<td>Light green</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_YELLOW</code></td>
+<td><code>\E[93m</code></td>
+<td>Light yellow</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_BLUE</code></td>
+<td><code>\E[94m</code></td>
+<td>Light blue</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_MAGENTA</code></td>
+<td><code>\E[95m</code></td>
+<td>Light magenta</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_LIGHT_CYAN</code></td>
+<td><code>\E[96m</code></td>
+<td>Light cyan</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_WHITE</code></td>
+<td><code>\E[97m</code></td>
+<td>White (bright white)</td>
+</tr>
+<tr>
+<td><strong>Background Colors (Standard)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_BLACK</code></td>
+<td><code>\E[40m</code></td>
+<td>Black background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_RED</code></td>
+<td><code>\E[41m</code></td>
+<td>Red background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_GREEN</code></td>
+<td><code>\E[42m</code></td>
+<td>Green background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_YELLOW</code></td>
+<td><code>\E[43m</code></td>
+<td>Yellow background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_BLUE</code></td>
+<td><code>\E[44m</code></td>
+<td>Blue background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_MAGENTA</code></td>
+<td><code>\E[45m</code></td>
+<td>Magenta background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_CYAN</code></td>
+<td><code>\E[46m</code></td>
+<td>Cyan background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_GRAY</code></td>
+<td><code>\E[47m</code></td>
+<td>Light gray background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_DEFAULT</code></td>
+<td><code>\E[49m</code></td>
+<td>Default background</td>
+</tr>
+<tr>
+<td><strong>Background Colors (Bright/High-intensity)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_DARK_GRAY</code></td>
+<td><code>\E[100m</code></td>
+<td>Dark gray background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_RED</code></td>
+<td><code>\E[101m</code></td>
+<td>Light red background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_GREEN</code></td>
+<td><code>\E[102m</code></td>
+<td>Light green background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_YELLOW</code></td>
+<td><code>\E[103m</code></td>
+<td>Light yellow background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_BLUE</code></td>
+<td><code>\E[104m</code></td>
+<td>Light blue background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_MAGENTA</code></td>
+<td><code>\E[105m</code></td>
+<td>Light magenta background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_LIGHT_CYAN</code></td>
+<td><code>\E[106m</code></td>
+<td>Light cyan background</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_BG_WHITE</code></td>
+<td><code>\E[107m</code></td>
+<td>White background</td>
+</tr>
+<tr>
+<td><strong>Special Effects</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_FRAMED</code></td>
+<td><code>\E[51m</code></td>
+<td>Framed</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_ENCIRCLED</code></td>
+<td><code>\E[52m</code></td>
+<td>Encircled</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_OVERLINED</code></td>
+<td><code>\E[53m</code></td>
+<td>Overlined</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOENCIRCLED</code>, <code>L_NOFRAMED</code></td>
+<td><code>\E[54m</code></td>
+<td>Not encircled / not framed</td>
+</tr>
+<tr>
+<td></td>
+<td><code>L_NOOVERLINED</code></td>
+<td><code>\E[55m</code></td>
+<td>Not overlined</td>
+</tr>
+</tbody>
+</table>
+<h2 id="constant-ansi-variables-always-available">Constant ANSI Variables (Always Available)<a class="headerlink" href="#constant-ansi-variables-always-available" title="Permanent link">&para;</a></h2>
+<p>These <code>L_ANSI_*</code> variables are <strong>always</strong> set to their escape sequences, regardless of color detection:</p>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>ANSI Code</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>L_ANSI_BOLD</code>, <code>L_ANSI_BRIGHT</code></td>
+<td><code>\E[1m</code></td>
+<td>Bold</td>
+</tr>
+<tr>
+<td><code>L_ANSI_DIM</code>, <code>L_ANSI_FAINT</code></td>
+<td><code>\E[2m</code></td>
+<td>Dim/Faint</td>
+</tr>
+<tr>
+<td><code>L_ANSI_STANDOUT</code></td>
+<td><code>\E[3m</code></td>
+<td>Italic/Standout</td>
+</tr>
+<tr>
+<td><code>L_ANSI_UNDERLINE</code></td>
+<td><code>\E[4m</code></td>
+<td>Underline</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BLINK</code></td>
+<td><code>\E[5m</code></td>
+<td>Blink</td>
+</tr>
+<tr>
+<td><code>L_ANSI_REVERSE</code></td>
+<td><code>\E[7m</code></td>
+<td>Reverse</td>
+</tr>
+<tr>
+<td><code>L_ANSI_CONCEAL</code>, <code>L_ANSI_HIDDEN</code></td>
+<td><code>\E[8m</code></td>
+<td>Conceal/Hidden</td>
+</tr>
+<tr>
+<td><code>L_ANSI_CROSSEDOUT</code></td>
+<td><code>\E[9m</code></td>
+<td>Crossed out</td>
+</tr>
+<tr>
+<td><code>L_ANSI_FONT0</code>–<code>L_ANSI_FONT9</code></td>
+<td><code>\E[10m</code>–<code>\E[19m</code></td>
+<td>Font selection</td>
+</tr>
+<tr>
+<td><code>L_ANSI_FRAKTUR</code></td>
+<td><code>\E[20m</code></td>
+<td>Fraktur font</td>
+</tr>
+<tr>
+<td><code>L_ANSI_DOUBLE_UNDERLINE</code></td>
+<td><code>\E[21m</code></td>
+<td>Double underline</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NODIM</code></td>
+<td><code>\E[22m</code></td>
+<td>Reset dim</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOSTANDOUT</code></td>
+<td><code>\E[23m</code></td>
+<td>Reset italic</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOUNDERLINE</code></td>
+<td><code>\E[24m</code></td>
+<td>Reset underline</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOBLINK</code></td>
+<td><code>\E[25m</code></td>
+<td>Reset blink</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOREVERSE</code></td>
+<td><code>\E[27m</code></td>
+<td>Reset reverse</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOHIDDEN</code>, <code>L_ANSI_REVEAL</code></td>
+<td><code>\E[28m</code></td>
+<td>Reset conceal</td>
+</tr>
+<tr>
+<td><code>L_ANSI_NOCROSSEDOUT</code></td>
+<td><code>\E[29m</code></td>
+<td>Reset crossed out</td>
+</tr>
+<tr>
+<td><strong>Background Colors (Standard)</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_BLACK</code></td>
+<td><code>\E[40m</code></td>
+<td>Black background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_RED</code></td>
+<td><code>\E[41m</code></td>
+<td>Red background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_GREEN</code></td>
+<td><code>\E[42m</code></td>
+<td>Green background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_YELLOW</code></td>
+<td><code>\E[43m</code></td>
+<td>Yellow background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_BLUE</code></td>
+<td><code>\E[44m</code></td>
+<td>Blue background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_MAGENTA</code></td>
+<td><code>\E[45m</code></td>
+<td>Magenta background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_CYAN</code></td>
+<td><code>\E[46m</code></td>
+<td>Cyan background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_GRAY</code></td>
+<td><code>\E[47m</code></td>
+<td>Light gray background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_DEFAULT</code></td>
+<td><code>\E[49m</code></td>
+<td>Default background</td>
+</tr>
+<tr>
+<td><strong>Background Colors (Bright/High-intensity)</strong></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_DARK_GRAY</code></td>
+<td><code>\E[100m</code></td>
+<td>Dark gray background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_RED</code></td>
+<td><code>\E[101m</code></td>
+<td>Light red background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_GREEN</code></td>
+<td><code>\E[102m</code></td>
+<td>Light green background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_YELLOW</code></td>
+<td><code>\E[103m</code></td>
+<td>Light yellow background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_BLUE</code></td>
+<td><code>\E[104m</code></td>
+<td>Light blue background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_MAGENTA</code></td>
+<td><code>\E[105m</code></td>
+<td>Light magenta background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_LIGHT_CYAN</code></td>
+<td><code>\E[106m</code></td>
+<td>Light cyan background</td>
+</tr>
+<tr>
+<td><code>L_ANSI_BG_WHITE</code></td>
+<td><code>\E[107m</code></td>
+<td>White background</td>
+</tr>
+</tbody>
+</table>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--colors">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     colors
@@ -3354,9 +4050,46 @@ The</code>L_color_detect` function can be used to detect if the terminal and use
   
   
 
+<h3 id="L_lib.sh--L_COLOR_VARIABLES">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
+    $L_COLOR_VARIABLES
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L91"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_COLOR_VARIABLES" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>List of all color variable names set by L_color_enable or L_color_disable.</p>
+<p>This is a bash array containing the names of all L_ color/style variables.</p>
+
+    </p>
+
+      <div class="admonition example">
+<p class="admonition-title">Example</p>
+<pre><code>local "${L_COLOR_VARIABLES[@]}"
+</code></pre>
+</div>
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
 <h3 id="L_lib.sh--L_color_enable">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_color_enable
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L90"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L111"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3391,7 +4124,7 @@ The</code>L_color_detect` function can be used to detect if the terminal and use
 
 <h3 id="L_lib.sh--L_color_disable">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_color_disable
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L178"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L118"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3416,6 +4149,10 @@ The</code>L_color_detect` function can be used to detect if the terminal and use
   
   
 
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC1007">SC1007</a>
+    </p>
 
   
   
@@ -3426,7 +4163,7 @@ The</code>L_color_detect` function can be used to detect if the terminal and use
 
 <h3 id="L_lib.sh--L_term_has_color">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_term_has_color
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L270"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L128"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3489,7 +4226,7 @@ See:
 
 <h3 id="L_lib.sh--L_color_detect">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_color_detect
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L278"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L136"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3540,7 +4277,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BOLD">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BOLD
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L291"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L149"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3567,7 +4304,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BRIGHT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BRIGHT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L292"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L150"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3594,7 +4331,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_DIM">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_DIM
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L293"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L151"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3621,7 +4358,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FAINT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FAINT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L294"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L152"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3648,7 +4385,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_STANDOUT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_STANDOUT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L295"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L153"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3675,7 +4412,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_UNDERLINE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_UNDERLINE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L296"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L154"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3702,7 +4439,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BLINK">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BLINK
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L297"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L155"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3729,7 +4466,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_REVERSE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_REVERSE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L298"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L156"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3756,7 +4493,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_CONCEAL">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_CONCEAL
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L299"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L157"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3783,7 +4520,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_HIDDEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_HIDDEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L300"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L158"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3810,7 +4547,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_CROSSEDOUT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_CROSSEDOUT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L301"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L159"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3837,7 +4574,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT0">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT0
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L303"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L161"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3864,7 +4601,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT1">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT1
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L304"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L162"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3891,7 +4628,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT2">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT2
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L305"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L163"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3918,7 +4655,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT3">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT3
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L306"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L164"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3945,7 +4682,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT4">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT4
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L307"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L165"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3972,7 +4709,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT5">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT5
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L308"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L166"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3999,7 +4736,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT6">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT6
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L309"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L167"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4026,7 +4763,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT7">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT7
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L310"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L168"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4053,7 +4790,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT8">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT8
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L311"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L169"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4080,7 +4817,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FONT9">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FONT9
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L312"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L170"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4107,7 +4844,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FRAKTUR">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FRAKTUR
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L314"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L172"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4134,7 +4871,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_DOUBLE_UNDERLINE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_DOUBLE_UNDERLINE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L315"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L173"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4161,7 +4898,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NODIM">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NODIM
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L316"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L174"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4188,7 +4925,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOSTANDOUT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOSTANDOUT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L317"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L175"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4215,7 +4952,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOUNDERLINE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOUNDERLINE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L318"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L176"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4242,7 +4979,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOBLINK">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOBLINK
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L319"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L177"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4269,7 +5006,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOREVERSE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOREVERSE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L320"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L178"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4296,7 +5033,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOHIDDEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOHIDDEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L321"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L179"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4323,7 +5060,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_REVEAL">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_REVEAL
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L322"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L180"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4350,7 +5087,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOCROSSEDOUT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOCROSSEDOUT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L323"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L181"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4377,7 +5114,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BLACK">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BLACK
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L325"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L183"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4404,7 +5141,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_RED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_RED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L326"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L184"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4431,7 +5168,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_GREEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_GREEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L327"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L185"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4458,7 +5195,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_YELLOW">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_YELLOW
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L328"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L186"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4485,7 +5222,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BLUE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BLUE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L329"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L187"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4512,7 +5249,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_MAGENTA">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_MAGENTA
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L330"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L188"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4539,7 +5276,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_CYAN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_CYAN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L331"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L189"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4566,7 +5303,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_GRAY">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_GRAY
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L332"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L190"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4593,7 +5330,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_DEFAULT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_DEFAULT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L333"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L191"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4620,7 +5357,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FOREGROUND_DEFAULT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FOREGROUND_DEFAULT
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L334"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L192"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4647,7 +5384,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_BLACK">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_BLACK
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L336"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L194"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4674,7 +5411,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_BLUE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_BLUE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L337"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L195"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4701,7 +5438,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_CYAN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_CYAN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L338"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L196"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4728,7 +5465,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_GREEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_GREEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L339"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L197"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4755,7 +5492,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_GRAY">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_GRAY
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L340"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L198"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4782,7 +5519,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_MAGENTA">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_MAGENTA
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L341"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L199"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4809,7 +5546,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_RED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_RED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L342"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L200"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4836,7 +5573,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_YELLOW">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_YELLOW
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L343"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L201"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4863,7 +5600,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_FRAMED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_FRAMED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L345"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L203"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4890,7 +5627,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_ENCIRCLED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_ENCIRCLED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L346"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L204"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4917,7 +5654,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_OVERLINED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_OVERLINED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L347"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L205"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4944,7 +5681,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOENCIRCLED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOENCIRCLED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L348"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L206"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4971,7 +5708,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOFRAMED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOFRAMED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L349"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L207"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -4998,7 +5735,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_NOOVERLINED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_NOOVERLINED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L350"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L208"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5025,7 +5762,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_DARK_GRAY">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_DARK_GRAY
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L352"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L210"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5052,7 +5789,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_RED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_RED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L353"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L211"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5079,7 +5816,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_GREEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_GREEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L354"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L212"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5106,7 +5843,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_YELLOW">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_YELLOW
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L355"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L213"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5133,7 +5870,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_BLUE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_BLUE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L356"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L214"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5160,7 +5897,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_MAGENTA">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_MAGENTA
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L357"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L215"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5187,7 +5924,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_LIGHT_CYAN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_LIGHT_CYAN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L358"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L216"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5214,7 +5951,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_WHITE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_WHITE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L359"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L217"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5241,7 +5978,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_DARK_GRAY">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_DARK_GRAY
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L361"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L219"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5268,7 +6005,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_BLUE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_BLUE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L362"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L220"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5295,7 +6032,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_CYAN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_CYAN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L363"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L221"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5322,7 +6059,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_GREEN">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_GREEN
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L364"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L222"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5349,7 +6086,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_MAGENTA">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_MAGENTA
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L365"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L223"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5376,7 +6113,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_RED">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_RED
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L366"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L224"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5403,7 +6140,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_LIGHT_YELLOW">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_LIGHT_YELLOW
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L367"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L225"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5430,7 +6167,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_BG_WHITE">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_BG_WHITE
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L368"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L226"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5455,9 +6192,36 @@ See:
   
 
 
+<h3 id="L_lib.sh--L_ANSI_BG_DEFAULT">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
+    $L_ANSI_BG_DEFAULT
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L228"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_ANSI_BG_DEFAULT" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
 <h3 id="L_lib.sh--L_ANSI_COLORRESET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_COLORRESET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L371"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L231"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5488,7 +6252,7 @@ See:
 
 <h3 id="L_lib.sh--L_ANSI_RESET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-variable"></code>
     $L_ANSI_RESET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L372"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/improve2/bin/L_lib.sh#L232"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -5513,7 +6277,7 @@ See:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 23:32:20 UTC">July 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 23, 2026 14:34:24 UTC">July 23, 2026</span>
   </span>
 
     
