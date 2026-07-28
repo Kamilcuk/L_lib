@@ -89,7 +89,7 @@ L_flow_append() {
     L_panic "not possible to merge already finished generator"
   fi
   # L_var_get_nameref_v _L_FLOW
-  # L_var_to_string "$L_v"
+  # L_var_to_string "$L_RET"
   # printf "%q\n" "${_L_FLOW[@]:2:_L_flow_start[2]-2}"
   _L_FLOW=(
     "${_L_FLOW[0]}"
@@ -345,11 +345,11 @@ _L_flow_store() {
     return
   fi
   # Create a string that will be evaled later.
-  local L_v _L_flow_i
+  local L_RET _L_flow_i
   _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]=""
   for _L_flow_i; do
-    L_var_to_string_v "$_L_flow_i"
-    _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]+="$_L_flow_i=$L_v;"
+    L_var_to_string_vL_RET "$_L_flow_i"
+    _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]+="$_L_flow_i=$L_RET;"
   done
   _L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]+="#${FUNCNAME[2]}"
   L_debug "${_L_FLOW[7]}: Save state depth=${_L_FLOW[0]} idx=$((_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0])) caller=${FUNCNAME[2]} variables=$* eval=${_L_FLOW[_L_FLOW[2]+_L_FLOW[1]+_L_FLOW[0]]}"
@@ -549,29 +549,29 @@ L_flow_source_repeat() {
 # The function defaults to addition. The function should accept two arguments, an accumulated total and a value from the iterable.
 # If an initial value is provided, the accumulation will start with that value and the output will have one more element than the input iterable.
 # @option -i <initial>
-# @arg $@ Command that takes current total and iterator arguments and should set variable L_v as the next iterator state.
+# @arg $@ Command that takes current total and iterator arguments and should set variable L_RET as the next iterator state.
 L_flow_pipe_accumulate() { L_getopts_in -p _L_ i:: _L_flow_pipe_accumulate_in "$@"; }
-_L_flow_pipe_accumulate_add() { L_v=$(( $1 + $2 )); }
+_L_flow_pipe_accumulate_add() { L_RET=$(( $1 + $2 )); }
 _L_flow_pipe_accumulate_in() {
-  local _L_init=0 _L_total=() L_v ok
+  local _L_init=0 _L_total=() L_RET ok
   L_flow_restore _L_total _L_init
   if (( _L_init == 0 ? _L_init = 1 : 0 )); then
     if ! L_var_is_set _L_i; then
-      L_flow_next_ok ok - L_v
+      L_flow_next_ok ok - L_RET
       if ((!ok)); then
         return 0
       fi
-      _L_total=("${L_v[@]}")
+      _L_total=("${L_RET[@]}")
     else
       _L_total=("${_L_i[@]}")
     fi
     L_flow_yield "${_L_total[@]}"
   else
-    L_flow_next_ok ok - L_v
+    L_flow_next_ok ok - L_RET
     if ((ok)); then
-      "${@:-_L_flow_pipe_accumulate_add}" "${_L_total[@]}" "${L_v[@]}"
-      _L_total=("${L_v[@]}")
-      L_flow_yield "${L_v[@]}"
+      "${@:-_L_flow_pipe_accumulate_add}" "${_L_total[@]}" "${L_RET[@]}"
+      _L_total=("${L_RET[@]}")
+      L_flow_yield "${L_RET[@]}"
     fi
   fi
 }
@@ -581,11 +581,11 @@ _L_flow_pipe_accumulate_in() {
 # @arg $1 count
 L_flow_pipe_batch() { L_getopts_in -p _L_ -n '?' -- 's' _L_flow_pipe_batch_in "$@"; }
 _L_flow_pipe_batch_in() {
-  local _L_count=$1 _L_batch=() L_v _L_ok
+  local _L_count=$1 _L_batch=() L_RET _L_ok
   while (( _L_count-- > 0 )); do
-    L_flow_next_ok _L_ok - L_v
+    L_flow_next_ok _L_ok - L_RET
     if (( _L_ok )); then
-      _L_batch+=("${L_v[@]}")
+      _L_batch+=("${L_RET[@]}")
     else
       if (( _L_s )); then
         L_func_error "incomplete batch"
@@ -666,29 +666,29 @@ L_flow_sink_map() {
   if (( $# < 1 )); then
     L_panic ''
   fi
-  local L_v _L_ok
+  local L_RET _L_ok
   while
-    L_flow_next_ok _L_ok - L_v || return $?
+    L_flow_next_ok _L_ok - L_RET || return $?
     (( _L_ok ))
   do
-    "$@" "${L_v[@]}" || return $?
+    "$@" "${L_RET[@]}" || return $?
   done
 }
 
 
 # @description Pipe generator that executes a command for each element and forwards the element along.
-# The variable L_v can be used to modify the value.
+# The variable L_RET can be used to modify the value.
 # @arg $@ Command to execute for each element.
-#   _L_FLOW + L_flow_source_array arr + L_pipgen_map L_eval 'L_v=$((L_v+1))' + L_flow_sink_map echo "Element:"
+#   _L_FLOW + L_flow_source_array arr + L_pipgen_map L_eval 'L_RET=$((L_RET+1))' + L_flow_sink_map echo "Element:"
 L_flow_pipe_map() {
   if (( $# < 1 )); then
     L_panic ''
   fi
-  local L_v _L_ok
-  L_flow_next_ok _L_ok - L_v || return $?
+  local L_RET _L_ok
+  L_flow_next_ok _L_ok - L_RET || return $?
   if (( _L_ok )); then
-    "$@" "${L_v[@]}" || return $?
-    L_flow_yield "${L_v[@]}"
+    "$@" "${L_RET[@]}" || return $?
+    L_flow_yield "${L_RET[@]}"
   fi
 }
 
@@ -701,15 +701,15 @@ L_flow_pipe_map() {
 # @example
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_printf "Item: %s\n"
 L_flow_sink_printf() {
-  local L_v _L_ok
+  local L_RET _L_ok
   while
-    L_flow_next_ok _L_ok - L_v || return $?
+    L_flow_next_ok _L_ok - L_RET || return $?
     (( _L_ok ))
   do
     if (( $# == 0 )); then
-      printf "%s\n" "${L_v[*]}"
+      printf "%s\n" "${L_RET[*]}"
     else
-      printf "$1" "${L_v[@]}"
+      printf "$1" "${L_RET[@]}"
     fi
   done
 }
@@ -725,11 +725,11 @@ L_flow_sink_printf() {
 # @example
 #   _L_FLOW + L_flow_source_range 5 + L_flow_pipe_printf "DEBUG: %s\n" + L_flow_sink_consume
 L_flow_pipe_printf() {
-  local L_v _L_r _L_ok
+  local L_RET _L_r _L_ok
   L_flow_next_ok _L_ok - _L_r || return $?
   if (( _L_ok )); then
     if (( $# == 0 )); then
-      printf "%s\n" "${L_v[*]}"
+      printf "%s\n" "${L_RET[*]}"
     else
       printf "$1" "${_L_r[@]}"
     fi
@@ -758,14 +758,14 @@ L_flow_sink_consume() {
 #   arr=(1 0 1 0)
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_quantify -v val L_eval '(( $1 == 0 ))'
 L_flow_sink_quantify() { L_handle_v_scalar "$@"; }
-L_flow_sink_quantify_v() {
+L_flow_sink_quantify_vL_RET() {
   local _L_r=0
-  while L_flow_next - L_v; do
-    if "$@" "${L_v[@]}"; then
+  while L_flow_next - L_RET; do
+    if "$@" "${L_RET[@]}"; then
       (( ++_L_r ))
     fi
   done
-  L_v=$_L_r
+  L_RET=$_L_r
 }
 
 # @description Sink generator that collects all yielded elements into an array.
@@ -779,10 +779,10 @@ L_flow_sink_assign() {
   if (( $# != 1 )); then
     L_panic ''
   fi
-  local L_v
-  while L_flow_next - L_v; do
-    L_var_to_string_v L_v
-    L_array_append "$1" "$L_v"
+  local L_RET
+  while L_flow_next - L_RET; do
+    L_var_to_string_vL_RET L_RET
+    L_array_append "$1" "$L_RET"
   done
 }
 
@@ -803,13 +803,13 @@ L_flow_pipe_filter() {
   if (( $# < 1 )); then
     L_panic ''
   fi
-  local L_v _L_ok
+  local L_RET _L_ok
   while
-    L_flow_next_ok _L_ok - L_v || return $?
+    L_flow_next_ok _L_ok - L_RET || return $?
     (( _L_ok ))
   do
-    if "$@" "${L_v[@]}"; then
-      L_flow_yield "${L_v[@]}"
+    if "$@" "${L_RET[@]}"; then
+      L_flow_yield "${L_RET[@]}"
       break
     fi
   done
@@ -849,12 +849,12 @@ L_flow_pipe_tail() {
   if (( $# != 1 )); then
     L_panic ''
   fi
-  local _L_i=0 _L_e _L_buf=() L_v _L_send=-1
+  local _L_i=0 _L_e _L_buf=() L_RET _L_send=-1
   L_flow_restore _L_buf _L_send
   if (( _L_send == -1 )); then
     while L_flow_next - _L_e; do
-      L_var_to_string_v _L_e
-      _L_buf=("${_L_buf[@]::$1-1}" "$L_v")
+      L_var_to_string_vL_RET _L_e
+      _L_buf=("${_L_buf[@]::$1-1}" "$L_RET")
     done
     _L_send=0
   fi
@@ -947,12 +947,12 @@ L_flow_pipe_pairwise() {
 #   _L_FLOW -v gen2 + L_flow_source_array numbers + L_flow_pipe_head 4
 #   L_flow_sink_dotproduct -v res gen1 gen2
 L_flow_sink_dotproduct() { L_handle_v_scalar "$@"; }
-L_flow_sink_dotproduct_v() {
+L_flow_sink_dotproduct_vL_RET() {
   if (( $# != 2 && $# != 1 )); then
     L_panic "Wrong number of positional arguments. Expected 1 or 2 2 but received $#"
   fi
   local a b _L_ok1 _L_ok2
-  L_v=0
+  L_RET=0
   while
     L_flow_next_ok _L_ok1 "$1" a
     if (( _L_ok1 )); then
@@ -971,7 +971,7 @@ L_flow_sink_dotproduct_v() {
       fi
     fi
   do
-    L_v=$(( L_v + a * b ))
+    L_RET=$(( L_RET + a * b ))
   done
 }
 
@@ -986,15 +986,15 @@ L_flow_sink_dotproduct_v() {
 #          accumulator value(s) followed by the current element's value(s).
 #          The command must update the accumulator variable(s) in place.
 # @example
-#   _L_FLOW + L_flow_source_range 5 + L_flow_sink_fold_left -i 0 -v res -- L_eval 'L_v=$(($1+$2))'
+#   _L_FLOW + L_flow_source_range 5 + L_flow_sink_fold_left -i 0 -v res -- L_eval 'L_RET=$(($1+$2))'
 L_flow_sink_fold_left() { L_getopts_in -p _L_ v:i:: _L_flow_sink_fold_left_in "$@"; }
 _L_flow_sink_fold_left_in() {
-  local _L_a L_v=("${_L_i[@]}")
+  local _L_a L_RET=("${_L_i[@]}")
   while L_flow_next - _L_a; do
     # L_flow_print_context -f "$1"
-    "$@" "${L_v[@]}" "${_L_a[@]}"
+    "$@" "${L_RET[@]}" "${_L_a[@]}"
   done
-  L_array_assign "$_L_v" "${L_v[@]}"
+  L_array_assign "$_L_v" "${L_RET[@]}"
 }
 
 # @description Alias for L_flow_tee.
@@ -1187,24 +1187,24 @@ _L_flow_pipe_sort_all() {
 #   _L_FLOW + L_flow_source_array arr + L_flow_sink_first_true -v result -d default_value L_is_true
 L_flow_sink_first_true() { L_getopts_in -p _L_ v:d:: _L_flow_sink_first_true_in "$@"; }
 _L_flow_sink_first_true_in() {
-  local L_v _L_found=0
-  while L_flow_next - L_v; do
-    if "$@" "${L_v[@]}"; then
+  local L_RET _L_found=0
+  while L_flow_next - L_RET; do
+    if "$@" "${L_RET[@]}"; then
       _L_found=1
       break
     fi
   done
   if (( !_L_found )); then
     if L_var_is_set _L_d; then
-      L_v=("${_L_d[@]}")
+      L_RET=("${_L_d[@]}")
     else
       return 1
     fi
   fi
   if L_var_is_set _L_v; then
-    L_array_assign "$_L_v" "${L_v[@]}"
+    L_array_assign "$_L_v" "${L_RET[@]}"
   else
-    printf "%s\n" "${L_v[@]}"
+    printf "%s\n" "${L_RET[@]}"
   fi
 }
 
@@ -1267,21 +1267,21 @@ L_flow_pipe_unique_justseen() {
 }
 
 # @description Yield unique elements, preserving order. Remember all elements ever seen.
-# @arg $@ Convertion commmand, that should set L_v variable. Default: printf -v L_v "%q "
+# @arg $@ Convertion commmand, that should set L_RET variable. Default: printf -v L_RET "%q "
 # @example
 #   _L_FLOW + L_flow_source_string_chars 'AAAABBBCCDAABBB' + L_flow_pipe_unique_everseen + L_flow_sink_printf -> A B C D
-#   _L_FLOW + L_flow_source_string_chars 'ABBcCAD' + L_flow_pipe_unique_everseen L_eval 'L_v=${@,,}' + L_flow_sink_printf -> A B c D
+#   _L_FLOW + L_flow_source_string_chars 'ABBcCAD' + L_flow_pipe_unique_everseen L_eval 'L_RET=${@,,}' + L_flow_sink_printf -> A B c D
 L_flow_pipe_unique_everseen() {
-  local _L_seen=() _L_new L_v _L_ok
+  local _L_seen=() _L_new L_RET _L_ok
   L_flow_restore _L_seen
   while
     L_flow_next_ok _L_ok - _L_new || return $?
     (( _L_ok ))
   do
-    "${@:-L_quote_printf_v}" "${_L_new[@]}" || return "$?"
-    if ! L_set_has _L_seen "$L_v"; then
+    "${@:-L_quote_printf_vL_RET}" "${_L_new[@]}" || return "$?"
+    if ! L_set_has _L_seen "$L_RET"; then
       L_flow_yield "${_L_new[@]}"
-      L_set_add _L_seen "$L_v"
+      L_set_add _L_seen "$L_RET"
       break
     fi
   done
@@ -1419,15 +1419,15 @@ L_flow_yield_dict() {
   if ! L_var_is_associative "$1"; then
     L_panic ''
   fi
-  local L_v
-  L_var_to_string_v "$1" || L_panic
-  if [[ "${L_v::1}" != "(" ]]; then
+  local L_RET
+  L_var_to_string_vL_RET "$1" || L_panic
+  if [[ "${L_RET::1}" != "(" ]]; then
     L_panic ''
   fi
-  if [[ "${L_v:${#L_v}-1}" != ")" ]]; then
+  if [[ "${L_RET:${#L_RET}-1}" != ")" ]]; then
     L_panic ''
   fi
-  L_flow_yield DICT "$L_v"
+  L_flow_yield DICT "$L_RET"
 }
 
 # @description Source generator that reads CSV data from stdin.
@@ -1440,7 +1440,7 @@ L_flow_yield_dict() {
 # @example
 #   echo "col1,col2" | _L_FLOW + L_flow_source_read_csv + L_flow_sink_printf
 L_flow_source_read_csv() {
-  local IFS=, headers=() i arr L_v step=0
+  local IFS=, headers=() i arr L_RET step=0
   L_flow_restore step headers
   if ((step == 0)); then
     read -ra headers || return $?
@@ -1728,11 +1728,11 @@ _L_flow_test_2() {
       + L_flow_sink_map printf "%s "
   }
   {
-    local L_v gen=() res
+    local L_RET gen=() res
     L_flow_make gen \
       + L_flow_source_range 5 \
       + L_flow_pipe_head 5
-    L_flow_use gen L_flow_sink_fold_left -i 0 -v res -- L_eval 'L_v=$(($1+$2))'
+    L_flow_use gen L_flow_sink_fold_left -i 0 -v res -- L_eval 'L_RET=$(($1+$2))'
     L_unittest_arreq res 10
   }
   {
@@ -1748,7 +1748,7 @@ _L_flow_test_2() {
     L_unittest_cmd -o 'A B c D ' \
       L_flow_make_run \
       + L_flow_source_string_chars 'ABBcCAD' \
-      + L_flow_pipe_unique_everseen L_eval 'L_v=${*,,}' \
+      + L_flow_pipe_unique_everseen L_eval 'L_RET=${*,,}' \
       + L_flow_sink_printf "%s "
   }
   {
@@ -1856,7 +1856,7 @@ _L_flow_test_4_read() {
     L_log 'test read_fd with filtering and acumlating and sorting'
     L_flow_make_run \
       + L_flow_source_read_fd \
-      + L_flow_pipe_map L_strip_v \
+      + L_flow_pipe_map L_strip_vL_RET \
       + L_flow_pipe_filter L_eval '(( ${#1} > 1 ))' \
       + L_flow_sink_to_array lines <<EOF
     a
@@ -1871,11 +1871,11 @@ EOF
     local array
     L_flow_make_run \
       + L_flow_source_read_fd \
-      + L_flow_pipe_map L_eval 'L_regex_replace -n _ -v L_v "${1:-}" '$'\x1b''"\\[[0-9;]*m" ""' \
+      + L_flow_pipe_map L_eval 'L_regex_replace -n _ -v L_RET "${1:-}" '$'\x1b''"\\[[0-9;]*m" ""' \
       + L_flow_pipe_filter L_eval '(( ${#1} != 0 ))' \
-      + L_flow_pipe_map L_eval 'L_v=("${#1}" "$1")' \
+      + L_flow_pipe_map L_eval 'L_RET=("${#1}" "$1")' \
       + L_flow_pipe_sort -n -k 0 \
-      + L_flow_pipe_map L_eval 'L_v="$2"' \
+      + L_flow_pipe_map L_eval 'L_RET="$2"' \
       + L_flow_sink_to_array array <<EOF
 
   b
