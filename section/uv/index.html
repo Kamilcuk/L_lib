@@ -1374,6 +1374,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#L_lib.sh--uv" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2085,6 +2096,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#L_lib.sh--uv" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2670,9 +2692,10 @@ L_uv_run
 <p>By default, <code>L_uv_manager_reader</code> uses a 1-second timeout for <code>read -d</code>. This relatively high value is a mitigation for a race condition in the Bash <code>read</code> builtin's internal timer framework (introduced in Bash 5.2).</p>
 <p>When <code>read -t</code> is used with a delimiter (<code>-d</code>), a timeout that expires exactly as data (including the delimiter) arrives can cause Bash to return a partial line and lose the delimiter from its internal buffer. In the <code>L_uv</code> reader, this would result in the next read's data being concatenated directly to the previous partial record without a separator, mangling the input (e.g., <code>record1</code> and <code>record2</code> becoming <code>record1record2</code>).</p>
 <p>Using a 1-second timeout significantly reduces the probability of hitting this timing window under high system load. For high-performance stream processing where 1-second latency is unacceptable, applications should consider implementing their own raw chunked reading logic to bypass Bash's delimited read entirely.</p>
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--uv">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     uv
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11087"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L10999"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2705,7 +2728,7 @@ L_uv_run
 
 <h3 id="L_lib.sh--L_uv_init">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_init
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11210"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11122"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2740,7 +2763,7 @@ L_uv_run
 
 <h3 id="L_lib.sh--L_uv_add_timer">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_timer
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11251"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11163"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2794,7 +2817,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_add_waiter">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_waiter
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11278"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11190"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2843,7 +2866,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_add_reader">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_reader
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11310"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11222"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2898,7 +2921,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_add_task">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_task
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11340"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11252"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2946,7 +2969,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_add_once">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_add_once
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11369"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11281"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2997,7 +3020,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11389"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11301"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3037,7 +3060,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_remove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_remove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11412"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11324"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3076,7 +3099,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_uv_current_set">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_current_set
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11444"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11356"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3123,7 +3146,7 @@ Uses environment variable:
 
 <h3 id="L_lib.sh--L_uv_current_remove">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_current_remove
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11448"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11360"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3162,7 +3185,7 @@ Uses environment variable:
 
 <h3 id="L_lib.sh--L_uv_run">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_run
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11701"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11613"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3231,7 +3254,7 @@ Return:
 
 <h3 id="L_lib.sh--L_uv_break">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_break
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11734"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11646"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3266,7 +3289,7 @@ Return:
 
 <h3 id="L_lib.sh--L_uv_poke">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_uv_poke
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11738"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11650"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3300,7 +3323,7 @@ Return:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 22, 2026 19:00:59 UTC">June 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 23:32:20 UTC">July 22, 2026</span>
   </span>
 
     
