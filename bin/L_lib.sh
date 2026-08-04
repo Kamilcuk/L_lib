@@ -2441,9 +2441,9 @@ L_epochrealtime_usec_vL_RET() {
 	if ((L_HAS_EPOCHREALTIME)); then
 		L_epochrealtime_usec_vL_RET() { L_RET=${EPOCHREALTIME//[,.]}; }
 	elif _L_has_date_N; then
-		L_epochrealtime_usec_vL_RET() { L_RET=$(date +%s%6N); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(date +%s%9N); L_RET=${L_RET::${#L_RET}-3}; }
 	elif L_hash gdate; then
-		L_epochrealtime_usec_vL_RET() { L_RET=$(gdate +%s%6N); }
+		L_epochrealtime_usec_vL_RET() { L_RET=$(gdate +%s%9N); L_RET=${L_RET::${#L_RET}-3}; }
 	elif L_hash perl; then
 		L_epochrealtime_usec_vL_RET() { L_RET=$(perl -MTime::HiRes=gettimeofday -e 'printf "%d%06d", gettimeofday'); }
 	elif L_hash busybox; then
