@@ -6401,6 +6401,15 @@ _L_unittest_main_output_printer() {
 	done
 }
 
+_L_unittest_main_finally() {
+	echo >&2
+	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
+	if [[ "$L_SIGNAL" == "SIGINT" ]]; then
+		# Subshells ignore SIGINT. So re-send with SITERM.
+		: L_raise
+	fi
+}
+
 # @description
 # Uninteresting unittesting suite runner.
 # @option -p <prefix> Get functions with this prefix to test
@@ -6510,8 +6519,7 @@ L_unittest_main() {
 	fi
 	# Create a temporary directory with our context.
 	L_with_tmpdir_into _L_u_tmpd
-	# kill 0 is required for properly cleanup of subshells (...) that ignore SIGINT.
-	L_finally -v _L_u_finally_idx eval 'kill 0 || :; echo "Exiting because received $L_SIGNAL" >&2'
+	L_finally -v _L_u_finally_idx _L_unittest_main_finally
 	# echo "Using directory $_L_u_tmpd"
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
