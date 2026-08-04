@@ -5630,6 +5630,9 @@ L_trap() {
 # [1] - signal number
 # _L_finally_pending=()
 #
+# @description Use to detect nesting of signals.
+# _L_finally_running=0
+#
 # @description Currently handled signal name.
 # Special values: RETURN EXIT POP NONE
 # POP - when calling from L_finally_pop
@@ -5653,7 +5656,7 @@ L_trap() {
 # @arg $2 The value of $BASH_COMMAND.
 L_finally_handle_return() {
 	# Not checking if the return handler exists. It is done with :+ expansion straight in RETURN trap.
-	local L_SIGNAL=RETURN L_SIGRET="$1"
+	local L_SIGNAL=RETURN L_SIGRET="$1" _L_finally_running=1
 	case "${2:-}" in
 	". "*|"source "*)
 		# https://stackoverflow.com/a/79783255/9072753
@@ -5672,15 +5675,15 @@ L_finally_handle_return() {
 	if (( ${_L_finally_pending[@]+1} )); then
 		# Execute any pending signals.
 		# Unset L_SIGNAL, so that pending signal detection works correctly.
-		unset -v L_SIGNAL
+		unset -v _L_finally_running
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-		exit "$(( 128 + _L_finally_pending[1] ))"
+		exit "$((128+_L_finally_pending[1]))"
 	fi
 }
 
 # @description L_finally EXIT handler.
 L_finally_handle_exit() {
-	local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_pid
+	local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_pid _L_finally_running=1
 	L_bashpid_into _L_pid
 	if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
 		# _L_finally_debug "${_L_finally_arr[@]}"
@@ -5690,7 +5693,7 @@ L_finally_handle_exit() {
 			# Execute any pending signals.
 			trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$(( 128 + _L_finally_pending[1] ))"
+			exit "$((128+_L_finally_pending[1]))"
 		fi
 		# No reason to execute anything more.
 		trap - RETURN EXIT
@@ -5949,12 +5952,12 @@ L_finally_pop() {
 		# shellcheck disable=SC2294
 		local L_SIGNAL=POP
 		eval "${_L_finally_arr[_L_idx]}" || _L_ret=$?
-		# L_SIGNAL unset for nested detection hadnling.
-		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL
+		# _L_finally_running unset for nested detection hadnling.
+		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL _L_finally_running
 		# Execute a signal that might hhave happened while the above eval was executing.
 		if (( ${_L_finally_pending[@]+1} )); then
 			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$(( 128 + _L_finally_pending[1] ))"
+			exit "$((128+_L_finally_pending[1]))"
 		fi
 	else
 		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[$_L_idx]'
@@ -5978,9 +5981,9 @@ L_finally_critical_section() {
 		# Register the handlers.
 		L_finally
 	fi
-	local L_SIGNAL=NONE _L_ret=0
+	local L_SIGNAL=NONE _L_ret=0 _L_finally_running=1
 	"$@" || _L_ret=$?
-	unset -v L_SIGNAL
+	unset -v L_SIGNAL _L_finally_running
 	if ((${_L_finally_pending[@]:+1})); then
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 		exit "$((128+_L_finally_pending[1]))"
