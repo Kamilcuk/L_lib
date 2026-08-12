@@ -2202,28 +2202,49 @@
 </code></pre></div>
 <h3 id="parsing-and-converting-durations">Parsing and Converting Durations<a class="headerlink" href="#parsing-and-converting-durations" title="Permanent link">&para;</a></h3>
 <p>Convert duration strings to microseconds with <code>L_duration_to_usec</code>, or convert microseconds back to duration strings with <code>L_usec_to_duration</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Parse 5m30s to microseconds</span>
-L_duration_to_usec<span class="w"> </span><span class="s2">&quot;5m30s&quot;</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Microseconds: </span><span class="nv">$L_RET</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 330000000</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Parse 5m30s to microseconds (using -v to store in variable)</span>
+L_duration_to_usec<span class="w"> </span>-v<span class="w"> </span>usec<span class="w"> </span><span class="s2">&quot;5m30s&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Microseconds: </span><span class="nv">$usec</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 330000000</span>
 
-<span class="c1"># Convert back to Prometheus duration string</span>
-L_usec_to_duration<span class="w"> </span><span class="m">330000000</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Duration: </span><span class="nv">$L_RET</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 5m30s</span>
+<span class="c1"># Or capture stdout</span>
+<span class="nv">usec</span><span class="o">=</span><span class="k">$(</span>L_duration_to_usec<span class="w"> </span><span class="s2">&quot;5m30s&quot;</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Microseconds: </span><span class="nv">$usec</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 330000000</span>
+
+<span class="c1"># Convert back to Prometheus duration string (using -v)</span>
+L_usec_to_duration<span class="w"> </span>-v<span class="w"> </span>dur<span class="w"> </span><span class="m">330000000</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Duration: </span><span class="nv">$dur</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 5m30s</span>
+
+<span class="c1"># Or capture stdout</span>
+<span class="nv">dur</span><span class="o">=</span><span class="k">$(</span>L_usec_to_duration<span class="w"> </span><span class="m">330000000</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Duration: </span><span class="nv">$dur</span><span class="s2">&quot;</span><span class="w"> </span><span class="c1"># 5m30s</span>
 </code></pre></div>
 <h3 id="date-formatting">Date Formatting<a class="headerlink" href="#date-formatting" title="Permanent link">&para;</a></h3>
 <p>Use <code>L_date</code> for date formatting, supporting <code>%f</code> (microseconds) and subsecond timepoints. It selects the optimal method based on available capabilities and the format string.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Print current time with microseconds</span>
-L_date<span class="w"> </span><span class="s2">&quot;%Y-%m-%d %H:%M:%S.%f&quot;</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Print current time with microseconds (using -v to store in variable)</span>
+L_date<span class="w"> </span>-v<span class="w"> </span>dt<span class="w"> </span><span class="s2">&quot;%Y-%m-%d %H:%M:%S.%f&quot;</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$dt</span><span class="s2">&quot;</span>
 
-<span class="c1"># Format a specific unix timestamp</span>
-L_date<span class="w"> </span><span class="s2">&quot;%H:%M:%S&quot;</span><span class="w"> </span><span class="m">1700000000</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
+<span class="c1"># Or capture stdout</span>
+<span class="nv">dt</span><span class="o">=</span><span class="k">$(</span>L_date<span class="w"> </span><span class="s2">&quot;%Y-%m-%d %H:%M:%S.%f&quot;</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$dt</span><span class="s2">&quot;</span>
+
+<span class="c1"># Format a specific unix timestamp (using -v)</span>
+L_date<span class="w"> </span>-v<span class="w"> </span>dt<span class="w"> </span><span class="s2">&quot;%H:%M:%S&quot;</span><span class="w"> </span><span class="m">1700000000</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$dt</span><span class="s2">&quot;</span>
+
+<span class="c1"># Or capture stdout</span>
+<span class="nv">dt</span><span class="o">=</span><span class="k">$(</span>L_date<span class="w"> </span><span class="s2">&quot;%H:%M:%S&quot;</span><span class="w"> </span><span class="m">1700000000</span><span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$dt</span><span class="s2">&quot;</span>
 </code></pre></div>
 <h3 id="microsecond-epoch-time">Microsecond Epoch Time<a class="headerlink" href="#microsecond-epoch-time" title="Permanent link">&para;</a></h3>
 <p>Retrieve the current epoch time in microseconds. It works across different environments and Bash versions, including those where the native <code>${EPOCHREALTIME}</code> variable is not available.</p>
-<div class="highlight"><pre><span></span><code>L_epochrealtime_usec
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current epoch (usec): </span><span class="nv">$L_RET</span><span class="s2">&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># Using -v to store in variable</span>
+L_epochrealtime_usec<span class="w"> </span>-v<span class="w"> </span>usec
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current epoch (usec): </span><span class="nv">$usec</span><span class="s2">&quot;</span>
+
+<span class="c1"># Or capture stdout</span>
+<span class="nv">usec</span><span class="o">=</span><span class="k">$(</span>L_epochrealtime_usec<span class="k">)</span>
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Current epoch (usec): </span><span class="nv">$usec</span><span class="s2">&quot;</span>
 </code></pre></div>
 <h3 id="timeouts">Timeouts<a class="headerlink" href="#timeouts" title="Permanent link">&para;</a></h3>
 <p>Implement timeouts with helper functions:</p>
@@ -2232,8 +2253,8 @@ L_timeout_init_into<span class="w"> </span>timeout<span class="w"> </span><span 
 
 <span class="k">while</span><span class="w"> </span>!<span class="w"> </span>L_timeout_is_expired<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$timeout</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
 <span class="w">    </span><span class="c1"># Perform some task...</span>
-<span class="w">    </span>L_timeout_left<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$timeout</span><span class="s2">&quot;</span>
-<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Time remaining: </span><span class="nv">$L_RET</span><span class="s2"> seconds&quot;</span>
+<span class="w">    </span>L_timeout_left<span class="w"> </span>-v<span class="w"> </span>left<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$timeout</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Time remaining: </span><span class="nv">$left</span><span class="s2"> seconds&quot;</span>
 <span class="w">    </span>sleep<span class="w"> </span><span class="m">0</span>.5
 <span class="k">done</span>
 </code></pre></div>
@@ -3025,7 +3046,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 6, 2026 00:33:58 UTC">July 6, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 12, 2026 18:53:37 UTC">August 12, 2026</span>
   </span>
 
     
