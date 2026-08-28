@@ -604,6 +604,12 @@ EOF
 			L_argparse ---- "$@"
 			wrapper;
 		}
+		T_det_colon() { local x; L_argparse :::: "$@"; }
+		T_pre_ok() { echo pre; L_argparse ---- "$@"; }
+		T_single() { L_argparse ---- "$@"; }
+		T_pre_args() { echo pre; L_argparse --opt val ---- "$@"; }
+		T_no_dollar() { L_argparse ---- foo; }
+		T_wrong_delim() { L_argparse --- "$@"; }
 		local three argparse=(L_argparse show_default=1 -- -3 --three default= -- call=function prefix=AAA_ ----)
 		#
 		L_log "argparse6 check is_ok_to_call detection"
@@ -619,6 +625,14 @@ EOF
 		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_bbb
 		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call AAA_fff
 		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call AAA_hhh
+		#
+		L_log "argparse6 check is_ok_to_call detection edge cases"
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call T_det_colon
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call T_pre_ok
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call T_single
+		L_unittest_cmd _L_argparse_sub_function_is_ok_to_call T_pre_args
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call T_no_dollar
+		L_unittest_cmd ! _L_argparse_sub_function_is_ok_to_call T_wrong_delim
 		unset _L_opt_prefix _L_opti _L_opt_subcall
 		#
 		L_log "argparse6 check calls"
@@ -663,7 +677,7 @@ EOF
 		L_unittest_cmd -jr "-3, --three THREE.*\(default: ''\)" "${argparse[@]}" -h
 		L_unittest_cmd -jr "--option OPTION.*\(default: default\)" "${argparse[@]}" aaa bbb -h
 		#
-		unset -f dump AAAaaa_bbb AAAaaa_ccc AAAbbb_ddd AAAbbb_eee AAA_aaa AAA_bbb AAAaaa_bbb2 AAAaaa_ccc2
+		unset -f dump AAAaaa_bbb AAAaaa_ccc AAAbbb_ddd AAAbbb_eee AAA_aaa AAA_bbb AAAaaa_bbb2 AAAaaa_ccc2 T_det_colon T_pre_ok T_single T_pre_args T_no_dollar T_wrong_delim
 	}
 }
 
