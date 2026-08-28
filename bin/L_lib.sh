@@ -7743,7 +7743,7 @@ _L_argparse_spec_fatal() {
 			echo "L_argparse: before args:$_L_tmp"
 		fi
 		local _L_cur="${_L_args[_L_argsi]:-}"
-		if [[ -n "$_L_cur" && "$_L_cur" != "----" ]]; then
+		if [[ -n "$_L_cur" && "$_L_cur" != "----" && "$_L_cur" != "::::" ]]; then
 			echo "L_argparse: current arg: $_L_cur"
 		fi
 		printf -v _L_tmp " %q" "${_L_args[@]:_L_argsi+1:5}"
@@ -7786,7 +7786,7 @@ _L_argparse_spec_call_subparser() {
 	{
 		for ((--_L_argsi; ++_L_argsi < ${#_L_args[@]}; )); do
 			case "${_L_args[_L_argsi]}" in
-			--|----|"{") break ;; # }
+			--|----|::|::::|"{") break ;; # }
 			action=*) _L_opt_action[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			allow_abbrev=*) _L_parser_allow_subparser_abbrev[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			default=*) _L_opt_default[_L_opti]=${_L_args[_L_argsi]#*=} ;;
@@ -7845,7 +7845,7 @@ _L_argparse_spec_call_function() {
 	{
 		for ((--_L_argsi; ++_L_argsi < ${#_L_args[@]};)); do
 			case "${_L_args[_L_argsi]}" in
-			--|----|"}") break ;;
+			--|----|::|::::|"}") break ;;
 			prefix=*) _L_opt_prefix[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			subcall=*) _L_opt_subcall[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			required=*) _L_opt_required[_L_opti]=${_L_args[_L_argsi]#*=} ;;
@@ -7905,16 +7905,11 @@ _L_argparse_sub_function_choices() {
 # - There is ---- "$@" ending of L_argparse call in the function.
 # @arg $1 <str> the function
 _L_argparse_sub_function_is_ok_to_call() {
-	local _L_func="${_L_opt_prefix[_L_opti]}$1" _L_subcall="${_L_opt_subcall[_L_opti]:-detect}" _L_func_declare
+	local _L_func="${_L_opt_prefix[_L_opti]}$1" _L_subcall="${_L_opt_subcall[_L_opti]:-detect}" _L_func_declare ws=$'[ \t]' nl=$'\n' wsnl=$'[ \t\n]'
 	if [[ "$_L_subcall" == "detect" ]]; then
 		_L_func_declare="$(declare -f "$_L_func")" &&
-		L_regex_match "$_L_func_declare" "\
-$_L_func[[:space:]]*\\(\\)[[:space:]]*\\{\
-.*[[:space:]]+\
-L_argparse([[:space:]]|[[:space:]].*[[:space:]])----[[:space:]]+\"\\\$@\"\
-(;|[[:space:]]).*\
-}\
-"
+			[[ "$_L_func_declare" =~ \
+				^$_L_func$wsnl*\(\)$wsnl*\{(.*$nl)?$ws*L_argparse($ws|$ws[^$nl]*$ws)(----|::::)$ws+\"\$@\"(;|$ws|$nl) ]]
 	else
 		L_is_true "$_L_subcall"
 	fi
@@ -9275,7 +9270,7 @@ _L_argparse_spec_parse_args() {
 		for ((; _L_argsi < ${#_L_args[@]}; _L_argsi++ )); do
 			case "${_L_args[_L_argsi]}" in
 			# {
-			--|----|'}') break ;;
+			--|----|::|::::|'}') break ;;
 			dest_dict=?*) _L_parser_dest_dict[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			dest_prefix=?*) _L_parser_dest_prefix[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
 			exit_on_error=?*) _L_parser_exit_on_error[_L_parseri]=${_L_args[_L_argsi]#*=} ;;
@@ -9364,7 +9359,7 @@ _L_argparse_spec_parse_args() {
 		while (( ${#_L_args[@]} - _L_argsi >= 2)) && [[ "${_L_args[_L_argsi]}" == "--" ]]; do
 			((++_L_opti))
 			case "${_L_args[++_L_argsi]}" in
-			""|----|--|"{"|"}") _L_argparse_spec_fatal "invalid arguments: ${_L_args[_L_argsi]:-}" ;;
+			""|----|--|::::|::|"{"|"}") _L_argparse_spec_fatal "invalid arguments: ${_L_args[_L_argsi]:-}" ;;
 			call=function|class=function) ((++_L_argsi)); _L_argparse_spec_call_function || return "$L_EX_USAGE" ;;
 			call=subparser|class=subparser) ((++_L_argsi)); _L_argparse_spec_call_subparser || return "$L_EX_USAGE" ;;
 			call=*|class=*) _L_argparse_spec_fatal "invalid ${_L_args[_L_argsi]%=*}, must be subparser or function: ${_L_args[_L_argsi]:-}" ;;
@@ -9545,9 +9540,9 @@ L_argparse() {
 	unset -v _L_parsercur
 	_L_optcnt=$_L_opti
 	#
-	if [[ "${_L_args[_L_argsi++]:-}" != "----" ]]; then
+	if [[ "${_L_args[_L_argsi++]:-}" != "----" && "${_L_args[_L_argsi++]:-}" != "::::" ]]; then
 		_L_argsi=$((_L_argsi-1))
-		_L_argparse_spec_fatal "missing separator ---- at ${_L_args[_L_argsi]:-}"
+		_L_argparse_spec_fatal "missing separator :::: at ${_L_args[_L_argsi]:-}"
 	fi
 	# _L_argparse_print >/dev/tty
 	_L_argparse_parse_args || return
