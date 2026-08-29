@@ -62,3 +62,43 @@ _L_test_L_func_help_all() {
 		fi
 	done
 }
+
+# @description Example function for testing L_func_help rendering.
+# This is a second description line.
+# @option -v <var> Store result in var.
+# @option --verbose Enable verbose mode.
+# @arg <file> The input file to process.
+# @env MYVAR An environment variable used.
+# @return 0 on success.
+# @return 1 on failure.
+# @example
+#   testfn -v out input.txt
+# @see https://example.com
+# @shellcheck disable=SC2086
+_L_dummy_help_func() {
+	:
+}
+
+_L_test_L_func_help() {
+	local help_out=""
+	L_unittest_cmd -c L_func_help -v help_out -f _L_dummy_help_func
+	L_unittest_contains "$help_out" "Description:"
+	L_unittest_contains "$help_out" "Example function for testing L_func_help rendering."
+	L_unittest_contains "$help_out" "This is a second description line."
+	L_unittest_contains "$help_out" "Options:"
+	L_unittest_contains "$help_out" "-v <var>"
+	L_unittest_contains "$help_out" "--verbose"
+	L_unittest_contains "$help_out" "Arguments:"
+	L_unittest_contains "$help_out" "<file>"
+	L_unittest_contains "$help_out" "Environment:"
+	L_unittest_contains "$help_out" "MYVAR"
+	L_unittest_contains "$help_out" "Returns:"
+	L_unittest_contains "$help_out" "on success."
+	L_unittest_contains "$help_out" "on failure."
+	L_unittest_contains "$help_out" "Example:"
+	L_unittest_contains "$help_out" "testfn -v out input.txt"
+	L_unittest_contains "$help_out" "See:"
+	L_unittest_contains "$help_out" "https://example.com"
+	# @shellcheck directive must be ignored, not rendered
+	L_unittest_eq "$([[ "$help_out" == *shellcheck* ]] && echo yes || echo no)" "no"
+}
