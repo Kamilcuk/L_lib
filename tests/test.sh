@@ -3,7 +3,7 @@ set -euo pipefail
 
 ulimit -c 0
 export TIMEFORMAT='real=%6lR user=%6lU system=%6lS'
-dir="$(dirname "${BASH_SOURCE[0]}")"
+dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 . "$dir"/../bin/L_lib.sh
 L_log_configure -L
 
@@ -42,6 +42,7 @@ USR2_CNT=0
 . "$dir"/test_L_func.sh
 . "$dir"/test_unquote.sh
 . "$dir"/test_argskeywords.sh
+. "$dir"/test_dedent.sh
 
 _L_test_color() {
 	{
@@ -2158,7 +2159,7 @@ _L_test_doc_sections_have_proper_links() {
 	# The test checks:
 	# 1. The last 3 lines are exactly: "## API Reference", "", "::: bin/L_lib.sh <section>"
 	# 2. If file has content before the API Reference section, there must be an empty line before it
-	local dir="$(dirname "${BASH_SOURCE[0]}")/../docs/section"
+	local dir="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)/../docs/section"
 	local file section basename arr
 	for file in "$dir"/*.md; do
 		basename="${file##*/}"
