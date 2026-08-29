@@ -575,16 +575,6 @@ L_check() {
 # @section func
 # @description Function for writing function programs.
 
-_L_func_line_is_function_definition_with_comment() {
-	[[
-		"$_L_i" -gt 0 &&
-		"${_L_lines[_L_i]}" =~ \
-		^[[:space:]]*(function[[:space:]]+"$_L_funcname"([[:space:]\(]|$)|"$_L_funcname"[[:space:]]*\() \
-		&& \
-		"${_L_lines[_L_i-1]}" == "#"*
-	]] # ))
-}
-
 # @description Get location of where the function was defined.
 # @option -v <var> Variable is assigned an array of two elements: the file path of where the function was defined and line number.
 # @arg $1 Function name to inspect.
@@ -593,6 +583,193 @@ L_func_get_source_vL_RET() {
 	L_RET=$(shopt -s extdebug && declare -F "$1") &&
 		L_RET=( "${L_RET#"$1" [0-9]* }" "${L_RET:${#1}+1}" ) &&
 			L_RET[1]=${L_RET[1]%% *}
+}
+
+# @arg $1 section in _L_help_map
+# @arg $2 section header
+# @env _L_help_map
+# @set _L_help_out
+_L_help_doc_output_section() {
+	local i text IFS=$'\n'
+	for (( i = 0; i < ${#_L_help_map[@]}; i += 2 )); do
+		if [[ "${_L_help_map[i]}" == "$1" ]]; then
+			text+=${text+$'\n'}"${_L_help_map[i+1]}"
+		fi
+	done
+	if (( ${text:+1}0 )); then
+		text=${text##$'\n'}
+		case "$1" in
+			arg|env|set|option|return) L_table -X -o '  ' -v text -s "$L_GS" -- "$text" ;;
+			*) L_dedent -v text "$text" ;;
+		esac
+		L_rstrip -v text "$text"
+		if [[ "$text" == *[$' \t\n']* ]]; then
+			text="${text//$'\n'/$'\n'  }"
+			_L_help_out+=$'\n'"$2"$'\n  '"$text"
+		else
+			# Single word looks nice on a single line, like "Sets: VAR".
+			_L_help_out+=$'\n'"$2"$'  '"$text"
+		fi
+	fi
+}
+
+# @description Unified function-documentation dispatcher.
+# Backend for L_func_comment, L_func_usage and L_func_help.
+# @option -v <var> Assign the result to this variable instead of printing it.
+# @option -f <funcname> Document the given function instead of the calling function.
+# @option -s <int> Consider the target function this many stack frames above. Default: 1 (one above the wrapper).
+# @option -h Print this help and return 0.
+# @option -i Read function comment from stdin, intead of parsing the file.
+# @arg $1 Mode: one of `comment`, `usage` or `help` (normally supplied by the wrapper functions).
+# @return 0 if documentation was extracted successfully.
+L_func_doc() {
+	local OPTIND OPTARG OPTERR _L_i _L_v="" _L_up=1 _L_funcname="" _L_source="" _L_comment=""
+	while getopts v:f:s:ih _L_i; do
+		case "$_L_i" in
+			v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" || return "$L_EX_USAGE" ;;
+			f)
+				if
+					! _L_i=$(shopt -s extdebug && declare -F "$OPTARG") ||
+						! IFS=' ' read -r _L_funcname _ _L_source <<<"$_L_i"
+				then
+					L_func_error "Could not get function $OPTARG location"
+					return 1
+				fi
+				;;
+			s) _L_up=$(( _L_up + OPTARG )) ;;
+			i) _L_comment=$(cat) ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	# Allow numbers to be passsed as arguments to offset like -s.
+	while (( $# )) && L_is_integer "$1"; do
+		_L_up=$(( _L_up + $1 ))
+		shift
+	done
+	# Check arguments.
+	if (( $# != 1 )); then
+		local IFS=' '
+		L_func_usage_error "wrong number of arguments: $# $*"
+		return "$L_EX_USAGE"
+	fi
+	case "$1" in
+		comment|help|usage) ;;
+		*)
+			L_func_usage_error "invalid mode: $1. Must be one of comment, help or uasge"
+			return "$L_EX_USAGE"
+			;;
+	esac
+	if [[ -z "$_L_comment" ]]; then
+		# Extract function comment
+		_L_funcname=${_L_funcname:-${FUNCNAME[_L_up]}}
+		# _L_lineno=${_L_lineno:-${BASH_LINENO[_L_up-1]}}
+		_L_source=${_L_source:-${BASH_SOURCE[_L_up]}}
+		#
+		local _L_content _L_comment
+		_L_content=$(< "$_L_source") || return "$L_EX_IOERR"
+		L_regex_escape_vL_RET "$_L_funcname"
+		if ! [[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?((\#[^$'\n']*($'\n'\#[^$'\n']*)*))$'\n'(function[[:space:]]+$L_RET|$L_RET[[:space:]]*\() ]]; then
+			L_func_error "Failed to extract the comment from function $_L_funcname file $_L_source"
+			return 1
+		fi
+		_L_comment=${BASH_REMATCH[2]##$'\n'}
+	fi
+	if [[ "$1" == comment ]]; then
+		L_printf_append "$_L_v" "%s\n" "$_L_comment"
+		return
+	fi
+	{
+		# Extract usage and full help in a single pass.
+		L_color_detect
+		local _L_usage="" _L_i _L_long="" _L_flags="" _L_args="" _L_help_map=() _L_last=description
+		# Regex group map (BASH_REMATCH indices):
+		#   G1   whole tag alternation (optional, so bare/continuation lines still match)
+		#   G2   "ion" suffix of @opt(ion)
+		#   G3   option flag (-v)
+		#   G4   option argument (<var>)
+		#   G5   argument name (<file>)
+		#   G6   env|set|return keyword
+		#   G7   env|set|return argument (<var>)
+		#   G8   generic tag (@description|@example|@see|@section|@shellcheck|...)
+		#   G9   shellcheck directive (routed via generic tag -> continue)
+		#   G10  common description / continuation text (after the tag-specific part) including leading spaces
+		#   G11  common description / continuation text (after the tag-specific part) excluding leading spaces
+		local _L_rx="^[[:space:]]*#[[:space:]]?(\
+[[:space:]]*@opt(ion)?[[:space:]]+(-[^[:space:]]+)[[:space:]]*(<[^>]+>|\[[^]]+\])?|\
+[[:space:]]*@arg[[:space:]]+([^[:space:]]+)|\
+[[:space:]]*@(env|set|return)[[:space:]]+([^[:space:]]+)|\
+[[:space:]]*@([a-zA-Z0-9_-]+)|\
+[[:space:]]*(shellcheck))?([[:space:]]+([^[:space:]].*[^[:space:]]|[^[:space:]]))?[[:space:]]*$"
+		while IFS= read -r _L_i || [[ -n "$_L_i" ]]; do
+			if [[ "$_L_i" =~ $_L_rx ]]; then
+				case "${BASH_REMATCH[3]:+option}${BASH_REMATCH[5]:+arg}${BASH_REMATCH[6]:+tag_with_arg}${BASH_REMATCH[8]:+tag}${BASH_REMATCH[9]:+shellcheck},${BASH_REMATCH[8]:-$_L_last}" in
+					option,*)    # @option / @opt
+						_L_help_map+=( "option"
+							"$L_GREEN$L_BOLD${BASH_REMATCH[3]}${BASH_REMATCH[4]:+ $L_MAGENTA$L_BOLD${BASH_REMATCH[4]}}$L_RESET$L_GS${BASH_REMATCH[11]}" )
+						if [[ "${BASH_REMATCH[3]}" == -[^-] && -z "${BASH_REMATCH[4]}" ]]; then
+							_L_flags+="${BASH_REMATCH[3]:1}"
+						else
+							_L_long+=" [${_L_help_map[${#_L_help_map[@]}-1]%%$L_GS*}]"
+						fi
+						;;
+					arg,*)    # @arg
+						_L_args+=" $L_YELLOW$L_BOLD${BASH_REMATCH[5]}$L_RESET"
+						_L_help_map+=( "arg" "$L_YELLOW$L_BOLD${BASH_REMATCH[5]}$L_RESET$L_GS${BASH_REMATCH[11]}" ) ;;
+					tag_with_arg,*)    # @env / @set / @return
+						_L_help_map+=( "${BASH_REMATCH[6]}" "$L_BOLD$L_CYAN${BASH_REMATCH[7]}$L_RESET$L_GS${BASH_REMATCH[11]}" ) ;;
+					tag,noargs) _L_help_map+=( "description" "(Takes no positional arguments.)" ) ;;
+					shellcheck,*|tag,shellcheck) continue ;;  # ignore shellcheck directives
+					tag,usage) _L_usage+="${BASH_REMATCH[11]}" ;;
+					tag,*)    # @description / @example / @note / @warning / @see / @section
+						_L_help_map+=( "${BASH_REMATCH[8]}" "${BASH_REMATCH[11]}" ) ;;
+					,env|,set|,arg|,option) # Continuation line of something that is printed in columns.
+						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"$L_GS${BASH_REMATCH[11]}" ;;
+					,example) # Preserve examples identation.
+						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[10]}" ;;
+					,return) # Return tag or continuation line.
+						# Return continuation line is special, in that we match a leading number to make it cyan.
+						# Not great not terrible.
+						if [[ "$_L_i" =~ ^[[:space:]]*#[[:space:]]*[[:space:]]+([0-9]+)[[:space:]]*([^[:space:]].*)?$ ]]; then
+							_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"$L_BOLD$L_CYAN${BASH_REMATCH[1]}$L_RESET$L_GS${BASH_REMATCH[2]}"
+						else
+							_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[11]}"
+						fi
+						;;
+					*)    # continuation line
+						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[11]}" ;;
+				esac
+				_L_last="${_L_help_map[${#_L_help_map[@]}-2]}"
+			fi
+		done <<<"$_L_comment"
+		if [[ -n "${_L_usage:=${_L_flags:+ [$L_GREEN$L_BOLD-$_L_flags$L_RESET]}$_L_long$_L_args}" ]]; then
+			_L_usage="$_L_source: $L_BLUE${L_BOLD}Usage$L_RESET: $L_MAGENTA$L_BOLD$_L_funcname$L_RESET$_L_usage"
+		fi
+		if [[ "$1" == usage ]]; then
+			L_printf_append "$_L_v" "%s\n" "$_L_usage"
+			return
+		fi
+		# Build help output from the map
+		local _L_help_out="$_L_usage" _L_sections=(
+				description "Description:"
+				note "Notes:"
+				warning "${L_YELLOW}Warnings:"
+				error "${L_RED}Errors:"
+				option "Options:"
+				arg "Arguments:"
+				env "Environment:"
+				set "Sets:"
+				return "Returns:"
+				exit "Exit codes:"
+				see "See:"
+				example "Example:"
+		)
+		for (( _L_i = 0; _L_i < ${#_L_sections[@]}; _L_i += 2 )); do
+			_L_help_doc_output_section "${_L_sections[_L_i]}" "$L_BLUE$L_BOLD${_L_sections[_L_i+1]}$L_RESET"
+		done
+		L_printf_append "$_L_v" "%s\n" "$_L_help_out"
+	}
 }
 
 # @description Extract the comment above the function.
@@ -614,103 +791,21 @@ L_func_get_source_vL_RET() {
 #    somefunc  # outputs '# some comment'
 #
 #    L_func_comment -f somefunc
-L_func_comment() {
-	local OPTIND OPTARG OPTERR _L_lines _L_i _L_v="" _L_lineno _L_source _L_funcname \
-		_L_f="" L_RET="" _L_up=0 _L_funcname_escaped _L_content
-	while getopts v:f:s:h _L_i; do
-		case "$_L_i" in
-			v) _L_v=$OPTARG ;;
-			f)
-				if
-					! _L_f=$(shopt -s extdebug && declare -F "$OPTARG") ||
-						! IFS=' ' read -r _L_funcname _L_lineno _L_source <<<"$_L_f"
-				then
-					L_func_error "Could not get function $OPTARG location"; return "$L_EX_USAGE"
-				fi
-				;;
-			s) _L_up=$OPTARG ;;
-			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return "$L_EX_USAGE" ;;
-		esac
-	done
-	shift "$((OPTIND-1))"
-	_L_up=${_L_up:-${1:-0}}
-	# L_print_traceback
-	# declare -p BASH_SOURCE FUNCNAME BASH_LINENO
-	# local -; set -x
-	_L_funcname=${_L_funcname:-${FUNCNAME[1+_L_up]}}
-	_L_lineno=${_L_lineno:-${BASH_LINENO[_L_up]}}
-	_L_source=${_L_source:-${BASH_SOURCE[1+_L_up]}}
-	#
-	L_regex_escape -v _L_funcname_escaped "$_L_funcname"
-	_L_content=$(< "$_L_source") || return 2
-	[[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?(($'\n'\#[^$'\n']*)+)$'\n'(function[[:space:]]+"$_L_funcname"|"$_L_funcname"[[:space:]]*\()  ]] || return 1
-	L_RET=${BASH_REMATCH[2]##$'\n'}
-	[[ -n "$L_RET" ]] && printf -v "$_L_v" "%s\n" "${L_RET%$'\n'}"
-}
+L_func_comment() { L_func_doc -s 1 "$@" comment; }
 
-_L_func_help_print_section() {
-	if (( $# == 2 )); then return; fi
-	local _L_dest_var="$1" _L_title="$2" _L_dest_val="${!1}" _L_out="" _L_max_len=0 _L_i _L_name _L_desc _L_line _L_is_first _L_pad _L_next _L_aligned
-	shift 2
-	if [[ -n "$_L_dest_val" ]]; then
-		_L_out+=$'\n\n'
-	fi
-	_L_out+="$_L_title"
-	# Calculate max name length
-	for (( _L_i=1; _L_i <= $#; _L_i+=2 )); do
-		_L_name="${!_L_i}"
-		if (( ${#_L_name} > _L_max_len )); then
-			_L_max_len=${#_L_name}
-		fi
-	done
-	if (( _L_max_len > 30 )); then
-		_L_max_len=30
-	fi
-	# Generate pad string once, avoiding any subshell!
-	printf -v _L_pad "%-${_L_max_len}s" ""
-	for (( _L_i=1; _L_i <= $#; _L_i+=2 )); do
-		_L_name="${!_L_i}"
-		_L_next=$((_L_i+1))
-		_L_desc="${!_L_next}"
-		_L_desc="${_L_desc#$'\n'}"
-		_L_desc="${_L_desc%$'\n'}"
-		_L_is_first=1
-		while IFS= read -r _L_line || [[ -n "$_L_line" ]]; do
-			# Strip leading/trailing whitespace
-			L_strip -v _L_line -- "$_L_line"
-			if (( _L_is_first )); then
-				if (( ${#_L_name} > _L_max_len )); then
-					_L_out+=$'\n'"  ${_L_name}"$'\n'"  ${_L_pad}  ${_L_line}"
-				else
-					printf -v _L_aligned "%-${_L_max_len}s" "${_L_name}"
-					_L_out+=$'\n'"  ${_L_aligned}  ${_L_line}"
-				fi
-				_L_is_first=0
-			else
-				_L_out+=$'\n'"  ${_L_pad}  ${_L_line}"
-			fi
-		done <<<"$_L_desc"
-	done
-	printf -v "$_L_dest_var" "%s%s" "$_L_dest_val" "$_L_out"
-}
+# @description Print function usage to stderr.
+# @option -v <var> Store the usage message in the variable instead of printing it.
+# @option -h Print this help and return.
+# @option -s <int> How many stack frames up.
+# @arg [$1] How many stack frames up.
+L_func_usage() { L_func_doc -s 1 "$@" usage; }
 
-_L_func_help_print_list_section() {
-	if (( $# == 2 )); then return; fi
-	local _L_dest_var="$1" _L_title="$2" _L_dest_val="${!1}" _L_out="" _L_item
-	shift 2
-	if [[ -n "$_L_dest_val" ]]; then
-		_L_out+=$'\n\n'
-	fi
-	_L_out+="$_L_title"
-	for _L_item in "$@"; do
-		_L_out+=$'\n'"  $_L_item"
-	done
-	printf -v "$_L_dest_var" "%s%s" "$_L_dest_val" "$_L_out"
-}
-
-# @description Print function comment as usage message.
-# @arg [int] How many stack frames up.
+# @description Print function comment as help message.
+# @option -v <var> Store the help message in the variable instead of printing it.
+# @option -f <func> Function to print help for.
+# @option -s <int> How many stack frames up.
+# @option -h Print this help and return 0.
+# @arg [$1] How many stack frames up.
 # @see L_func_comment
 # @see L_func_error
 # @return 0
@@ -739,159 +834,7 @@ _L_func_help_print_list_section() {
 #    utility -h        # prints the comment above the function
 #    utility -invalid  # prints 'Usage: utility [-th] [-g arg] arg'
 #
-L_func_help() {
-	local up="$((${1:-0}+1))" help_out="unknown help"
-	if L_func_comment -v help_out -s "$up" "$@"; then
-		local -a description=() option_list=() argument_list=() return_list=() env_list=() see_list=() example_list=()
-		local current_section="description" line tag rest docstring="$help_out" sect_out="" IFS=$'\n'
-		help_out=""
-		# Regex variables to avoid Bash parsing issues across different versions
-		local rx_comment='^\#[[:space:]]?(.*)$'
-		local rx_tag='^@(description|option|arg|return|env|see|example):?([[:space:]]+(.*))?$'
-		local rx_opt='^((-[a-zA-Z0-9_?+^]+|--[a-zA-Z0-9_?+^-]+)([[:space:]]+<[^>]+>)?)[[:space:]]*(.*)$'
-		local rx_arg='^(([^[:space:]]+([[:space:]]+<[^>]+>)?)[[:space:]]*)(.*)$'
-		local rx_ret='^([0-9]+|non-zero|L_EX_[A-Z_]+)([[:space:]]+\([^)]+\))?[[:space:]]+(.*)$'
-		local rx_env='^([_a-zA-Z0-9]+([[:space:]]+<[^>]+>)?)[[:space:]]*(.*)$'
-		while IFS= read -r line || [[ -n "$line" ]]; do
-			# Strip leading '#' and at most one optional space
-			if [[ "$line" =~ $rx_comment ]]; then
-				line="${BASH_REMATCH[1]}"
-			else
-				L_strip -v line -- "$line"
-			fi
-			# Skip shellcheck directives
-			if [[ "$line" =~ ^[[:space:]]*shellcheck ]]; then
-				continue
-			fi
-			# If the stripped line is empty
-			if [[ -z "${line//[[:space:]]}" ]]; then
-				if [[ "$current_section" == "description" && ${#description[@]} -gt 0 ]]; then
-					description+=("")
-				fi
-				continue
-			fi
-			# Check for tags
-			if [[ "$line" =~ $rx_tag ]]; then
-				tag="${BASH_REMATCH[1]}"
-				rest="${BASH_REMATCH[3]}"
-				current_section="$tag"
-				case "$tag" in
-					description)
-						if [[ -n "$rest" ]]; then
-							description+=("$rest")
-						fi
-						;;
-					option)
-						if [[ "$rest" =~ $rx_opt ]]; then
-							option_list+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[4]}")
-						else
-							option_list+=("$rest" "")
-						fi
-						;;
-					arg)
-						if [[ "$rest" =~ $rx_arg ]]; then
-							argument_list+=("${BASH_REMATCH[2]}" "${BASH_REMATCH[4]}")
-						else
-							argument_list+=("$rest" "")
-						fi
-						;;
-					return)
-						if [[ "$rest" =~ $rx_ret ]]; then
-							return_list+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
-						else
-							return_list+=("$rest" "")
-						fi
-						;;
-					env)
-						if [[ "$rest" =~ $rx_env ]]; then
-							env_list+=("${BASH_REMATCH[1]}" "${BASH_REMATCH[3]}")
-						else
-							env_list+=("$rest" "")
-						fi
-						;;
-					see)
-						if [[ -n "$rest" ]]; then
-							see_list+=("$rest")
-						fi
-						;;
-					example)
-						if [[ -n "$rest" ]]; then
-							example_list+=("$rest")
-						fi
-						;;
-				esac
-			else
-				# Continuation line
-				case "$current_section" in
-					description)
-						description+=("$line")
-						;;
-					option)
-						option_list[${#option_list[@]}-1]+=$'\n'"$line"
-						;;
-					arg)
-						argument_list[${#argument_list[@]}-1]+=$'\n'"$line"
-						;;
-					return)
-						# Check if continuation line is a new return code
-						if [[ "$line" =~ $rx_ret ]]; then
-							return_list+=("${BASH_REMATCH[1]}${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}")
-						else
-							return_list[${#return_list[@]}-1]+=$'\n'"$line"
-						fi
-						;;
-					env)
-						env_list[${#env_list[@]}-1]+=$'\n'"$line"
-						;;
-					see)
-						see_list+=("$line")
-						;;
-					example)
-						example_list+=("$line")
-						;;
-				esac
-			fi
-		done <<<"$docstring"
-		help_out="${description[*]}"
-		_L_func_help_print_section help_out "Options:" ${option_list[@]+"${option_list[@]}"}
-		_L_func_help_print_section help_out "Arguments:" ${argument_list[@]+"${argument_list[@]}"}
-		_L_func_help_print_section help_out "Environment:" ${env_list[@]+"${env_list[@]}"}
-		_L_func_help_print_section help_out "Return:" ${return_list[@]+"${return_list[@]}"}
-		_L_func_help_print_list_section help_out "See:" ${see_list[@]+"${see_list[@]}"}
-		_L_func_help_print_list_section help_out "Example:" ${example_list[@]+"${example_list[@]}"}
-	fi
-	echo "$0: ${FUNCNAME[up]}: $help_out" >&2
-}
-
-# @description Print funtion usage to stderr.
-# @arg [$1] How many stack frames up.
-L_func_usage() {
-	local up="$((${1:-0}+1))" v i short="" long="" args="" usage="" line
-	if L_func_comment -v v -s "$up"; then
-		while IFS= read -r line; do
-			if [[ "$line" =~ ^\#[[:space:]]+@(usage|option|arg)[[:space:]]+(.*)$ ]]; then
-				line=${BASH_REMATCH[2]}
-				if [[ "${BASH_REMATCH[1]}" == "usage" ]]; then
-					usage=$line
-					break
-				elif [[ "$line" =~ --([^\ ]+)[^\<]*\<([^\>]+)\> ]]; then
-					long+=" [--${BASH_REMATCH[1]} ${BASH_REMATCH[2]}]"
-				elif [[ "$line" =~ --([^[:space:]]+) ]]; then
-					long+=" [--${BASH_REMATCH[1]}"
-				elif [[ "$line" =~ -(.)[^\<]*\<([^\>]+)\> ]]; then
-					long+=" [-${BASH_REMATCH[1]} ${BASH_REMATCH[2]}]"
-				elif [[ "$line" =~ -(.) ]]; then
-					short+="${BASH_REMATCH[1]}"
-				elif [[ "$line" =~ ([^[:space:]]+) ]]; then
-					args+=" ${BASH_REMATCH[1]}"
-				fi
-			fi
-		done <<<"$v"
-		if [[ -n "${usage:=${short:+ [-$short]}$long$args}" ]]; then
-			echo "${BASH_SOURCE[up]}: usage: ${FUNCNAME[up]}$usage" >&2
-		fi
-	fi
-}
+L_func_help() { L_func_doc -s 1 "$@" help; }
 
 # @description Print function error to stderr.
 # @arg [$1] Message.
@@ -909,7 +852,7 @@ L_func_error() {
 # @see L_func_help for example
 L_func_usage_error() {
 	L_func_error "${1:-}" "$((${2:-0}+1))" # ; return 0
-	L_func_usage "$((${2:-0}+1))"
+	L_func_usage -s "$((${2:-0}+1))"
 }
 
 # @description Assert that the command exits with 0.
@@ -12376,16 +12319,99 @@ Other Options:
 
 Commands:
   If a command is provided, it will be executed immediately.
-  selfupdate Update L_lib.sh from the remote repository.
-  eval EXPR  Evaluate a bash expression.
-  exec ARGS  Execute a command with the given arguments.
-  version    Print version and copyright information.
-  help       Print this help message.
-  <func>     Execute any loaded bash function (e.g., L_log "Message").
+  selfupdate  Update L_lib.sh from the remote repository.
+  eval EXPR   Evaluate a bash expression.
+  exec ARGS   Execute a command with the given arguments.
+  version     Print version and copyright information.
+  help [SYM]  Print help for SYM (function/variable), or library overview.
+  <func>      Execute any loaded bash function (e.g., L_log "Message").
 
 L_lib.sh Copyright (C) 2026 Kamil Cukrowski
 $L_FREE_SOFTWARE_NOTICE
 EOF
+}
+
+_L_lib_help_var() {
+	if [[ -z "$L_LIB_SCRIPT" || ! -r "$L_LIB_SCRIPT" ]]; then
+		echo "L_lib.sh help: error: No readable source file: $L_LIB_SCRIPT" >&2
+		return 1
+	fi
+	local _L_content
+	_L_content=$(< "$L_LIB_SCRIPT") || return 2
+	if [[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?(($'\n'\#[^$'\n']*)+)$'\n'"$1"'=' ]]; then
+		printf "%s\n" "${BASH_REMATCH[2]##$'\n'}"
+	else
+		echo "L_lib.sh help: error: Definition not found for variable: $1" >&2
+		return 1
+	fi
+}
+
+_L_lib_help_func() {
+	local _L_func="$1" _L_base _L_docstring
+	L_func_comment -v _L_docstring -f "$_L_func" &&
+		[[ -n "$_L_docstring" ]] &&
+		if [[ "$_L_func" == *_vL_RET ]]; then
+			_L_base="${_L_func%_vL_RET}"
+			local _L_base_src
+			if _L_base_src=$(declare -f "$_L_base" 2>/dev/null); then
+			echo "### $_L_func sets L_RET variable for function $_L_base ###"
+			L_func_help -f "$_L_base" 2>&1
+			return $?
+		else
+			echo "L_lib.sh help: error: No base function $_L_base found for $_L_func" >&2
+			return 1
+		fi
+	else
+		L_func_help -f "$_L_func" 2>&1
+		return $?
+	fi
+}
+
+_L_lib_help() {
+	if (( !$# )); then
+		cat <<EOF
+L_lib.sh $L_LIB_VERSION - Bash standard library
+
+Sections: argparse logging testing resource caching string proc array json
+  argparse  L_argparse, L_argskeywords
+  logging   L_log, L_log_configure, L_panic, L_fatal, L_error
+  testing   L_unittest_main, L_unittest_cmd, L_unittest_eq, L_unittest_skip
+  resource  L_finally, L_with_tmpfile_into, L_pipe, L_xargs, L_proc_popen
+  caching   L_cache
+  string    L_unquote, L_readarray, L_quote_printf, L_hash, L_var_to_string
+  proc      L_proc_popen, L_duration_to_usec_vL_RET
+
+Getting help:
+  help <symbol>   Show docs for a function or variable.
+  help -h         Show this short help again.
+  --help          Show full usage.
+
+  -h: getopts functions accept -h for detailed usage.
+  _vL_RET: internal variant of base func (L_nproc_vL_RET -> L_nproc).
+
+Full usage:  L_lib.sh --help   |   L_lib.sh version
+Docs:        https://github.com/Kamilcuk/L_lib
+EOF
+		return 0
+	fi
+	local _L_arg _L_return=0 IFS=' '
+	for _L_arg in "$@"; do
+		case "$_L_arg" in
+			-h|--help) _L_lib_help; return "$_L_return" ;;
+			-*) echo "help: unknown option: $_L_arg" >&2; _L_return=$L_EX_USAGE; continue ;;
+		esac
+		if declare -f "$_L_arg" >/dev/null 2>/dev/null; then
+			_L_lib_help_func "$_L_arg"
+		elif declare -p "$_L_arg" >/dev/null 2>/dev/null; then
+			_L_lib_help_var "$_L_arg"
+		else
+			echo "help: unknown symbol: $_L_arg" >&2
+			L_compgen -V _L_arg -A variable -A function -- "$_L_arg"
+			echo "help: did you mean: ${_L_arg[*]}" >&2
+			_L_return=$L_EX_USAGE
+		fi
+	done
+	return "$_L_return"
 }
 
 _L_lib_main() {
@@ -12438,7 +12464,8 @@ _L_lib_main() {
 			selfupdate) _L_lib_selfupdate "${@:2}" ;;
 			exec) "${@:2}" ;;
 			eval|L_*|_L_*) "$@" ;;
-			--help | help) _L_lib_usage; return 0 ;;
+			--help) _L_lib_usage; return 0 ;;
+			help) _L_lib_help "${@:2}"; return $? ;;
 			--version | version)
 				echo "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski"
 				return 0
