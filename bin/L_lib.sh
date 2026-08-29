@@ -4301,10 +4301,10 @@ L_table() {
 #     $ if L_args_contain 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     no
 L_parse_range_list() {
-	local OPTIND OPTARG OPTERR _L_max=100 _L_list _L_i _L_v="" _L_ret _L_j _L_start="" _L_stop="" _L_output=() _L_C=0
+	local OPTIND OPTARG OPTERR _L_max=100 _L_list _L_i _L_v="" _L_j _L_start="" _L_stop="" _L_output=() _L_C=0
 	while getopts v:m:Ch _L_i; do
 		case "$_L_i" in
-			v) _L_v="$OPTARG"; if (( L_HAS_NAMEREF )); then local -n _L_ret="$OPTARG"; _L_ret=(); fi ;;
+			v) _L_v="$OPTARG"; ;;
 			m) _L_max="$OPTARG" ;;
 			C) _L_C=1 ;;
 			h) L_func_help; return 0 ;;
@@ -4315,6 +4315,12 @@ L_parse_range_list() {
 	if (( $# == 0 )); then
 		L_func_usage_error "not enough arguments"
 		return "$L_EX_USAGE"
+	fi
+	if [[ -n "$_L_v" ]] && (( L_HAS_NAMEREF )); then
+		local -n _L_ret="$_L_v"
+		_L_ret=()
+	else
+		local _L_ret=()
 	fi
 	IFS=$' \t\n' read -r -a _L_list <<<"${*//[^0-9-]/ }"
 	for _L_i in ${_L_list[@]+"${_L_list[@]}"}; do
