@@ -238,6 +238,15 @@ L_ANSI_RESET=$'\E[m'
 # @description Very basic functions for manipulating cursor position and color.
 # @note unstable
 
+# @description Remove ANSI esacpe sequences like \E[..m from string.
+# Uses extglob
+# @option -v <var> assign result to this variable instead of printing it.
+# @arg $1 string to clean up
+L_strip_ansi() { L_handle_v_scalar "$@"; }
+L_strip_ansi_vL_RET() { L_shopt_extglob _L_strip_ansi_vL_RET_in "$*"; }
+# shellcheck disable=SC1001
+_L_strip_ansi_vL_RET_in() { L_RET=${*//$'\x1B'@([@-Z\\-_]|\[*([0-?])*([ -\/])[@-~])}; }
+
 # @description Move cursor $1 lines up (CUU - Cursor Up)
 # @arg $1 int number of lines (default: 1)
 L_ansi_up() { printf '\E[%dA' "$@"; }
@@ -3152,6 +3161,26 @@ else
 	L_capitalize_vL_RET() { L_strupper_vL_RET "${1:0:1}"; L_RET="$L_RET${1:1}"; }
 	L_uncapitalize_vL_RET() { L_strlower_vL_RET "${1:0:1}"; L_RET="$L_RET${1:1}"; }
 fi
+
+# @description Remove common leading indentation from all lines.
+# @option -v <var> Store the output in variable instead of printing it.
+# @arg $1 <str> String to dedent.
+L_dedent() { L_handle_v_scalar "$@"; }
+L_dedent_vL_RET() {
+	local _L_i IFS=$'\n' _L_min=-1
+	while IFS= read -r _L_i; do
+		_L_i=${_L_i%%[^$' \t']*}
+		_L_min=$(( _L_min < 0 || ${#_L_i} < _L_min ? ${#_L_i} : _L_min ))
+	done <<<"$*"
+	if (( _L_min >= 0 )); then
+		printf -v _L_i "%*s" "$_L_min" ""
+		_L_i=${_L_i//?/?}
+		L_RET=${*//$'\n'$_L_i/$'\n'}
+		L_RET=${L_RET:${#_L_i}}
+	else
+		L_RET=$*
+	fi
+}
 
 # @description Remove characters from IFS from begining and end of string
 # @option -v <var> Store the output in variable instead of printing it.
