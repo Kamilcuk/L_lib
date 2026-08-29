@@ -1072,12 +1072,11 @@ _L_getopts_in_initer() {
 # @arg $1 The getopts spec.
 # @arg $2 Function to call.
 # @arg $@ Arguments to parse.
-# @return Sub-function return status,
+# @return ? Sub-function return status,
 #         70 ($L_EX_SOFTWARE) on itself usage error,
 #         0 if -h option was given,
 #         64 ($L_EX_USAGE) on child usage error.
 # @example
-#
 #    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
 #    myfunc_in() {
 #      echo "${opt_n[@]} $opt_v $opt_q"
@@ -4256,6 +4255,7 @@ L_min_vL_RET() {
 # @option -s <separator> IFS column separator to use. Default: space or tab.
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
+# @option -X Ignore color escape sequences when calculting column width.
 # @option -h Print this help and return 0.
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
@@ -4264,13 +4264,14 @@ L_min_vL_RET() {
 #         a     b c
 #         d     e f
 L_table() {
-	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last
-	while getopts v:s:o:R:h _L_i; do
+	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last _L_X=0 L_RET _L_len
+	while getopts v:s:o:R:Xh _L_i; do
 		case $_L_i in
 		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
 		s) _L_s=$OPTARG ;;
 		o) _L_o=$OPTARG ;;
 		R) _L_R=$OPTARG ;;
+		X) _L_X=1 ;;
 		h) L_func_help; return 0 ;;
 		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -4279,32 +4280,43 @@ L_table() {
 	# Fill the array, find number of columns and rows.
 	while IFS="$_L_s" read -r -a _L_tmp; do
 		for _L_column in "${!_L_tmp[@]}"; do
-			_L_arr[100 * _L_rows + _L_column]=${_L_tmp[_L_column]}
-			(( _L_widths[_L_column] < ${#_L_tmp[_L_column]} ? _L_widths[_L_column] = ${#_L_tmp[_L_column]} : 0, 1 ))
+			_L_arr[999999 * _L_rows + _L_column]=${_L_tmp[_L_column]}
+			if (( _L_X )); then
+				L_strip_ansi_vL_RET "${_L_tmp[_L_column]}"
+				_L_len=${#L_RET}
+			else
+				_L_len=${#_L_tmp[_L_column]}
+			fi
+			(( _L_widths[_L_column] < _L_len ? _L_widths[_L_column] = _L_len : 0, 1 ))
 		done
-		(( _L_column > _L_columns ? _L_columns = _L_column + 1 : 0, ++_L_rows ))
+		(( _L_columns < _L_column + 1 ? _L_columns = _L_column + 1 : 0, ++_L_rows ))
 	done <<<"$*"
 	#
-	L_parse_range_list -v _L_R "$_L_columns" "$_L_R"
+	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R"
 	#
 	for ((_L_row = 0; _L_row < _L_rows; _L_row++)); do
-		if L_var_is_set "_L_arr[100 * _L_row + 0]"; then
+		if L_var_is_set "_L_arr[999999 * _L_row + 0]"; then
 			for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
-				_L_tmp=${_L_arr[100 * _L_row + _L_column]:-}
-				L_exit_into _L_last L_var_is_set "_L_arr[100 * _L_row + _L_column + 1]"
-				if L_args_contain "$((_L_column+1))" ${_L_R[@]+"${_L_R[@]}"}; then
+				_L_tmp=${_L_arr[999999 * _L_row + _L_column]:-}
+				L_exit_into _L_last L_var_is_set "_L_arr[999999 * _L_row + _L_column + 1]"
+				if L_var_is_set "_L_R[_L_column+1]"; then
 					L_printf_append "$_L_v" "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
 				else
 					if ((_L_last)); then
 						L_printf_append "$_L_v" "%s" "$_L_tmp"
 					else
-						L_printf_append "$_L_v" "%-*s" "${_L_widths[_L_column]}" "$_L_tmp"
+						_L_len="${_L_widths[_L_column]:-0}"
+						if (( _L_X )); then
+							L_strip_ansi_vL_RET "${_L_tmp}"
+							(( _L_len += ${#_L_tmp} - ${#L_RET} ))
+						fi
+						L_printf_append "$_L_v" "%-*s" "$_L_len" "$_L_tmp"
 					fi
 				fi
 				if ((_L_last)); then
 					break
 				fi
-				if ((_L_column + 1 < _L_columns)); then
+				if ((_L_column < _L_columns)); then
 					L_printf_append "$_L_v" "%s" "$_L_o"
 				fi
 			done
@@ -4325,6 +4337,7 @@ L_table() {
 #                  The variable array has both indexes and values set.
 # @option -m <int> Maximum number of columns. Default: 100
 # @option -C Complement the selection.
+# @option -h Print this help and return 0.
 # @arg $1 list of fields
 # @example
 #     $ L_parse_range_list 1-4,3-5
