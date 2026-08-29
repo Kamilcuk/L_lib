@@ -683,7 +683,7 @@ L_func_doc() {
 	{
 		# Extract usage and full help in a single pass.
 		L_color_detect
-		local _L_usage="" _L_i _L_long="" _L_flags="" _L_args="" _L_help_map=() _L_last=description
+		local _L_usage="" _L_i _L_long="" _L_flags="" _L_args="" _L_help_map=() _L_last=description _L_j
 		# Regex group map (BASH_REMATCH indices):
 		#   G1   whole tag alternation (optional, so bare/continuation lines still match)
 		#   G2   "ion" suffix of @opt(ion)
@@ -731,11 +731,11 @@ L_func_doc() {
 					,return) # Return tag or continuation line.
 						# Return continuation line is special, in that we match a leading number to make it cyan.
 						# Not great not terrible.
+						_L_j="${BASH_REMATCH[11]}"
 						if [[ "$_L_i" =~ ^[[:space:]]*#[[:space:]]*[[:space:]]+([0-9]+)[[:space:]]*([^[:space:]].*)?$ ]]; then
-							_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"$L_BOLD$L_CYAN${BASH_REMATCH[1]}$L_RESET$L_GS${BASH_REMATCH[2]}"
-						else
-							_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[11]}"
+							_L_j="$L_BOLD$L_CYAN${BASH_REMATCH[1]}$L_RESET$L_GS${BASH_REMATCH[2]}"
 						fi
+						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"$_L_j"
 						;;
 					*)    # continuation line
 						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[11]}" ;;
