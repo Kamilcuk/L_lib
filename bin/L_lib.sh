@@ -6062,7 +6062,7 @@ L_finally_critical_section() {
 # @description Change to given directory.
 # Register RETURN trap for parent function that will restore current working directory.
 # @arg $1 Directory to cd into.
-# @arg $2 Optional stack offset to add to RETURN trap.
+# @arg [$2] Optional stack offset to add to RETURN trap.
 L_with_cd() {
 	L_finally -r -s "$((${2-}+1))" cd "$PWD" &&
 		cd "$1"
@@ -6071,7 +6071,7 @@ L_with_cd() {
 # @description Create a temporary directory.
 # Register RETURN trap for parent fuction that will remove the directory.
 # @arg $1 Variable to assign the temporary file to.
-# @arg $2 Optional stack offset to add to RETURN trap.
+# @arg [$2] Optional stack offset to add to RETURN trap.
 L_with_tmpfile_into() {
 	local _L_v &&
 		L_mktemp -v _L_v "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX" &&
@@ -6082,7 +6082,7 @@ L_with_tmpfile_into() {
 # @description Create a temporary directory.
 # Register RETURN trap for parent fuction that will remove the directory.
 # @arg $1 Variable to assign the temporary directory location to.
-# @arg $2 Optional stack offset to add to RETURN trap.
+# @arg [$2] Optional stack offset to add to RETURN trap.
 L_with_tmpdir_into() {
 	local _L_v &&
 		_L_v=$(mktemp -d "${TMPDIR:-/tmp}/${FUNCNAME[$((${2:-}+1))]//[^a-zA-Z0-9_]}.${FUNCNAME[0]}.XXXXXX") &&
@@ -6096,7 +6096,7 @@ _L_with_tmpdir_into_callback() {
 # @description Create a temporary directory and cd into it.
 # Register RETURN trap that will remove the temporary directory
 # and restore working directory on return from parent function.
-# @arg $2 Optional stack offset to add to RETURN trap.
+# @arg [$1] Optional stack offset to add to RETURN trap.
 L_with_cd_tmpdir() {
 	local tmpdir &&
 		L_with_tmpdir_into tmpdir "$((${1-}+1))" &&
@@ -6120,15 +6120,17 @@ _L_with_process_finally() {
 
 # @description Run command in background and store its PID in variable.
 # Register RETURN trap that will kill process on return from parent function.
-# @option -v Be verbose.
+# @option -t Trace.
+# @option -s <int> Stack offset for the RETURN trap.
 # @option -h Show help.
 # @arg $1 Variable to store the PID of the background process.
 # @arg $@ Command to execute in the background.
 L_with_process_into() {
-	local OPTIND OPTARG OPTERR i v=0
-	while getopts vh i; do
+	local OPTIND OPTARG OPTERR i _L_t=0 _L_up=1
+	while getopts t:s:h i; do
 		case "$i" in
-			v) v=1 ;;
+			t) _L_t=1 ;;
+			s) _L_up=$(( _L_up + OPTARG )) ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -6140,7 +6142,7 @@ L_with_process_into() {
 	esac
 	"${@:2}" &
 	printf -v "$1" "%s" "$!"
-	L_finally -r -s 1 _L_with_process_finally "${!1}" "$v"
+	L_finally -r -s "$_L_up" _L_with_process_finally "${!1}" "$_L_t"
 }
 
 _L_with_redirect_stdout_to_finally() {
