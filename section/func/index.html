@@ -733,6 +733,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_doc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_doc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#L_lib.sh--L_func_comment" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -744,10 +755,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
       
     </span>
   </a>
@@ -755,10 +766,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
       
     </span>
   </a>
@@ -1924,6 +1935,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#L_lib.sh--L_func_doc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_doc
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#L_lib.sh--L_func_comment" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1935,10 +1957,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
       
     </span>
   </a>
@@ -1946,10 +1968,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_func_usage" class="md-nav__link">
+  <a href="#L_lib.sh--L_func_help" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_usage
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_func_help
       
     </span>
   </a>
@@ -2287,7 +2309,7 @@ deploy<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--func">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     func
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L565"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L574"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2317,7 +2339,7 @@ deploy<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_func_get_source">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_get_source
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L581"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L580"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2364,7 +2386,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_func_get_source_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_get_source_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L582"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L581"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2389,9 +2411,74 @@ Argument:
   
 
 
+<h3 id="L_lib.sh--L_func_doc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_doc
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L624"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_doc" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Unified function-documentation dispatcher.</p>
+<p>Backend for L_func_comment, L_func_usage and L_func_help.</p>
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Assign the result to this variable instead of printing it.
+
+</li><li>                <strong><code>-f &lt;funcname&gt;</code></strong>
+    Document the given function instead of the calling function.
+
+</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
+    Consider the target function this many stack frames above. Default: 1 (one above the wrapper).
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
+
+</li><li>                <strong><code>-i</code></strong>
+    Read function comment from stdin, intead of parsing the file.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    Mode: one of <code>comment</code>, <code>usage</code> or <code>help</code> (normally supplied by the wrapper functions).
+
+    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            0 if documentation was extracted successfully.
+
+    </p>
+
+  
+  
+  
+
+
 <h3 id="L_lib.sh--L_func_comment">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_comment
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L607"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L793"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2457,15 +2544,66 @@ Return:
   
 
 
+<h3 id="L_lib.sh--L_func_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_func_usage
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L800"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_func_usage" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print function usage to stderr.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Store the usage message in the variable instead of printing it.
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return.
+
+</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
+    How many stack frames up.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>[$1]</code></strong>
+    How many stack frames up.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
 <h3 id="L_lib.sh--L_func_help">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_help
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L732"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L836"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_func_help" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Print function comment as usage message.
+            Print function comment as help message.
 
     </p>
 
@@ -2499,12 +2637,27 @@ utility -invalid  # prints 'Usage: utility [-th] [-g arg] arg'
   
   
   
-  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Store the help message in the variable instead of printing it.
+
+</li><li>                <strong><code>-f &lt;func&gt;</code></strong>
+    Function to print help for.
+
+</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
+    How many stack frames up.
+
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
+
+</li></ul>    </p>
+
       <p>
         <strong>
 Argument:
         </strong>
-            <strong><code>[int]</code></strong>
+            <strong><code>[$1]</code></strong>
     How many stack frames up.
 
     </p>
@@ -2536,48 +2689,9 @@ Return:
 
 
 
-<h3 id="L_lib.sh--L_func_usage">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_func_usage
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L858"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_func_usage" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Print funtion usage to stderr.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>[$1]</code></strong>
-    How many stack frames up.
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
 <h3 id="L_lib.sh--L_func_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_error
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L890"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L842"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2624,7 +2738,7 @@ See:
 
 <h3 id="L_lib.sh--L_func_usage_error">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_usage_error
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L900"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L852"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2671,7 +2785,7 @@ See:
 
 <h3 id="L_lib.sh--L_func_assert">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_assert
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L916"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L868"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2728,7 +2842,7 @@ Return:
 
 <h3 id="L_lib.sh--L_func_log">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_func_log
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L931"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L883"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2767,7 +2881,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_function_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_function_copy
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L940"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L892"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2809,7 +2923,7 @@ The second argument allows for execution under eval.</p>
 
 <h3 id="L_lib.sh--L_function_modify">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_function_modify
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L950"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L902"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2852,7 +2966,7 @@ The second argument allows for execution under eval.</p>
 
 <h3 id="L_lib.sh--L_decorate">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_decorate
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L998"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L950"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2918,7 +3032,7 @@ func arg  # calls: [L_setx time func arg]
 
 <h3 id="L_lib.sh--L_decorate_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_decorate_copy
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1016"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L968"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2959,7 +3073,7 @@ func arg  # calls: [L_setx time func arg]
 
 <h3 id="L_lib.sh--L_getopts_in">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_getopts_in
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1076"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1027"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3044,7 +3158,7 @@ myfunc_in() {
         <strong>
 Return:
         </strong>
-            <p>Sub-function return status,</p>
+            <p>? Sub-function return status,</p>
 <p>70 ($L_EX_SOFTWARE) on itself usage error,
 0 if -h option was given,
 64 ($L_EX_USAGE) on child usage error.</p>
@@ -3058,7 +3172,7 @@ Return:
 
 <h3 id="L_lib.sh--L_handle_v_scalar">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_handle_v_scalar
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1194"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1145"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3137,7 +3251,7 @@ See:
 
 <h3 id="L_lib.sh--L_handle_v_array">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_handle_v_array
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1268"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L1219"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>

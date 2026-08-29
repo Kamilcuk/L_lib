@@ -1923,7 +1923,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--with">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     with
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L5995"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6046"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1953,7 +1953,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_cd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6002"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6053"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1974,7 +1974,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <ul><li>                <strong><code>$1</code></strong>
     Directory to cd into.
 
-</li><li>                <strong><code>$2</code></strong>
+</li><li>                <strong><code>[$2]</code></strong>
     Optional stack offset to add to RETURN trap.
 
 </li></ul>    </p>
@@ -1994,7 +1994,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_tmpfile_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpfile_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6011"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6062"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2015,7 +2015,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <ul><li>                <strong><code>$1</code></strong>
     Variable to assign the temporary file to.
 
-</li><li>                <strong><code>$2</code></strong>
+</li><li>                <strong><code>[$2]</code></strong>
     Optional stack offset to add to RETURN trap.
 
 </li></ul>    </p>
@@ -2035,7 +2035,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_tmpdir_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_tmpdir_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6022"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6073"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2056,7 +2056,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 <ul><li>                <strong><code>$1</code></strong>
     Variable to assign the temporary directory location to.
 
-</li><li>                <strong><code>$2</code></strong>
+</li><li>                <strong><code>[$2]</code></strong>
     Optional stack offset to add to RETURN trap.
 
 </li></ul>    </p>
@@ -2076,7 +2076,7 @@ main<span class="o">()</span><span class="w"> </span><span class="o">{</span>
 
 <h3 id="L_lib.sh--L_with_cd_tmpdir">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_cd_tmpdir
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6036"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6087"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2097,7 +2097,7 @@ and restore working directory on return from parent function.</p>
         <strong>
 Argument:
         </strong>
-            <strong><code>$2</code></strong>
+            <strong><code>[$1]</code></strong>
     Optional stack offset to add to RETURN trap.
 
     </p>
@@ -2117,7 +2117,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_with_process_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_process_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6063"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6115"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2134,8 +2134,11 @@ Argument:
   
       <p>
         <strong>Options:</strong>
-<ul><li>                <strong><code>-v</code></strong>
-    Be verbose.
+<ul><li>                <strong><code>-t</code></strong>
+    Trace.
+
+</li><li>                <strong><code>-s &lt;int&gt;</code></strong>
+    Stack offset for the RETURN trap.
 
 </li><li>                <strong><code>-h</code></strong>
     Show help.
@@ -2167,7 +2170,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_with_redirect_stdout_into">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_with_redirect_stdout_into
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6091"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6144"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>

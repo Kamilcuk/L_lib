@@ -1217,17 +1217,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_parse_range_list_vL_RET" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_parse_range_list_vL_RET
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#L_lib.sh--L_pretty_print" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2175,17 +2164,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_parse_range_list_vL_RET" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_parse_range_list_vL_RET
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#L_lib.sh--L_pretty_print" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2569,7 +2547,7 @@ L_pretty_print<span class="w"> </span>ref
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--utilities">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     utilities
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4215"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4191"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2599,7 +2577,7 @@ L_pretty_print<span class="w"> </span>ref
 
 <h3 id="L_lib.sh--L_table">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_table
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4231"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4208"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2634,6 +2612,9 @@ name1 name2 name3
 
 </li><li>                <strong><code>-R &lt;list[int]&gt;</code></strong>
     Right align columns with these indexes
+
+</li><li>                <strong><code>-X</code></strong>
+    Ignore color escape sequences when calculting column width.
 
 </li><li>                <strong><code>-h</code></strong>
     Print this help and return 0.
@@ -2674,7 +2655,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_parse_range_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_parse_range_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4306"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4302"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2693,15 +2674,19 @@ Each range is one of:
 
       <div class="admonition example">
 <p class="admonition-title">Example</p>
-<pre><code>$ L_parse_range_list 100 1-4,3-5
+<pre><code>$ L_parse_range_list 1-4,3-5
 1
 2
 3
 4
 5
-$ L_parse_range_list -v tmp 100 '1-4 3-5'
+$ L_parse_range_list -v tmp '1-4 3-5'
 $ echo "${tmp[@]}"
 1 2 3 4 5
+$ echo "${!tmp[@]}"
+1 2 3 4 5
+$ if L_var_is_set "tmp[3]"; then echo "yes"; else echo "no"; fi
+yes
 $ if L_args_contain 3 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 yes
 $ if L_args_contain 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
@@ -2713,51 +2698,31 @@ no
   
   
       <p>
-        <strong>
-Option:
-        </strong>
-            <strong><code>-v &lt;var&gt;</code></strong>
-    Store the output in variable instead of printing it.
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    <p>Store the output in variable instead of printing it.</p>
+<p>The variable array has both indexes and values set.</p>
 
-    </p>
+</li><li>                <strong><code>-m &lt;int&gt;</code></strong>
+    Maximum number of columns. Default: 100
 
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>$1</code></strong>
-    max number of fields
+</li><li>                <strong><code>-C</code></strong>
+    Complement the selection.
 
-</li><li>                <strong><code>$2</code></strong>
-    list of fields
+</li><li>                <strong><code>-h</code></strong>
+    Print this help and return 0.
 
 </li></ul>    </p>
 
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    list of fields
 
+    </p>
 
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_parse_range_list_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_parse_range_list_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4307"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_parse_range_list_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
-  
-  
-  
-  
-  
-  
-  
 
 
   
@@ -2773,7 +2738,7 @@ Option:
 
 <h3 id="L_lib.sh--L_pretty_print">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_pretty_print
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4423"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4448"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2826,6 +2791,10 @@ Argument:
   
   
 
+    <p>
+      <strong>Shellcheck disable=</strong>
+        <a href="https://www.shellcheck.net/wiki/SC2053">SC2053</a>
+    </p>
 
   
   
@@ -2836,7 +2805,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_pp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_pp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4478"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4529"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2870,7 +2839,7 @@ See:
 
 <h3 id="L_lib.sh--L_argskeywords">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_argskeywords
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4532"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4583"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2971,7 +2940,7 @@ int 10 base=7
 
 <h3 id="L_lib.sh--L_version_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_version_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4702"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L4753"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
