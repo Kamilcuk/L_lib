@@ -4432,24 +4432,23 @@ _L_pretty_print_declare() {
 		# Array or associative array
 		_L_pretty_print_output "${_L_flags}$1=("
 		local _L_pp_nonfirst_sep=""
+		_L_pp_ref="$1[\"\$_L_pp_i\"]"  # Indirect expansion is magic and expands the index upon expansion.
 		if (( _L_pp_oneline )) && [[ "$_L_pp_declare_opts" == -a* ]] && L_array_is_dense "$1"; then
 			# Dense normal array
-			L_array_len -v _L_pp_len "$1"
+			eval "_L_pp_len=\"\${#$1[@]}\""
 			for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
-				_L_pp_v="$1[$_L_pp_i]"
-				printf -v _L_pp_v "%q" "${!_L_pp_v}"
+				printf -v _L_pp_v "%q" "${!_L_pp_ref}"
 				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
 		else
 			# Sparse array or associative array
-			L_array_keys -v _L_pp_keys "$1"
+			eval "_L_pp_keys=(\"\${!$1[@]}\")"
 			if [[ "$_L_pp_declare_opts" == -A* ]]; then
 				L_sort -z _L_pp_keys
 			fi
-			for _L_pp_k in "${_L_pp_keys[@]}"; do
-				eval "_L_pp_v=\${$1[\"\$_L_pp_k\"]}"
-				printf -v _L_pp_v "[%q]=%q" "$_L_pp_k" "$_L_pp_v"
+			for _L_pp_i in "${_L_pp_keys[@]}"; do
+				printf -v _L_pp_v "[%q]=%q" "$_L_pp_i" "${!_L_pp_ref}"
 				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
@@ -4484,12 +4483,13 @@ _L_pretty_print_declare() {
 # @option -C Alias for -m.
 # @option -h Print this help and return 0.
 # @arg $@ variable names to pretty print
+# shellcheck disable=SC2053
 L_pretty_print() {
 	_L_init_COLUMNS
 	local OPTIND OPTARG OPTERR \
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
-		_L_pp_line_len=0
+		_L_pp_line_len=0 _L_pp_ref
 	while getopts p:v:w:cmCh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
@@ -4503,7 +4503,27 @@ L_pretty_print() {
 	done
 	shift "$((OPTIND-1))"
 	while (($#)); do
-		if [[ "$1" == *\* ]] && L_is_valid_variable_name "${1::${#1}-1}" && L_compgen -V _L_pp_i -A variable -- "${1::${#1}-1}"; then
+		if
+			case "$1" in
+				# Get all variables matching arbitrary glob PREFIX*SUFFIX.
+				*[?*[]?*)  # ]
+					# Prewarm the list using the prefix we are sure of.
+					L_compgen -V _L_pp_i -A variable -- "${1%%[?*[]*}" && {  # ]
+						# Filter variables using the full regex.
+						for _L_pp_k in "${!_L_pp_i[@]}"; do
+							if [[ "${_L_pp_i[_L_pp_k]}" != $1 || "${_L_pp_i[_L_pp_k]}" == _L_* ]]; then
+								unset "_L_pp_i[$_L_pp_k]"
+							fi
+						done
+						(( ${_L_pp_i[*]:+1}0 ))
+					}
+					;;
+				# Get all variables matching prefix VAR*.
+				*"*") L_compgen -V _L_pp_i -A variable -- "${1::${#1}-1}" ;;
+				*) false ;;
+			esac
+		then
+			# Print all variables matching the glob in $1.
 			_L_pretty_print_output "$1{"
 			for _L_pp_i in "${_L_pp_i[@]}"; do
 				_L_pp_declare=$(declare -p "$_L_pp_i")
@@ -4513,7 +4533,13 @@ L_pretty_print() {
 			done
 			_L_pretty_print_output "}"
 		elif _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
+			# Normal variable.
 			_L_pretty_print_declare "$1"
+		elif L_is_valid_variable_or_array_element "$1" && ( L_var_is_set "$1" ) 2>/dev/null; then
+			# Array reference, arr[index]. Everything else was matched above.
+			# Is subshell above the best I can do? The ${!1} indirect expansion terminates the shell if invalid under -e.
+			printf -v _L_pp_v "$1=%q" "${!1}"
+			_L_pretty_print_output "$_L_pp_v"
 		else
 			# Literal string arg (not a variable name)
 			_L_pretty_print_output "$1"
