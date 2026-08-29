@@ -3848,22 +3848,27 @@ else  # L_HAS_NAMEREF
 	L_array_append() { L_is_valid_variable_name "$1" && eval "$1+=(\"\${@:2}\")"; }
 	L_array_insert() {
 		L_is_valid_variable_name "$1" &&
-		eval "$1=(\${$1[@]+\"\${$1[@]::\$2}\"} \"\${@:3}\" \${$1[@]+\"\${$1[@]:\$2}\"})"
+		eval "$1=( \${$1[@]+\"\${$1[@]::\$2}\"} \"\${@:3}\" \${$1[@]+\"\${$1[@]:\$2}\"} )"
 	}
 	L_array_pop_front() {
 		L_is_valid_variable_name "$1" &&
-		eval "$1=(\${$1[@]+\"\${$1[@]:1}\"})";
+		eval "$1=( \${$1[@]+\"\${$1[@]:1}\"} )"
 	}
 	L_array_pop_back() { L_is_valid_variable_name "$1" && eval "unset -v \"$1[\${#$1[@]}-1]\""; }
 	L_array_is_dense() {
 		L_is_valid_variable_name "$1" &&
-		eval "[[ \"\${#$1[*]}\" = 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
+		eval "[[ \${$1[@]:+1}0 -eq 0 || \" \${!$1[*]}\" == *\" \$((\${#$1[*]}-1))\" ]]"
 	}
 
 	L_array_copy() {
 		L_is_valid_variable_name "$1" &&
 			L_is_valid_variable_name "$2" &&
-			eval "$1=(\"\${$2[@]}\")"
+			if L_array_is_dense "$1"; then
+				eval "$2=( \${$1[@]+\"\${$1[@]}\"} )"
+			else
+				local _L_i
+				eval "$2=(); for _L_i in \${$1[@]+\"\${!$1[@]}\"}; do $2[_L_i]=\${$1[_L_i]}; done"
+			fi
 	}
 	L_array_max_index_vL_RET() {
 		L_is_valid_variable_name "$1" &&
@@ -4317,47 +4322,76 @@ L_table() {
 #     N-M    from N'th to M'th (included) byte, character or field
 #     -M     from first to M'th (included) byte, character or field
 # @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 max number of fields
-# @arg $2 list of fields
+#                  The variable array has both indexes and values set.
+# @option -m <int> Maximum number of columns. Default: 100
+# @option -C Complement the selection.
+# @arg $1 list of fields
 # @example
-#     $ L_parse_range_list 100 1-4,3-5
+#     $ L_parse_range_list 1-4,3-5
 #     1
 #     2
 #     3
 #     4
 #     5
-#     $ L_parse_range_list -v tmp 100 '1-4 3-5'
+#     $ L_parse_range_list -v tmp '1-4 3-5'
 #     $ echo "${tmp[@]}"
 #     1 2 3 4 5
+#     $ echo "${!tmp[@]}"
+#     1 2 3 4 5
+#     $ if L_var_is_set "tmp[3]"; then echo "yes"; else echo "no"; fi
+#     yes
 #     $ if L_args_contain 3 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     yes
 #     $ if L_args_contain 7 "${tmp[@]}"; then echo "yes"; else echo "no"; fi
 #     no
-L_parse_range_list() { L_handle_v_array "$@"; }
-L_parse_range_list_vL_RET() {
-	local _L_max=$1 _L_list _L_i _L_j _L_k _L_t
-	shift
-	L_assert 'not enough argumenst' test "$#" -gt 0
+L_parse_range_list() {
+	local OPTIND OPTARG OPTERR _L_max=100 _L_list _L_i _L_v="" _L_ret _L_j _L_start="" _L_stop="" _L_output=() _L_C=0
+	while getopts v:m:Ch _L_i; do
+		case "$_L_i" in
+			v) _L_v="$OPTARG"; if (( L_HAS_NAMEREF )); then local -n _L_ret="$OPTARG"; _L_ret=(); fi ;;
+			m) _L_max="$OPTARG" ;;
+			C) _L_C=1 ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	if (( $# == 0 )); then
+		L_func_usage_error "not enough arguments"
+		return "$L_EX_USAGE"
+	fi
 	IFS=$' \t\n' read -r -a _L_list <<<"${*//[^0-9-]/ }"
-	L_RET=()
 	for _L_i in ${_L_list[@]+"${_L_list[@]}"}; do
 		if [[ $_L_i == *-* ]]; then
-			_L_j=${_L_i%-*}
-			_L_k=${_L_i#*-}
-			: "${_L_j:=1}"
-			: "${_L_k:=$_L_max}"
-			if ((_L_j > _L_k)); then
-				_L_t=$_L_j
-				_L_j=$_L_k
-				_L_k=$_L_t
+			_L_start=${_L_i%-*} _L_stop=${_L_i#*-}
+			: "${_L_start:=1}" "${_L_stop:=$_L_max}"
+			if (( _L_start > _L_stop )); then
+				_L_i=$_L_stop _L_stop=$_L_start _L_start=$_L_i
 			fi
-			for ((_L_t = _L_j; _L_t <= _L_k; _L_t++)); do
-				L_RET[_L_t]=$_L_t
+			for (( _L_j = _L_start; _L_j <= _L_stop; ++_L_j )); do
+				_L_ret[_L_j]=$_L_j
 			done
 		else
-			L_RET[_L_i]=$_L_i
+			_L_ret[_L_i]=$_L_i
 		fi
 	done
+	if (( _L_C )); then
+		for (( _L_i = 0; _L_i < _L_max; ++i )); do
+			if [[ -n "${_L_ret[_L_i]:-}" ]]; then
+				unset "_L_ret[_L_i]"
+			else
+				_L_ret[_L_i]=$_L_i
+			fi
+		done
+	fi
+	if [[ -z "$_L_v" ]]; then
+		printf "%s\n" "${_L_ret[@]}"
+	elif (( !L_HAS_NAMEREF )); then
+		if ! L_array_copy _L_ret "$_L_v"; then
+			L_func_usage_error "Not valid variable name: $_L_v"
+			return "$L_EX_USAGE"
+		fi
+	fi
 }
 
 _L_pretty_print_output() {

@@ -42,6 +42,7 @@ USR2_CNT=0
 . "$dir"/test_L_func.sh
 . "$dir"/test_unquote.sh
 . "$dir"/test_argskeywords.sh
+. "$dir"/test_L_parse_range_list.sh
 . "$dir"/test_dedent.sh
 
 _L_test_color() {
