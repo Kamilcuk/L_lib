@@ -134,12 +134,12 @@ range 1 5 step=2 # prints: 1, 3
 
 | Operator | Symbolic Alias | Meaning | Description |
 | :--- | :--- | :--- | :--- |
-| `-lt` | `<` | Less Than | True if the first version is older than the second. |
-| `-le` | `<=` | Less Than or Equal | True if the first version is older than or equal to the second. |
-| `-eq` | `==` | Equal | Strict string equality check on version segments. |
-| `-ne` | `!=` | Not Equal | Strict string inequality check on version segments. |
-| `-gt` | `>` | Greater Than | True if the first version is newer than the second. |
-| `-ge` | `>=` | Greater Than or Equal | True if the first version is newer than or equal to the second. |
+| `lt` | `<` | Less Than | True if the first version is older than the second. |
+| `le` | `<=` | Less Than or Equal | True if the first version is older than or equal to the second. |
+| `eq` | `==` | Equal | Strict string equality check on version segments. |
+| `ne` | `!=` | Not Equal | Strict string inequality check on version segments. |
+| `gt` | `>` | Greater Than | True if the first version is newer than the second. |
+| `ge` | `>=` | Greater Than or Equal | True if the first version is newer than or equal to the second. |
 | `~=` | | Compatible Release | Compatible with a version range (per PEP-0440 rules). |
 
 #### Segment Accuracy Option
@@ -147,18 +147,18 @@ range 1 5 step=2 # prints: 1, 3
 An optional fourth argument `accuracy` specifies the maximum number of segments (dot-separated numbers) to compare. The default is `3`.
 
 ```bash
-# Compare versions with standard operators (-lt, -le, -eq, -ne, -gt, -ge)
-if L_version_cmp "1.2.3" "-gt" "1.2.0"; then
+# Compare versions with standard operators (lt, le, eq, ne, gt, ge)
+if L_version_cmp "1.2.3" gt "1.2.0"; then
     echo "Version is greater"
 fi
 
 # Compare with symbolic operators or ~= compatibility operator
-if L_version_cmp "1.5.0" "~=" "1.5"; then
+if L_version_cmp "1.5.0" ~="1.5"; then
     echo "Version is compatible"
 fi
 
 # Compare up to a maximum segments accuracy of 2 (ignores minor segments)
-if L_version_cmp "1.2.9" "==" "1.2.0" 2; then
+if L_version_cmp "1.2.9" == "1.2.0" 2; then
     echo "Major and minor versions are identical (1.2)"
 fi
 ```
