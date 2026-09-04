@@ -4744,50 +4744,117 @@ L_argskeywords() {
 	eval "$_L_subcall"
 }
 
-# @description Compare version numbers.
+# @description
+# This command has two distinct modes of operation, depending on whether the operator OP is specified.
+#
+# In the first mode when OP is not specified, it will compare the two version strings and print either "VERSION1 < VERSION2", or "VERSION1 == VERSION2", or "VERSION1 > VERSION2" as appropriate.
+#
+# The exit status is 0 if the versions are equal, 11 if the version of the right is smaller, and 12 if the version of the left is smaller. (This matches the convention used by rpmdev-vercmp.)
+#
+# In the second mode when OP is specified, it will compare the two version strings using the operation OP and return 0 (success) if they condition is satisfied, and 1 (failure) otherwise. OP may be lt, le, eq, ne, ge, gt, <, <=, ==, !=, >< >=. In this mode, no output is printed. (This matches the convention used by dpkg(1) --compare-versions.)
+#
+# Additionally the function supports '~=' operator, which checks if VERSION1 is a compatible release of VERSION2.
+# For a given release identifier V.N, the compatible release clause is approximately equivalent to the pair of comparison clauses:
+# L_version_cmp "$left" >= V.N && [[ "$left" == V.* ]]
+#
+# @arg VERSION1
+# @arg [OP]
+# @arg VERSION2
+# @see https://uapi-group.org/specifications/specs/version_format_specification/
+# @see https://github.com/systemd/systemd/blob/main/src/fundamental/string-util.c#L78
+# @see https://www.freedesktop.org/software/systemd/man/latest/systemd-analyze.html#systemd-analyze%20compare-versions%20VERSION1%20%5BOP%5D%20VERSION2
 # @see https://peps.python.org/pep-0440/
-# @arg $1 str one version
-# @arg $2 str one of: -lt -le -eq -ne -gt -ge '<' '<=' '==' '!=' '>' '>=' '~='
-# @arg $3 str second version
-# @arg [$4] int accuracy, how many at max elements to compare? By default up to 3.
+# @example
+#     $ L_version_cmp systemd-250~rc1.fc36.aarch64 systemd-251.fc36.aarch64
+#     systemd-250~rc1.fc36.aarch64 < systemd-251.fc36.aarch64
+#     $ echo $?
+#     12
+#     $ L_version_cmp 1 lt 2; echo $?
+#     0
+#     $ L_version_cmp 1 ge 2; echo $?
+#     1
 # shellcheck disable=SC2053
 L_version_cmp() {
-	case "$2" in
-	'~=')
-		L_version_cmp "$1" '>=' "$3" && L_version_cmp "$1" "==" "${3%.*}.*"
-		;;
-	'=='|'-eq') [[ "$1" == $3 ]] ;;
-	'!='|'-ne') [[ "$1" != $3 ]] ;;
-	*)
-		local op res='=' i max a=() b=() accuracy="${4:-3}"
-		case "$2" in
-		'-le') op='<=' ;;
-		'-lt') op='<' ;;
-		'-gt') op='>' ;;
-		'-ge') op='>=' ;;
-		'<='|'<'|'>'|'>=') op="$2" ;;
-		*)
-			L_error "L_version_cmp: invalid second argument: $op"
-			return "$L_EX_USAGE"
-		esac
-		IFS=' .-()' read -r -a a <<<"$1"
-		IFS=' .-()' read -r -a b <<<"$3"
-		max=$(( ${#a[@]} > ${#b[@]} ? ${#a[@]} : ${#b[@]} ))
-		if (( max > accuracy )); then
-			max=$accuracy
-		fi
-		for (( i = 0; i < max; ++i )); do
-			if (( a[i] > b[i] )); then
-				res='>'
-				break
-			elif (( a[i] < b[i] )); then
-				res='<'
-				break
+	case "$#" in
+		2)
+			if _L_version_cmp "$@"; then
+				echo "$1 == $2"
+			elif (( $? == 11 )); then
+				echo "$1 > $2"
+				return 11
+			else
+				echo "$1 < $2"
+				return 12
 			fi
-		done
-		[[ "$op" == *"$res"* ]]
-		;;
+			;;
+		3)
+			local rc=0
+			case "$2" in
+				'~=')
+					L_version_cmp "$1" ">=" "$3" &&
+						if [[ "$3" == *.* ]]; then
+							[[ "$1" == "${3%[^.]*}"* ]]
+						else
+							[[ "$3" != *[^0-9]* ]] && L_version_cmp "$1" "<" "$(( $3 + 1 ))"
+						fi
+					;;
+				eq|ne|lt|gt|le|ge|==|'!='|'<'|'>'|'<='|'>=')
+					_L_version_cmp "$1" "$3" || rc=$?
+					case "$2$rc" in
+						==0|'!=11'|'!=12'|'<12'|'>11'|'<=0'|'<=12'|'>=0'|'>=11') return 0 ;;
+						eq0|ne11|ne12|lt12|gt11|le0|le12|ge0|ge11) return 0 ;;
+						*) return 1
+					esac
+					;;
+				*)
+					L_func_usage_error "Unknown operator $2"
+					return "$L_EX_USAGE"
+					;;
+			esac
+			;;
+		0|1)
+			L_func_usage_error "Too few arguments"
+			return "$L_EX_USAGE"
+			;;
+		*)
+			L_func_usage_error "Too many arguments"
+			return "$L_EX_USAGE"
+			;;
 	esac
+}
+
+# @description Implementation for L_version that just returns 0/11/12
+# shellcheck disable=SC2318
+_L_version_cmp() {
+	local a=${1//[^-a-zA-Z0-9.~^]} b=${2//[^-a-zA-Z0-9.~^]} an bn
+	while
+		case "${a::1}:${b::1}" in
+			'~':[^~]|'~':) return 12 ;;
+			[^~]:'~'|:'~') return 11 ;;
+			:) return 0 ;;
+			:?|-:[^-]|^:[^^]|.:[^.]) return 12 ;;
+			?:|[^^]:^|[^-]:-|[^.]:.) return 11 ;;
+			*[0-9]*)
+				an="${a%%[^0-9]*}" bn="${b%%[^0-9]*}"
+				if (( 10#0$an > 10#0$bn )); then
+					return 11
+				elif (( 10#0$an < 10#0$bn )); then
+					return 12
+				fi
+				;;
+			*[a-zA-Z]*)
+				local an="${a%%[^a-zA-Z]*}" bn="${b%%[^a-zA-Z]*}"
+				if [[ "$an" > "$bn" ]]; then
+					return 11
+				elif [[ "$an" < "$bn" ]]; then
+					return 12
+				fi
+				;;
+			*) a=${a:1} b=${b:1}; continue ;;
+		esac
+	do
+		a=${a##"$an"} b=${b##"$bn"}
+	done
 }
 
 # ]]]
