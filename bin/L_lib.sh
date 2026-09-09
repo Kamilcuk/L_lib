@@ -6181,9 +6181,9 @@ _L_with_process_finally() {
 # @arg $1 Variable to store the PID of the background process.
 # @arg $@ Command to execute in the background.
 L_with_process_into() {
-	local OPTIND OPTARG OPTERR i _L_t=0 _L_up=1
-	while getopts t:s:h i; do
-		case "$i" in
+	local OPTIND OPTARG OPTERR _L_i _L_t=0 _L_up=1
+	while getopts t:s:h _L_i; do
+		case "$_L_i" in
 			t) _L_t=1 ;;
 			s) _L_up=$(( _L_up + OPTARG )) ;;
 			h) L_func_help; return 0 ;;
