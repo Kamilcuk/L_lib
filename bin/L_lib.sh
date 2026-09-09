@@ -12023,7 +12023,7 @@ _L_xargs_dispatch_over_atoms() {
 }
 
 # We have free slots for new processes.
-_L_xargs_has_slots() { (( ${#_L_x_running[@]} < _L_x_maxprocs && !_L_x_done )); }
+_L_xargs_has_slots() { (( ( _L_x_maxprocs == 0 || ${#_L_x_running[@]} < _L_x_maxprocs ) && !_L_x_done )); }
 # We continue taking input at this time.
 _L_xargs_continue_input() { (( !_L_x_input_stopped )) && _L_xargs_has_slots; }
 
