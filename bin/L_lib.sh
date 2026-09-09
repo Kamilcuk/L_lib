@@ -6599,7 +6599,7 @@ L_unittest_main() {
 	_L_init_COLUMNS
 	if (( !_L_u_quiet )); then
 		_L_unittest_main_print_line "=" "test session start" >&2
-		_L_u_msg+="; $((${_L_u_tests[*]+${#_L_u_tests[*]}}+0)) tests"
+		_L_u_msg+="; found $((${_L_u_tests[*]+${#_L_u_tests[*]}}+0)) tests"
 		if (( _L_u_stream )); then
 			_L_u_msg+="; no output caching"
 		fi
@@ -6608,9 +6608,9 @@ L_unittest_main() {
 		fi
 		if (( _L_u_nproc != 1 )); then
 			if (( _L_u_nproc == 0 )); then
-				_L_u_msg+="; all in parallel"
+				_L_u_msg+="; running all in parallel"
 			else
-				_L_u_msg+="; $_L_u_nproc count in parallel"
+				_L_u_msg+="; running up to $_L_u_nproc in parallel"
 			fi
 		fi
 		if (( _L_u_durations )); then
