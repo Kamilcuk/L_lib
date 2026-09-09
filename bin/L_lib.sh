@@ -2247,6 +2247,25 @@ L_uuid4_vL_RET() {
 	L_RET=${L_RET::8}-${L_RET:8:4}-4${L_RET:13:3}-${L_RET:16:4}-${L_RET:20}
 }
 
+# The function temporarily enables checkwinsize and runs a subshell (:) to force the parent
+# process to reap it, triggering get_tty_state() and updating COLUMNS via ioctl.
+# @see https://askubuntu.com/a/1199418
+L_init_COLUMNS() {
+	if [[ -z "${COLUMNS+y}" ]]; then
+		if shopt -p checkwinsize >/dev/null; then
+			( (( 1 )) )
+		else
+			shopt -s checkwinsize
+			( (( 1 )) )
+			shopt -u checkwinsize
+		fi
+		if [[ -z "${COLUMNS+y}" ]]; then
+			# This means terminal is not attached.
+			COLUMNS=80
+		fi
+	fi
+}
+
 # ]]]
 # time [[[
 # @section time
@@ -4447,7 +4466,7 @@ _L_pretty_print_declare() {
 # @arg $@ variable names to pretty print
 # shellcheck disable=SC2053
 L_pretty_print() {
-	_L_init_COLUMNS
+	L_init_COLUMNS
 	local OPTIND OPTARG OPTERR \
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
@@ -6300,25 +6319,6 @@ _L_unittest_main_longest_string_to() {
 	printf -v "$1" "%d" "$j"
 }
 
-# The function temporarily enables checkwinsize and runs a subshell (:) to force the parent
-# process to reap it, triggering get_tty_state() and updating COLUMNS via ioctl.
-# @see https://askubuntu.com/a/1199418
-_L_init_COLUMNS() {
-	if [[ -z "${COLUMNS+y}" ]]; then
-		if shopt -p checkwinsize >/dev/null; then
-			( (( 1 )) )
-		else
-			shopt -s checkwinsize
-			( (( 1 )) )
-			shopt -u checkwinsize
-		fi
-		if [[ -z "${COLUMNS+y}" ]]; then
-			# This means terminal is not attached.
-			COLUMNS=80
-		fi
-	fi
-}
-
 # @arg $1 separator
 # @arg $2 string to print
 _L_unittest_main_print_line() {
@@ -6596,7 +6596,7 @@ L_unittest_main() {
 		_L_u_nproc=1
 	fi
 	# Print welcoming message.
-	_L_init_COLUMNS
+	L_init_COLUMNS
 	if (( !_L_u_quiet )); then
 		_L_unittest_main_print_line "=" "test session start" >&2
 		_L_u_msg+="; found $((${_L_u_tests[*]+${#_L_u_tests[*]}}+0)) tests"
@@ -7653,7 +7653,7 @@ _L_argparse_parser_get_full_program_name() {
 # @option -h Print this help and return 0.
 # @arg $@ error message to print
 L_argparse_print_help() {
-	_L_init_COLUMNS
+	L_init_COLUMNS
 	local IFS=' '
 	{
 		# parse arguments
