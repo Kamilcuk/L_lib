@@ -6412,7 +6412,6 @@ L_unittest_skip() {
 }
 
 _L_unittest_main_runner_finally_catter() {
-
 	cat "$1" 2>/dev/null
 }
 
@@ -6432,9 +6431,9 @@ _L_unittest_main_runner() {
 		if (( _L_u_stream )); then
 			# No caching of the output. Using >&2 to sync stdout and stderr buffering.
 			if (( _L_u_subshell )); then
-				( "$@" >&2 )
+				( "$@" 1>&2 )
 			else
-				"$@" >&2
+				"$@" 1>&2
 			fi
 			_L_u_ret=$?
 		else
@@ -6446,17 +6445,14 @@ _L_unittest_main_runner() {
 					L_trap_get -v _L_u_storage ERR
 					trap - ERR
 				fi
-				(
-					if [[ -n "$_L_u_storage" ]]; then
-						# Restore -e and ERR trap inside the subshell.
-						set -e
-						# shellcheck disable=SC2064
-						trap "$_L_u_storage" ERR
-					fi
-					"$@" > "$_L_u_tmpd/$1.log" 2>&1
-				)
-				_L_u_ret=$?
-				if [[ -n "$_L_u_storage" ]]; then
+				if [[ -z "$_L_u_storage" ]]; then
+					( "$@" >"$_L_u_tmpd/$1.log" 2>&1 )
+					_L_u_ret=$?
+				else
+					# In the subshell, restore -e and ERR trap inside the subshell.
+					# This is one line, because it will show up in interactive session on ctrl+c.
+					( set -e; trap "$_L_u_storage" ERR; "$@" >"$_L_u_tmpd/$1.log" 2>&1 )
+					_L_u_ret=$?
 					# Now restore -e and ERR trap outside of the subshell.
 					set -e
 					# shellcheck disable=SC2064
@@ -6473,7 +6469,7 @@ _L_unittest_main_runner() {
 				_L_u_ret=$?
 				#
 				if [[ -n "$_L_u_storage" ]]; then
-					# If the code did not fire under set -e, the finally trap no longer relevant, file willl be printed below.
+					# If the code did not fire under set -e, the finally trap no longer relevant, file will be printed below.
 					L_finally_pop -n -i "$_L_u_storage"
 				fi
 			fi
@@ -6549,12 +6545,12 @@ _L_unittest_main_output_printer() {
 }
 
 _L_unittest_main_finally() {
-	echo >&2
+	# L_xargs will kill all childs
 	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
-	if [[ "$L_SIGNAL" == "SIGINT" ]]; then
-		# Subshells ignore SIGINT. So re-send with SITERM.
-		: L_raise
-	fi
+}
+
+_L_unittest_main_xargs_cb() {
+:
 }
 
 # @description
@@ -6586,8 +6582,7 @@ _L_unittest_main_finally() {
 # @option -c Execute in current shell execution context. No subshell.
 # @option -v Increase verbosity. Call L_log_level_inc.
 # @option -h Print this help and return 0.
-# @arg $@ Specify a space, tab or newline separated list of funtions to execute.
-#         For example output of compgen.
+# @arg $@ Arguments are like -k option, but evaluated as "or". (does not work)
 # shellcheck disable=SC2179
 L_unittest_main() {
 	set -euo pipefail
@@ -6599,7 +6594,7 @@ L_unittest_main() {
 			p)
 				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
 				L_compgen -V _L_u_tests -A function -- "$OPTARG"
-				_L_u_testscnt=${_L_u_tests[*]:+${#_L_u_tests[*]}}
+				_L_u_testscnt+=${_L_u_tests[*]:+${#_L_u_tests[*]}}
 				;;
 			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
 			E) L_unittest_exit_on_error=1 ;;
