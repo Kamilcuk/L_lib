@@ -12087,7 +12087,7 @@ _L_xargs_input_split_L_RET() {
 _L_xargs_callback_caller() {
 	local L_RET
 	while _L_xargs_continue_input; do
-		if "${_L_x_callback[@]}" && (( ${L_RET[@]+1}0 )) && _L_xargs_input_split_L_RET; then
+		if "${_L_x_input_cb[@]}" && (( ${L_RET[@]+1}0 )) && _L_xargs_input_split_L_RET; then
 			_L_xargs_dispatch_over_atoms
 		else
 			_L_xargs_stop_input_last_dispatch
@@ -12099,7 +12099,7 @@ _L_xargs_callback_caller() {
 # The unified pulse dispatcher.
 _L_xargs_pulse() {
 	_L_xargs_dispatch_over_atoms
-	if (( ${#_L_x_callback[@]} )); then
+	if (( ${#_L_x_input_cb[@]} )); then
 		_L_xargs_callback_caller
 	elif _L_xargs_continue_input && [[ -z "$_L_x_feeder_id" ]]; then
 		L_uv_add_reader -v _L_x_feeder_id -d "$_L_x_d" "$_L_x_fd" _L_xargs_feeder_input_cb
@@ -12160,9 +12160,14 @@ _L_xargs_callback_array_indirect() {
 	local _L_tmp="$_L_x_array[$_L_x_array_index]"
 	L_var_is_set "$_L_tmp" && L_RET=("${!_L_tmp}") && (( ++_L_x_array_index ))
 }
-_L_x_finally() {
-	if (( ${#_L_X_CLEANUP[@]} )); then
-		kill "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
+_L_xargs_finally_kill() {
+	if (( ${_L_X_CLEANUP[*]+1}0 )); then
+		L_kill_all_childs "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
+	fi
+}
+
+_L_xargs_finally_wait() {
+	if (( ${_L_X_CLEANUP[*]+1}0 )); then
 		wait "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
 		_L_X_CLEANUP=()
 	fi
@@ -12188,28 +12193,30 @@ _L_x_finally() {
 # @option -A <var> Read Records from the specified Bash array variable.
 # @option -C <callback> Execute an eval string to fetch the next Record. Must populate L_RET=() and return 0.
 # @option -d <delimiter> Set the Record separator to the specified character.
-# @option -s <max-chars> Use at most max-chars characters per command line.
-# @option -m <task-max-time> If a task is running longer then specified time, it is killed.
-# @option -M <global-max-time> If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
-# @option -z Split Mode: Parse internal Records into multiple Atoms using L_unquote.
-# @option -Z Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
-# @option -u <fd> Read the input stream from the specified file descriptor.
+# @option -e <eof-str> Like -E, compatibility wtih GNU xargs, use -E.
+# @option -E <eof-str> Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
+# @option -F Run the command in current shell execution context. Do not fork.
+# @option -h Display this help documentation and exit.
 # @option -I <replace-str> Replace occurrences of replace-str in the command. Sets -n 1.
 # @option -i Shorthand for -I{}.
 # @option -L <max-records> Trigger execution once <max-records> have been accumulated.
 # @option -l Shorthand for -L1.
+# @option -M <global-max-time> If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+# @option -m <task-max-time> If a task is running longer then specified time, it is killed.
 # @option -n <max-atoms> Trigger execution once <max-atoms> have been accumulated.
-# @option -r If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
-# @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
 # @option -O Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
-# @option -t Verbose: Print each command to STDERR before execution.
-# @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
+# @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
 # @option -q Be quiet.
+# @option -r If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
+# @option -s <max-chars> Use at most max-chars characters per command line.
+# @option -t Verbose: Print each command to STDERR before execution.
+# @option -u <fd> Read the input stream from the specified file descriptor.
 # @option -v <var> Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
-# @option -E <eof-str> Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
-# @option -e <eof-str> Like -E, compatibility wtih GNU xargs, use -E.
-# @option -F Run the command in current shell execution context. Do not fork.
-# @option -h Display this help documentation and exit.
+# @option -X <func> Register custom function event callback that will be called
+#                   with arguments: `PREEXEC`, `POSTEXEC $pid`, `EXIT $pid $?`.
+# @option -Z Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
+# @option -z Split Mode: Parse internal Records into multiple Atoms using L_unquote.
+# @option -^ Prefix Mode: Prepends the command arguments and a colon to each line of output.
 # @arg $@ Command to execute. Default: L_quote_printf.
 # @return 0 on success
 #         1 on some other error
@@ -12221,20 +12228,20 @@ _L_x_finally() {
 #         127 if the command is not found
 # @env L_XARGS_INDEX The index of the job being executed.
 L_xargs() {
-	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_idx=0 _L_x_atoms_limit=0 _L_x_records_limit="" \
-			_L_i _L_x_maxprocs=1 L_RET \
+	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_idx=0 _L_x_atoms_limit=0 \
+			_L_x_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
 			_L_x_trace=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
-			_L_x_callback=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
+			_L_x_input_cb=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
 			_L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
 			_L_x_eof_str _L_x_eof_check_cb=: _L_x_template_cb=_L_xargs_run_template_no \
 			_L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" _L_x_timers=() \
 			_L_x_forker=_L_xargs_forker _L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
 			_L_x_foreground=0 _L_x_feeder_id="" \
 			_L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output=() _L_x_dobuf_prefix=() _L_x_dobuf_finished _L_x_dobuf_next=0 \
-			L_UV=() _L_x_finally_idx _L_x_mypid
+			L_UV=() _L_x_finally_idx1 _L_x_finally_idx2 _L_x_mypid
 	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:Fh _L_i; do
 		case "$_L_i" in
-			0) _L_x_callback=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
+			0) _L_x_input_cb=() _L_x_d='' _L_x_split=${_L_x_split:-0} ;;
 			a)
 				if (( L_HAS_VARIABLE_FD )); then
 					exec {_L_x_fd}<"$OPTARG" || return
@@ -12246,17 +12253,17 @@ L_xargs() {
 			A)
 				if (( L_HAS_NAMEREF )); then
 					local -n _L_x_array=$OPTARG
-					_L_x_callback=(_L_xargs_callback_array_nameref)
+					_L_x_input_cb=(_L_xargs_callback_array_nameref)
 				else
 					local _L_x_array=$OPTARG
-					_L_x_callback=(_L_xargs_callback_array_indirect)
+					_L_x_input_cb=(_L_xargs_callback_array_indirect)
 				fi
 				local _L_x_array_index=0
 				_L_x_split=${_L_x_split:-0}
 				_L_x_records_limit=${_L_records_limit:-1}
 				;;
-			C) _L_x_callback=(eval "$OPTARG"); ;;
-			d) _L_x_callback=() _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
+			C) _L_x_input_cb=(eval "$OPTARG"); ;;
+			d) _L_x_input_cb=() _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
 			s) ;; # todo
 			m) _L_x_task_timeout=$OPTARG; L_duration_to_usec_vL_RET "$_L_x_task_timeout" || return ;;
 			M) L_uv_add_timer -v _L_x_global_timex -d "$OPTARG" _L_xargs_global_timeout_cb || return ;;
@@ -12271,27 +12278,28 @@ L_xargs() {
 			r) _L_x_r=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_x_maxprocs=$L_RET; else _L_x_maxprocs=$OPTARG; fi ;;
 			t) _L_x_trace=1 ;;
-			O) _L_x_dobuf_mode=$(( _L_x_dobuf_mode + 1 ))
-				[[ "$_L_x_notify_cb" == *"_L_xargs_dobuf_or_prefix_notify"* ]] || _L_x_notify_cb+='_L_xargs_dobuf_or_prefix_notify "$@";'
-				;;
-			^) _L_x_prefix=1
-				[[ "$_L_x_notify_cb" == *"_L_xargs_dobuf_or_prefix_notify"* ]] || _L_x_notify_cb+='_L_xargs_dobuf_or_prefix_notify "$@";'
-				;;
+			O) _L_x_dobuf_mode=$(( _L_x_dobuf_mode + 1 )) ;;
+			^) _L_x_prefix=1 ;;
 			q) _L_x_quiet=1 ;;
 			v) _L_x_v=$OPTARG ;;
 			[eE]) _L_x_eof_check_cb=_L_xargs_eof_check _L_x_eof_str=$OPTARG ;;
 			F) _L_x_foreground=1 ;;
+			X) _L_x_notify_cb+="$OPTARG \"\$@\";" ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_error "L_xargs: invalid option"; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift $((OPTIND - 1))
+	if (( _L_x_prefix || _L_x_dobuf_mode )); then
+		_L_x_notify_cb="_L_xargs_dobuf_or_prefix_notify \"\$@\";$_L_x_notify_cb"
+	fi
 	# Register common cleanup handler variables.
 	L_bashpid_into _L_x_mypid
 	if (( ${_L_X_CLEANUP_PID:--1} != _L_x_mypid )); then
 		local _L_X_CLEANUP_PID=$_L_x_mypid _L_X_CLEANUP_NEST=1 _L_x_finally_idx
 		_L_X_CLEANUP=()
-		L_finally -v _L_x_finally_idx _L_x_finally
+		L_finally -l -v _L_x_finally_idx2 _L_xargs_finally_wait
+		L_finally -f -v _L_x_finally_idx1 _L_xargs_finally_kill
 	else
 		(( ++_L_X_CLEANUP_NEST ))
 	fi
@@ -12302,7 +12310,8 @@ L_xargs() {
 	L_uv_run
 	# Unregister killing all tasks if everything is ok.
 	if (( --_L_X_CLEANUP_NEST == 0 )); then
-		L_finally_pop -i "$_L_x_finally_idx"
+		L_finally_pop -i "$_L_x_finally_idx2"
+		L_finally_pop -i "$_L_x_finally_idx1"
 	fi
 	return "$_L_x_return"
 }
