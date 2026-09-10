@@ -6350,8 +6350,6 @@ L_with_redirect_stdout_into() {
 
 # @description Integer that increases with every failed test.
 # L_unittest_fails=${L_unittest_fails:-0}
-# @description Set this variable to 1 to exit immediately when a test fails.
-# L_unittest_exit_on_error=${L_unittest_exit_on_error:-1}
 # @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
 # L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 
@@ -6405,11 +6403,7 @@ _L_unittest_internal() {
 		L_RET="command [$L_RET] FAILED!${2:+ }${2:-}"
 		echo "$L_RET${L_COLORRESET}"
 		_L_unittest_error_on_github "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${1:-}::$L_RET"
-		if (( ${L_unittest_exit_on_error:-1} )); then
-			exit 1
-		else
-			return 1
-		fi
+		exit 1
 	fi
 } >&2
 
@@ -6487,7 +6481,6 @@ L_unittest_skip() {
 }
 
 _L_unittest_main_runner_finally_catter() {
-
 	cat "$1" 2>/dev/null
 }
 
@@ -6507,9 +6500,9 @@ _L_unittest_main_runner() {
 		if (( _L_u_stream )); then
 			# No caching of the output. Using >&2 to sync stdout and stderr buffering.
 			if (( _L_u_subshell )); then
-				( "$@" >&2 )
+				( "$@" 1>&2 )
 			else
-				"$@" >&2
+				"$@" 1>&2
 			fi
 			_L_u_ret=$?
 		else
@@ -6521,17 +6514,14 @@ _L_unittest_main_runner() {
 					L_trap_get -v _L_u_storage ERR
 					trap - ERR
 				fi
-				(
-					if [[ -n "$_L_u_storage" ]]; then
-						# Restore -e and ERR trap inside the subshell.
-						set -e
-						# shellcheck disable=SC2064
-						trap "$_L_u_storage" ERR
-					fi
-					"$@" > "$_L_u_tmpd/$1.log" 2>&1
-				)
-				_L_u_ret=$?
-				if [[ -n "$_L_u_storage" ]]; then
+				if [[ -z "$_L_u_storage" ]]; then
+					( "$@" >"$_L_u_tmpd/$1.log" 2>&1 )
+					_L_u_ret=$?
+				else
+					# In the subshell, restore -e and ERR trap inside the subshell.
+					# This is one line, because it will show up in interactive session on ctrl+c.
+					( set -e; trap "$_L_u_storage" ERR; "$@" >"$_L_u_tmpd/$1.log" 2>&1 )
+					_L_u_ret=$?
 					# Now restore -e and ERR trap outside of the subshell.
 					set -e
 					# shellcheck disable=SC2064
@@ -6548,7 +6538,7 @@ _L_unittest_main_runner() {
 				_L_u_ret=$?
 				#
 				if [[ -n "$_L_u_storage" ]]; then
-					# If the code did not fire under set -e, the finally trap no longer relevant, file willl be printed below.
+					# If the code did not fire under set -e, the finally trap no longer relevant, file will be printed below.
 					L_finally_pop -n -i "$_L_u_storage"
 				fi
 			fi
@@ -6624,12 +6614,8 @@ _L_unittest_main_output_printer() {
 }
 
 _L_unittest_main_finally() {
-	echo >&2
+	# L_xargs will kill all childs
 	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
-	if [[ "$L_SIGNAL" == "SIGINT" ]]; then
-		# Subshells ignore SIGINT. So re-send with SITERM.
-		: L_raise
-	fi
 }
 
 # @description
@@ -6649,7 +6635,6 @@ _L_unittest_main_finally() {
 #         -k 'foo && bar'    tests matching both 'foo' and 'bar'
 #         -k '! slow'        tests not matching 'slow'
 #         -k '(foo || bar) && ! slow'
-# @option -E exit on error
 # @option -P <nproc> Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
 # @option -l Do not run the tests. Instead print the tests to exeucte.
 # @option -q Run tests in command substitution. Print only failed tests output.
@@ -6659,26 +6644,27 @@ _L_unittest_main_finally() {
 # @option -s Stream output directly to terminal. Do not capture stdout and stderr.
 # @option -S Do not stream output directly to terminal. Capture stdout and stderr. The default.
 # @option -c Execute in current shell execution context. No subshell.
+# @option -F Alias for -c.
 # @option -v Increase verbosity. Call L_log_level_inc.
 # @option -h Print this help and return 0.
-# @arg $@ Specify a space, tab or newline separated list of funtions to execute.
-#         For example output of compgen.
+# @option -E Execute trap - ERR.
+# @arg $@ Arguments are like -k option, but evaluated as "or".
 # shellcheck disable=SC2179
 L_unittest_main() {
 	set -euo pipefail
 	local OPTIND OPTARG OPTERR _L_u_tests=() _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i _L_u_rets _L_u_exitfirst=0 \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_tmpd _L_u_subshell=1 _L_u_stream=0 _L_u_testscnt \
 		_L_u_verbose=0 _L_u_finally_idx="" _L_u_msg="" L_RET
-	while getopts p:k:EP:lqd:xsScvh _L_i; do
+	while getopts p:k:EP:lqd:xsScFvh _L_i; do
 		case $_L_i in
 			p)
 				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
 				L_compgen -V _L_u_tests -A function -- "$OPTARG"
-				_L_u_testscnt=${_L_u_tests[*]:+${#_L_u_tests[*]}}
+				_L_u_testscnt+=${_L_u_tests[*]:+${#_L_u_tests[*]}}
 				;;
 			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
-			E) L_unittest_exit_on_error=1 ;;
 			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_u_nproc=$L_RET; else _L_u_nproc=$OPTARG; fi ;;
+			E) trap - ERR ;;
 			l) _L_u_list=1 ;;
 			q) _L_u_quiet=1 ;;
 			d) _L_u_durations=$OPTARG ;;
@@ -6686,13 +6672,20 @@ L_unittest_main() {
 			s) _L_u_stream=1 ;;
 			S) _L_u_stream=0 ;;
 			c) _L_u_subshell=0 ;;
+			F) _L_u_subshell=0 ;;
 			v) _L_u_verbose=1 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	IFS=' ' read -r -a _L_i <<<"${*//[$'\t\n']/ }" && _L_u_tests+=( ${_L_i[@]:+"${_L_i[@]}"} )
+	# Handle positional arguments as filter patterns (union/OR of patterns, like -k but simpler).
+	if (($#)); then
+		local oldifs=$IFS IFS=$L_GS
+		local _L_u_k_expr="$*"
+		_L_unittest_main_handle_k "( ${_L_u_k_expr//$L_GS/ ) || ( } )"
+		IFS=$oldifs
+	fi
 	# If there is only one test, no reason to run in parallel.
 	if (( ${#_L_u_tests[*]} == 1 && _L_u_nproc > 1 )); then
 		_L_u_nproc=1
