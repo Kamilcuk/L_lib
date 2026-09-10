@@ -9850,48 +9850,70 @@ L_wait_all_jobs() {
 # @see https://stackoverflow.com/a/52544126/9072753
 L_get_all_childs() { L_handle_v_array "$@"; }
 L_get_all_childs_vL_RET() {
-	local _L_toppid=${1:-} IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx
-	if [[ -z "$_L_toppid" ]]; then
-		L_bashpid_into _L_toppid
+	local IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx=0
+	if (($#)); then
+		L_RET=("$@")
+	else
+		L_bashpid_into _L_pid
+		L_RET=("$_L_pid")
 	fi
-	#
-	L_hash ps && _L_ps_output=$(
-			L_bashpid_into _L_pid
-			echo "$_L_pid"
-			exec ps -e -o pid= -o ppid=
-	) && {
-		{
-			# Extract ps _L_pid that we conveniently put as the first item.
-			read -r _L_ps_pid
-			# Populate a sparse array mapping pids to (string) lists of child pids.
-			_L_children_of=()
-			while read -r _L_pid _L_ppid; do
-				if [[ -n "$_L_pid" && -n "$_L_ppid" ]] && (( _L_pid != _L_ppid && _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
-					_L_children_of[_L_ppid]+=" $_L_pid"
-				fi
+	if [[ -e /proc/1/task/1/children ]]; then
+		while (( _L_unproc_idx < ${#L_RET[@]} )); do
+			for _L_i in /proc/${L_RET[_L_unproc_idx++]}/task/*/; do
+				L_RET+=($(<"$_L_i"/children)) || :
 			done
-		} <<<"$_L_ps_output"
-		# Add children to the list of pids until all descendants are found
-		L_RET=("$_L_toppid")
-		_L_unproc_idx=0    # Index of first process whose children have not been added
-		while (( ${#L_RET[@]} > _L_unproc_idx )) ; do
-			_L_pid=${L_RET[_L_unproc_idx++]}     # Get first unprocessed, and advance
-			# shellcheck disable=SC2206
-			L_RET+=(${_L_children_of[_L_pid]-})  # Add child pids (ignore ShellCheck)
-		done
-		# ( echo "${L_RET[@]}"; pstree -p "$_L_toppid" ) | sed 's/^/init /' >&100
-		# I do not want to return _L_toppid of itself.
-		unset -v 'L_RET[0]'
-	}
+		done 2>/dev/null
+	else
+		#
+		L_hash ps && _L_ps_output=$(
+				L_bashpid_into _L_pid
+				echo "$_L_pid"
+				exec ps -e -o pid=,ppid=
+		) && {
+			{
+				# Extract ps _L_pid that we conveniently put as the first item.
+				read -r _L_ps_pid
+				# Populate a sparse array mapping pids to (string) lists of child pids.
+				_L_children_of=()
+				while read -r _L_pid _L_ppid; do
+					if (( _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
+						_L_children_of[_L_ppid]+=" $_L_pid"
+					fi
+				done
+			} <<<"$_L_ps_output"
+			# Add children to the list of pids until all descendants are found
+			# _L_unproc_idx - Index of first process whose children have not been added
+			while (( ${#L_RET[@]} > _L_unproc_idx )) ; do
+				# Get first unprocessed, and advance
+				# Add child pids
+				# shellcheck disable=SC2206
+				L_RET+=(${_L_children_of[L_RET[_L_unproc_idx++]]-})
+			done
+		}
+	fi
+	# ( echo "${L_RET[@]}"; pstree -p "$1" ) | sed 's/^/init /' >&100
+	# I do not want to return $1 of itself.
+	L_RET=("${L_RET[@]:$#}")
+}
+_L_get_all_childs_vL_RET_in() {
+	for _L_i in /proc/$1/task/*/; do
+		if [[ -e "$_L_i" ]]; then
+			_L_i=$(<$_L_i/children)
+			L_RET+=($_L_i)
+			for _L_i in $_L_i; do
+				"${FUNCNAME[0]}" "$_L_i"
+			done
+		fi
+	done
 }
 
 # @description Kills all childs of the pid.
 # @arg -sigspec Signal to use.
 # @arg [$1] Pid of the process to kill all childs of. Defualt: $BASHPID
 L_kill_all_childs() {
-	local L_RET sig
+	local L_RET _L_sig _L_i _L_pids
 	while [[ "${1:-}" == -* ]]; do
-		sig="$1"
+		_L_sig="$1"
 		shift
 	done
 	L_get_all_childs_vL_RET "$@" || return
