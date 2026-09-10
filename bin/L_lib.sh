@@ -5887,9 +5887,8 @@ L_finally_list() {
 	for frame in ${_L_finally_return[@]:+"${!_L_finally_return[@]}"}; do
 		IFS=$'\t' read -r -a tmp <<<"${_L_finally_return[frame]}"
 		for idx in "${tmp[@]}"; do
-			idx=${idx%;}
-			idx=${idx#*;}
-			idx=${idx//[^0-9]}
+			idx=${idx##*_L_finally_item_depth\[}
+			idx=${idx%%\]*}
 			frame=$(( ${#BASH_LINENO[@]}-frame ))
 			printf -v tmp "%q" "${BASH_SOURCE[frame]}"
 			tmp="#$frame $tmp:${BASH_LINENO[frame]}:${FUNCNAME[frame]}()"
@@ -5902,9 +5901,10 @@ L_finally_list() {
 }
 
 # @description Register an action to be executed upon termination.
-# The action will be executed only exactly once, even if the signal is received multiple times.
+# The action will be executed once, even if the signal is received multiple times.
 # The signal exit code of the program or subshell is preserved.
-# The variable `$L_SIGNAL` is set to the currently handled signal name and available in action.
+# The variable `$L_SIGNAL` is available during execution of the action and
+# is set to the currently handled signal.
 #
 # @warning The function assumes full ownership of all trap values.
 # This is needed to properly set traps accross PIDs and subshells and functions and on Bash below 5.2.
@@ -5912,17 +5912,25 @@ L_finally_list() {
 # so `L_finally` trap handler is registered on all possible signals.
 # The signal exit status is preserved.
 #
+# There are 3 queues available - first, normal and last. They are executed in order.
+# The queue is chosen with options -f and -l. Elemenets added to first and normal queues
+# are executed in the reverse order of added. Elements added to the last queue are executed
+# in the order they were added. Usually you want to use the normal queue. However is it
+# sometimes usefull to use last and first queues. For example, an algorithm spawning
+# background processes might kill all background processes in the first queue,
+# and then wait on the processes in the last queue, giving other registerered callbacks
+# chance to executed in the normal queue before blocking waiting.
+#
 # @option -r Set trace attribute on the function and add RETURN trap to register the function on.
 #            This does not work correctly with source and instead source RETURN trap will execute parent scope actions.
 #            To mitigate this, wrap source in a function, for example use L_source.
 # @option -s <int> Increment the stack offset for the RETURN trap by this number.
 #            The RETURN trap handler will execute the action only if called from
 #            the nth position in the stack relative to the current position. Default: 0
-# @option -l Add action to be executed last, not first of the stack.
-#            Calling L_finally_pop after registering such action is undefined.
-# @option -f Add action to be executed strictly first. 5000 such actions are allowed.
-#            This is not allowed with -r.
-# @option -R Force reregister all the traps. Unless this option, traps are only registered on the first call of a BASHPID.
+# @option -l Add action to be the last queue.
+# @option -f Add action to be the first queue.
+# @option -R Force reregister all the traps. Unless this option, traps are only
+#            registered on the first call of a BASHPID.
 # @option -v <var> Store the action index in the variable.
 #            This index can be used with `L_finally_pop -i` to remove the action.
 # @option -h Print this help and return 0.
@@ -5944,7 +5952,7 @@ L_finally_list() {
 # shellcheck disable=SC2089,SC2090
 L_finally() {
 	local OPTIND OPTARG OPTERR _L_i _L_onreturn=0 _L_up=1 _L_last=0 _L_pid _L_v="" \
-		_L_register=0 L_RET _L_idx _L_elem _L_first=0
+		_L_register=0 L_RET _L_idx _L_elem _L_first=0 _L_offset=700000000
 	# Parse arguments.
 	while getopts rs:lfRv:h _L_i; do
 		case "$_L_i" in
@@ -5966,24 +5974,36 @@ L_finally() {
 			# Reset values inherited from parent shell.
 			_L_finally_pid="" _L_finally_arr=() _L_finally_return=() _L_finally_pending=() _L_finally_item_depth=() _L_register=1
 		fi
-		_L_finally_idx_first=5000 _L_finally_idx_std=10000000000 _L_finally_idx_last=10000000000
+		_L_finally_idx_first=_L_offset
+		_L_finally_idx_std=$(( _L_offset * 2 ))
+		_L_finally_idx_last=$(( _L_offset * 3 ))
 	fi
 	# Add element to our array variable.
 	if (($#)); then
 		if (( _L_first )); then
-			# The first 5000 elements for "first" callbacks.
+			if (( _L_last )); then
+				L_finc_error "-f conflicts with -l"
+				return "$L_EX_USAGE"
+			elif (( _L_finally_idx_first == 0 )); then
+				L_func_error "too many -f actions"
+				return "$L_EX_USAGE"
+			fi
+			# The first elements for "first" callbacks.
 			_L_idx=$(( --_L_finally_idx_first ))
-			if (( _L_onreturn )); then L_func_error "-f is not allowed with -r"; return "$L_EX_USAGE"; fi
-			if (( _L_idx < 0 )); then L_func_error "too many -f actions"; return "$L_EX_USAGE"; fi
 		elif (( _L_last )); then
 			# Add element to be executed last.
+			if (( _L_finally_idx_last > _L_offset * 4 )); then
+				L_func_error "too many -l actions"
+				return "$L_EX_SOFTWARE"
+			fi
 			_L_idx=$(( ++_L_finally_idx_last ))
-			if (( _L_idx > 20000000000 )); then L_func_error "too many -l actions"; return "$L_EX_SOFTWARE"; fi
 		else
-			# Add element to be executed first. Start from 10B and go down.
-			# But ignore indices < 5000 (the "strictly first" range).
+			if (( _L_finally_idx_std < _L_offset )); then
+				L_func_error "too many actions"
+				return "$L_EX_SOFTWARE"
+			fi
+			# Add element to be executed first. Start from offset and go down.
 			_L_idx=$(( --_L_finally_idx_std ))
-			if (( _L_idx < 5000 )); then L_func_error "too many actions"; return "$L_EX_SOFTWARE"; fi
 		fi
 		# After calculating index, store it to the user, if he wants that.
 		if [[ -n "$_L_v" ]]; then
@@ -5993,7 +6013,7 @@ L_finally() {
 		printf -v _L_elem "%q " "$@"
 		# Add trailing semicolon. eval joins arguments with spaces.
 		_L_finally_arr[_L_idx]="${_L_elem% };"
-		if ((_L_onreturn)); then
+		if (( _L_onreturn )); then
 			# Apply the trace attribute to the function, so it runs RETURN trap.
 			if ! declare -f -t "${FUNCNAME[_L_up]}"; then
 				if [[ "${FUNCNAME[_L_up]}" == "source" ]];then
@@ -6005,10 +6025,17 @@ L_finally() {
 			fi
 			# declare -p BASH_LINENO FUNCNAME BASH_SOURCE _L_up >&2
 			# Add element to the return array. Index loop is unrolled for speed.
-			local _L_depth=$(( ${#BASH_LINENO[@]} - _L_up ))
+			local _L_depth=$(( ${#BASH_LINENO[@]} - _L_up )) _L_sep=$'\t\t'
 			_L_finally_item_depth[_L_idx]=$_L_depth
 			_L_elem="${_L_elem% };unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
-			_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]:-$'\t'}"
+			_L_finally_return[_L_depth]=${_L_finally_return[_L_depth]:-$_L_sep}
+			if (( _L_first )); then
+				_L_finally_return[_L_depth]=$'\t'"$_L_elem${_L_finally_return[_L_depth]}"
+			elif (( _L_last )); then
+				_L_finally_return[_L_depth]+="$_L_elem"$'\t'
+			else
+				_L_finally_return[_L_depth]=${_L_finally_return[_L_depth]%%$_L_sep*}"$_L_sep$_L_elem"$'\t'${_L_finally_return[_L_depth]##*$_L_sep}
+			fi
 			# Register the trap.
 			# Use ${+} expansion to execute nothing when there is nothing to execute.
 			trap '${_L_finally_return[${#BASH_LINENO[*]}]+L_finally_handle_return} ${_L_finally_return[${#BASH_LINENO[*]}]+"$?"} ${_L_finally_return[${#BASH_LINENO[*]}]+"$BASH_COMMAND"}' RETURN
@@ -6022,28 +6049,28 @@ L_finally() {
 		# Disable set -e for the block with ! . Realtime signals might not exeists everywhere.
 		{
 			# List of all signals that result in termination.
-			trap "L_finally_handle_signal SIGABRT \$?" SIGABRT
-			trap "L_finally_handle_signal SIGALRM \$?" SIGALRM
-			trap "L_finally_handle_signal SIGBUS \$?" SIGBUS
-			trap "L_finally_handle_signal SIGFPE \$?" SIGFPE
-			trap "L_finally_handle_signal SIGHUP \$?" SIGHUP
-			trap "L_finally_handle_signal SIGILL \$?" SIGILL
-			trap "L_finally_handle_signal SIGINT \$?" SIGINT
-			trap "L_finally_handle_signal SIGIO \$?" SIGIO
-			trap "L_finally_handle_signal SIGPIPE \$?" SIGPIPE
-			trap "L_finally_handle_signal SIGPROF \$?" SIGPROF
-			trap "L_finally_handle_signal SIGPWR \$?" SIGPWR
-			trap "L_finally_handle_signal SIGQUIT \$?" SIGQUIT
-			trap "L_finally_handle_signal SIGSEGV \$?" SIGSEGV
-			trap "L_finally_handle_signal SIGSTKFLT \$?" SIGSTKFLT
-			trap "L_finally_handle_signal SIGSYS \$?" SIGSYS
-			trap "L_finally_handle_signal SIGTERM \$?" SIGTERM
-			trap "L_finally_handle_signal SIGTRAP \$?" SIGTRAP
-			trap "L_finally_handle_signal SIGUSR1 \$?" SIGUSR1
-			trap "L_finally_handle_signal SIGUSR2 \$?" SIGUSR2
-			trap "L_finally_handle_signal SIGVTALRM \$?" SIGVTALRM
-			trap "L_finally_handle_signal SIGXCPU \$?" SIGXCPU
-			trap "L_finally_handle_signal SIGXFSZ \$?" SIGXFSZ
+			trap 'L_finally_handle_signal SIGABRT $?' SIGABRT
+			trap 'L_finally_handle_signal SIGALRM $?' SIGALRM
+			trap 'L_finally_handle_signal SIGBUS $?' SIGBUS
+			trap 'L_finally_handle_signal SIGFPE $?' SIGFPE
+			trap 'L_finally_handle_signal SIGHUP $?' SIGHUP
+			trap 'L_finally_handle_signal SIGILL $?' SIGILL
+			trap 'L_finally_handle_signal SIGINT $?' SIGINT
+			trap 'L_finally_handle_signal SIGIO $?' SIGIO
+			trap 'L_finally_handle_signal SIGPIPE $?' SIGPIPE
+			trap 'L_finally_handle_signal SIGPROF $?' SIGPROF
+			trap 'L_finally_handle_signal SIGPWR $?' SIGPWR
+			trap 'L_finally_handle_signal SIGQUIT $?' SIGQUIT
+			trap 'L_finally_handle_signal SIGSEGV $?' SIGSEGV
+			trap 'L_finally_handle_signal SIGSTKFLT $?' SIGSTKFLT
+			trap 'L_finally_handle_signal SIGSYS $?' SIGSYS
+			trap 'L_finally_handle_signal SIGTERM $?' SIGTERM
+			trap 'L_finally_handle_signal SIGTRAP $?' SIGTRAP
+			trap 'L_finally_handle_signal SIGUSR1 $?' SIGUSR1
+			trap 'L_finally_handle_signal SIGUSR2 $?' SIGUSR2
+			trap 'L_finally_handle_signal SIGVTALRM $?' SIGVTALRM
+			trap 'L_finally_handle_signal SIGXCPU $?' SIGXCPU
+			trap 'L_finally_handle_signal SIGXFSZ $?' SIGXFSZ
 		} 2>/dev/null || :
 	fi
 }
