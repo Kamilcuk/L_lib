@@ -5982,7 +5982,7 @@ L_finally() {
 	if (($#)); then
 		if (( _L_first )); then
 			if (( _L_last )); then
-				L_finc_error "-f conflicts with -l"
+				L_func_error "-f conflicts with -l"
 				return "$L_EX_USAGE"
 			elif (( _L_finally_idx_first == 0 )); then
 				L_func_error "too many -f actions"
