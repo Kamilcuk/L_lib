@@ -5594,11 +5594,12 @@ L_sort() {
 #   1412 >>                 _L_unittest_showdiff "$1" "$2"
 #     File ./bin/L_lib.sh, line 1391, in _L_unittest_showdiff()
 #   1391 >>                 sdiff <(cat <<<"$1") - <<<"$2"
+# @env _L_print_traceback_offset
 L_print_traceback() {
 	L_color_detect
 	local i file line offset=${1:-0} around=${2:-2} _L_p_lines _L_p_min _L_p_cnt _L_p_j _L_p_cur_l cur
 	echo "${L_CYAN:-}Traceback from pid ${BASHPID:-$$} (most recent call last):${L_RESET:-}"
-	for (( i = ${#BASH_SOURCE[@]} - 1; i > offset; --i )); do
+	for (( i = ${#BASH_SOURCE[@]} - 1 - ${_L_print_traceback_offset:-0}; i > offset; --i )); do
 		file=${BASH_SOURCE[i]}
 		line=${BASH_LINENO[i - 1]}
 		printf "  File %s%q%s, line %s%d%s, in %s()\n" \
@@ -5619,6 +5620,7 @@ L_print_traceback() {
 			fi
 		fi
 	done
+	_L_print_traceback_offset=0
 }
 
 # @description Print simple traceback using builtin caller command.
@@ -6485,7 +6487,8 @@ _L_unittest_main_runner_finally_catter() {
 }
 
 _L_unittest_main_runner() {
-	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr _L_u_storage=""
+	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr _L_u_storage="" _L_u_traceback_offset_old=${_L_print_traceback_offset:-0}
+	_L_print_traceback_offset=${#BASH_SOURCE[@]}
 	if (( !_L_u_quiet )); then
 		printf -v _L_u_hdr "%s%s " "${L_BOLD}" "${_L_u_testnames[L_XARGS_INDEX]}"
 		if (( _L_u_stream )); then
@@ -6550,6 +6553,8 @@ _L_unittest_main_runner() {
 	if (( _L_u_durations )); then
 		echo "$duration ${_L_u_testnames[L_XARGS_INDEX]//[$' \t\n']}" >>"$_L_u_tmpd/durations.txt"
 	fi
+	# Restore print_traceback_offset.
+	_L_print_traceback_offset=$_L_u_traceback_offset_old
 	# Store exit code.
 	echo "$_L_u_ret" > "$_L_u_tmpd/$1.ret"
 	if (( _L_u_quiet )); then
