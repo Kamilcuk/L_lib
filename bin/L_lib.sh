@@ -6280,15 +6280,44 @@ L_with_redirect_stdout_into() {
 # @example
 #    L_unittest_eq 1 1
 
-# @description Integer that increases with every failed test.
-# L_unittest_fails=${L_unittest_fails:-0}
 # @description Set this varaible to 1 to disable set -x inside L_unittest functions, Set to 0 to don't.
 # L_unittest_unset_x=${L_unittest_unset_x:-$L_HAS_LOCAL_DASH}
 
-_L_unittest_error_on_github() {
-	if [[ -n "${CI:-}" && -n "${GITHUB_RUN_ID:-}" ]]; then
-		echo "::error $*"
+_L_unittest_msg_on_github() {
+ 	if [[ -n "${CI:-}" && -n "${GITHUB_RUN_ID:-}" && ( "$1" == error || "$1" == warning ) ]]; then
+		echo "::$1 $2" >&2
 	fi
+}
+
+_L_unittest_msg() {
+	local out="" up=1
+	# Find first function in the stack that does not start with _L_unittest_
+	while (( ++up )); do
+		case "${FUNCNAME[up]:-}" in
+			"") break ;;
+			_L_unittest_*|L_unittest_*) ;;
+			*) break ;;
+		esac
+	done
+	case "$1" in
+		"error") out+="$L_RED$L_BOLD" ;;
+		"warning") out+="$L_YELLOW$L_BOLD" ;;
+	esac
+	_L_unittest_msg_on_github "$1" "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${_L_u_test:-${FUNCNAME[up]}}: $2"
+	echo "$out${FUNCNAME[up]}:${BASH_LINENO[up-1]}: ${_L_u_test:-${FUNCNAME[up]}}: $2$L_COLORRESET" >&2
+}
+
+L_unittest_notice() {
+	_L_unittest_msg "" "$*"
+}
+
+L_unittest_warning() {
+	_L_unittest_msg "warning" "$*"
+}
+
+L_unittest_fail() {
+	_L_unittest_msg "error" "$*"
+	exit 1
 }
 
 # @description internal unittest function
@@ -6303,7 +6332,6 @@ _L_unittest_internal() {
 		up=$(( $2 + 1 ))
 		shift 2
 	fi
-	#
 	if [[ "$3" == "!" ]]; then
 		_L_invert=1
 		shift
@@ -6313,31 +6341,15 @@ _L_unittest_internal() {
 		_L_ret=$(( !_L_ret ))
 	fi
 	L_unittest_fails=${L_unittest_fails:-0}
-	if (( _L_ret )); then
-		echo -n "${L_RED}${L_BRIGHT}"
-	fi
-	# Find first function in the stack that does not start with _L_unittest_
-	while (( ++up )); do
-		case "${FUNCNAME[up]:-}" in
-		"") break ;;
-		_L_unittest_*|L_unittest_*) ;;
-		*) break ;;
-		esac
-	done
-	echo -n "${FUNCNAME[up]}:${BASH_LINENO[up-1]}: test: ${1:-}: "
-	#
 	if (( _L_ret == 0 )); then
-		echo "${L_GREEN}OK${L_COLORRESET}"
+		_L_unittest_msg "" "${1:-}: ${L_GREEN}OK"
 	else
-		(( ++L_unittest_fails ))
 		local L_RET
 		L_quote_printf_vL_RET "${@:3}"
 		L_RET="command [$L_RET] FAILED!${2:+ }${2:-}"
-		echo "$L_RET${L_COLORRESET}"
-		_L_unittest_error_on_github "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${1:-}::$L_RET"
-		exit 1
+		L_unittest_fail "${1:-}: $L_RET"
 	fi
-} >&2
+}
 
 _L_unittest_main_longest_string_to() {
 	local i="$2[@]" j=0
@@ -6418,6 +6430,7 @@ _L_unittest_main_runner_finally_catter() {
 
 _L_unittest_main_runner() {
 	local _L_u_output="" _L_u_ret=0 _L_u_start _L_u_stop _L_u_test=$1 _L_u_hdr _L_u_storage="" _L_u_traceback_offset_old=${_L_print_traceback_offset:-0}
+	# Set traceback offset to have short tracebacks when printing errors.
 	_L_print_traceback_offset=${#BASH_SOURCE[@]}
 	if (( !_L_u_quiet )); then
 		printf -v _L_u_hdr "%s%s " "${L_BOLD}" "${_L_u_testnames[L_XARGS_INDEX]}"
@@ -6467,7 +6480,7 @@ _L_unittest_main_runner() {
 					L_finally -v _L_u_storage L_eval 'cat "$1" 2>/dev/null || :' "$_L_u_tmpd/$1.log"
 				fi
 				#
-				"$@" > "$_L_u_tmpd/$1.log" 2>&1
+				"$@" >"$_L_u_tmpd/$1.log" 2>&1
 				_L_u_ret=$?
 				#
 				if [[ -n "$_L_u_storage" ]]; then
@@ -6486,7 +6499,12 @@ _L_unittest_main_runner() {
 	# Restore print_traceback_offset.
 	_L_print_traceback_offset=$_L_u_traceback_offset_old
 	# Store exit code.
-	echo "$_L_u_ret" > "$_L_u_tmpd/$1.ret"
+	if ! echo "$_L_u_ret" >"$_L_u_tmpd/$1.ret"; then
+		# If we can't store exit code, that most probably means that directory was removed.
+		# This will happen, when L_unittest_main exited.
+		trap - ERR
+		exit 1
+	fi
 	if (( _L_u_quiet )); then
 		# One quiet, just print one letter.
 		case "$_L_u_ret" in
