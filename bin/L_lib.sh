@@ -4446,12 +4446,12 @@ _L_pretty_print_declare() {
 		# Namereference
 		local _L_pp_nameref=${_L_pp_declare##*=}
 		_L_pp_nameref=${_L_pp_nameref//'"'}
-		printf -v _L_pp_current "%s->%s${!1+=%q}" "$1" "$_L_pp_nameref" ${!1+"${!1}"}
-		_L_pretty_print_output "${_L_flags}${_L_pp_current}"
+		printf -v _L_pp_v "%s->%s${!1+=%q}" "$1" "$_L_pp_nameref" ${!1+"${!1}"}
+		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
 	else
 		# Scalar
-		printf -v _L_pp_current "%s=%q" "$1" "${!1:-}"
-		_L_pretty_print_output "${_L_flags}${_L_pp_current}"
+		printf -v _L_pp_v "%s=%q" "$1" "${!1:-}"
+		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
 	fi
 }
 
