@@ -2279,20 +2279,20 @@ L_time() {
 	time TIMEFORMAT="$_L_time_sav" "$@"
 }
 
-# @description Parse 1y2w3d4h5m6s7ms8us or 1.234 into number of microseconds.
+# @description Parse 1y2w3d4h5m6s7ms8us or 1y2w3d4h5m6.789s or 1.234 into number of microseconds.
 # @option -v <var>
 # @arg $1 Duration string.
 # @see https://prometheus.io/docs/prometheus/latest/configuration/configuration/#configuration-file
 L_duration_to_usec() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC2211,SC2035,SC2035,SC1102
 L_duration_to_usec_vL_RET() {
-	[[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
-	#           123          45          67          89          01          23          45           67            8        9   0
+	[[ "$*" =~ ^((([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)([.]([0-9]*))?s)?(([0-9]+)ms)?(([0-9]+)us)?|([0-9]+)([.]([0-9]*))?s?)$ ]] &&
+	#           123          45          67          89          01          23       4   5            67           89            0       1   2
 	# convert year, week, day, ... into <seconds><microseconds>
 		printf -v L_RET "%s%06d" \
-			"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[18] + (BASH_REMATCH[15] / 1000) + (BASH_REMATCH[17] / 1000000)
+			"$(( ( ( ( ( BASH_REMATCH[3] * 365 ) + ( BASH_REMATCH[5] * 7 ) + BASH_REMATCH[7] ) * 24 + BASH_REMATCH[9] ) * 60 + BASH_REMATCH[11] ) * 60 + BASH_REMATCH[13] + BASH_REMATCH[20] + (BASH_REMATCH[17] / 1000) + (BASH_REMATCH[19] / 1000000)
 			))" \
-			"$(( BASH_REMATCH[15] % 1000 * 1000 + BASH_REMATCH[17] % 1000000 ${BASH_REMATCH[20]:+ + ${BASH_REMATCH[20]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[20]} > 6 ? 6 : ${#BASH_REMATCH[20]} ) } ))" &&
+			"$(( BASH_REMATCH[17] % 1000 * 1000 + BASH_REMATCH[19] % 1000000 ${BASH_REMATCH[15]:+ + ${BASH_REMATCH[15]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[15]} > 6 ? 6 : ${#BASH_REMATCH[15]} ) } ${BASH_REMATCH[22]:+ + ${BASH_REMATCH[22]:0:6} * 1000000 / 10**( ${#BASH_REMATCH[22]} > 6 ? 6 : ${#BASH_REMATCH[22]} ) } ))" &&
 		# Remove leading zeros.
 		L_RET=$(( 10#$L_RET ))
 }
