@@ -4943,6 +4943,8 @@ L_LOGLEVEL_COLORS=(
 #                          The function should output the content of L_logline.
 # @option -L               Equal to -F L_log_format_long
 # @option -J               Equal to -F L_log_format_json
+# @option -D <DATEFORMAT>  Set date format.
+# @option -1               Equal to -F L_log_format_long -D "%H:%M:%S.%3N"
 # @noargs
 # @example
 #   L_log_configure \
@@ -4953,12 +4955,12 @@ L_LOGLEVEL_COLORS=(
 #     -s '[[ $L_logline_source == */script.sh ]]'
 L_log_configure() {
 	local OPTIND OPTARG OPTERR _L_opt
-	while getopts hrl:c:f:F:s:o:LJ _L_opt; do
+	while getopts hrl:c:f:F:s:o:LJD:1 _L_opt; do
 		case "$_L_opt" in
 			h) L_func_help; return 0; ;;
 			r) _L_logconf_configured=0 ;;
-			[lcfFsoLJ])
-				if ((${_L_logconf_configured:-0} == 0)); then
+			[lcfFsoLJD1])
+				if (( ${_L_logconf_configured:-0} == 0 )); then
 					case "$_L_opt" in
 						l) L_log_level_to_int_into _L_logconf_level "$OPTARG" ;;
 						c) L_exit_into_1null _L_logconf_color L_is_true "$OPTARG" ;;
@@ -4968,6 +4970,9 @@ L_log_configure() {
 						o) _L_logconf_outputeval=$OPTARG ;;
 						L) _L_logconf_formateval='L_log_format_long "$@"' ;;
 						J) _L_logconf_formateval='L_log_format_json "$@"' ;;
+						D) _L_logconf_dateformat=$OPTARG ;;
+						1) _L_logconf_dateformat="%H:%M:%S.%3N"
+							_L_logconf_formateval='L_log_format_long "$@"' ;;
 					esac
 				fi
 				;;
@@ -5048,7 +5053,7 @@ L_log_format_default() {
 L_log_format_long() {
 	if (($# == 1)); then set -- "%s" "$*"; fi
 	local L_RET
-	L_date_vL_RET %Y-%m-%dT%H:%M:%S.%3N%z
+	L_date_vL_RET "${_L_logconf_dateformat:-%Y-%m-%dT%H:%M:%S.%3N%z}"
 	printf -v L_logline "%s %q:%s:%d %s $1" \
 		"$L_RET" \
 		"$L_NAME" \
@@ -5064,7 +5069,7 @@ L_log_format_json() {
 	local msg out="" ts L_RET i pid
 	if (($# == 1)); then set -- "%s" "$*"; fi
 	printf -v msg "$@"
-	L_date_vL_RET %Y-%m-%dT%H:%M:%S%z
+	L_date_vL_RET "${_L_logconf_dateformat:-%Y-%m-%dT%H:%M:%S.%3N%z}"
 	L_bashpid_into pid
 	for i in \
 		timestamp:"$L_RET" \
