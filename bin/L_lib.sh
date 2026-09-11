@@ -9938,35 +9938,30 @@ if (( L_HAS_VARIABLE_FD )); then
 # @description Get free file descriptors
 # @arg $@ variables to assign with the file descriptor numbers
 L_get_free_fd_into() {
-	local _L_f_fd _L_f_v
-	for _L_f_v in "$@"; do
-		exec {_L_f_fd}>/dev/null
-		printf -v "$_L_f_v" "%d" "$_L_f_fd"
-	done
+	eval "eval exec \"{$1[\"{0..${2:-0}}\"]}>/dev/null\""
 }
 # shellcheck disable=SC2094
 _L_pipe_opener() {
 	# First open the file descriptor for both, so that opening is not getting stuck.
-	exec {_L_tmp}<>"$_L_file" {_L_0}<"$_L_file" {_L_1}>"$_L_file" {_L_tmp}>&-
+	exec {_L_tmp[0]}<>"$_L_file" {_L_tmp[1]}<"$_L_file" {_L_tmp[2]}>"$_L_file" {_L_tmp[0]}>&-
 }
 else
 	L_get_free_fd_into() {
-		local _L_f_fd
+		local _L_f_fd _L_f_cnd=0
 		for _L_f_fd in {18..1023}; do
 			if ! L_is_fd_open "$_L_f_fd"; then
-				printf -v "$1" "%d" "$_L_f_fd"
-				if (($# == 1)); then
+				eval "$1[_L_f_cnt++]=$_L_f_fd"
+				if (( _L_f_cnt == ${2:-0} )); then
 					return 0
 				fi
-				shift
 			fi
 		done
 		return 1
 	}
 	# shellcheck disable=SC2094
 	_L_pipe_opener() {
-		L_get_free_fd_into _L_tmp _L_0 _L_1 &&
-		eval "exec ${_L_tmp}<>\"\$_L_file\" ${_L_0}<\"\$_L_file\" ${_L_1}>\"\$_L_file\" ${_L_tmp}>&-"
+		L_get_free_fd_into _L_tmp 3 &&
+		eval "exec ${_L_tmp[0]}<>\"\$_L_file\" ${_L_tmp[1]}<\"\$_L_file\" ${_L_tmp[2]}>\"\$_L_file\" ${_L_tmp[0]}>&-"
 	}
 fi
 
@@ -9988,7 +9983,7 @@ _L_mktemp_vL_RET() {
 	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
 		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
 	else
-		L_func_error "L_mktemp template has to contain at least three XXX"
+		L_func_error "L_mktemp template has to contain at least three XXX: $_L_tpl"
 		return "$L_EX_USAGE"
 	fi
 	for _L_i in {1..10}; do
@@ -10018,7 +10013,11 @@ _L_mktemp_vL_RET() {
 #   cat <&"$out"
 #   exec "$out"<&-
 L_pipe() {
-	local _L_i _L_file _L_1 _L_0 _L_tmp _L_tpl="${2:-${TMPDIR:-/tmp}/L_pipe.XXXXXXXXXX}"
+	local _L_i _L_file _L_tmp _L_tpl="${2:-${TMPDIR:-/tmp}/L_pipe.XXXXXXXXXX}"
+	if ! L_is_valid_variable_name "$1"; then
+		L_func_error "not a valid identifier: $1" 1
+		return "$L_EX_USAGE"
+	fi
 	if [[ ! "$_L_tpl" == *XXX* ]]; then
 		_L_tpl+=XXX
 	fi
@@ -10030,7 +10029,8 @@ L_pipe() {
 		if mkfifo "$_L_file" 2>/dev/null; then
 			if _L_pipe_opener; then
 				rm "$_L_file" || return
-				L_array_assign "$1" "$_L_0" "$_L_1" || return
+				# $1 checked for valid variable name above.
+				eval "$1=(\"\${_L_tmp[@]:1}\")"
 				return 0
 			else
 				rm "$_L_file" || return
@@ -10040,25 +10040,22 @@ L_pipe() {
 	return 1
 }
 
-# @description Open three file descriptors read-write connected to a deleted temporary file.
+# @description Open file descriptors read-write connected to a deleted temporary file.
 # This internally creates a temporary file and immidately removes it.
-# Why three FD? Because it is not possible to rewind the file descriptor in shell,
-# so you get extra spare ones to read from the file.
-# @arg <var> variable name to assign result to
-# @arg [str] template temporary filename, default: ${TMPDIR:/tmp}/L_mkstemp_XXXXXXXXXX
+# @arg var Variable to assign file descriptors to.
+# @arg [int] Number of array elements to assign.
 L_mkstemp() {
-	local _L_m_file _L_m_fd1 _L_m_fd2 _L_m_fd3
+	local _L_m_file _L_m_tpl="${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX" _L_m_i
 	# mktemp -> open FDs -> rm file
 	if ((L_HAS_VARIABLE_FD)); then
-		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
-		exec {_L_m_fd1}<>"$_L_m_file" {_L_m_fd2}<>"$_L_m_file" {_L_m_fd3}<>"$_L_m_file"
+		L_mktemp -v _L_m_file "$_L_m_tpl" || return
+		L_setx eval "eval exec \"{$1[\"{0..${2:-0}}\"]}<>\\\"\\\$_L_m_file\\\"\""
 	else
-		L_get_free_fd_into _L_m_fd1 _L_m_fd2 _L_m_fd3
-		L_mktemp -v _L_m_file "${2:-${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX}" || return
-		eval "exec $_L_m_fd1<>\"\$_L_m_file\" $_L_m_fd2<>\"\$_L_m_file\" $_L_m_fd3<>\"\$_L_m_file\""
+		L_get_free_fd_into "$@" || return
+		L_mktemp -v _L_m_file "$_L_m_tpl" || return
+		eval "eval exec \"\${$1[\"{0..${2:-0}}\"]}<>\\\"\\\$_L_m_file\\\"\""
 	fi
 	rm -f "$_L_m_file"
-	L_array_assign "$1" "$_L_m_fd1" "$_L_m_fd2" "$_L_m_fd3"
 }
 
 _L_proc_init_setup_redirs() {
