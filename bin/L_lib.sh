@@ -4380,8 +4380,9 @@ _L_pretty_print_output() {
 		_L_pp_out="$_L_pp_prefix$1"
 		_L_pp_line_len=${#1}
 	elif (( _L_pp_oneline && _L_pp_line_len + 1 + ${#1} <= _L_pp_width )); then
-		_L_pp_out+=" $1"
+		_L_pp_out+="$_L_pp_out_sep$1"
 		(( _L_pp_line_len += 1 + ${#1} ))
+		_L_pp_out_sep=" "
 	else
 		_L_pp_out+=$'\n'"$_L_pp_prefix$1"
 		_L_pp_line_len=${#1}
@@ -4395,6 +4396,17 @@ _L_pretty_print_output_array() {
 	else
 		_L_pp_out+=$'\n'"$_L_pp_prefix  $1"
 		(( _L_pp_line_len = 2 + ${#1} ))
+	fi
+}
+
+_L_pretty_print_output_close() {
+	# Close paren
+	if (( _L_pp_oneline && ( ${2:+1}0 || _L_pp_line_len + 1 <= _L_pp_width ) )); then
+		_L_pp_out+="$1"
+		(( _L_pp_line_len += 1 ))
+	else
+		_L_pp_out+=$'\n'"$_L_pp_prefix$1"
+		_L_pp_line_len=1
 	fi
 }
 
@@ -4434,14 +4446,7 @@ _L_pretty_print_declare() {
 				_L_pp_nonfirst_sep=" "
 			done
 		fi
-		# Close paren
-		if (( _L_pp_oneline && ( ${_L_pp_nonfirst_sep:+1}0 || _L_pp_line_len + 1 <= _L_pp_width ) )); then
-			_L_pp_out+=")"
-			(( _L_pp_line_len += 1 ))
-		else
-			_L_pp_out+=$'\n'"$_L_pp_prefix)"
-			_L_pp_line_len=1
-		fi
+		_L_pretty_print_output_close ")" "$_L_pp_nonfirst_sep"
 	elif [[ "$_L_pp_declare_opts" == -*n* ]]; then
 		# Namereference
 		local _L_pp_nameref=${_L_pp_declare##*=}
@@ -4455,7 +4460,41 @@ _L_pretty_print_declare() {
 	fi
 }
 
-# @description Prints values with declare, but array values are on separate lines.
+_L_pretty_print_output_array_of_structures() {
+	_L_pretty_print_output "$1{"
+	local _L_pp_keys=() L_RET _L_pp_var _L_pp_key _L_pp_varprefix=${1%%\*\*}
+	# Find all available array indexes
+	for _L_pp_var in "${_L_pp_vars[@]}"; do
+		L_array_keys_vL_RET "$_L_pp_var"
+		for _L_pp_key in "${L_RET[@]}"; do
+			_L_pp_keys[_L_pp_key]="$_L_pp_key"
+		done
+	done
+	local _L_pp_key_indent=""
+	for _L_pp_key in "${_L_pp_keys[@]}"; do
+		_L_pretty_print_output_array "[$_L_pp_key]={" "$_L_pp_key_indent"
+		local _L_pp_val_indent=""
+		_L_pp_prefix+="  "
+		for _L_pp_var in "${_L_pp_vars[@]}"; do
+			_L_pp_i="$_L_pp_var[_L_pp_key]"
+			if L_var_is_set "$_L_pp_i"; then
+				printf -v _L_pp_i "%s=%q" "${_L_pp_var#"$_L_pp_varprefix"}" "${!_L_pp_i}"
+				_L_pretty_print_output_array "$_L_pp_i" "$_L_pp_val_indent"
+				_L_pp_val_indent=" "
+			fi
+		done
+ 		_L_pretty_print_output_close "}" "$_L_pp_val_indent"
+		_L_pp_prefix=${_L_pp_prefix%%  }
+ 		_L_pp_key_indent=" "
+	done
+ 	_L_pretty_print_output_close "}" "$_L_pp_key_indent"
+}
+
+# @description Pretty print values.
+# If expression is variable prefix suffixed by '**', print as an array of structures.
+# If expression is variable with '*?[]' glob characteres, print all variables matching that glob.
+# If expression is varaible, print that variable.
+# Otherwise, just prints the expression.
 # @option -p <str> Prefix each line with this prefix
 # @option -v <var> Store the output in variable instead of printing it.
 # @option -w <int> Set output width for compact output.
@@ -4463,14 +4502,21 @@ _L_pretty_print_declare() {
 # @option -m Multiline output. Invert of -c.
 # @option -C Alias for -m.
 # @option -h Print this help and return 0.
-# @arg $@ variable names to pretty print
+# @arg <expr...> Expressions to pretty print.
+# @example
+#   var=5 arr=(1 2); L_pp "Note:" var arr
+#   # Outputs: Note: var=5 arr=(1 2)
+#   key_service="Hello" url_service="World"; L_pp '*_service'
+#   # Outputs: *_service{key_service=Hello url_service=World}
+#   humans_name=(Carl Susan [5]=Mike) humans_age=(15 30 40); L_pp 'humans_**'
+#   # Outputs: humans_**{[0]={age=15 name=Carl} [1]={age=30 name=Susan} [2]={age=40 names=''} [5]={age='' name=Mike}}
 # shellcheck disable=SC2053
 L_pretty_print() {
 	L_init_COLUMNS
 	local OPTIND OPTARG OPTERR \
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
-		_L_pp_line_len=0 _L_pp_ref
+		_L_pp_line_len=0 _L_pp_ref _L_pp_vars _L_pp_out_sep=" "
 	while getopts p:v:w:cmCh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
@@ -4484,35 +4530,38 @@ L_pretty_print() {
 	done
 	shift "$((OPTIND-1))"
 	while (($#)); do
-		if
+		if [[ $1 == *'**' ]] && L_compgen -V _L_pp_vars -A variable -- "${1%%[?*[]*}"; then
+			_L_pretty_print_output_array_of_structures "$1"
+		elif
 			case "$1" in
 				# Get all variables matching arbitrary glob PREFIX*SUFFIX.
 				*[?*[]?*)  # ]
 					# Prewarm the list using the prefix we are sure of.
-					L_compgen -V _L_pp_i -A variable -- "${1%%[?*[]*}" && {  # ]
+					L_compgen -V _L_pp_vars -A variable -- "${1%%[?*[]*}" && {  # ]
 						# Filter variables using the full regex.
-						for _L_pp_k in "${!_L_pp_i[@]}"; do
-							if [[ "${_L_pp_i[_L_pp_k]}" != $1 || "${_L_pp_i[_L_pp_k]}" == _L_* ]]; then
-								unset "_L_pp_i[$_L_pp_k]"
+						for _L_pp_k in "${!_L_pp_vars[@]}"; do
+							if [[ "${_L_pp_vars[_L_pp_k]}" != $1 || "${_L_pp_vars[_L_pp_k]}" == _L_* ]]; then
+								unset "_L_pp_vars[$_L_pp_k]"
 							fi
 						done
-						(( ${_L_pp_i[*]:+1}0 ))
+						(( ${_L_pp_vars[*]:+1}0 ))
 					}
 					;;
 				# Get all variables matching prefix VAR*.
-				*"*") L_compgen -V _L_pp_i -A variable -- "${1::${#1}-1}" ;;
+				*"*") L_compgen -V _L_pp_vars -A variable -- "${1::${#1}-1}" ;;
 				*) false ;;
 			esac
 		then
 			# Print all variables matching the glob in $1.
 			_L_pretty_print_output "$1{"
-			for _L_pp_i in "${_L_pp_i[@]}"; do
+			_L_pp_prefix+="  "
+			_L_pp_out_sep=""
+			for _L_pp_i in "${_L_pp_vars[@]}"; do
 				_L_pp_declare=$(declare -p "$_L_pp_i")
-				_L_pp_prefix+="  "
 				_L_pretty_print_declare "$_L_pp_i"
-				_L_pp_prefix=${_L_pp_prefix::${#_L_pp_prefix}-2}
 			done
-			_L_pretty_print_output "}"
+			_L_pp_prefix=${_L_pp_prefix%%  }
+ 			_L_pretty_print_output_close "}" " "
 		elif _L_pp_declare=$(declare -p "$1" 2>/dev/null); then
 			# Normal variable.
 			_L_pretty_print_declare "$1"
@@ -4533,6 +4582,11 @@ L_pretty_print() {
 		printf -v "$_L_pp_var" "%s" "$_L_pp_out"
 	fi
 }
+
+# @description Alias for L_pretty_print
+# @see L_pretty_print
+L_pp() { L_pretty_print "$@"; }
+
 # @see L_argskeywords
 _L_argskeywords_assert() {
 	if ! "${@:2}"; then
@@ -4544,9 +4598,6 @@ _L_argskeywords_assert() {
 		fi
 	fi
 }
-
-# @see L_pretty_print
-L_pp() { L_pretty_print "$@"; }
 
 # @arg $1 variable
 # @arg $2 value
