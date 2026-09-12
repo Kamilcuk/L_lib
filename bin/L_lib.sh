@@ -5373,19 +5373,15 @@ L_shuf() {
 _L_sort_compare_strings() { [[ "$1" > "$2" ]]; }
 # @description Default numeric compare function.
 _L_sort_compare_numeric() {
-	if L_is_integer "$1"; then
-		if L_is_integer "$2"; then
-			(( $1 > $2 ))
-		else
-			(( $1 > 0 ))
-		fi
-	else
-		if L_is_integer "$2"; then
-			(( 0 > $2 ))
-		else
-			(( 0 > 0 ))
-		fi
-	fi
+	# Ignore leading blanks.
+	local a=${1#"${1%%[![:space:]]*}"} b=${2#"${2%%[![:space:]]*}"} sa=+ sb=+
+	# Extract signs.
+	if [[ $a == [-+]* ]]; then sa=${a::1} a=${a:1}; fi
+	if [[ $b == [-+]* ]]; then sb=${b::1} b=${b:1}; fi
+	# Remove all non-digits.
+	a=${a%%[^0-9]*} b=${b%%[^0-9]*}
+	# Compare. Empty strings are 0.
+	(( ${sa}10#${a:-0} > ${sb}10#${b:-0} ))
 }
 
 # shellcheck disable=SC2030,SC2031,SC2035
