@@ -12050,6 +12050,32 @@ _L_xargs_handle_return() {
 	esac
 }
 
+# The ( ) subshell will exit with nonzero triggering set -e and ERR trap.
+# Disable temporary -e and ERR trap and enable in subshell.
+# @arg <var> Store $? in this variable.
+# @arg <cmd...> Command to execute.
+# shellcheck disable=SC2064
+_L_run_subshell() {
+	local _L_r_err="-"
+	# Save ERR trap.
+	L_trap_get -v _L_r_err ERR
+	if [[ -z "$_L_r_err" ]]; then
+		_L_r_err=-
+	fi
+	trap - ERR
+	if [[ "$-" == *e* ]]; then
+		# Temporary disable -e. Reenable inside subshell and after running.
+		set +e
+		( set -e; trap "$_L_r_err" ERR; "${@:2}" )
+		printf -v "$1" "$?"
+		set -e
+	else
+		( trap "$_L_r_err" ERR; "${@:2}" )
+		printf -v "$1" "$?"
+	fi
+	trap "$_L_r_err" ERR
+}
+
 _L_xargs_dispatch_one() {
 	local L_RET=("${_L_x_cmd[@]}")
 	"$_L_x_template_cb"
@@ -12058,12 +12084,18 @@ _L_xargs_dispatch_one() {
 		printf -v _L_tmp " %q" "${L_RET[@]}"
 		printf "+%s\n" "$_L_tmp" >&2
 	fi
-	# Run PREEXEC callbacks.
-	set -- PREEXEC
-	eval "${_L_x_notify_cb:-}"
-	if (( _L_x_foreground )); then
-		"${L_RET[@]}"
-		local _L_exitcode=$?
+	if (( _L_x_foreground || _L_x_maxprocs == 1 )); then
+		if (( _L_x_foreground )); then
+			set -- PREEXEC f
+			eval "${_L_x_notify_cb:-}"
+			"${L_RET[@]}"
+			local _L_exitcode=$?
+		else
+			set -- PREEXEC 1
+			eval "${_L_x_notify_cb:-}"
+			local _L_exitcode
+			_L_run_subshell _L_exitcode "${L_RET[@]}"
+		fi
 		# Run POSTEXEC callbacks.
 		set -- POSTEXEC
 		eval "${_L_x_notify_cb:-}"
@@ -12076,6 +12108,9 @@ _L_xargs_dispatch_one() {
 		set -- EXIT "" "$_L_exitcode"
 		eval "${_L_x_notify_cb:-}"
 	else
+		# Run PREEXEC callbacks.
+		set -- PREEXEC b
+		eval "${_L_x_notify_cb:-}"
 		# Actually run the job.
 		"${L_RET[@]}" &
 		local _L_pid=$!
@@ -12227,21 +12262,26 @@ _L_xargs_feeder_input_cb() {
 _L_xargs_callback_array_nameref() {
 	(( _L_x_array_index < ${#_L_x_array[@]} )) && L_RET=("${_L_x_array[_L_x_array_index++]}")
 }
+
 _L_xargs_callback_array_indirect() {
 	local _L_tmp="$_L_x_array[$_L_x_array_index]"
 	L_var_is_set "$_L_tmp" && L_RET=("${!_L_tmp}") && (( ++_L_x_array_index ))
 }
+
 _L_xargs_finally_kill() {
-	if (( ${_L_X_CLEANUP[*]+1}0 )); then
-		L_kill_all_childs "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
+	local L_RET
+	L_get_all_childs_vL_RET "${!_L_X_CLEANUP[@]}"
+	L_RET+=("${!_L_X_CLEANUP[@]}")
+	if (( ${_L_x_trace:-0} )); then
+		if [[ "$L_SIGNAL" == SIG* ]]; then
+			echo "L_xargs: Signal $L_SIGNAL received. Killing pids ${L_RET[*]}"
+		fi
 	fi
+	kill "${L_RET[@]}" 2>/dev/null || :
 }
 
 _L_xargs_finally_wait() {
-	if (( ${_L_X_CLEANUP[*]+1}0 )); then
-		wait "${!_L_X_CLEANUP[@]}" 2>/dev/null || :
-		unset -v _L_X_CLEANUP
-	fi
+	wait "${!_L_X_CLEANUP[@]}" || :
 }
 
 # @description Bash implementation of the `xargs` utility designed for seamless
@@ -12381,8 +12421,8 @@ L_xargs() {
 	L_uv_run
 	# Unregister killing all tasks if everything is ok.
 	if (( --_L_X_CLEANUP_NEST == 0 )); then
-		L_finally_pop -i "$_L_x_finally_idx2"
-		L_finally_pop -i "$_L_x_finally_idx1"
+		L_finally_pop -n -i "$_L_x_finally_idx2"
+		L_finally_pop -n -i "$_L_x_finally_idx1"
 		unset -v _L_X_CLEANUP
 	fi
 	return "$_L_x_return"
