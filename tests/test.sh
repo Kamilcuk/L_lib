@@ -1973,7 +1973,7 @@ _L_test_all_childs() {
 	{
 		L_log "test listing all childs and kiling them"
 		local pids realpids tmp tmpfpids tmpf
-		tmpf=$(mktemp)
+		L_with_tmpfile_into tmpf
 		bg() {
 			local pid
 			L_bashpid_into pid
