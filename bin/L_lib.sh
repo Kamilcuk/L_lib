@@ -6963,17 +6963,13 @@ L_unittest_cmd() {
 			# L_critical "_L_uopt_capture=$_L_uopt_capture _L_uc=[$_L_uc]"
 			# Use temporary file
 			local _L_utmpf
-			L_mktemp -v _L_utmpf
+			L_mkstemp _L_utmpf 2
 			# No trap EXIT - literally next command removes the file.
 			# shellcheck disable=SC2094
-			{
-				{
-					rm "$_L_utmpf"
-					eval "$_L_uc || _L_uret=\$?"
-				} >"$_L_utmpf" 111<&-
-				read -r -d '' -u 111 _L_uout || :
-				while [[ "$_L_uout" == *$'\n' ]]; do _L_uout=${_L_uout%$'\n'}; done
-			} 111<"$_L_utmpf"
+			eval "$_L_uc || _L_uret=\$?" >&"${_L_utmpf[0]}"
+			read -r -d '' -u "${_L_utmpf[1]}" _L_uout || :
+			L_close_fd "${_L_utmpf[@]}"
+			L_rstrip -v _L_uout "$_L_uout"
 		else
 			eval "$_L_uc || _L_uret=\$?"
 		fi
@@ -9917,7 +9913,7 @@ L_wait_all_jobs() {
 L_get_all_childs() { L_handle_v_array "$@"; }
 L_get_all_childs_vL_RET() {
 	local IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx=0
-	if (($#)); then
+	if (( $# )); then
 		L_RET=("$@")
 	else
 		L_bashpid_into _L_pid
