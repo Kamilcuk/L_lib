@@ -183,3 +183,129 @@ _L_test_sort_unique() {
 	L_sort_bash -u arr
 	L_unittest_arreq arr
 }
+
+
+_L_test_sort_compare_floats() {
+	local tests=(
+		"-0.1" "-0.01"
+		"0" "0"
+		"1" "2"
+		"2" "1"
+		"-1" "0"
+		"0" "-1"
+		"-2" "-1"
+		"-1" "-2"
+		"1.0" "1"
+		"1.1" "1.01"
+		"1.01" "1.1"
+		"1.001" "1.01"
+		"1.01" "1.001"
+		"0.1" "0.01"
+		"0.01" "0.1"
+		"-0.01" "-0.1"
+		"-1.1" "-1.01"
+		"-1.01" "-1.1"
+		"1.000" "1"
+		"1" "1.000"
+		"0.000" "0"
+		"-0.000" "0"
+		"0" "-0.000"
+		"0001" "1"
+		"001.20" "1.2"
+		"-001.20" "-1.2"
+		"10.99" "10.991"
+		"10.991" "10.99"
+		"123456789" "123456788"
+		"-123456789" "-123456788"
+		"999999999" "1000000000"
+		"-1000000000" "-999999999"
+		"10.91111" "10.9999"
+		"1.8" "1.9123456789"
+		"1.8" "1.8123456789"
+		"1.8" "1.7123456789"
+		"1.1" "1.2123456789"
+		"1.1" "1.1123456789"
+		"1.1" "1.0123456789"
+		"1.2" "1.11"
+		"1.2" "1.20"
+		"1.12" "1.123"
+		"1.0" "1."
+		"       1" "     1"
+		"       1DEF" "     1.0G"
+		"       1DEF" "     1....G"
+		"       1.123.234" "1.123 ABC"
+		"  010.030 020.040 " " 020.050 060.070 "
+	)
+	_compare() {
+		local awk my diff a=$1 b=$2
+		awk=$(awk -v a="$a" -v b="$b" 'BEGIN { print (+a > +b) }')
+		if "$1" "$a" "$b"; then
+			my=1
+		elif (( $? == 1 )); then
+			my=0
+		else
+			exit 123
+		fi
+		diff=""
+		if [[ $my != $awk ]]; then
+			diff=DIFF
+		fi
+		if [[ -n "$diff" ]]; then
+			printf '%-10s %i | %15q > %-15q | %6s | awk=%s | %s\n' "$1" "$i" "$a" "$b" "$my" "$awk" "$diff"
+			exit 122
+		fi
+	}
+	local my diff a b i
+	for ((i=0;i<${#tests[@]};i+=2)); do
+		local a=${tests[i]} b=${tests[i+1]}
+		_compare _L_sort_compare_float_gt "$a" "$b"
+		_compare _L_sort_compare_float_gt "$b" "$a"
+	done
+}
+
+_L_test_sort_floats() {
+	# General numeric float sort
+	arr=(3.14 1.5 2.7 0.1 10.0 2.71)
+	L_sort_bash -g arr
+	L_unittest_arreq arr 0.1 1.5 2.7 2.71 3.14 10.0
+
+	# Negative and positive floats
+	arr=(1.5 -2.7 0 -0.1 2.0 -10.5)
+	L_sort_bash -g arr
+	L_unittest_arreq arr -10.5 -2.7 -0.1 0 1.5 2.0
+
+	# Leading zeroes
+	arr=(001.2 1.02 01.20 0.12 10.02)
+	L_sort_bash -g arr
+	L_unittest_arreq arr 0.12 1.02 001.2 01.20 10.02
+
+	# Very different fractional lengths
+	arr=(1.1 1.01 1.001 1.0001 1.00001)
+	L_sort_bash -g arr
+	L_unittest_arreq arr 1.00001 1.0001 1.001 1.01 1.1
+
+	# Negative fractional ordering
+	arr=(-1.1 -1.01 -1.001 -0.1 -0.01)
+	L_sort_bash -g arr
+	L_unittest_arreq arr -1.1 -1.01 -1.001 -0.1 -0.01
+
+	# Numeric prefix parsing
+	arr=(1DEF 1.0G 1.123.234 1.123foo 2abc)
+	L_sort_bash -g arr
+	L_unittest_arreq arr 1DEF 1.0G 1.123.234 1.123foo 2abc
+
+	# Large integer parts
+	arr=(999999999 1000000000 123456789 987654321)
+	L_sort_bash -g arr
+	L_unittest_arreq arr 123456789 987654321 999999999 1000000000
+
+	# Duplicates
+	arr=(3.1 1.2 3.10 1.20 2.5 3.1)
+	L_sort_bash -u -g arr
+	L_unittest_arreq arr 1.20 2.5 3.1
+
+	# Reverse float sort
+	arr=(3.14 1.5 2.7 0.1 10.0 2.71)
+	L_sort_bash -g -r arr
+	L_unittest_arreq arr 10.0 3.14 2.71 2.7 1.5 0.1
+}
