@@ -3921,13 +3921,13 @@ L_readarray() {
 			if (( _L_s > 20 )) && [[ "$_L_d" == $'\n' ]]; then
 				# Speed up slow Bash loop skipping elements.
 				if hash tail 2>/dev/null; then
-					"${_L_forward_opts[@]}" "$1" < <(tail -n +"$((_L_s + 1))" <&"$_L_u")
+					"${_L_forward_opts[@]}" "$1" < <(tail -n +"$((_L_s + 1))" <&"$_L_u" || :)
 					return
 				elif hash awk 2>/dev/null; then
-					"${_L_forward_opts[@]}" "$1" < <(awk "NR > $_L_s" <&"$_L_u")
+					"${_L_forward_opts[@]}" "$1" < <(awk "NR > $_L_s" <&"$_L_u" || :)
 					return
 				elif hash sed 2>/dev/null; then
-					"${_L_forward_opts[@]}" "$1" < <(sed "1,$_L_s d" <&"$_L_u")
+					"${_L_forward_opts[@]}" "$1" < <(sed "1,$_L_s d" <&"$_L_u" || :)
 					return
 				fi
 			fi

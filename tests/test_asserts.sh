@@ -1,6 +1,7 @@
 _L_asserts_runner() {
-	# ( "$@" 2>/dev/null >/dev/null )
-	( "$@" )
+	( "$@" 2>/dev/null >/dev/null )
+	# ( "$@" )
+	# ( "$@" ) 2>&1
 }
 
 _L_test_asserts() {
