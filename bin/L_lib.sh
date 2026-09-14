@@ -5370,9 +5370,9 @@ L_shuf() {
 }
 
 # @description Default nonnumeric compare function.
-_L_sort_compare_strings() { [[ "$1" > "$2" ]]; }
+_L_sort_compare_strings_gt() { [[ "$1" > "$2" ]]; }
 # @description Default numeric compare function.
-_L_sort_compare_numeric() {
+_L_sort_compare_number_gt() {
 	# Ignore leading blanks.
 	local a=${1#"${1%%[![:space:]]*}"} b=${2#"${2%%[![:space:]]*}"} sa=+ sb=+
 	# Extract signs.
@@ -5382,6 +5382,35 @@ _L_sort_compare_numeric() {
 	a=${a%%[^0-9]*} b=${b%%[^0-9]*}
 	# Compare. Empty strings are 0.
 	(( ${sa}10#${a:-0} > ${sb}10#${b:-0} ))
+}
+# @description Default float compare function
+_L_sort_compare_float_gt() {
+	# Remove leading spaces.
+	local a=${1#"${1%%[![:space:]]*}"} b=${2#"${2%%[![:space:]]*}"} sa=+ sb=+ ai bi
+	# Extract signs.
+	if [[ $a == [-+]* ]]; then sa=${a::1} a=${a:1}; fi
+	if [[ $b == [-+]* ]]; then sb=${b::1} b=${b:1}; fi
+	# Extract integer parts.
+	ai=${a%%[^0-9]*} bi=${b%%[^0-9]*}
+	# Compare integer parts.
+ 	if (( ${sa}10#${ai:-0} != ${sb}10#${bi:-0} )); then
+		(( ${sa}10#${ai:-0} > ${sb}10#${bi:-0} ))
+	else
+		# Extract fractional parts.
+		# Stop at the first non-digit.
+		# Strip trailing fractional zeroes.
+		if [[ $a == "$ai".* ]]; then ai=${a:${#ai}+1} ai=${ai%%[^0-9]*} ai=${ai%"${ai##*[!0]}"}; else ai=; fi
+		if [[ $b == "$bi".* ]]; then bi=${b:${#bi}+1} bi=${bi%%[^0-9]*} bi=${bi%"${bi##*[!0]}"}; else bi=; fi
+		# if both ai and bi are empty, set both signs to +
+		[[ $ai || $bi ]] || sa=+ sb=+
+		# Compare fractional parts.
+		case $sa$sb in
+			+-) return 0 ;;
+			-+) return 1 ;;
+			--) [[ $ai < $bi ]] ;;
+			++) [[ $ai > $bi ]] ;;
+		esac
+	fi
 }
 
 # shellcheck disable=SC2030,SC2031,SC2035
@@ -5423,6 +5452,7 @@ _L_sort_bash_in() {
 # @see L_sort
 # @option -z ignored. Always zero sorting.
 # @option -n Numeric sort, otherwise lexical.
+# @option -g Floating point number sort.
 # @option -r Reverse sort.
 # @option -u Unique values only.
 # @option -c <compare> Custom compare function that returns 0 when $1 > $2 and 1 otherwise.
@@ -5436,12 +5466,14 @@ L_sort_bash() {
 	# _L_St - temporary variable for swap
 	# _L_Sl - left
 	# _L_Sr - right
-	local _L_sort_numeric=0 _L_sort_unique=0 OPTIND OPTARG OPTERR _L_c _L_Sa _L_Scmp=() _L_sort_reverse=0 _L_St _L_Sp
+	local _L_sort_numeric=0 _L_sort_unique=0 OPTIND OPTARG OPTERR _L_c _L_Sa \
+		_L_Scmp=(_L_sort_compare_strings_gt) _L_sort_reverse=0 _L_St _L_Sp
 	local -i _L_Sl _L_Sr
-	while getopts znruc:E:h _L_c; do
+	while getopts zngruc:E:h _L_c; do
 		case $_L_c in
 			z) ;;
-			n) _L_sort_numeric=1 ;;
+			n) _L_Scmp=(_L_sort_compare_number_gt) ;;
+			g) _L_Scmp=(_L_sort_compare_float_gt) ;;
 			r) _L_sort_reverse=1 ;;
 			u) _L_sort_unique=1 ;;
 			c) _L_Scmp=("$OPTARG") ;;
@@ -5462,15 +5494,6 @@ L_sort_bash() {
 		local -n _L_Sa="$1" || return "$L_EX_USAGE"
 	fi
 	if (( ${#_L_Sa[@]} > 1 )); then
-		if (( _L_sort_numeric )); then
-			if (( ${#_L_Scmp[*]} != 0 )); then
-				L_func_usage_error "-c option conflicts with -n option"
-				return "$L_EX_USAGE"
-			fi
-			_L_Scmp=(_L_sort_compare_numeric)
-		elif (( ${#_L_Scmp[*]} == 0 )); then
-			_L_Scmp=(_L_sort_compare_strings)
-		fi
 		local _L_Scmp_base=("${_L_Scmp[@]}")
 		if (( _L_sort_reverse )); then
 			_L_Scmp=(L_not "${_L_Scmp[@]}")
@@ -10983,7 +11006,7 @@ _L_foreach_assign_result() {
 _L_foreach_sort_indirect_array() {
 	local _L_a="$1[$2]" _L_b="$1[$3]"
 	if (( _L_opt_n )); then
-		_L_sort_compare_numeric "${!_L_a:-}" "${!_L_b:-}"
+		_L_sort_compare_number_gt "${!_L_a:-}" "${!_L_b:-}"
 	else
 		# shellcheck disable=SC2319
 		[[ "${!_L_a:-}" > "${!_L_b:-}" ]] || return
