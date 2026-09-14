@@ -9926,78 +9926,70 @@ L_get_all_childs_vL_RET() {
 	if [[ -e /proc/1/task/1/children ]]; then
 		while (( _L_unproc_idx < ${#L_RET[@]} )); do
 			for _L_i in /proc/${L_RET[_L_unproc_idx++]}/task/*/; do
-				L_RET+=($(<"$_L_i"/children)) || :
+				# The process might have ended between the loop and reading.
+				{ L_RET+=($(<"$_L_i"/children)); } 2>/dev/null || :
 			done
-		done 2>/dev/null
-	else
-		#
-		L_hash ps && _L_ps_output=$(
+		done
+	elif
+		L_hash ps &&
+			_L_ps_output=$(
 				L_bashpid_into _L_pid
 				echo "$_L_pid"
 				exec ps -e -o pid=,ppid=
-		) && {
-			{
-				# Extract ps _L_pid that we conveniently put as the first item.
-				read -r _L_ps_pid
-				# Populate a sparse array mapping pids to (string) lists of child pids.
-				_L_children_of=()
-				while read -r _L_pid _L_ppid; do
-					if (( _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
-						_L_children_of[_L_ppid]+=" $_L_pid"
-					fi
-				done
-			} <<<"$_L_ps_output"
-			# Add children to the list of pids until all descendants are found
-			# _L_unproc_idx - Index of first process whose children have not been added
-			while (( ${#L_RET[@]} > _L_unproc_idx )) ; do
-				# Get first unprocessed, and advance
-				# Add child pids
-				# shellcheck disable=SC2206
-				L_RET+=(${_L_children_of[L_RET[_L_unproc_idx++]]-})
+			)
+	then
+		{
+			# Extract ps _L_pid that we conveniently put as the first item.
+			read -r _L_ps_pid
+			# Populate a sparse array mapping pids to (string) lists of child pids.
+			_L_children_of=()
+			while read -r _L_pid _L_ppid; do
+				if (( _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
+					_L_children_of[_L_ppid]+=" $_L_pid"
+				fi
 			done
-		}
+		} <<<"$_L_ps_output"
+		# Add children to the list of pids until all descendants are found
+		# _L_unproc_idx - Index of first process whose children have not been added
+		while (( ${#L_RET[@]} > _L_unproc_idx )) ; do
+			# Get first unprocessed, and advance
+			# Add child pids
+			# shellcheck disable=SC2206
+			L_RET+=(${_L_children_of[L_RET[_L_unproc_idx++]]-})
+		done
+	else
+		return "$L_EX_UNAVAILABLE"
 	fi
 	# ( echo "${L_RET[@]}"; pstree -p "$1" ) | sed 's/^/init /' >&100
 	# I do not want to return $1 of itself.
-	L_RET=("${L_RET[@]:$#}")
-}
-_L_get_all_childs_vL_RET_in() {
-	for _L_i in /proc/$1/task/*/; do
-		if [[ -e "$_L_i" ]]; then
-			_L_i=$(<$_L_i/children)
-			L_RET+=($_L_i)
-			for _L_i in $_L_i; do
-				"${FUNCNAME[0]}" "$_L_i"
-			done
-		fi
-	done
+	L_RET=("${L_RET[@]:($# ? $# : 1)}")
 }
 
 # @description Kills all childs of the pid.
 # @arg -sigspec Signal to use.
 # @arg [$1] Pid of the process to kill all childs of. Defualt: $BASHPID
 L_kill_all_childs() {
-	local L_RET _L_sig _L_i _L_pids
+	local L_RET _L_sig
 	while [[ "${1:-}" == -* ]]; do
 		_L_sig="$1"
 		shift
 	done
 	L_get_all_childs_vL_RET "$@" || return
 	if (( ${L_RET[*]:+1}0 )); then
-		kill ${sig:+"$sig"} "${L_RET[@]}"
+		kill ${_L_sig:+"$_L_sig"} "${L_RET[@]}"
 	fi
 }
 
 # @description Check if file descriptor is open.
 # @arg $1 file descriptor
 # shellcheck disable=SC2188
-L_is_fd_open() {
-	{ >&"$1"; } 2>/dev/null
-}
+L_is_fd_open() { { >&"$1"; } 2>/dev/null; }
 
 if (( L_HAS_VARIABLE_FD )); then
 # @description Get free file descriptors
-# @arg $@ variables to assign with the file descriptor numbers
+# @note No valid variable name check is done on <var>.
+# @arg <var> Variable to assign file descriptors to.
+# @arg [int] Number of array elements to assign.
 L_get_free_fd_into() {
 	eval "eval exec \"{$1[\"{0..${2:-0}}\"]}>/dev/null\""
 }
@@ -10008,11 +10000,11 @@ _L_pipe_opener() {
 }
 else
 	L_get_free_fd_into() {
-		local _L_f_fd _L_f_cnd=0
-		for _L_f_fd in {18..1023}; do
+		local _L_f_fd _L_f_cnt=0
+		for _L_f_fd in {128..1024}; do
 			if ! L_is_fd_open "$_L_f_fd"; then
 				eval "$1[_L_f_cnt++]=$_L_f_fd"
-				if (( _L_f_cnt == ${2:-0} )); then
+				if (( _L_f_cnt >= ${2:-0} )); then
 					return 0
 				fi
 			fi
@@ -10038,21 +10030,23 @@ fi
 #   echo "data" > "$tmp"
 #   rm "$tmp"
 L_mktemp() { L_handle_v_scalar "$@"; }
-L_mktemp_vL_RET() { L_set -C _L_mktemp_vL_RET "$@"; }
-_L_mktemp_vL_RET() {
+L_mktemp_vL_RET() {
 	local _L_i _L_file _L_tpl="${1:-L_mktemp.XXX}"
 	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
 		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
 	else
-		L_func_error "L_mktemp template has to contain at least three XXX: $_L_tpl"
+		L_func_usage_error "template must contain at least three XXX: $_L_tpl"
 		return "$L_EX_USAGE"
 	fi
 	for _L_i in {1..10}; do
 		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+		set -C
 		if : > "$_L_file" 2>/dev/null; then
+			set +C
 			L_RET="$_L_file"
 			return 0
 		fi
+		set +C
 	done
 	return "$L_EX_TEMPFAIL"
 }
@@ -10074,16 +10068,16 @@ _L_mktemp_vL_RET() {
 #   cat <&"$out"
 #   exec "$out"<&-
 L_pipe() {
-	local _L_i _L_file _L_tmp _L_tpl="${2:-${TMPDIR:-/tmp}/L_pipe.XXXXXXXXXX}"
+	local _L_i _L_file _L_tmp _L_tpl="${2:-L_pipe.XXX}"
 	if ! L_is_valid_variable_name "$1"; then
-		L_func_error "not a valid identifier: $1" 1
+		L_func_usage_error "must be a valid identifier: $1"
 		return "$L_EX_USAGE"
 	fi
-	if [[ ! "$_L_tpl" == *XXX* ]]; then
-		_L_tpl+=XXX
-	fi
 	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
-		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
+		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp}/}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
+	else
+		L_func_usage_error "template must contain at least three XXX: $_L_tpl"
+		return "$L_EX_USAGE"
 	fi
 	for _L_i in {1..10}; do
 		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
@@ -10106,18 +10100,34 @@ L_pipe() {
 # @arg var Variable to assign file descriptors to.
 # @arg [int] Number of array elements to assign.
 L_mkstemp() {
-	local _L_m_file _L_m_tpl="${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX" _L_m_i
-	# mktemp -> open FDs -> rm file
-	if ((L_HAS_VARIABLE_FD)); then
-		L_mktemp -v _L_m_file "$_L_m_tpl" || return
-		L_setx eval "eval exec \"{$1[\"{0..${2:-0}}\"]}<>\\\"\\\$_L_m_file\\\"\""
-	else
-		L_get_free_fd_into "$@" || return
-		L_mktemp -v _L_m_file "$_L_m_tpl" || return
-		eval "eval exec \"\${$1[\"{0..${2:-0}}\"]}<>\\\"\\\$_L_m_file\\\"\""
+	if ! L_is_valid_variable_name "$1"; then
+		L_func_usage_error "must be a valid identifier: $1"
+		return "$L_EX_USAGE"
 	fi
-	rm -f "$_L_m_file"
+	if [[ "${2:-0}" == *[^0-9]* ]]; then
+		L_func_usage_error "must be a number: $2"
+		return "$L_EX_USAGE"
+	fi
+	local L_RET _L_m_tpl="${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX" _L_m_cnt=$(( ${2:-0} > 0 ? ${2:-0} - 1 : 0 ))
+	# mktemp -> open FDs -> rm file
+	if ! if (( L_HAS_VARIABLE_FD )); then
+			L_mktemp_vL_RET "$_L_m_tpl" || return
+			eval "eval exec \"{$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
+		else
+			L_get_free_fd_into "$@" || return
+			L_mktemp_vL_RET "$_L_m_tpl" || return
+			eval "eval exec \"\${$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
+		fi
+	then
+		rm -f "$L_RET" || return
+		return "$L_EX_SOFTWARE"
+	fi
+	rm -f "$L_RET"
 }
+
+# @note No checking is performed.
+# @arg <int..> File descriptors to close.
+L_close_fd() { eval "exec ${@/%/>\&-}"; }
 
 _L_proc_init_setup_redirs() {
 	local arg="$1" redir="$2" mode="$3" val="${!4}" ret="" fd=()
