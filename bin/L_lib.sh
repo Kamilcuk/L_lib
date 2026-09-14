@@ -6578,69 +6578,68 @@ _L_unittest_main_xargs_subshell_callback() {
 }
 
 _L_unittest_main_runner() {
-	local _L_u_ret=255 _L_u_start _L_u_test=$1 _L_u_traceback_offset_old=${_L_print_traceback_offset:-0} \
-		_L_u_finally_idx _L_u_stderr=2 _L_u_i
+	_L_ur_ret=300 _L_ur_test=$1 _L_ur_traceback_offset_old=${_L_print_traceback_offset:-0} _L_ur_stderr=2
 	# Set traceback offset to have short tracebacks when printing errors.
-	L_finally -r -v _L_u_finally_idx _L_unittest_main_runner_finally
+	L_finally -r -v _L_ur_finally_idx _L_unittest_main_runner_finally
 	# Run the command.
 	{
 		if (( _L_u_stream )); then
 			# No caching of the output. Using >&2 to sync stdout and stderr buffering.
-			set -- L_eval "\"\$@\" 1>&2" "$@"
+			exec 1>&2
 		else
-			L_get_free_fd_into _L_u_stderr
-			eval "exec $_L_u_stderr>&2"
-			set -- L_eval "\"\$@\" 1>&${_L_u_test_fd0[L_XARGS_INDEX]} 2>&1" "$@"
+			# Save stderr into _L_ur_stderr. Redirect everything to dedicated file descriptor.
+			L_get_free_fd_into _L_ur_stderr
+			eval "exec $_L_ur_stderr>&2 1>&${_L_u_test_fd0[L_XARGS_INDEX]} 2>&1"
 		fi
-		L_epochrealtime_usec -v _L_u_start
+		L_epochrealtime_usec_vL_RET
+		_L_ur_start=$L_RET
 		if (( _L_u_subshell )); then
-			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 2 ))
+			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
 			# Note: this is double subshell. The first subshell or background process is executed in L_xargs.
 			# Close all file descriptors to other tests.
-			_L_u_i="${_L_u_test_fd0[L_XARGS_INDEX]}"
+			local _L_u_i="${_L_u_test_fd0[L_XARGS_INDEX]}"
 			unset -v '_L_u_test_fd0[L_XARGS_INDEX]'
 			L_close_fd ${_L_u_test_fd0[@]:+"${_L_u_test_fd0[@]}"} "${_L_u_test_fd1[@]}"
 			_L_u_test_fd0[L_XARGS_INDEX]=$_L_u_i
-			_L_run_subshell _L_u_ret "$@"
+			_L_run_subshell _L_ur_ret "$@"
 		else
-			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
+			_L_print_traceback_offset=${#BASH_SOURCE[@]}
 			"$@"
-			_L_u_ret=$?
+			_L_ur_ret=$?
 		fi
 	}
-	L_finally_pop -i "$_L_u_finally_idx"
+	L_finally_pop -i "$_L_ur_finally_idx"
 	# If requested, exit on first failure.
-	if (( _L_u_exitfirst && _L_u_ret )); then
+	if (( _L_u_exitfirst && _L_ur_ret )); then
 		return 255
 	fi
 }
 
 _L_unittest_main_runner_finally() {
-	{
-		# Store duration.
-		L_epochrealtime_usec_vL_RET
-		local duration=$(( L_RET - _L_u_start ))
-		_L_u_test_duration[L_XARGS_INDEX]="$duration:$L_XARGS_INDEX"
-		# Restore print_traceback_offset.
-		_L_print_traceback_offset=$_L_u_traceback_offset_old
-		# Handle reason we get called.
-		case "${L_SIGNAL:-}" in
-			""|RETURN|POP) ;;
-			EXIT)
-				if (( _L_u_subshell )); then
-					L_critical "L_unittest_main runner: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)"
-				else
-					L_critical "L_unittest_main runner: The testing function called exit. Exiting."
-				fi
-				;;
-			*) L_critical "L_unittest_main runner: Exiting because received $L_SIGNAL"
-		esac
-		# Store exit code.
-		_L_u_test_ret[L_XARGS_INDEX]=$_L_u_ret
-		# Transfer data to parent.
-		printf "_L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\n" \
-				"${_L_u_test_ret[L_XARGS_INDEX]}" "${_L_u_test_duration[L_XARGS_INDEX]}" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
-	} >&"$_L_u_stderr" 2>&1
+	# Store duration.
+	L_epochrealtime_usec_vL_RET
+	local duration=$(( L_RET - ${_L_ur_start:-L_RET} ))
+	# Restore print_traceback_offset.
+	_L_print_traceback_offset=${_L_ur_traceback_offset_old:-0}
+	# Handle reason we get called.
+	case "${L_SIGNAL:-}" in
+		""|RETURN|POP) ;;
+		EXIT)
+			if (( _L_u_subshell )); then
+				L_critical "L_unittest_main runner: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
+				_L_ur_ret=300
+			else
+				L_critical "L_unittest_main runner: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
+			fi
+			;;
+		*)
+			L_critical "L_unittest_main runner: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
+			_L_ur_ret=300
+			;;
+	esac
+	# Transfer data to parent.
+	printf "_L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\n" \
+			"${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
 }
 
 _L_unittest_main_output_printer() {
@@ -6706,6 +6705,9 @@ L_unittest_main() {
 		_L_u_exitfirst=0 L_RET \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_subshell=1 _L_u_stream=0 \
 		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" _L_u_hdr
+	# Local variable definitions from runner(). They are here, as the EXIT trap on bash 3.2 is executed
+	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
+	local _L_ur_ret _L_ur_test _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
 	while getopts p:k:P:Elqd:xsScFvh _L_i; do
 		case "$_L_i" in
 			p)
@@ -6779,12 +6781,11 @@ L_unittest_main() {
 	if _L_u_l=$(trap - ERR; shopt -s extdebug && declare -F "${_L_u_test_func[@]}"); then
 		while IFS=' ' read -r _L_u_f _L_u_l _L_u_p; do
 			_L_u_test_name+=("$_L_u_p:$_L_u_l:$_L_u_f")
-			L_basename_vL_RET "$_L_u_p"
-			_L_u_test_basename+=("$L_RET:$_L_u_l:$_L_u_f")
 		done <<<"$_L_u_l"
 	else
 		_L_u_test_name=("${_L_u_test_func[@]}")
 	fi
+	_L_u_test_basename=("${_L_u_test_name[@]/#*\/}")
 	# Create a temporary directory with our context.
 	L_finally -v _L_u_finally_idx _L_unittest_main_finally
 	# Execute the tests.
