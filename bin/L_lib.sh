@@ -10161,9 +10161,18 @@ L_mkstemp() {
 	rm -f "$L_RET"
 }
 
+if (( L_HAS_BASH4_3 )); then
 # @note No checking is performed.
+# @note
+#    zz. When using the pattern substitution word expansion, bash now runs the
+#    replacement string through quote removal, since it allows quotes in that
+#    string to act as escape characters.  This is not backwards compatible, so
+#    it can be disabled by setting the bash compatibility mode to 4.2.
 # @arg <int..> File descriptors to close.
-L_close_fd() { eval "exec ${@/%/>\&-}"; }
+L_close_fd() { eval "exec" "${@/%/\>\&-}"; }
+else
+	L_close_fd() { eval eval "exec" "${@/%/\>\&-}"; }
+fi
 
 _L_proc_init_setup_redirs() {
 	local arg="$1" redir="$2" mode="$3" val="${!4}" ret="" fd=()
