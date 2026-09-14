@@ -6838,8 +6838,9 @@ L_unittest_main() {
 	fi
 	#
 	if (( _L_u_durations )); then
+		local IFS=$' \t\n'
 		# Handle duration.
-		L_sort_bash -n _L_u_test_duration
+		L_sort_bash -rn _L_u_test_duration
 		local count=$(( _L_u_durations < 0 ? ${#_L_u_test_duration[*]} : _L_u_durations > ${#_L_u_test_duration[*]} ? ${#_L_u_test_duration[*]} : _L_u_durations ))
 		_L_unittest_main_print_line "=" "slowest $count durations" "$L_MAGENTA"
 		local func duration count=0 _L_u_testnamemaxlen L_XARGS_INDEX L_RET
