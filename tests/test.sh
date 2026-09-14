@@ -1984,7 +1984,7 @@ _L_test_all_childs() {
 			local pid
 			L_bashpid_into pid
 			# Handle busybox pstree
-			if [[ "$(pstree --help 2>&1)" == *-a* ]]; then
+			if [[ "$(trap - ERR; pstree --help 2>&1)" == *-a* ]]; then
 				pstree -pa "$pid" >&2
 			else
 				pstree -p "$pid" >&2
@@ -1992,11 +1992,20 @@ _L_test_all_childs() {
 		}
 		exec 100>&2
 		tmp=$(
-			L_finally eval 'mypstree; L_kill_all_childs 2>&1; mypstree'
-			( ( ( bg & bg ) & bg ) & bg ) &
-			( bg & bg ) &
+			finally() {
+				L_logrun mypstree
+				L_log '+ L_kill_all_childs'
+				L_kill_all_childs 2>/dev/null
+				L_logrun mypstree
+				wait
+			}
+			L_finally finally
+			{ { { bg & bg; } & bg; } & bg; } &
+			{ bg & bg; } &
 			sleep 1  # give time for background tasks to start
 			L_get_all_childs
+			L_setx L_get_all_childs_vL_RET
+			L_logrun ps aux "${L_RET[@]}" >&2
 		)
 		tmpfpids=$(< "$tmpf")
 		rm "$tmpf"
@@ -2006,7 +2015,7 @@ _L_test_all_childs() {
 		L_readarray -t realpids <<<"$tmpfpids"
 		L_sort -n realpids
 		declare -p pids realpids
-		L_unittest_arreq pids "${realpids[@]}"
+		L_unittest_arreq pids "${realpids[@]::${#pids[@]}}"
 	}
 }
 

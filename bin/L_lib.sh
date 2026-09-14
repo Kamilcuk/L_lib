@@ -9933,12 +9933,21 @@ L_get_all_childs_vL_RET() {
 		L_RET=("$_L_pid")
 	fi
 	if [[ -e /proc/1/task/1/children ]]; then
-		while (( _L_unproc_idx < ${#L_RET[@]} )); do
-			for _L_i in /proc/${L_RET[_L_unproc_idx++]}/task/*/; do
-				# The process might have ended between the loop and reading.
-				{ L_RET+=($(<"$_L_i"/children)); } 2>/dev/null || :
+		# Read the children straight from ps tree.
+		while (( _L_unproc_idx++ < ${#L_RET[@]} )); do
+			for _L_i in /proc/"${L_RET[_L_unproc_idx-1]}"/task/*; do
+				L_RET+=( $(<"$_L_i"/children) ) || :
 			done
-		done
+			# Silence stderr, once for speed. Task might terminate before we get to reading children.
+		done 2>/dev/null
+		if (( !L_HAS_BASH5_2 )); then
+			# Under 5.2, the $(< spawns a process. Filter it and other deaths with another pass.
+			for _L_i in "${!L_RET[@]}"; do
+				if [[ ! -e /proc/${L_RET[_L_i]} ]]; then
+					unset -v 'L_RET[_L_i]'
+				fi
+			done
+		fi
 	elif
 		L_hash ps &&
 			_L_ps_output=$(
