@@ -6373,8 +6373,8 @@ _L_unittest_msg() {
 		"error") out+="$L_RED$L_BOLD" ;;
 		"warning") out+="$L_YELLOW$L_BOLD" ;;
 	esac
-	_L_unittest_msg_on_github "$1" "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${_L_u_test:-${FUNCNAME[up]}}: $2"
-	echo "$out${FUNCNAME[up]}:${BASH_LINENO[up-1]}: ${_L_u_test:-${FUNCNAME[up]}}: $2$L_COLORRESET" >&2
+	_L_unittest_msg_on_github "$1" "file=${BASH_SOURCE[up]},line=${BASH_LINENO[up-1]},title=${_L_ur_test:-${FUNCNAME[up]}}: $2"
+	echo "$out${FUNCNAME[up]}:${BASH_LINENO[up-1]}: ${_L_ur_test:-${FUNCNAME[up]}}: $2$L_COLORRESET" >&2
 }
 
 L_unittest_notice() {
@@ -6537,7 +6537,7 @@ _L_unittest_main_xargs_subshell_callback() {
 				eval "${BASH_REMATCH[3]%$'\n'}"
 			else
 				L_critical "L_unittest_main runner: test ${_L_u_test_name[L_XARGS_INDEX]} did not tranfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrites existing open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signald or exit use L_finally function. Do not call exit from the test. Check your test code."
-				_L_u_test_ret[L_XARGS_INDEX]="255"
+				_L_u_test_ret[L_XARGS_INDEX]="300"
 				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
 			fi
 			# Output
@@ -6546,7 +6546,8 @@ _L_unittest_main_xargs_subshell_callback() {
 				case "${_L_u_test_ret[L_XARGS_INDEX]}${_L_u_test_skipped[L_XARGS_INDEX]:-}" in
 					0) local statuscolor="$L_GREEN" status="." ;;
 					0?*) local statuscolor="$L_MAGENTA" status="S" ;;
-					*) local statuscolor="$L_BOLD$L_RED" status="E" ;;
+					300*) local statuscolor="$L_BOLD$L_RED$L_UNDERLINE" status="E" ;;
+					*) local statuscolor="$L_BOLD$L_RED" status="F" ;;
 				esac
 				printf "%s" "$statuscolor$status$L_RESET"
 			else
@@ -6559,7 +6560,8 @@ _L_unittest_main_xargs_subshell_callback() {
 						local reason=${_L_u_test_skipped[L_XARGS_INDEX]:1}
 						local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ (${reason::20})}"
 						;;
-					*) local statuscolor="$L_BOLD$L_RED" status="ERROR ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
+					300*) local statuscolor="$L_BOLD$L_RED$L_UNDERLINE" status="ERROR ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
+					*) local statuscolor="$L_BOLD$L_RED" status="FAILED ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
 				esac
 				# Output the status.
 				local left="$statuscolor$status$L_RESET ($duration_str)"
@@ -6826,7 +6828,11 @@ L_unittest_main() {
 		fi
 		# Output failures
 		if (( failed )); then
-			_L_unittest_main_print_line "=" "$failed FAILURES" "$L_RED$L_BOLD"
+			local msg="$failed FAILURE"
+			if (( failed > 1 )); then
+				msg+="S"
+			fi
+			_L_unittest_main_print_line "=" "$msg" "$L_RED$L_BOLD"
 			_L_unittest_main_output_printer " != 0"
 		fi
 	fi
@@ -6868,9 +6874,14 @@ L_unittest_main() {
 	}
 	{
 		# Print the ending footnote.
-		local duration=$(( _L_u_end - _L_u_start ))
+		local duration=$(( _L_u_end - _L_u_start )) msg=""
 		L_usec_to_duration -v duration "$duration"
-		_L_unittest_main_print_line "=" "$failed failed, $passed passed, $skipped skipped, $deselected deselected in $duration" "$L_BOLD"
+		for i in "$failed failed" "$passed passed" "$skipped skipped" "$deselected deselected"; do
+			if [[ $i != "0 "* ]]; then
+				msg+="${msg:+, }$i"
+			fi
+		done
+		_L_unittest_main_print_line "=" "$msg in $duration" "$L_BOLD"
 	}
 	L_finally_pop -n -i "$_L_u_finally_idx"
 	if (( failed )); then
