@@ -9963,6 +9963,7 @@ L_wait_all_jobs() {
 # @arg [$1] Pid of the parent. Default: $BASHPID.
 # @see https://stackoverflow.com/a/52544126/9072753
 L_get_all_childs() { L_handle_v_array "$@"; }
+# shellcheck disable=SC2207
 L_get_all_childs_vL_RET() {
 	local IFS=$' \t\n' _L_ps_output _L_ps_pid _L_children_of _L_pid _L_ppid _L_unproc_idx=0
 	if (( $# )); then
@@ -10190,8 +10191,10 @@ if (( L_HAS_BASH4_3 )); then
 #    string to act as escape characters.  This is not backwards compatible, so
 #    it can be disabled by setting the bash compatibility mode to 4.2.
 # @arg <int..> File descriptors to close.
+# shellcheck disable=SC2294
 L_close_fd() { eval "exec" "${@/%/\>\&-}"; }
 else
+	# shellcheck disable=SC2294
 	L_close_fd() { eval eval "exec" "${@/%/\>\&-}"; }
 fi
 
@@ -12157,11 +12160,11 @@ _L_run_subshell() {
 		# Temporary disable -e. Reenable inside subshell and after running.
 		set +e
 		( set -e; trap "$_L_r_err" ERR; "${@:2}" )
-		printf -v "$1" "$?"
+		printf -v "$1" "%s" "$?"
 		set -e
 	else
 		( trap "$_L_r_err" ERR; "${@:2}" )
-		printf -v "$1" "$?"
+		printf -v "$1" "%s" "$?"
 	fi
 	trap "$_L_r_err" ERR
 }
