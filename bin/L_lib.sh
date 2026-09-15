@@ -11720,7 +11720,6 @@ _L_uv_manager_timer() {
 _L_uv_delayer_timer_indefinite() { if _L_uv_timeout_left_vL_RET; then L_sleep "$L_RET"; fi; }
 _L_uv_delayer_timer_capped() { if _L_uv_timeout_left_capped_vL_RET "$1"; then L_sleep "$L_RET"; fi; }
 
-
 # Internal function to monitor and reap child processes registered as waiters.
 _L_uv_manager_waiter_wait_n_p() {
 	local _L_rel _L_pid _L_cb _L_status=0 _L_w_done _L_pids="${L_UV[20000002]}"
@@ -11768,7 +11767,7 @@ _L_uv_manager_waiter_wait_iterate() {
 }
 _L_uv_manager_waiter() {
 	# shellcheck disable=SC2086
-	while [[ -n "${L_UV[20000002]}" ]] && ! kill -0 ${L_UV[20000002]} 2>/dev/null; do
+	while [[ -n "${L_UV[20000002]}" ]] && ! L_setposix kill -0 ${L_UV[20000002]} 2>/dev/null; do
 		if (( L_HAS_BASH5_2 )); then
 			# wait -n -p started working correctly from Bash 5.2 only.
 			_L_uv_manager_waiter_wait_n_p
@@ -11795,6 +11794,7 @@ _L_uv_delayer_waiter_indefinite() {
 		fi
 	fi
 }
+
 # @arg $1 Default sleep timeout. Ignored in timer, used in capped mode.
 # @arg $2 if _capped, will cap on the first argument
 # shellcheck disable=SC2086
@@ -11802,7 +11802,7 @@ _L_uv_delayer_waiter_timer() {
 	local L_RET _L_pids="${L_UV[20000002]}"
 	if L_hash waitpid; then
 		if _L_uv_timeout_left"${2:-}"_vL_RET "$1"; then
-			waitpid -c 1 -t "$L_RET" $_L_pids || :
+			waitpid -c 1 -t "$L_RET" $_L_pids 2>/dev/null || :
 		fi
 	elif L_hash timeout tail && _L_wait_tail_has_pid && [[ ! "$_L_pids" == *"  "* ]]; then
 		# If there is timeout and tail and tail has --pid and there is only one pid.
@@ -11902,9 +11902,9 @@ _L_uv_run_optimizer() {
 		41000) _L_uv_delayer_cb=_L_uv_delayer_timer_indefinite ;; # Single Timer (Next Timer wait)
 		41010) _L_uv_delayer_cb=_L_uv_delayer_reader_timer ;; # Reader + Timer (Timed wait)
 		41100) _L_uv_delayer_cb=_L_uv_delayer_waiter_timer ;; # Waiter + Timer (Timed wait)
-		*1?)  _L_uv_delayer_cb=_L_uv_delayer_reader_capped ;; # Capped Reader (Multi-FD / Tasks / Mixed)
-		*1)   _L_uv_delayer_cb=_L_uv_delayer_waiter_capped ;; # Tasks + Waiters (Capped 50ms yield)
-		*)    _L_uv_delayer_cb=_L_uv_delayer_timer_capped ;; # Fallback to timer-based delayer
+		*1?)   _L_uv_delayer_cb=_L_uv_delayer_reader_capped ;; # Capped Reader (Multi-FD / Tasks / Mixed)
+		*1)    _L_uv_delayer_cb=_L_uv_delayer_waiter_capped ;; # Tasks + Waiters (Capped 50ms yield)
+		*)     _L_uv_delayer_cb=_L_uv_delayer_timer_capped ;; # Fallback to timer-based delayer
 	esac
 }
 
@@ -11956,9 +11956,6 @@ L_uv_break() { _L_uv_break=1; }
 # @description Wake up the event loop immediately.
 # @note This skips the next polling delay (sleep), causing the loop to proceed immediately to the next iteration. Useful for signaling state changes from traps or async callbacks.
 L_uv_poke() { _L_uv_poked=1; }
-
-
-
 
 # ]]]
 # xargs [[[
