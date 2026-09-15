@@ -4,7 +4,8 @@ set -euo pipefail
 . "$(dirname "$0")"/../bin/L_lib.sh -s
 
 f() {
-	sleep 0.$(( ${SRANDOM:-${RANDOM}} ))
+	local sleeptime="${1:-$(( ${SRANDOM:-${RANDOM}} % 1 )).$(( ${SRANDOM:-${RANDOM}} ))}"
+	L_setx sleep "$sleeptime"
 	L_notice "${FUNCNAME[1]}"
 }
 
@@ -23,6 +24,12 @@ _L_test_unittest_skip() {
 }
 
 _L_test_unittest_long_skip() {
+	f
+	L_setx L_unittest_skip "also tests skipping but this one has kind of long skipping message"
+	false
+}
+
+_L_test_unittest_long_skip2() {
 	f
 	L_setx L_unittest_skip "also tests skipping but this one has kind of long skipping message"
 	false
@@ -54,17 +61,27 @@ _L_test_unittest_exit0() {
 }
 
 _L_test_unittest_ok() {
-	f
+	f 2.5
 	true
 }
 
 _L_test_unittest_also_ok() {
-	f
+	f 2
 	true
 }
 
 _L_test_unittest_another_ok() {
-	f
+	f 1.5
+	true
+}
+
+_L_test_unittest_ok2() {
+	f 1
+	true
+}
+
+_L_test_unittest_ok1() {
+	f 0.5
 	true
 }
 
