@@ -36,10 +36,12 @@ USR2_CNT=0
 . "$dir"/test_var_get_nameref.sh
 . "$dir"/test_format.sh
 . "$dir"/test_finally.sh
+. "$dir"/test_finally2.sh
 . "$dir"/test_pretty_print.sh
 . "$dir"/test_fuzzy.sh
 . "$dir"/test_L_uv.sh
 . "$dir"/test_L_func.sh
+. "$dir"/test_version.sh
 . "$dir"/test_unquote.sh
 . "$dir"/test_argskeywords.sh
 . "$dir"/test_L_parse_range_list.sh
@@ -804,45 +806,7 @@ name1   name3
 	}
 }
 
-_L_test_version() {
-	local -a line27
-	L_readarray -n 1 -s 26 -t line27 <"$L_LIB_SCRIPT"
-	line27=${line27%$'\r'}
-	L_unittest_eq "$line27" "L_LIB_VERSION=$L_LIB_VERSION"
 
-	L_unittest_checkexit 0 L_version_cmp "0" -eq "0"
-	L_unittest_checkexit 0 L_version_cmp "0" '==' "0"
-	L_unittest_checkexit 1 L_version_cmp "0" '!=' "0"
-	L_unittest_checkexit 0 L_version_cmp "0" '<' "1"
-	L_unittest_checkexit 0 L_version_cmp "0" '<=' "1"
-	L_unittest_checkexit 0 L_version_cmp "0.1" '<' "0.2"
-	L_unittest_checkexit 0 L_version_cmp "2.3.1" '<' "10.1.2"
-	L_unittest_checkexit 0 L_version_cmp "1.3.a4" '<' "10.1.2"
-	L_unittest_checkexit 0 L_version_cmp "0.0.1" '<' "0.0.2"
-	L_unittest_checkexit 0 L_version_cmp "0.1.0" -gt "0.0.2"
-	L_unittest_checkexit 0 L_version_cmp "$BASH_VERSION" -gt "0.1.0"
-	L_unittest_checkexit 0 L_version_cmp "1.0.3" "<" "1.0.7"
-	L_unittest_checkexit 1 L_version_cmp "1.0.3" ">" "1.0.7"
-	L_unittest_checkexit 0 L_version_cmp "2.0.1" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "2.1" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "2.0.0" ">=" "2"
-	L_unittest_checkexit 0 L_version_cmp "1.4.5" "~=" "1.4.5"
-	L_unittest_checkexit 0 L_version_cmp "1.4.6" "~=" "1.4.5"
-	L_unittest_checkexit 1 L_version_cmp "1.5.0" "~=" "1.4.5"
-	L_unittest_checkexit 1 L_version_cmp "1.3.0" "~=" "1.4.5"
-	#
-	# L_unittest_checkexit 1 L_version_cmp "1.1.post1" "==" "1.1"
-	# L_unittest_checkexit 0 L_version_cmp "1.1.post1" "==" "1.1.*"
-	# L_unittest_checkexit 0 L_version_cmp "1.1.post1" "==" "1.1.post1"
-	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1"
-	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1.0"
-	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1.dev1"
-	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1a1"
-	# L_unittest_checkexit 1 L_version_cmp "1.1" "==" "1.1.post1"
-	# L_unittest_checkexit 0 L_version_cmp "1.1" "==" "1.1.*"
-	L_unittest_cmd -o "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski" bash "$L_LIB_SCRIPT" --version
-	L_unittest_cmd -o "L_lib.sh $L_LIB_VERSION Copyright (C) 2026 Kamil Cukrowski" bash "$L_LIB_SCRIPT" version
-}
 
 _L_test_table() {
 	{
@@ -2009,7 +1973,7 @@ _L_test_all_childs() {
 	{
 		L_log "test listing all childs and kiling them"
 		local pids realpids tmp tmpfpids tmpf
-		tmpf=$(mktemp)
+		L_with_tmpfile_into tmpf
 		bg() {
 			local pid
 			L_bashpid_into pid
@@ -2020,7 +1984,7 @@ _L_test_all_childs() {
 			local pid
 			L_bashpid_into pid
 			# Handle busybox pstree
-			if [[ "$(pstree --help 2>&1)" == *-a* ]]; then
+			if [[ "$(trap - ERR; pstree --help 2>&1)" == *-a* ]]; then
 				pstree -pa "$pid" >&2
 			else
 				pstree -p "$pid" >&2
@@ -2028,11 +1992,20 @@ _L_test_all_childs() {
 		}
 		exec 100>&2
 		tmp=$(
-			L_finally eval 'mypstree; L_kill_all_childs 2>&1; mypstree'
-			( ( ( bg & bg ) & bg ) & bg ) &
-			( bg & bg ) &
+			finally() {
+				L_logrun mypstree
+				L_log '+ L_kill_all_childs'
+				L_kill_all_childs 2>/dev/null
+				L_logrun mypstree
+				wait
+			}
+			L_finally finally
+			{ { { bg & bg; } & bg; } & bg; } &
+			{ bg & bg; } &
 			sleep 1  # give time for background tasks to start
 			L_get_all_childs
+			L_setx L_get_all_childs_vL_RET
+			L_logrun ps aux "${L_RET[@]}" >&2
 		)
 		tmpfpids=$(< "$tmpf")
 		rm "$tmpf"
@@ -2042,7 +2015,7 @@ _L_test_all_childs() {
 		L_readarray -t realpids <<<"$tmpfpids"
 		L_sort -n realpids
 		declare -p pids realpids
-		L_unittest_arreq pids "${realpids[@]}"
+		L_unittest_arreq pids "${realpids[@]::${#pids[@]}}"
 	}
 }
 
