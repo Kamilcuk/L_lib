@@ -6489,12 +6489,9 @@ _L_unittest_main_handle_k() {
 # @option $1 Skipping reason.
 L_unittest_skip() {
 	_L_u_test_skipped[L_XARGS_INDEX]=" ${*//$'\n'/ }"
-	# If XTRACE_FD is redirected to _L_u_test_fd0, then it conflicts with regex detection.
-	# Disbale set -x here, so that regex works stable.
-	set +x
 	# Transfer skip reason to parent. No newline.
-	printf "_L_u_test_skipped[L_XARGS_INDEX]=%q " \
-		"${_L_u_test_skipped[L_XARGS_INDEX]}" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
+	printf "\n_=%s _L_u_test_skipped[L_XARGS_INDEX]=%q\n" \
+		"$L_DC1" "${_L_u_test_skipped[L_XARGS_INDEX]}" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
 	exit 0
 }
 
@@ -6530,13 +6527,21 @@ _L_unittest_main_xargs_subshell_callback() {
 			L_close_fd "${_L_u_test_fd1[L_XARGS_INDEX]}"
 			unset -v '_L_u_test_fd1[L_XARGS_INDEX]'
 			# Extract data from child process.
-			if [[ "${_L_u_test_output[L_XARGS_INDEX]}" =~ (^|(.*)$'\n')((_L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']* )?_L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$'\n'$ ]]; then
-				_L_u_test_output[L_XARGS_INDEX]="${BASH_REMATCH[2]}"
-				eval "${BASH_REMATCH[3]%$'\n'}"
+			if [[ "${_L_u_test_output[L_XARGS_INDEX]}" =~ \
+				^(.*)($'\n'_=${L_DC1} _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*$'\n')?(.*)($'\n'_=${L_DC1} _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+$'\n')(.*)$ ]]; then
+				_L_u_test_output[L_XARGS_INDEX]="${BASH_REMATCH[1]}${BASH_REMATCH[3]}${BASH_REMATCH[5]}"
+				eval "${BASH_REMATCH[2]}${BASH_REMATCH[4]}"
 			else
-				L_critical "L_unittest_main runner: test ${_L_u_test_name[L_XARGS_INDEX]} did not tranfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrites existing open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signald or exit use L_finally function. Do not call exit from the test. Check your test code."
+				L_critical "L_unittest_main runner: test ${_L_u_test_name[L_XARGS_INDEX]} did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error."
 				_L_u_test_ret[L_XARGS_INDEX]="300"
 				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
+			fi
+			# If not verbose, and the test is OK or is SKIPPED, we will not be needing output, so we can free memory.
+			if [[ _L_u_verbose == 0 && ( "${_L_u_test_ret[L_XARGS_INDEX]}" == 0 || -n "${_L_u_test_skipped[L_XARGS_INDEX]:-}" ) ]]; then
+				_L_u_test_output[L_XARGS_INDEX]=""
+			else
+				# Remove trailing newline
+				_L_u_test_output[L_XARGS_INDEX]=${_L_u_test_output[L_XARGS_INDEX]%$'\n'}
 			fi
 			# Output
 			if (( _L_u_quiet )); then
@@ -6632,14 +6637,15 @@ _L_unittest_main_runner_finally() {
 				L_critical "L_unittest_main runner: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
 			fi
 			;;
+		SIGTERM|SIGINT) _L_ur_ret=300 ;;
 		*)
 			L_critical "L_unittest_main runner: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
 			_L_ur_ret=300
 			;;
 	esac
 	# Transfer data to parent.
-	printf "_L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\n" \
-			"${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
+	printf "\n_=%s _L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\n" \
+			"$L_DC1" "${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
 }
 
 _L_unittest_main_output_printer() {
@@ -6739,6 +6745,8 @@ L_unittest_main() {
 		_L_unittest_main_handle_k "( ${_L_u_k_expr//$L_GS/ ) || ( } )"
 		IFS=$oldifs
 	fi
+	# Detect colors.
+	L_color_detect
 	# If there is only one test, no reason to run in parallel.
 	if (( ${#_L_u_test_func[*]} == 1 && _L_u_nproc > 1 )); then
 		_L_u_nproc=1
@@ -6786,7 +6794,6 @@ L_unittest_main() {
 		_L_u_test_name=("${_L_u_test_func[@]}")
 	fi
 	_L_u_test_basename=("${_L_u_test_name[@]/#*\/}")
-	# Create a temporary directory with our context.
 	L_finally -v _L_u_finally_idx _L_unittest_main_finally
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
@@ -6860,6 +6867,7 @@ L_unittest_main() {
 		# Print short failed summary
 		if (( failed )); then
 			_L_unittest_main_print_line "=" "short summary" "$L_CYAN"
+			local i
 			for i in "${!_L_u_test_func[@]}"; do
 				if (( _L_u_test_ret[i] )); then
 					local _L_u_b _L_u_l _L_u_f line=${_L_u_test_output[i]##*$'\n'}
@@ -6873,7 +6881,7 @@ L_unittest_main() {
 	}
 	{
 		# Print the ending footnote.
-		local duration=$(( _L_u_end - _L_u_start )) msg=""
+		local duration=$(( _L_u_end - _L_u_start )) msg="" i
 		L_usec_to_duration -v duration "$duration"
 		for i in "$failed failed" "$passed passed" "$skipped skipped" "$deselected deselected"; do
 			if [[ $i != "0 "* ]]; then
