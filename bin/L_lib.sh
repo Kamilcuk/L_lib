@@ -6497,6 +6497,78 @@ L_unittest_skip() {
 	exit 0
 }
 
+_L_unittest_spins_starting() {
+	_L_u_spin_lines+=("$L_XARGS_INDEX:$1")
+	echo
+	L_ansi_print_on_line_above 1 "$1"
+	_L_unittest_spinner_refresh
+}
+
+_L_unittest_spins_finished() {
+	# Print finished highest up
+	L_ansi_print_on_line_above "${#_L_u_spin_lines[@]}" "$1"
+	# If the removed index was not on highest line, swap it.
+	local i
+	for i in "${!_L_u_spin_lines[@]}"; do
+		if [[ "${_L_u_spin_lines[i]}" == "$L_XARGS_INDEX":* ]]; then
+			if (( i != 0 )); then
+				# Swap highest up with the one we are replacing.
+				_L_u_spin_lines[i]=${_L_u_spin_lines[0]}
+				# Redraw it.
+				L_ansi_print_on_line_above "$(( ${#_L_u_spin_lines[@]} - i ))" "${_L_u_spin_lines[i]#*:}"
+			fi
+			break
+		fi
+	done
+	# Remove the highest from the array.
+	unset -v "_L_u_spin_lines[0]"
+	# Reindex, so that 0 is first element.
+	_L_u_spin_lines=(${_L_u_spin_lines[@]:+"${_L_u_spin_lines[@]}"})
+	_L_unittest_spinner_refresh
+}
+
+# @description Print a progress bar of $3 characters representing $1/$2 progress.
+# @arg $1 int current value
+# @arg $2 int maximum value
+# @arg $3 int bar width (default: 20)
+_L_unittest_progress_bar_vL_RET() {
+	local _L_bars=(░ ▏ ▎ ▍ ▌ ▋ ▊ ▉ █)
+	local _L_nbars=${#_L_bars[@]}
+	local _L_units=$(( $1 * $3 * _L_nbars / $2 ))
+	local _L_full=$(( _L_units / _L_nbars ))
+	local _L_partial=$(( _L_units % _L_nbars ))
+	local _L_empty=$(( $3 - _L_full - (_L_partial > 0) ))
+	printf -v _L_full "%*s%.*s" "$_L_full" "" "$(( _L_partial > 0 ? 100 : 0 ))" "${_L_bars[_L_partial]}"
+	printf -v _L_empty "%*s" "$_L_empty" ""
+	L_RET=${_L_full// /${_L_bars[_L_nbars - 1]}}${_L_empty// /${_L_bars[0]}}
+}
+
+# @arg $1 spinner position
+_L_unittest_spinner_vL_RET() {
+	local _L_spinner_chars=(⣾ ⣽ ⣻ ⢿ ⡿ ⣟ ⣯ ⣷)
+	L_RET=${_L_spinner_chars[$1 % ${#_L_spinner_chars[@]}]}
+}
+
+_L_unittest_spinner_refresh() {
+	local done=$(( ${_L_u_test_ret[@]+${_L_u_test_ret[@]//*/+1}}+0 )) all=${#_L_u_test_name[@]} L_RET
+	_L_unittest_spinner_vL_RET _L_u_spinner
+	local spinner=$L_RET
+	_L_unittest_progress_bar_vL_RET "$done" "$all" 40
+	local bar=$L_RET
+	local msg="-- $spinner Testing $bar $done/$all --"
+	L_ansi_print_on_line_above 0 "$msg"
+}
+
+_L_unittest_spinner_task() {
+	(( ++_L_u_spinner ))
+	_L_unittest_spinner_refresh
+	if (( !${_L_u_test_fd1[@]:+1}0 )); then
+		L_ansi_print_on_line_above 0 ""
+		printf "\r"
+		L_uv_current_remove
+	fi
+}
+
 _L_unittest_main_xargs_subshell_callback() {
 	case "$1" in
 		PREEXEC)
@@ -6507,11 +6579,21 @@ _L_unittest_main_xargs_subshell_callback() {
 			_L_u_test_fd1[L_XARGS_INDEX]="${tmpfd[1]}"
 			# Output
 			if (( !_L_u_quiet )); then
-				_L_u_hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
+				local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
+				local msg="$hdr${L_CYAN}starting${L_RESET}"
 				if (( _L_u_stream )); then
-					printf "%s%s\n" "$_L_u_hdr" "${L_RESET}${L_CYAN}starting${L_RESET}"
+					echo "$msg"
 				elif (( _L_u_nproc == 1 )); then
-					printf "%s" "$_L_u_hdr${L_RESET}"
+					printf "%s" "$hdr${L_RESET}"
+				elif (( _L_u_use_term )); then
+					# Intialize spinner on first run.
+					if [[ -z "$_L_u_spinner" ]]; then
+						_L_u_spinner=0
+						L_uv_add_timer -r 100ms -d 100ms _L_unittest_spinner_task
+					fi
+					_L_unittest_spins_starting "$msg"
+				else
+					echo "$msg"
 				fi
 			fi
 			;;
@@ -6569,16 +6651,22 @@ _L_unittest_main_xargs_subshell_callback() {
 					*) local statuscolor="$L_BOLD$L_RED" status="FAILED ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
 				esac
 				# Output the status.
-				local left="$statuscolor$status$L_RESET ($duration_str)"
+				local msg="$statuscolor$status$L_RESET ($duration_str)"
 				local offset="$(( COLUMNS - ( ${#_L_u_test_basename[L_XARGS_INDEX]} + ${#status} + 2 + ${#duration_str} + 9 ) ))"
-				if (( _L_u_stream || _L_u_nproc != 1 )); then
-					_L_u_hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
-					left=$_L_u_hdr$left
-				fi
-				printf "%s %*s[%3d%%]\n" \
-					"$left" \
+				local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
+				printf -v msg "%s %*s[%3d%%]" \
+					"$msg" \
 					"$(( offset > 0 ? offset : 0 ))" "" \
 					"$(( ${#_L_u_test_ret[*]} * 100 / ${#_L_u_test_func[*]} ))"
+				if (( _L_u_stream )); then
+					echo "$hdr$msg"
+				elif (( _L_u_nproc == 1 )); then
+					echo "$msg"
+				elif (( _L_u_use_term )); then
+					_L_unittest_spins_finished "$hdr$msg"
+				else
+					echo "$hdr$msg"
+				fi
 			fi
 			;;
 	esac
@@ -6693,6 +6781,7 @@ _L_unittest_main_finally() {
 # @option -S Do not stream output directly to terminal. Capture stdout and stderr. The default.
 # @option -c Execute in current shell execution context. No subshell.
 # @option -F Alias for -c.
+# @option -T Disable spinner and terminal features.
 # @option -v Increase verbosity. Call L_log_level_inc.
 # @option -h Print this help and return 0.
 # @option -E Execute trap - ERR.
@@ -6712,11 +6801,14 @@ L_unittest_main() {
 		_L_u_test_fd1 \
 		_L_u_exitfirst=0 L_RET \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_subshell=1 _L_u_stream=0 \
-		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" _L_u_hdr
+		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" \
+		_L_u_spin_lines=() \
+		_L_u_use_term="" \
+		_L_u_spinner=""
 	# Local variable definitions from runner(). They are here, as the EXIT trap on bash 3.2 is executed
 	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
 	local _L_ur_ret _L_ur_test _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
-	while getopts p:k:P:Elqd:xsScFvh _L_i; do
+	while getopts p:k:P:Elqd:xsScFvTh _L_i; do
 		case "$_L_i" in
 			p)
 				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
@@ -6735,6 +6827,7 @@ L_unittest_main() {
 			c) _L_u_subshell=0 ;;
 			F) _L_u_subshell=0 ;;
 			v) _L_u_verbose=1 ;;
+			T) NO_COLOR=1 _L_u_use_term=0 ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -6749,6 +6842,11 @@ L_unittest_main() {
 	fi
 	# Detect colors.
 	L_color_detect
+	if [[ -n "$L_RESET" ]]; then
+		_L_u_use_term=1
+	else
+		_L_u_use_term=0
+	fi
 	# If there is only one test, no reason to run in parallel.
 	if (( ${#_L_u_test_func[*]} == 1 && _L_u_nproc > 1 )); then
 		_L_u_nproc=1
