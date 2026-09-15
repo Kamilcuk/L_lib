@@ -11633,11 +11633,12 @@ _L_uv_timeout_left_vL_RET() { [[ -n "${L_UV[11000001]:-}" ]] && L_timeout_left_v
 # @arg $1 Maximum timeout.
 _L_uv_timeout_left_capped_vL_RET() {
 	if [[ -n "${L_UV[11000001]:-}" ]]; then
-		local _L_timer_left
 		L_timeout_left_usec_vL_RET "${L_UV[11000001]%%:*}" || return
-		_L_timer_left=$L_RET
+		local _L_timer_left=$L_RET
 		L_sec_to_usec_vL_RET "$1"
-		(( L_RET > _L_timer_left )) && L_RET=$_L_timer_left
+		if (( L_RET > _L_timer_left )); then
+			L_RET=$_L_timer_left
+		fi
 		L_usec_to_sec_vL_RET "$L_RET"
 	else
 		L_RET=$1
@@ -11725,17 +11726,21 @@ _L_uv_manager_waiter_wait_iterate() {
 		fi
 	done
 }
-_L_uv_manager_waiter() {
-	# shellcheck disable=SC2086
-	while [[ -n "${L_UV[20000002]}" ]] && ! L_setposix kill -0 ${L_UV[20000002]} 2>/dev/null; do
-		if (( L_HAS_BASH5_2 )); then
-			# wait -n -p started working correctly from Bash 5.2 only.
+if (( L_HAS_BASH5_3 )); then
+	# set -o posix; kill multiple pids returns error if any of the pids failed from Bash 5.3.
+	# wait -n -p started working correctly from Bash 5.2.
+	_L_uv_manager_waiter() {
+		# shellcheck disable=SC2086
+		while ! L_setposix kill -0 ${L_UV[20000002]:-$BASHPID} 2>/dev/null; do
 			_L_uv_manager_waiter_wait_n_p
-		else
-			_L_uv_manager_waiter_wait_iterate
-		fi
-	done
-}
+		done
+	}
+else
+	_L_uv_manager_waiter() {
+		_L_uv_manager_waiter_wait_iterate
+	}
+fi
+
 # shellcheck disable=SC2086
 _L_uv_delayer_waiter_indefinite() {
 	local _L_pids="${L_UV[20000002]:-}"
