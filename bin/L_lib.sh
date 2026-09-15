@@ -11469,7 +11469,7 @@ _L_uv_add_allocate_id_and_set_v() {
 # @option -h Show help
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments only.
 L_uv_add_timer() {
-	local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_v="" _L_now_us _L_cmd _L_timerid
+	local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_v="" _L_now_us _L_cmd _L_timerid L_RET
 	while getopts r:d:v:h _L_opt; do
 		case "$_L_opt" in
 			r) L_duration_to_usec_vL_RET "$OPTARG" && _L_r=$L_RET || return ;;
