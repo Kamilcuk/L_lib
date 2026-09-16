@@ -11927,29 +11927,48 @@ L_uv_poke() { _L_uv_poked=1; }
 # @section xargs
 
 # @description Returns the number of CPU cores.
+# Caches result in _L_NPROC.
 # @option -v <var>
 # @option -h
 L_nproc() { L_handle_v_scalar "$@"; }
 L_nproc_vL_RET() {
-	if L_hash nproc; then
-		L_RET=$(nproc)
-	elif [[ -r /proc/cpuinfo ]]; then
-		if L_hash grep; then
-			L_RET=$(grep -c ^processor /proc/cpuinfo)
-		else
-			L_RET=0
-			local line
-			while IFS= read -r line; do
-				if [[ "$line" == processor* ]]; then
-					(( ++L_RET ))
-				fi
-			done </proc/cpuinfo
-		fi
-	elif [[ -r /proc/sys/hw/ncpu ]]; then
-		L_RET=$(< /proc/sys/hw/ncpu)
+	if L_var_is_set _L_NPROC; then
+		L_RET=$_L_NPROC
 	else
-		L_RET=1
+		if [[ -r /proc/self/status ]]; then
+ 			L_RET=$(< /proc/self/status)
+			L_RET=${L_RET##*$'\n'Cpus_allowed_list:$'\t'}
+			L_RET=${L_RET%%$'\n'*}
+			_L_nproc_L_RET_range_to_count
+		elif L_hash nproc; then
+			L_RET=$(nproc)
+		elif [[ -r /sys/devices/system/cpu/online ]]; then
+			L_RET=$(< /sys/devices/system/cpu/online)
+			_L_nproc_L_RET_range_to_count
+		elif [[ -r /proc/cpuinfo ]]; then
+			if L_hash grep; then
+				L_RET=$(grep -c ^processor /proc/cpuinfo)
+			else
+				# grep is faster
+				L_RET=$(< /proc/cpuinfo)
+				L_RET=$'\n'"#${L_RET//$'\n'/$'\n'#}"
+				L_RET="${L_RET//$'\n'#processor/$'\n'(( ++L_RET )) #}"
+				eval "L_RET=0; $L_RET"
+			fi
+		elif [[ -r /proc/sys/hw/ncpu ]]; then
+			L_RET=$(< /proc/sys/hw/ncpu)
+		else
+			L_RET=1
+		fi
+		_L_NPROC=$L_RET
 	fi
+}
+# Converts a range 0-2,4-6,7,9,11-20 into count of cpus.
+# Does not handle repeats.
+_L_nproc_L_RET_range_to_count() {
+	local i=${L_RET//-/*0+1+0*}
+	L_RET=${L_RET//,/+}
+	L_RET=$(( ${L_RET//-/*-1+1+} - ( ${i//,/-1+}-1 ) ))
 }
 
 # @description Pause for a specified duration using the best available sleep method.
