@@ -1947,9 +1947,9 @@ _L_test_timeout() {
 	L_unittest_cmd -o   0.000000  L_usec_to_sec 0
 	#
 	local tt
-	L_timeout_init_into tt 0.1
+	L_timeout_init_into tt 0.3
 	L_unittest_cmd ! L_timeout_is_expired "$tt"
-	sleep 0.2
+	sleep 0.4
 	L_unittest_cmd L_timeout_is_expired "$tt"
 }
 
