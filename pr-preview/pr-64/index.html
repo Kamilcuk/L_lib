@@ -1503,6 +1503,20 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
 <p>You can test the library ad-hoc:</p>
 <div class="highlight"><pre><span></span><code>bash<span class="w"> </span>&lt;<span class="o">(</span>wget<span class="w"> </span>-qO-<span class="w"> </span>https://github.com/Kamilcuk/L_lib/releases/download/v2.0.4/L_lib.sh<span class="o">)</span><span class="w"> </span>L_setx<span class="w"> </span>L_log<span class="w"> </span><span class="s1">&#39;Hello world&#39;</span>
 </code></pre></div>
+<h1 id="commonly-used-functions">Commonly used functions<a class="headerlink" href="#commonly-used-functions" title="Permanent link">&para;</a></h1>
+<p>Here are the functions most frequently used throughout the L_lib codebase (including scripts and tests):</p>
+<ul>
+<li><a href="https://kamilcuk.github.io/L_lib/section/finally/"><code>L_finally</code></a> - Execute an action on EXIT, RETURN, or signal.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/argparse/"><code>L_argparse</code></a> - Parse command line arguments.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/log/"><code>L_log</code></a> - Log a message with a specified level.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_handle_v_scalar"><code>L_handle_v_scalar</code></a> - Handle the <code>-v &lt;var&gt;</code> option to store results in a variable.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_info"><code>L_info</code></a> - Log an informational message.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic"><code>L_panic</code></a> - Print error with traceback and exit.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/xargs/#L_lib.sh--L_xargs"><code>L_xargs</code></a> - Run parallel background tasks with controlled concurrency.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/foreach/#L_lib.sh--L_foreach"><code>L_foreach</code></a> - Iterate over arrays with automatic index tracking.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_tmpfile_into"><code>L_with_tmpfile_into</code></a> - Execute a command with its output stored in a temporary file.</li>
+<li><a href="https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_process_into"><code>L_with_process_into</code></a> - Execute a command and store its stdout/stderr in variables.</li>
+</ul>
 <h1 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h1>
 <p>Below is a selection of the library's features. The library contains much more.</p>
 <ul>
@@ -1525,7 +1539,8 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
 <li>Create and manage multiple processes with separate file descriptors for standard input and standard output
     <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_popen"><code>L_proc_popen</code></a>
     <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_communicate"><code>L_proc_communicate</code></a>
-    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_kill"><code>L_proc_kill</code></a></li>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_kill"><code>L_proc_kill</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_kill_all_childs"><code>L_kill_all_childs</code></a></li>
 <li>Temporary enable or disable shell features <code>set -x</code> for the duration of a command
     <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_setx"><code>L_setx</code></a>
     <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_unsetx"><code>L_unsetx</code></a>
@@ -1592,6 +1607,10 @@ L_info<span class="w"> </span><span class="s2">&quot;This is an info message&quo
     <a href="https://kamilcuk.github.io/L_lib/section/array/#L_lib.sh--L_readarray"><code>L_readarray</code></a>
     <a href="https://kamilcuk.github.io/L_lib/section/time/#L_lib.sh--L_epochrealtime_usec"><code>L_epochrealtime_usec</code></a>
     <a href="https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_compgen"><code>L_compgen -V</code></a></li>
+<li>Event loop for asynchronous Bash programming
+    <a href="https://kamilcuk.github.io/L_lib/section/uv/"><code>L_uv_init</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_add_timer"><code>L_uv_add_timer</code></a>
+    <a href="https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_run"><code>L_uv_run</code></a></li>
 </ul>
 <h1 id="talk-to-me">Talk to me<a class="headerlink" href="#talk-to-me" title="Permanent link">&para;</a></h1>
 <p>Kindly feel free to have conversations and ask questions on <a href="https://github.com/Kamilcuk/L_lib/discussions">GitHub discussion</a>.</p>
