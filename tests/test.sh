@@ -2025,7 +2025,7 @@ _L_test_unset() {
 }
 
 _L_test_self_contained() {
-	"$(dirname "$0")"/./self_contained.sh
+	"$(dirname "$0")"/self_contained.sh
 }
 
 _L_test_getopts_documented() {
@@ -2058,7 +2058,7 @@ _L_test_getopts_documented() {
 			function=""
 			comment=""
 		fi
-	done <bin/L_lib.sh
+	done <"$L_LIB_SCRIPT"
 	local functionscnt=${#functions[@]}
 	L_ok "Found $functionscnt functions: ${functions[*]}"
 	if (( functionscnt < 23 )); then

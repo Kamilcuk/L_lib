@@ -8,6 +8,13 @@ f() {
 	L_notice "${FUNCNAME[1]}"
 }
 
+_L_test_unittest_fast_ok() {
+	true
+}
+
+_L_test_unittest_fast_false() {
+	false
+}
 
 _L_test_unittest_skip() {
 	f
@@ -66,6 +73,21 @@ _L_test_unittest_raise_sigusr1() {
 	L_raise -SIGUSR1
 	false
 }
+
+_L_test_unittest_long_output_20000() {
+	printf '%*s' "${FUNCNAME[0]//*_}" '' | tr ' ' A
+}
+
+_L_test_unittest_output_safe_allchars() {
+	_L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177\r']}
+	echo "$_L_SAFE_ALLCHARS"
+	# echo $'\x80' ## X
+}
+
+_L_test_unittest_output_allchars() {
+	echo "${L_ALLCHARS//[$'\001\177\r']}"
+}
+
 
 # _L_test_unittest_clear_finally() {
 #   f

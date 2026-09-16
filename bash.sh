@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 . "$(dirname "$0")"/bin/L_lib.sh L_argparse \
   description="Compare behavior of multiple bash versions" \
   dest_prefix=opt_ \
@@ -62,6 +63,7 @@ docker_run() {
     docker run -i "${args[@]}" <<<"$input"
   fi || rc=$?
   echo "\\-- bash:$version rc=$rc"
+  return "$rc"
 }
 
 IFS=$', \t\n' read -r -a versions <<<"$opt_versions"
@@ -69,7 +71,9 @@ if (( ${#versions[@]} == 1 )); then
   if (( ${#args[@]} == 0 )); then
     opt_tty=1
   fi
-  docker_run "${versions[0]}"
+  rc=0
+  docker_run "${versions[0]}" || rc=$?
+  exit "$rc"
 else
   if (( ${#args[@]} == 0 )); then
     L_panic "Too many version or missing command. Either give one version to start an interactive bash session or give a command to test against multiple versions. No command was found, but requested running on versions: ${versions[*]}"
@@ -79,9 +83,13 @@ else
       rc=0
       docker_run "$version" || rc=$?
     done
+    exit "$rc"
   else
     if true; then
-      L_xargs -OO -Pn -A versions docker_run
+      rets=()
+      L_xargs -OO -Pn -v rets -A versions docker_run
+      IFS=+
+      exit "$(( ${rets[*]} + 0 ))"
     else
       {
         for version in "${versions[@]}"; do
