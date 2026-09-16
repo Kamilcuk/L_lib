@@ -6626,10 +6626,10 @@ _L_unittest_main_xargs_subshell_callback() {
 			# Cleanup
 			unset -v '_L_u_test_out_r[L_XARGS_INDEX]' '_L_u_test_res_r[L_XARGS_INDEX]'
 			# Extract information from status. The _=DC1 lines use as a marker for some safety.
-			if [[ "$testresult" =~ ^(_=${L_DC1}\ _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*\ )?*(_=${L_DC1}\ _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+\ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$ ]]; then
+			if [[ "$testresult" =~ ^(_=${L_DC1}\ _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*\ )?(_=${L_DC1}\ _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+\ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$ ]]; then
 				eval "$testresult"
 			else
-				L_critical "_L_unittest_main_worker: test %s did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error. Status data: %q" "${_L_u_test_name[L_XARGS_INDEX]}" "$status"
+				L_critical "_L_unittest_main_worker: test %s did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error. Status data: %q" "${_L_u_test_name[L_XARGS_INDEX]}" "$testresult"
 				_L_u_test_ret[L_XARGS_INDEX]="300"
 				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
 			fi
@@ -7142,7 +7142,7 @@ L_unittest_cmd() {
 			# No trap EXIT - literally next command removes the file.
 			# shellcheck disable=SC2094
 			eval "$_L_uc || _L_uret=\$?" >&"${_L_utmpf[0]}"
-			read -r -d '' -u "${_L_utmpf[1]}" _L_uout || :
+			IFS= read -r -d '' -u "${_L_utmpf[1]}" _L_uout || :
 			L_close_fd "${_L_utmpf[@]}"
 			L_rstrip -v _L_uout "$_L_uout"
 		else
@@ -10116,7 +10116,7 @@ L_get_all_childs_vL_RET() {
 			_L_ps_output=$(
 				L_bashpid_into _L_pid
 				echo "$_L_pid"
-				exec ps -e -o pid=,ppid=
+				exec ps -e -o pid= -o ppid=
 			)
 	then
 		{
@@ -12105,9 +12105,8 @@ L_nproc_vL_RET() {
 	if L_var_is_set _L_NPROC; then
 		L_RET=$_L_NPROC
 	else
-		if [[ -r /proc/self/status ]]; then
- 			L_RET=$(< /proc/self/status)
-			L_RET=${L_RET##*$'\n'Cpus_allowed_list:$'\t'}
+		if L_RET=$(< /proc/self/status) 2>/dev/null && [[ "$L_RET" == *$'\n'Cpus_allowed_list:* ]]; then
+			L_RET=${L_RET##*$'\n'Cpus_allowed_list:}
 			L_RET=${L_RET%%$'\n'*}
 			_L_nproc_L_RET_range_to_count
 		elif L_hash nproc; then
