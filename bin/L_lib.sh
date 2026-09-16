@@ -7206,11 +7206,11 @@ _L_unittest_showdiff() {
 # @description Test if a variable has specific value.
 # @arg $1 variable nameref
 # @arg $2 value
-# @arg $2 Message to print on failure.
+# @arg $3 Message to print on failure.
 L_unittest_vareq() {
 	if (( ${L_unittest_unset_x:-L_HAS_LOCAL_DASH} )); then local -; set +x; fi
 	local _L_u_a
-	printf -v _L_u_a "\$%s=${!1:+%q}%s == %q" "$1" "${!1:+${!1}}" "$2"
+	printf -v _L_u_a "\$%s=%q == %s" "$1" "${!1-<UNSET>}" "$2"
 	if ! _L_unittest_internal "$_L_u_a" "${3:-}" [ "${!1:-}" == "$2" ]; then
 		_L_unittest_showdiff "${!1:-}" "$2"
 		return 1
