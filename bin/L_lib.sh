@@ -10211,6 +10211,7 @@ fi
 #   echo "data" > "$tmp"
 #   rm "$tmp"
 L_mktemp() { L_handle_v_scalar "$@"; }
+# shellcheck disable=SC2188
 L_mktemp_vL_RET() {
 	local _L_i _L_tpl="${1:-L_mktemp.XXX}" _L_m_uc=""
 	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
