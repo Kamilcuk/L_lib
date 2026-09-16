@@ -87,28 +87,41 @@ _L_test_cache_ttl() {
   L_unittest_cmd -c -r "^empty$" -- L_cache -T 1ms -f "$cachef" -l
 }
 
-_L_test_cache_vars() {
+shouldbeasa_init() {
+  shouldbeasa['a$%^']='*'
+  if (( L_HAS_BASH4_1 )); then
+  	# Bash 4.1 really has issues with parsing associative arrays. Who cares.
+  	shouldbeasa[$' \t\n']=$' \t\n'
+  	shouldbeasa["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS"
+  else
+  	L_log "extra L_SAFE_ALLCHARS and space and tab disabled for bash 4.1, it has poor handling of associative arrays"
+  fi
+}
+
+_L_test_cache_vars_asa() {
 	local opt i
 	L_with_tmpfile_into cachef
 	#
 	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS" '*')
   if ((L_HAS_ASSOCIATIVE_ARRAY)); then
   	local -A shouldbeasa=()
-  	shouldbeasa['a$%^']='*'
-  	if (( L_HAS_BASH4_1 )); then
-  		# Bash 4.1 really has issues with parsing associative arrays. Who cares.
-  		shouldbeasa[$' \t\n']=$' \t\n'
-  		shouldbeasa["$L_SAFE_ALLCHARS"]="$L_SAFE_ALLCHARS"
-  	else
-  		L_log "extra L_SAFE_ALLCHARS and space and tab disabled for bash 4.1, it has poor handling of associative arrays"
-  	fi
+  	shouldbeasa_init
 		L_unittest_eq "${shouldbeasa['a$%^']}" '*'
   	if (( L_HAS_BASH4_1 )); then
 			L_unittest_eq "${shouldbeasa[$' \t\n']}" $' \t\n'
 			L_unittest_eq "${shouldbeasa["$L_SAFE_ALLCHARS"]}" "$L_SAFE_ALLCHARS"
 		fi
   fi
-	#
+}
+
+_L_test_cache_vars_norm() {
+	local opt i executed var array
+	L_with_tmpfile_into cachef
+	local shouldbevar=123 shouldbearray=(a b $' \t\n' "$L_SAFE_ALLCHARS" '*')
+  if ((L_HAS_ASSOCIATIVE_ARRAY)); then
+  	local -A shouldbeasa=()
+  	shouldbeasa_init
+	fi
 	for opt in "" "-f$cachef"; do
 		echo "USING $opt"
 		{
@@ -117,7 +130,6 @@ _L_test_cache_vars() {
   			array=("${shouldbearray[@]}")
   			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
   				L_asa_copy shouldbeasa asa
-  				declare -p asa
   			fi
   			executed=1
 			}
