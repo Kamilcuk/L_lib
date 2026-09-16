@@ -6490,21 +6490,21 @@ _L_unittest_main_handle_k() {
 L_unittest_skip() {
 	_L_u_test_skipped[L_XARGS_INDEX]=" ${*//$'\n'/ }"
 	# Transfer skip reason to parent. No newline.
-	printf "\n_=%s _L_u_test_skipped[L_XARGS_INDEX]=%q\n" \
-		"$L_DC1" "${_L_u_test_skipped[L_XARGS_INDEX]}" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
+	printf "_=%s _L_u_test_skipped[L_XARGS_INDEX]=%q " \
+		"$L_DC1" "${_L_u_test_skipped[L_XARGS_INDEX]}" >&"$_L_ur_res_w"
 	exit 0
 }
 
 _L_unittest_spins_starting() {
 	_L_u_spin_lines+=("$L_XARGS_INDEX:$1")
 	echo
-	L_ansi_print_on_line_above 1 "$1"
+	L_ansi_print_on_line_above 1 "$1" || :
 	_L_unittest_spinner_refresh
 }
 
 _L_unittest_spins_finished() {
 	# Print finished highest up
-	L_ansi_print_on_line_above "${#_L_u_spin_lines[@]}" "$1"
+	L_ansi_print_on_line_above "${#_L_u_spin_lines[@]}" "$1" || :
 	# If the removed index was not on highest line, swap it.
 	local i
 	for i in "${!_L_u_spin_lines[@]}"; do
@@ -6513,7 +6513,7 @@ _L_unittest_spins_finished() {
 				# Swap highest up with the one we are replacing.
 				_L_u_spin_lines[i]=${_L_u_spin_lines[0]}
 				# Redraw it.
-				L_ansi_print_on_line_above "$(( ${#_L_u_spin_lines[@]} - i ))" "${_L_u_spin_lines[i]#*:}"
+				L_ansi_print_on_line_above "$(( ${#_L_u_spin_lines[@]} - i ))" "${_L_u_spin_lines[i]#*:}" || :
 			fi
 			break
 		fi
@@ -6554,14 +6554,14 @@ _L_unittest_spinner_refresh() {
 	_L_unittest_progress_bar_vL_RET "$done" "$all" 40
 	local bar=$L_RET
 	local msg="-- $spinner Testing $bar $done/$all --"
-	L_ansi_print_on_line_above 0 "$msg"
+	L_ansi_print_on_line_above 0 "$msg" || :
 }
 
 _L_unittest_spinner_task() {
 	(( ++_L_u_spinner ))
 	_L_unittest_spinner_refresh
-	if (( !${_L_u_test_fd1[@]:+1}0 )); then
-		L_ansi_print_on_line_above 0 ""
+	if (( !${_L_u_test_out_r[@]:+1}0 )); then
+		L_ansi_print_on_line_above 0 "" || :
 		printf "\r"
 		L_uv_current_remove
 	fi
@@ -6570,11 +6570,17 @@ _L_unittest_spinner_task() {
 _L_unittest_main_xargs_subshell_callback() {
 	case "$1" in
 		PREEXEC)
-			# Create a temporay file to store data received from the child.
 			local tmpfd
+			if (( !_L_u_stream )); then
+				# Two file desctiptors for caching worker output.
+				L_mkstemp tmpfd 2
+				_L_ur_out_w="${tmpfd[0]}"
+				_L_u_test_out_r[L_XARGS_INDEX]="${tmpfd[1]}"
+			fi
+			# Two file descriptors for transferring worker result.
 			L_mkstemp tmpfd 2
-			_L_u_test_fd0[L_XARGS_INDEX]="${tmpfd[0]}"
-			_L_u_test_fd1[L_XARGS_INDEX]="${tmpfd[1]}"
+			_L_ur_res_w="${tmpfd[0]}"
+			_L_u_test_res_r[L_XARGS_INDEX]="${tmpfd[1]}"
 			# Output
 			if (( !_L_u_quiet )); then
 				local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
@@ -6596,30 +6602,37 @@ _L_unittest_main_xargs_subshell_callback() {
 			fi
 			;;
 		POSTEXEC)
-			L_close_fd "${_L_u_test_fd0[L_XARGS_INDEX]}"
-			unset -v '_L_u_test_fd0[L_XARGS_INDEX]'
+			# Close writing sides of temporary files in manager process.
+			if (( !_L_u_stream )); then
+				L_close_fd "$_L_ur_out_w"
+			fi
+			L_close_fd "$_L_ur_res_w"
 			;;
 		EXIT) # $2 - pid, $3 - exitcode
-			# Collect data
-			local tmp
-			_L_u_test_output[L_XARGS_INDEX]=""
-			while IFS= read -r -u "${_L_u_test_fd1[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
-				_L_u_test_output[L_XARGS_INDEX]+="$tmp"
-			done
-			L_close_fd "${_L_u_test_fd1[L_XARGS_INDEX]}"
-			unset -v '_L_u_test_fd1[L_XARGS_INDEX]'
-			# Extract data from child process.
-			if [[ "${_L_u_test_output[L_XARGS_INDEX]}" =~ \
-				^(.*)($'\n'_=${L_DC1} _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*$'\n')?(.*)($'\n'_=${L_DC1} _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+$'\n')(.*)$ ]]; then
-				_L_u_test_output[L_XARGS_INDEX]="${BASH_REMATCH[1]}${BASH_REMATCH[3]}${BASH_REMATCH[5]}"
-				eval "${BASH_REMATCH[2]}${BASH_REMATCH[4]}"
+			local tmp testresult
+			if (( !_L_u_stream )); then
+				# Read output from the child.
+				_L_u_test_output[L_XARGS_INDEX]=""
+				while IFS= read -r -u "${_L_u_test_out_r[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
+					_L_u_test_output[L_XARGS_INDEX]+="$tmp"
+				done
+				L_close_fd "${_L_u_test_out_r[L_XARGS_INDEX]}"
+			fi
+			# Read test result from the child.
+			IFS= read -r -u "${_L_u_test_res_r[L_XARGS_INDEX]}" -d '' testresult || testresult=""
+			L_close_fd "${_L_u_test_res_r[L_XARGS_INDEX]}"
+			# Cleanup
+			unset -v '_L_u_test_out_r[L_XARGS_INDEX]' '_L_u_test_res_r[L_XARGS_INDEX]'
+			# Extract information from status. The _=DC1 lines use as a marker for some safety.
+			if [[ "$testresult" =~ ^(_=${L_DC1}\ _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*\ )?*(_=${L_DC1}\ _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+\ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$ ]]; then
+				eval "$testresult"
 			else
-				L_critical "L_unittest_main runner: test ${_L_u_test_name[L_XARGS_INDEX]} did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error."
+				L_critical "_L_unittest_main_worker: test %s did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error. Status data: %q" "${_L_u_test_name[L_XARGS_INDEX]}" "$status"
 				_L_u_test_ret[L_XARGS_INDEX]="300"
 				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
 			fi
 			# If not verbose, and the test is OK or is SKIPPED, we will not be needing output, so we can free memory.
-			if [[ _L_u_verbose == 0 && ( "${_L_u_test_ret[L_XARGS_INDEX]}" == 0 || -n "${_L_u_test_skipped[L_XARGS_INDEX]:-}" ) ]]; then
+			if (( !_L_u_verbose && _L_u_test_ret[L_XARGS_INDEX] == 0 )); then
 				_L_u_test_output[L_XARGS_INDEX]=""
 			else
 				# Remove trailing newline
@@ -6656,6 +6669,7 @@ _L_unittest_main_xargs_subshell_callback() {
 					"$msg" \
 					"$(( offset > 0 ? offset : 0 ))" "" \
 					"$(( ${#_L_u_test_ret[*]} * 100 / ${#_L_u_test_func[*]} ))"
+				# This if aligns with the if in PREEXEC stage.
 				if (( _L_u_stream )); then
 					echo "$hdr$msg"
 				elif (( _L_u_nproc == 1 )); then
@@ -6670,10 +6684,10 @@ _L_unittest_main_xargs_subshell_callback() {
 	esac
 }
 
-_L_unittest_main_runner() {
+_L_unittest_main_worker() {
 	_L_ur_ret=300 _L_ur_test=$1 _L_ur_traceback_offset_old=${_L_print_traceback_offset:-0} _L_ur_stderr=2
 	# Set traceback offset to have short tracebacks when printing errors.
-	L_finally -r -v _L_ur_finally_idx _L_unittest_main_runner_finally
+	L_finally -r -v _L_ur_finally_idx _L_unittest_main_worker_finally
 	# Run the command.
 	{
 		if (( _L_u_stream )); then
@@ -6682,18 +6696,16 @@ _L_unittest_main_runner() {
 		else
 			# Save stderr into _L_ur_stderr. Redirect everything to dedicated file descriptor.
 			L_get_free_fd_into _L_ur_stderr
-			eval "exec $_L_ur_stderr>&2 1>&${_L_u_test_fd0[L_XARGS_INDEX]} 2>&1"
+			eval "exec $_L_ur_stderr>&2 1>&$_L_ur_out_w 2>&1"
 		fi
 		L_epochrealtime_usec_vL_RET
 		_L_ur_start=$L_RET
 		if (( _L_u_subshell )); then
-			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
-			# Note: this is double subshell. The first subshell or background process is executed in L_xargs.
 			# Close all file descriptors to other tests.
-			local _L_u_i="${_L_u_test_fd0[L_XARGS_INDEX]}"
-			unset -v '_L_u_test_fd0[L_XARGS_INDEX]'
-			L_close_fd ${_L_u_test_fd0[@]:+"${_L_u_test_fd0[@]}"} "${_L_u_test_fd1[@]}"
-			_L_u_test_fd0[L_XARGS_INDEX]=$_L_u_i
+			L_close_fd "${_L_u_test_out_r[@]}" "${_L_u_test_res_r[@]}"
+			# _L_run_subshell handles trap ERR set -e transferring.
+			# Note: this is double subshell. The first subshell or background process is executed in L_xargs.
+			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
 			_L_run_subshell _L_ur_ret "$@"
 		else
 			_L_print_traceback_offset=${#BASH_SOURCE[@]}
@@ -6708,7 +6720,7 @@ _L_unittest_main_runner() {
 	fi
 }
 
-_L_unittest_main_runner_finally() {
+_L_unittest_main_worker_finally() {
 	# Store duration.
 	L_epochrealtime_usec_vL_RET
 	local duration=$(( L_RET - ${_L_ur_start:-L_RET} ))
@@ -6719,21 +6731,21 @@ _L_unittest_main_runner_finally() {
 		""|RETURN|POP) ;;
 		EXIT)
 			if (( _L_u_subshell )); then
-				L_critical "L_unittest_main runner: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
 				_L_ur_ret=300
 			else
-				L_critical "L_unittest_main runner: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
 			fi
 			;;
 		SIGTERM|SIGINT) _L_ur_ret=300 ;;
 		*)
-			L_critical "L_unittest_main runner: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
+			L_critical "_L_unittest_main_worker: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
 			_L_ur_ret=300
 			;;
 	esac
 	# Transfer data to parent.
-	printf "\n_=%s _L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\n" \
-			"$L_DC1" "${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"${_L_u_test_fd0[L_XARGS_INDEX]}"
+	printf "_=%s _L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\0" \
+			"$L_DC1" "${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
 }
 
 _L_unittest_main_output_printer() {
@@ -6795,15 +6807,17 @@ L_unittest_main() {
 		_L_u_test_name=() \
 		_L_u_test_skipped \
 		_L_u_test_duration \
-		_L_u_test_fd0 \
-		_L_u_test_fd1 \
+		_L_u_test_out_r \
+		_L_u_test_res_r \
+		_L_ur_out_w \
+		_L_ur_res_w \
 		_L_u_exitfirst=0 L_RET \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_subshell=1 _L_u_stream=0 \
 		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" \
 		_L_u_spin_lines=() \
 		_L_u_use_term="" \
 		_L_u_spinner=""
-	# Local variable definitions from runner(). They are here, as the EXIT trap on bash 3.2 is executed
+	# Local variable definitions from _L_unittest_main_worker(). They are here, as the EXIT trap on bash 3.2 is executed
 	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
 	local _L_ur_ret _L_ur_test _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
 	while getopts p:k:P:Elqd:xsScFvTh _L_i; do
@@ -6896,11 +6910,11 @@ L_unittest_main() {
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
 	if (( _L_u_subshell )); then _L_i=""; else _L_i=-F; fi
-	L_xargs -v _ -r -A _L_u_test_func -P "$_L_u_nproc" $_L_i -X _L_unittest_main_xargs_subshell_callback _L_unittest_main_runner
+	L_xargs -v _ -r -A _L_u_test_func -P "$_L_u_nproc" $_L_i -X _L_unittest_main_xargs_subshell_callback _L_unittest_main_worker
 	# L_pp -m '_L_u_test_**'
 	L_epochrealtime_usec -v _L_u_end
 	if (( _L_u_quiet )); then
-		# When quiet the _L_unittest_main_runner writes one character per test, without any newlines.
+		# When quiet the _L_unittest_main_worker writes one character per test, without any newlines.
 		# Write a newline now.
 		printf "\n" >&2
 	fi
@@ -6911,7 +6925,7 @@ L_unittest_main() {
 		local IFS="+"
 		local failed=$(( ${_L_u_test_ret[*]/#/ !!} ))
 		local deselected=$(( _L_u_testscnt - ${#_L_u_test_func[*]} ))
-		local skipped=$(( ${_L_u_test_skipped[*]//?*/1+}0 ))
+		local skipped=$(( ${_L_u_test_skipped[*]:+${_L_u_test_skipped[*]//?*/1+}}0 ))
 		local passed=$(( ( ${_L_u_test_ret[*]/#/!}0 ) - skipped ))
 	}
 	if (( !_L_u_stream )); then
