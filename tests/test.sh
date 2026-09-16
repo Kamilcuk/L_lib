@@ -13,7 +13,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*|_L_PIPE_CNT|_L_finally_idx_.*|_L_finally_item_depth|SRANDOM|BASH_SUBSHELL)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*|_L_PIPE_CNT|_L_finally_idx_.*|_L_finally_item_depth|SRANDOM|BASH_SUBSHELL|_L_NPROC)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177\r']}
@@ -2181,6 +2181,90 @@ _L_test_readme_links_ok() {
 _L_test_unittest_skip() {
 	L_unittest_skip "tests skipping"
 	false
+}
+
+_L_test_range_to_count() {
+  tests=(
+    0:1
+    1:1
+    0-1:2
+    1-2:2
+    0-2:3
+    0-3:4
+    2-5:4
+    0-7:8
+    4-7:4
+    0-15:16
+    2-5,8:5
+    0-3,8-11:8
+    0,2,4,6:4
+    1,3,5,7:4
+    0-2,5-7:6
+    0-3,5,8-11:9
+    0-7,16-23:16
+    0,1,2-4,8,10-12:9
+    0-31:32
+    0-3,5-7,10-15,20:14
+    0:1
+    7:1
+    0-0:1
+    7-7:1
+    0-1:2
+    3-9:7
+    99-103:5
+    0-3,5:5
+    5,0-3:5
+    0-3,3-5:7
+    0-3,2-6:9
+    0-1,4-5,8-9:6
+    0,2,4,6,8:5
+    1,3,5,7,9:5
+    0-2,4,6-8,10:8
+    0-1,3-5,7-9,11-13:11
+    0-15,32-47:32
+    0-7,16-23,40-47:24
+    0,3,7,11,15,19,23:7
+    0-2,4-6,8-10,12-14:12
+    0-100:101
+    100-199:100
+    0-99,200-299:200
+    1-1000:1000
+    0,100,200,300,400:5
+    0-1,100-101,200-201:6
+    1-1,3-3,5-5,7-7:4
+    0-2,10-12,20-22,30-32:12
+    0-2,4-6,8-10,12-14:12
+    0-4,6-10,12-16,18-20:18
+    0-0,2-2,4-4,6-6,8-8,10-10:6
+    0-5,2-7,4-9:18
+    0-10,5-15,10-20:33
+    0-3,8-11,16-19,24-27:16
+    0-31,64-95:64
+    0-7,9,11-13,20,22-24:16
+    3-3,5-9,11-11,13-17:12
+    42:1
+    42-42:1
+    42-49:8
+    1000-1007,2000-2003:12
+    0-1,3,5-6,8,10-12,100-102:12
+  )
+  local i err=0
+  for ((i=0;i<${#tests[@]};++i)); do
+    IFS=: read -r in c <<<"${tests[i]}"
+    L_RET=$in
+    _L_nproc_L_RET_range_to_count
+    nproc=$(taskset -c $in nproc 2>/dev/null) || :
+    if (( c != L_RET )); then
+      diff="DIFF"
+      err=1
+    else
+      diff=""
+    fi
+    printf "%25s %4s %4s %5s nproc=%s\n" "$in" "$c" "$L_RET" "$diff" "$nproc"
+  done
+  if (( err )); then
+    exit "$err"
+  fi
 }
 
 ###############################################################################
