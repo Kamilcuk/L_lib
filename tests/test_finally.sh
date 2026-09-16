@@ -449,28 +449,39 @@ _L_test_finally_proc() {
 	}
 }
 
-_L_test_finally_interrupt() {
+_L_test_finally_sigret() {
 	{
-		L_info "test SIGRET"
 		f() { L_finally eval 'echo $L_SIGRET'; exit 123; }
 		L_unittest_cmd -o 123 -e 123 f
 		f() { L_finally -r eval 'echo $L_SIGRET'; exit 234; }
 		L_unittest_cmd -o 234 -e 234 f
 	}
-	waiter() {
-		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
-		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
-		# set +x
-		enable sleep 2>/dev/null || :
-		local to; L_timeout_init_into to "$1"; while ! L_timeout_is_expired "$to"; do sleep 0.1; done
-	}
+}
+
+_finally_test_waiter() {
+	# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
+	# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
+	# set +x
+	enable sleep 2>/dev/null || :
+	echo >&$1
+	for ((i=0;i<$2;++i)); do sleep 0.1; done
+}
+
+_L_test_finally_interrupt_once() {
 	{
-		local e=$((128+$(L_trap_to_number USR1)))
 		L_info "test interrupting error handling"
 		f() {
-			L_finally waiter 0.5
+			local fd
+			L_pipe fd
+			L_finally -r _finally_test_waiter "${fd[1]}" 5
 			L_bashpid_into bashpid
-			sleep 0.2 && kill -USR1 "$bashpid" || : &
+			_back() {
+				L_close_fd ${fd[1]}
+				read -t 10 -u ${fd[0]} || return
+				kill -USR1 "$bashpid" || return
+			}
+			_back &
+			L_close_fd ${fd[0]}
 			case "$1" in
 				pop) L_finally_pop ;;
 				return) return ;;
@@ -478,7 +489,8 @@ _L_test_finally_interrupt() {
 				signal) L_raise -USR1 ;;
 			esac
 		}
-		export -f f waiter
+		export -f f _finally_test_waiter
+		local e=$((128+$(L_trap_to_number USR1)))
 		L_unittest_cmd -e "$e" "${newbash[@]}" f pop
 		L_unittest_cmd -e "$e" "${newbash[@]}" f return
 		L_unittest_cmd -e "$e" "${newbash[@]}" f exit
@@ -488,14 +500,25 @@ _L_test_finally_interrupt() {
 		L_unittest_cmd -e "$e" f exit
 		L_unittest_cmd -e "$e" f signal
 	}
+}
+
+_L_test_finally_interrupt_twice() {
 	{
 		L_info "test interrupting error handling twice"
 		f2() {
-			L_finally waiter 10
+			local fd
+			L_pipe fd
+			L_finally _finally_test_waiter "${fd[1]}" 100
 			L_bashpid_into bashpid
 			exec 2>&1
-			sleep 0.2 && kill -USR1 "$bashpid" &
-			sleep 0.4 && kill -USR1 "$bashpid" &
+			_back() {
+				L_close_fd ${fd[1]}
+				read -t 10 -u ${fd[0]} || return
+				kill -USR1 "$bashpid" || return
+				sleep 0.2 && kill -USR1 "$bashpid" &
+			}
+			_back &
+			L_close_fd ${fd[0]}
 			case "$1" in
 				pop) L_finally_pop ;;
 				return) return ;;
@@ -503,7 +526,8 @@ _L_test_finally_interrupt() {
 				signal) L_raise -USR1 ;;
 			esac
 		}
-		export -f f2
+		export -f f2 _finally_test_waiter
+		local e=$((128+$(L_trap_to_number USR1)))
 		L_unittest_cmd -e "$e" f2 pop
 		L_unittest_cmd -e "$e" f2 return
 		L_unittest_cmd -e "$e" f2 exit
@@ -661,7 +685,7 @@ _L_test_finally_fix_subshell_reraise() {
     func() {
         L_finally :
         (
-            sleep 10
+  					for ((i=0;i<20;++i)); do sleep 0.5; done
             echo "SHOULD NOT BE REACHED"
         ) &
         local pid=$!
