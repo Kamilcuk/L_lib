@@ -407,7 +407,7 @@ L_HAS_NAMEREF=$L_HAS_BASH4_3
 # @description The printf builtin has a new %(fmt)T specifier
 L_HAS_PRINTF_T=$L_HAS_BASH4_2
 # @description If the optional left-hand-side of a redirection is of the form {var},
-L_HAS_VARIABLE_FD=$L_HAS_BASH4_2
+L_HAS_VARIABLE_FD=$L_HAS_BASH4_3
 # @description Force extglob on temporarily when parsing the pattern argument to
 # the == and != operators to the [[ command, for compatibility.
 L_HAS_EXTGLOB_IN_TESTTEST=$L_HAS_BASH4_1
@@ -10196,24 +10196,30 @@ fi
 #   rm "$tmp"
 L_mktemp() { L_handle_v_scalar "$@"; }
 L_mktemp_vL_RET() {
-	local _L_i _L_file _L_tpl="${1:-L_mktemp.XXX}"
+	local _L_i _L_tpl="${1:-L_mktemp.XXX}" _L_m_uc=""
 	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
 		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp/}}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
 	else
 		L_func_usage_error "template must contain at least three XXX: $_L_tpl"
 		return "$L_EX_USAGE"
 	fi
-	for _L_i in {1..10}; do
-		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+	if [[ "$-" != *C* ]]; then
+		_L_m_uc='set +C'
 		set -C
-		if : > "$_L_file" 2>/dev/null; then
-			set +C
-			L_RET="$_L_file"
-			return 0
+	fi
+	# Unrolled loop for 3 tries.
+	L_RET="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+	if ! >"$L_RET"; then
+		L_RET="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+		if ! >"$L_RET"; then
+			L_RET="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+			if ! >"$L_RET"; then
+				$_L_m_uc
+				return "$L_EX_TEMPFAIL"
+			fi
 		fi
-		set +C
-	done
-	return "$L_EX_TEMPFAIL"
+	fi 2>/dev/null
+	$_L_m_uc
 }
 
 # @description Open two connected file descriptors.
@@ -10273,17 +10279,18 @@ L_mkstemp() {
 		L_func_usage_error "must be a number: $2"
 		return "$L_EX_USAGE"
 	fi
-	local L_RET _L_m_tpl="${TMPDIR:-/tmp}/L_mkstemp_XXXXXXXXXX" _L_m_cnt=$(( ${2:-0} > 0 ? ${2:-0} - 1 : 0 ))
+	local L_RET _L_m_tpl="L_mkstemp.XXXXXXXXXX" _L_m_cnt=$(( ${2:-0} > 0 ? ${2:-0} - 1 : 0 ))
 	# mktemp -> open FDs -> rm file
-	if ! if (( L_HAS_VARIABLE_FD )); then
+	if ! {
+		if (( L_HAS_VARIABLE_FD )); then
 			L_mktemp_vL_RET "$_L_m_tpl" || return
 			eval "eval exec \"{$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
 		else
-			L_get_free_fd_into "$@" || return
+			L_get_free_fd_into "$1" "$2" || return
 			L_mktemp_vL_RET "$_L_m_tpl" || return
 			eval "eval exec \"\${$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
 		fi
-	then
+	}; then
 		rm -f "$L_RET" || return
 		return "$L_EX_SOFTWARE"
 	fi
