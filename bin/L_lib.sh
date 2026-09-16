@@ -12160,7 +12160,7 @@ _L_xargs_task_timeout_cb() {
 	kill "$@" 2>/dev/null || :
 }
 
-# @option -9 Signal o use
+# @option -9 Signal to use
 _L_xargs_global_timeout_cb() {
 	kill "$@" "${!_L_x_running[@]}" 2>/dev/null || :
 	_L_x_done=1 _L_x_input_stopped=1 _L_x_return=124
@@ -12197,7 +12197,7 @@ _L_xargs_dobuf_or_prefix_notify() {
 				# Add a task to read stuff.
 				local delim=$'\n'
 				if (( _L_x_dobuf_mode > 1 )); then
-					local delim=''
+					delim=''
 				fi
 				L_uv_add_reader -c -d "$delim" "${_L_x_dobuf_pipe[0]}" _L_xargs_dobuf_stdout_cb "$L_XARGS_INDEX"
 			fi
@@ -12329,6 +12329,7 @@ _L_xargs_dispatch_one() {
 	fi
 	# Update state.
 	(( _L_x_atoms_idx += _L_dispatch_limit, 1 ))
+	# Cleanup used atoms elements once in a while for speed up.
 	if (( ++L_XARGS_INDEX % 1000 == 0 || _L_x_atoms_idx > 1073741824 )); then
 		_L_x_atoms=(${_L_x_atoms[@]+"${_L_x_atoms[@]:_L_x_atoms_idx}"})
 		_L_x_atoms_idx=0
@@ -12373,7 +12374,7 @@ _L_xargs_stop_input_last_dispatch() {
 # Split the input stored in L_RET into L_RET.
 # @return 1 if hit EOF or quoting error.
 _L_xargs_input_split_L_RET() {
-	if "$_L_x_eof_check_cb"; then
+	"$_L_x_eof_check_cb" && {
 		if (( ${_L_x_split:-1} )); then
 			L_unquote -v L_RET "${L_RET[*]:+${L_RET[*]}}" || return 1
 			if (( ${#L_RET[@]} == 0 )); then
@@ -12382,9 +12383,7 @@ _L_xargs_input_split_L_RET() {
 		fi
 		_L_x_atoms+=("${L_RET[@]}")
 		(( ++_L_x_cur_records ))
-	else
-		return 1
-	fi
+	}
 }
 
 # Read from the callback as long as we can fit more tasks.
@@ -12410,6 +12409,7 @@ _L_xargs_pulse() {
 	fi
 }
 
+# Separate function with separate local, not to touch L_XARGS_INDEX.
 _L_xargs_reaper_call_callback() {
 	local L_XARGS_INDEX=$1
 	set -- EXIT "$2" "$3"
@@ -12479,7 +12479,7 @@ _L_xargs_finally_kill() {
 			echo "L_xargs: Signal $L_SIGNAL received. Killing pids ${L_RET[*]}"
 		fi
 	fi
-	kill "${L_RET[@]}" 2>/dev/null || :
+	kill ${L_RET[@]:+"${L_RET[@]}"} 2>/dev/null || :
 }
 
 _L_xargs_finally_wait() {
@@ -12541,6 +12541,7 @@ _L_xargs_finally_wait() {
 #         127 if the command is not found
 # @env L_XARGS_INDEX The index of the job being executed.
 L_xargs() {
+	# _L_x_atoms_idx = offset in _L_x_atoms of already processed atoms.
 	local OPTIND OPTARG OPTERR _L_x_replace="" _L_x_atoms_idx=0 _L_x_atoms_limit=0 \
 			_L_x_records_limit="" _L_i _L_x_maxprocs=1 L_RET \
 			_L_x_trace=0 _L_registered_xargs_trap=0 _L_x_prefix=0 _L_x_r=0 \
@@ -12548,7 +12549,7 @@ L_xargs() {
 			_L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
 			_L_x_eof_str _L_x_eof_check_cb=: _L_x_template_cb=_L_xargs_run_template_no \
 			_L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" _L_x_timers=() \
-			_L_x_forker=_L_xargs_forker _L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
+			_L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
 			_L_x_foreground=0 _L_x_feeder_id="" \
 			_L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output=() _L_x_dobuf_prefix=() _L_x_dobuf_finished _L_x_dobuf_next=0 \
 			L_UV=() _L_x_finally_idx1 _L_x_finally_idx2 _L_x_mypid
