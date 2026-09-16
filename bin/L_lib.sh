@@ -10285,6 +10285,7 @@ L_pipe() {
 # This internally creates a temporary file and immidately removes it.
 # @arg var Variable to assign file descriptors to.
 # @arg [int] Number of array elements to assign.
+# shellcheck disable=SC2093,SC2102
 L_mkstemp() {
 	if ! L_is_valid_variable_name "$1"; then
 		L_func_usage_error "must be a valid identifier: $1"
@@ -10294,16 +10295,17 @@ L_mkstemp() {
 		L_func_usage_error "must be a number: $2"
 		return "$L_EX_USAGE"
 	fi
-	local L_RET _L_m_tpl="L_mkstemp.XXXXXXXXXX" _L_m_cnt=$(( ${2:-0} > 0 ? ${2:-0} - 1 : 0 ))
+	local L_RET _L_m_tpl="L_mkstemp.XXXXXXXXXX" _L_m_cnt=$(( ${2:-1} > 1 ? ${2:-1} : 1 )) _L_m_n
 	# mktemp -> open FDs -> rm file
 	if ! {
 		if (( L_HAS_VARIABLE_FD )); then
+			local -n _L_m_n=$1
 			L_mktemp_vL_RET "$_L_m_tpl" || return
-			eval "eval exec \"{$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
+			while (( --_L_m_cnt >= 0 )); do exec {_L_m_n[_L_m_cnt]}<>"$L_RET"; done
 		else
 			L_get_free_fd_into "$1" "$2" || return
 			L_mktemp_vL_RET "$_L_m_tpl" || return
-			eval "eval exec \"\${$1[\"{0..$_L_m_cnt}\"]}<>\\\"\\\$L_RET\\\"\""
+			while (( --_L_m_cnt >= 0 )); do _L_m_n="$1[$_L_m_cnt]"; eval "exec ${!_L_m_n}<>\"\$L_RET\""; done
 		fi
 	}; then
 		rm -f "$L_RET" || return
@@ -10314,17 +10316,12 @@ L_mkstemp() {
 
 if (( L_HAS_BASH4_3 )); then
 # @note No checking is performed.
-# @note
-#    zz. When using the pattern substitution word expansion, bash now runs the
-#    replacement string through quote removal, since it allows quotes in that
-#    string to act as escape characters.  This is not backwards compatible, so
-#    it can be disabled by setting the bash compatibility mode to 4.2.
 # @arg <int..> File descriptors to close.
 # shellcheck disable=SC2294
-L_close_fd() { eval "exec" "${@/%/\>\&-}"; }
+L_close_fd() { local i; for i; do exec {i}>&-; done; }
 else
 	# shellcheck disable=SC2294
-	L_close_fd() { eval eval "exec" "${@/%/\>\&-}"; }
+	L_close_fd() { local i; for i; do eval "exec $i>&-"; done; }
 fi
 
 _L_proc_init_setup_redirs() {
