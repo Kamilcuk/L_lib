@@ -4178,13 +4178,13 @@ L_max() { L_handle_v_scalar "$@"; }
 # shellcheck disable=SC1105,SC2094,SC2035
 # @set L_RET
 L_max_vL_RET() {
+	local i
 	L_RET=$1
 	shift
-	while (($#)); do
-		if (("$1" > L_RET)); then
-			L_RET="$1"
+	for i; do
+		if ((i>L_RET)); then
+			L_RET=$i
 		fi
-		shift
 	done
 }
 
@@ -4196,13 +4196,13 @@ L_min() { L_handle_v_scalar "$@"; }
 # shellcheck disable=1105,2094,2035
 # @set L_RET
 L_min_vL_RET() {
+	local i
 	L_RET=$1
 	shift
-	while (($#)); do
-		if (($1 < L_RET)); then
-			L_RET="$1"
+	for i; do
+		if ((i<L_RET)); then
+			L_RET=$i
 		fi
-		shift
 	done
 }
 
