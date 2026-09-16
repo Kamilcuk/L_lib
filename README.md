@@ -62,6 +62,22 @@ You can test the library ad-hoc:
 bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.0.4/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
+# Commonly used functions
+
+Here are the functions most frequently used throughout the L_lib codebase (including scripts and tests):
+
+- [`L_finally`](https://kamilcuk.github.io/L_lib/section/finally/) - Execute an action on EXIT, RETURN, or signal.
+- [`L_argparse`](https://kamilcuk.github.io/L_lib/section/argparse/) - Parse command line arguments.
+- [`L_log`](https://kamilcuk.github.io/L_lib/section/log/) - Log a message with a specified level.
+- [`L_handle_v_scalar`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_handle_v_scalar) - Handle the `-v <var>` option to store results in a variable.
+- [`L_info`](https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_info) - Log an informational message.
+- [`L_panic`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic) - Print error with traceback and exit.
+- [`L_xargs`](https://kamilcuk.github.io/L_lib/section/xargs/#L_lib.sh--L_xargs) - Run parallel background tasks with controlled concurrency.
+- [`L_foreach`](https://kamilcuk.github.io/L_lib/section/foreach/#L_lib.sh--L_foreach) - Iterate over arrays with automatic index tracking.
+- [`L_with_tmpfile_into`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_tmpfile_into) - Execute a command with its output stored in a temporary file.
+- [`L_with_process_into`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_process_into) - Execute a command and store its stdout/stderr in variables.
+
+
 # Features
 
 Below is a selection of the library's features. The library contains much more.
@@ -86,6 +102,7 @@ Below is a selection of the library's features. The library contains much more.
     [`L_proc_popen`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_popen)
     [`L_proc_communicate`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_communicate)
     [`L_proc_kill`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_kill)
+    [`L_kill_all_childs`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_kill_all_childs)
 - Temporary enable or disable shell features `set -x` for the duration of a command
     [`L_setx`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_setx)
     [`L_unsetx`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_unsetx)
@@ -152,6 +169,10 @@ Below is a selection of the library's features. The library contains much more.
     [`L_readarray`](https://kamilcuk.github.io/L_lib/section/array/#L_lib.sh--L_readarray)
     [`L_epochrealtime_usec`](https://kamilcuk.github.io/L_lib/section/time/#L_lib.sh--L_epochrealtime_usec)
     [`L_compgen -V`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_compgen)
+- Event loop for asynchronous Bash programming
+    [`L_uv_init`](https://kamilcuk.github.io/L_lib/section/uv/)
+    [`L_uv_add_timer`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_add_timer)
+    [`L_uv_run`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_run)
 
 # Talk to me
 
