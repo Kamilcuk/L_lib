@@ -2267,6 +2267,19 @@ _L_test_range_to_count() {
   fi
 }
 
+_L_test_pipe() {
+	{
+		L_info "test pipe"
+		local pipefd
+		L_pipe pipefd
+		[[ ${#pipefd[@]} -eq 2 ]] || return 1
+		echo 123 >&"${pipefd[1]}"
+		read -r -u "${pipefd[0]}" || return
+		[[ $REPLY == 123 ]] || return 1
+		L_close_fd "${pipefd[0]}" "${pipefd[1]}"
+	}
+}
+
 ###############################################################################
 
 skip_assoc() {
