@@ -461,26 +461,31 @@ _write_fd() {
 	L_eval '"${@:2}" >&"$1"' "$@"
 }
 _finally_test_waiter() {
-	L_unittest_cmd -c _write_fd "$1" timeout 2 echo READY
-	L_unittest_cmd -c read -t 2 -u "$2" || exit
-	L_unittest_cmd -c test "$REPLY" = "KILLED"
+	local i j times=$3 rc=0
+	enable sleep 2>/dev/null >&2 || :
+	for ((i=0;i<times;++i)); do
+		L_unittest_cmd -c _write_fd "$1" timeout 2 echo READY
+		# First read will be interrupt by a signal.
+		read -t 2 -u "$2" REPLY || read -t 2 -u "$2" REPLY || exit
+		L_unittest_cmd -c test "$REPLY" = "KILLED"
+	done
 }
 _finally_test_interrupter() {
-	local ready done bashpid times=$1
+	echo "---- $* ----"
+	local ready done bashpid times=${1:-1} REPLY
 	L_pipe ready
 	L_pipe done
-	L_finally -r _finally_test_waiter "${ready[1]}" "${done[0]}"
+	L_finally -r _finally_test_waiter "${ready[1]}" "${done[0]}" "$times"
 	L_bashpid_into bashpid
 	_killer() {
+		local i
 		L_close_fd "${ready[1]}" "${done[0]}"
-		L_unittest_cmd -c read -t 2 -u "${ready[0]}"
-		L_unittest_cmd -c [ "$REPLY" == "READY" ]
-		L_unittest_cmd -c kill -USR1 "$bashpid"
-		if (( times == 2 )); then
-			sleep 0.2
+		for ((i=0;i<times;++i)); do
+			L_unittest_cmd -c read -t 2 -u "${ready[0]}" REPLY
+			L_unittest_cmd -c [ "$REPLY" == "READY" ]
 			L_unittest_cmd -c kill -USR1 "$bashpid"
-		fi
-		L_unittest_cmd -c _write_fd "${done[1]}" timeout 2 echo "KILLED"
+			L_unittest_cmd -c _write_fd "${done[1]}" timeout 2 echo "KILLED"
+		done
 	}
 	_killer &
 	L_close_fd "${ready[0]}" "${done[1]}"
