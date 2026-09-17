@@ -1495,6 +1495,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#bash-40-to-42-incorrectly-serialize-redirection-with-variable-expansion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash 4.0 to 4.2 incorrectly serialize redirection with variable expansion.
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1656,6 +1667,17 @@
     <span class="md-ellipsis">
       
         Bash==4.1 removes empty elements from an array after /# array expansion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bash-40-to-42-incorrectly-serialize-redirection-with-variable-expansion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash 4.0 to 4.2 incorrectly serialize redirection with variable expansion.
       
     </span>
   </a>
@@ -1954,6 +1976,61 @@ EOF
 </tr>
 </tbody>
 </table>
+<h2 id="bash-40-to-42-incorrectly-serialize-redirection-with-variable-expansion">Bash 4.0 to 4.2 incorrectly serialize redirection with variable expansion.<a class="headerlink" href="#bash-40-to-42-incorrectly-serialize-redirection-with-variable-expansion" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>func() { echo &gt;&amp;$a; }; declare -f func | grep echo
+</code></pre></div>
+<p>The <code>&gt;&amp;</code> redirection to file descriptor stored in a variable becomes <code>&amp;&gt;</code> redirection for both stdout and stderr.</p>
+<table>
+<thead>
+<tr>
+<th>Bash</th>
+<th>output</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.2</td>
+<td>echo &gt;&amp;$a</td>
+</tr>
+<tr>
+<td>4.0</td>
+<td>echo &amp;&gt;$a</td>
+</tr>
+<tr>
+<td>4.1</td>
+<td>echo &amp;&gt;$a</td>
+</tr>
+<tr>
+<td>4.2</td>
+<td>echo &amp;&gt;$a</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>echo 1&gt;&amp;$a</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td>echo 1&gt;&amp;$a</td>
+</tr>
+<tr>
+<td>5.0</td>
+<td>echo 1&gt;&amp;$a</td>
+</tr>
+<tr>
+<td>5.1</td>
+<td>echo 1&gt;&amp;$a</td>
+</tr>
+<tr>
+<td>5.2</td>
+<td>echo &gt;&amp;$a</td>
+</tr>
+<tr>
+<td>5.3</td>
+<td>echo &gt;&amp;$a</td>
+</tr>
+</tbody>
+</table>
+<p>The function itself is correct, instead this affects declare -f output and export -f inherited functions!</p>
 
 
 
@@ -1974,7 +2051,7 @@ EOF
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 25, 2025 20:47:43 UTC">June 25, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 07:46:43 UTC">September 17, 2026</span>
   </span>
 
     
