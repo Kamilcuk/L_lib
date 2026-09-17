@@ -5888,7 +5888,7 @@ L_finally_handle_return() {
 	#
 	if (( ${_L_finally_pending[@]+1} )); then
 		# Execute any pending signals.
-		# Unset L_SIGNAL, so that pending signal detection works correctly.
+		# Unset _L_finally_running, so that pending signal detection works correctly.
 		unset -v _L_finally_running
 		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
 		exit "$((128+_L_finally_pending[1]))"
@@ -5897,9 +5897,8 @@ L_finally_handle_return() {
 
 # @description L_finally EXIT handler.
 L_finally_handle_exit() {
-	local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_pid _L_finally_running=1
-	L_bashpid_into _L_pid
-	if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
+	local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_finally_running=1
+	if [[ "${_L_finally_pid:-}" == "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}" ]]; then
 		# _L_finally_debug "${_L_finally_arr[@]}"
 		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 		# During handling exit trap we received a signal. Try to preserve the exit code.
@@ -5921,9 +5920,7 @@ L_finally_handle_exit() {
 # @arg $1 The trap signal name to handle.
 # @arg $2 The value of $?.
 L_finally_handle_signal() {
-	local _L_pid
-	L_bashpid_into _L_pid
-	if [[ "${_L_finally_pid:-}" == "$_L_pid" ]]; then
+	if [[ "${_L_finally_pid:-}" == "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}" ]]; then
 		# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
 		if [[ -n "${L_SIGNAL:-}" ]]; then
 			# Is this the first time we are here?
