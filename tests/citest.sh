@@ -2,4 +2,4 @@
 set -euo pipefail
 cd "$(dirname "$(readlink -f "$0")")"/..
 set -x
-./tests/test.sh -d 10 -Pn -v "$@"
+./tests/test.sh -d 10 -Pn "$@"

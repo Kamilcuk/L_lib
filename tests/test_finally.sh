@@ -349,9 +349,7 @@ _L_test_finally() {
 	}
 	#
 	L_finally_list
-	local a
-	a=$(L_finally_list)
-	L_unittest_cmd -I grep -q L_log <<<"$a"
+	L_unittest_cmd -r L_log L_finally_list
 	L_finally_pop
 }
 
@@ -449,68 +447,85 @@ _L_test_finally_proc() {
 	}
 }
 
-_L_test_finally_interrupt() {
+_L_test_finally_sigret() {
 	{
-		L_info "test SIGRET"
 		f() { L_finally eval 'echo $L_SIGRET'; exit 123; }
 		L_unittest_cmd -o 123 -e 123 f
 		f() { L_finally -r eval 'echo $L_SIGRET'; exit 234; }
 		L_unittest_cmd -o 234 -e 234 f
 	}
-	waiter() {
-		# local r=0; while wait "$@" && r=$? || r=$?; (($r>128)); do :; done
-		# set +x; while kill -0 "$1" 2>/dev/null; do sleep 0.1; done
-		# set +x
-		enable sleep 2>/dev/null || :
-		local to; L_timeout_init_into to "$1"; while ! L_timeout_is_expired "$to"; do sleep 0.1; done
+}
+
+_write_fd() {
+	# see bash_bugs.md bug with bash 4.1-4.3 not able to properly serialize >&
+	L_eval '"${@:2}" >&"$1"' "$@"
+}
+_finally_test_waiter() {
+	local i j times=$3 rc=0
+	enable sleep 2>/dev/null >&2 || :
+	for ((i=0;i<times;++i)); do
+		L_unittest_cmd -c _write_fd "$1" timeout 2 echo READY
+		# First read will be interrupt by a signal.
+		read -t 2 -u "$2" REPLY || read -t 2 -u "$2" REPLY || exit
+		L_unittest_cmd -c test "$REPLY" = "KILLED"
+	done
+}
+_finally_test_interrupter() {
+	echo "---- $* ----"
+	local ready done bashpid times=${1:-1} REPLY
+	L_pipe ready
+	L_pipe done
+	L_finally -r _finally_test_waiter "${ready[1]}" "${done[0]}" "$times"
+	L_bashpid_into bashpid
+	_killer() {
+		local i
+		L_close_fd "${ready[1]}" "${done[0]}"
+		for ((i=0;i<times;++i)); do
+			L_unittest_cmd -c read -t 2 -u "${ready[0]}" REPLY
+			L_unittest_cmd -c [ "$REPLY" == "READY" ]
+			L_unittest_cmd -c kill -USR1 "$bashpid"
+			L_unittest_cmd -c _write_fd "${done[1]}" timeout 2 echo "KILLED"
+		done
 	}
+	_killer &
+	L_close_fd "${ready[0]}" "${done[1]}"
+	case "$2" in
+		pop) L_finally_pop ;;
+		return) return ;;
+		exit) exit ;;
+		signal) L_raise -USR1 ;;
+	esac
+}
+
+_L_test_finally_interrupt_once() {
 	{
-		local e=$((128+$(L_trap_to_number USR1)))
 		L_info "test interrupting error handling"
-		f() {
-			L_finally waiter 0.5
-			L_bashpid_into bashpid
-			sleep 0.2 && kill -USR1 "$bashpid" || : &
-			case "$1" in
-				pop) L_finally_pop ;;
-				return) return ;;
-				exit) exit ;;
-				signal) L_raise -USR1 ;;
-			esac
-		}
-		export -f f waiter
-		L_unittest_cmd -e "$e" "${newbash[@]}" f pop
-		L_unittest_cmd -e "$e" "${newbash[@]}" f return
-		L_unittest_cmd -e "$e" "${newbash[@]}" f exit
-		L_unittest_cmd -e "$e" "${newbash[@]}" f signal
-		L_unittest_cmd -e "$e" f pop
-		L_unittest_cmd -e "$e" f return
-		L_unittest_cmd -e "$e" f exit
-		L_unittest_cmd -e "$e" f signal
+		export -f _finally_test_waiter _finally_test_interrupter _write_fd
+		local e=$((128+$(L_trap_to_number USR1)))
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 pop
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 return
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 exit
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 signal
+		L_unittest_cmd -e "$e" _finally_test_interrupter 1 pop
+		L_unittest_cmd -e "$e" _finally_test_interrupter 1 return
+		L_unittest_cmd -e "$e" _finally_test_interrupter 1 exit
+		L_unittest_cmd -e "$e" _finally_test_interrupter 1 signal
 	}
+}
+
+_L_test_finally_interrupt_twice() {
 	{
 		L_info "test interrupting error handling twice"
-		f2() {
-			L_finally waiter 10
-			L_bashpid_into bashpid
-			exec 2>&1
-			sleep 0.2 && kill -USR1 "$bashpid" &
-			sleep 0.4 && kill -USR1 "$bashpid" &
-			case "$1" in
-				pop) L_finally_pop ;;
-				return) return ;;
-				exit) exit ;;
-				signal) L_raise -USR1 ;;
-			esac
-		}
-		export -f f2
-		L_unittest_cmd -e "$e" f2 pop
-		L_unittest_cmd -e "$e" f2 return
-		L_unittest_cmd -e "$e" f2 exit
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 pop
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 return
-		L_unittest_cmd -e "$e" "${newbash[@]}" f2 exit
-		L_unittest_cmd -e "$e" f2 signal
+		export -f _finally_test_waiter _finally_test_interrupter _write_fd
+		local e=$((128+$(L_trap_to_number USR1)))
+		L_unittest_cmd -e "$e" _finally_test_interrupter 2 pop
+		L_unittest_cmd -e "$e" _finally_test_interrupter 2 return
+		L_unittest_cmd -e "$e" _finally_test_interrupter 2 exit
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 2 pop
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 2 return
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 2 exit
+		L_unittest_cmd -e "$e" _finally_test_interrupter 2 signal
+		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 2 signal
 	}
 }
 
@@ -661,7 +676,7 @@ _L_test_finally_fix_subshell_reraise() {
     func() {
         L_finally :
         (
-            sleep 10
+  					for ((i=0;i<20;++i)); do sleep 0.5; done
             echo "SHOULD NOT BE REACHED"
         ) &
         local pid=$!
