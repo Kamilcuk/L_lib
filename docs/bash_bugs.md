@@ -106,11 +106,11 @@ Refactoring to using a global array brought significant speedup.
 arr=(hhh); arr=("${arr[@]#hhh}"); echo "${#arr[@]}"
 ```
 
-| Bash | output |
-| --- | --- |
-| <=4.1 | 1 |
-| >=4.2,<=5.1 | 0 |
-| >=5.2 | 1 |
+| Bash        | output |
+| ---         | ---    |
+| <=4.1       | 1      |
+| >=4.2,<=5.1 | 0      |
+| >=5.2       | 1      |
 
 
 ## Bash==4.1 removes empty elements from an array after /# array expansion
@@ -119,8 +119,31 @@ arr=(hhh); arr=("${arr[@]#hhh}"); echo "${#arr[@]}"
 arr=(hhh); arr=("${arr[@]/#hhh}"); echo "${#arr[@]}"
 ```
 
-| Bash | output |
-| --- | --- |
-| ==4.2 | 0 |
-| !=4.2 | 1 |
+| Bash  | output |
+| ---   | ---    |
+| ==4.2 | 0      |
+| !=4.2 | 1      |
 
+
+## Bash 4.0 to 4.2 incorrectly serialize redirection with variable expansion.
+
+```
+func() { echo >&$a; }; declare -f func | grep echo
+```
+
+The `>&` redirection to file descriptor stored in a variable becomes `&>` redirection for both stdout and stderr.
+
+| Bash | output     |
+| ---  | ---        |
+| 3.2  | echo >&$a  |
+| 4.0  | echo &>$a  |
+| 4.1  | echo &>$a  |
+| 4.2  | echo &>$a  |
+| 4.3  | echo 1>&$a |
+| 4.4  | echo 1>&$a |
+| 5.0  | echo 1>&$a |
+| 5.1  | echo 1>&$a |
+| 5.2  | echo >&$a  |
+| 5.3  | echo >&$a  |
+
+The function itself is correct, instead this affects declare -f output and export -f inherited functions!
