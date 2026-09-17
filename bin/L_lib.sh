@@ -10064,6 +10064,7 @@ L_bashpid_into() { printf -v "$1" "%s" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo
 
 # @description Send signal to itself.
 # @arg $@ Kill arguments. See kill --help.
+# shellcheck disable=SC2119,SC2120
 L_raise() { kill "$@" "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}"; }
 
 # @description
