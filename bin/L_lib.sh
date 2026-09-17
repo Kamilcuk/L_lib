@@ -306,9 +306,9 @@ L_ANSI_RESTORE_POSITION=$'\E8'
 # @arg $2... str to print
 L_ansi_print_on_line_above() {
 	if ((!$1)); then
-		printf "\r\E[2K%s" "${*:2}"
+		printf "\r%s\E[K" "${*:2}"
 	else
-		printf "\E[%dA\r\E[2K%s\E[%dB\r" "$1" "${*:2}" "$1"
+		printf "\E[%dA\r%s\E[K\E[%dB\r" "$1" "${*:2}" "$1"
 	fi
 }
 
@@ -6498,7 +6498,7 @@ _L_unittest_spins_starting() {
 	_L_u_spin_lines+=("$L_XARGS_INDEX:$1")
 	echo
 	L_ansi_print_on_line_above 1 "$1" || :
-	_L_unittest_spinner_refresh
+	_L_unittest_spinner_refresh force
 }
 
 _L_unittest_spins_finished() {
@@ -6548,16 +6548,19 @@ _L_unittest_spinner_vL_RET() {
 
 _L_unittest_spinner_refresh() {
 	local done=$(( ${_L_u_test_ret[@]+${_L_u_test_ret[@]//*/+1}}+0 )) all=${#_L_u_test_name[@]} L_RET
-	_L_unittest_spinner_vL_RET _L_u_spinner
+	_L_unittest_spinner_vL_RET _L_u_spinner_pos
 	local spinner=$L_RET
 	_L_unittest_progress_bar_vL_RET "$done" "$all" 40
 	local bar=$L_RET
 	local msg="-- $spinner Testing $bar $done/$all --"
-	L_ansi_print_on_line_above 0 "$msg" || :
+	if [[ "$_L_u_spinner_buf" != "$msg" || "$1" == "force" ]]; then
+		_L_u_spinner_buf=$msg
+		L_ansi_print_on_line_above 0 "$msg" || :
+	fi
 }
 
 _L_unittest_spinner_task() {
-	(( ++_L_u_spinner ))
+	(( ++_L_u_spinner_pos ))
 	_L_unittest_spinner_refresh
 	if (( !${_L_u_test_out_r[@]:+1}0 )); then
 		L_ansi_print_on_line_above 0 "" || :
@@ -6590,8 +6593,8 @@ _L_unittest_main_xargs_subshell_callback() {
 					printf "%s" "$hdr${L_RESET}"
 				elif (( _L_u_use_term )); then
 					# Intialize spinner on first run.
-					if [[ -z "$_L_u_spinner" ]]; then
-						_L_u_spinner=0
+					if [[ -z "$_L_u_spinner_pos" ]]; then
+						_L_u_spinner_pos=0
 						L_uv_add_timer -r 100ms -d 100ms _L_unittest_spinner_task
 					fi
 					_L_unittest_spins_starting "$msg"
@@ -6609,19 +6612,9 @@ _L_unittest_main_xargs_subshell_callback() {
 			;;
 		EXIT) # $2 - pid, $3 - exitcode
 			local tmp testresult
-			if (( !_L_u_stream )); then
-				# Read output from the child.
-				_L_u_test_output[L_XARGS_INDEX]=""
-				while IFS= read -r -u "${_L_u_test_out_r[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
-					_L_u_test_output[L_XARGS_INDEX]+="$tmp"
-				done
-				L_close_fd "${_L_u_test_out_r[L_XARGS_INDEX]}"
-			fi
 			# Read test result from the child.
 			IFS= read -r -u "${_L_u_test_res_r[L_XARGS_INDEX]}" -d '' testresult || testresult=""
 			L_close_fd "${_L_u_test_res_r[L_XARGS_INDEX]}"
-			# Cleanup
-			unset -v '_L_u_test_out_r[L_XARGS_INDEX]' '_L_u_test_res_r[L_XARGS_INDEX]'
 			# Extract information from status. The _=DC1 lines use as a marker for some safety.
 			if [[ "$testresult" =~ ^(_=${L_DC1}\ _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*\ )?(_=${L_DC1}\ _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+\ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$ ]]; then
 				eval "$testresult"
@@ -6630,13 +6623,23 @@ _L_unittest_main_xargs_subshell_callback() {
 				_L_u_test_ret[L_XARGS_INDEX]="300"
 				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
 			fi
-			# If not verbose, and the test is OK or is SKIPPED, we will not be needing output, so we can free memory.
-			if (( !_L_u_verbose && _L_u_test_ret[L_XARGS_INDEX] == 0 )); then
+			if (( !_L_u_stream )); then
+				# Read output from the child.
 				_L_u_test_output[L_XARGS_INDEX]=""
-			else
-				# Remove trailing newline
-				_L_u_test_output[L_XARGS_INDEX]=${_L_u_test_output[L_XARGS_INDEX]%$'\n'}
+				while IFS= read -r -u "${_L_u_test_out_r[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
+					_L_u_test_output[L_XARGS_INDEX]+="$tmp"
+				done
+				L_close_fd "${_L_u_test_out_r[L_XARGS_INDEX]}"
+				# If not verbose, and the test is OK or is SKIPPED, we will not be needing output, so we can free memory.
+				if (( !_L_u_verbose && _L_u_test_ret[L_XARGS_INDEX] == 0 )); then
+					_L_u_test_output[L_XARGS_INDEX]=""
+				else
+					# Remove trailing newline
+					_L_u_test_output[L_XARGS_INDEX]=${_L_u_test_output[L_XARGS_INDEX]%$'\n'}
+				fi
 			fi
+			# Cleanup file descriptors.
+			unset -v "_L_u_test_out_r[$L_XARGS_INDEX]" "_L_u_test_res_r[$L_XARGS_INDEX]"
 			# Output
 			if (( _L_u_quiet )); then
 				# One quiet, just print one letter.
@@ -6701,7 +6704,7 @@ _L_unittest_main_worker() {
 		_L_ur_start=$L_RET
 		if (( _L_u_subshell )); then
 			# Close all file descriptors to other tests.
-			L_close_fd "${_L_u_test_out_r[@]}" "${_L_u_test_res_r[@]}"
+			L_close_fd ${_L_u_test_out_r[@]+"${_L_u_test_out_r[@]}"} "${_L_u_test_res_r[@]}"
 			# _L_run_subshell handles trap ERR set -e transferring.
 			# Note: this is double subshell. The first subshell or background process is executed in L_xargs.
 			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
@@ -6806,7 +6809,7 @@ L_unittest_main() {
 		_L_u_test_name=() \
 		_L_u_test_skipped \
 		_L_u_test_duration \
-		_L_u_test_out_r \
+		_L_u_test_out_r=() \
 		_L_u_test_res_r \
 		_L_ur_out_w \
 		_L_ur_res_w \
@@ -6815,7 +6818,8 @@ L_unittest_main() {
 		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" \
 		_L_u_spin_lines=() \
 		_L_u_use_term="" \
-		_L_u_spinner=""
+		_L_u_spinner_pos="" \
+		_L_u_spinner_buf=""
 	# Local variable definitions from _L_unittest_main_worker(). They are here, as the EXIT trap on bash 3.2 is executed
 	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
 	local _L_ur_ret _L_ur_test _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
