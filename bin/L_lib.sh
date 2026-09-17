@@ -10176,7 +10176,7 @@ L_get_free_fd_into() {
 # shellcheck disable=SC2094
 _L_pipe_opener() {
 	# First open the file descriptor for both, so that opening is not getting stuck.
-	exec {_L_tmp[0]}<>"$_L_file" {_L_tmp[1]}<"$_L_file" {_L_tmp[2]}>"$_L_file" {_L_tmp[0]}>&-
+	exec {_L_p_tmp[0]}<>"$_L_p_file" {_L_p_tmp[1]}<"$_L_p_file" {_L_p_tmp[2]}>"$_L_p_file" {_L_p_tmp[0]}>&-
 }
 else
 	L_get_free_fd_into() {
@@ -10193,8 +10193,8 @@ else
 	}
 	# shellcheck disable=SC2094
 	_L_pipe_opener() {
-		L_get_free_fd_into _L_tmp 3 &&
-		eval "exec ${_L_tmp[0]}<>\"\$_L_file\" ${_L_tmp[1]}<\"\$_L_file\" ${_L_tmp[2]}>\"\$_L_file\" ${_L_tmp[0]}>&-"
+		L_get_free_fd_into _L_p_tmp 3 &&
+		eval "exec ${_L_p_tmp[0]}<>\"\$_L_p_file\" ${_L_p_tmp[1]}<\"\$_L_p_file\" ${_L_p_tmp[2]}>\"\$_L_p_file\" ${_L_p_tmp[0]}>&-"
 	}
 fi
 
@@ -10255,27 +10255,27 @@ L_mktemp_vL_RET() {
 #   cat <&"$out"
 #   exec "$out"<&-
 L_pipe() {
-	local _L_i _L_file _L_tmp _L_tpl="${2:-L_pipe.XXX}"
+	local _L_p_i _L_p_file _L_p_tmp _L_p_tpl="${2:-L_pipe.XXX}"
 	if ! L_is_valid_variable_name "$1"; then
 		L_func_usage_error "must be a valid identifier: $1"
 		return "$L_EX_USAGE"
 	fi
-	if [[ "$_L_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
-		_L_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp}/}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
+	if [[ "$_L_p_tpl" =~ (.*/)?([^/]*)XXX+([^/]*) ]]; then
+		_L_p_tpl=${BASH_REMATCH[1]:-${TMPDIR:-/tmp}/}${BASH_REMATCH[2]}XXX${BASH_REMATCH[3]}
 	else
-		L_func_usage_error "template must contain at least three XXX: $_L_tpl"
+		L_func_usage_error "template must contain at least three XXX: $_L_p_tpl"
 		return "$L_EX_USAGE"
 	fi
-	for _L_i in {1..10}; do
-		_L_file="${_L_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
-		if mkfifo "$_L_file" 2>/dev/null; then
+	for _L_p_i in {1..10}; do
+		_L_p_file="${_L_p_tpl/XXX/${HOSTNAME:-h}${BASHPID:-$$}${SRANDOM:-$RANDOM}$((_L_PIPE_CNT = ${_L_PIPE_CNT:-0} + 1))}"
+		if mkfifo "$_L_p_file" 2>/dev/null; then
 			if _L_pipe_opener; then
-				rm "$_L_file" || return
+				rm "$_L_p_file" || return
 				# $1 checked for valid variable name above.
-				eval "$1=(\"\${_L_tmp[@]:1}\")"
+				eval "$1=(\"\${_L_p_tmp[@]:1}\")"
 				return 0
 			else
-				rm "$_L_file" || return
+				rm "$_L_p_file" || return
 			fi
 		fi
 	done
