@@ -6487,10 +6487,10 @@ _L_unittest_main_handle_k() {
 # @description Skip the current unit test with a specified reason.
 # @option $1 Skipping reason.
 L_unittest_skip() {
-	_L_u_test_skipped[L_XARGS_INDEX]=" ${*//$'\n'/ }"
-	# Transfer skip reason to parent. No newline.
-	printf "_=%s _L_u_test_skipped[L_XARGS_INDEX]=%q " \
-		"$L_DC1" "${_L_u_test_skipped[L_XARGS_INDEX]}" >&"$_L_ur_res_w"
+	_L_u_test_skipped[L_XARGS_INDEX]=" ${*//[$'\v\t\n']/ }"
+	# Transfer skip reason to parent.
+	printf "_=%s _L_u_test_skipped[%d]=%q\n" \
+		"$L_DC1" "$_L_ur_index" "${_L_u_test_skipped[L_XARGS_INDEX]::40}" >&"$_L_ur_res_w"
 	exit 0
 }
 
@@ -6553,7 +6553,7 @@ _L_unittest_spinner_refresh() {
 	_L_unittest_progress_bar_vL_RET "$done" "$all" 40
 	local bar=$L_RET
 	local msg="-- $spinner Testing $bar $done/$all --"
-	if [[ "$_L_u_spinner_buf" != "$msg" || "$1" == "force" ]]; then
+	if [[ "$_L_u_spinner_buf" != "$msg" || "${1:-}" == "force" ]]; then
 		_L_u_spinner_buf=$msg
 		L_ansi_print_on_line_above 0 "$msg" || :
 	fi
@@ -6579,10 +6579,6 @@ _L_unittest_main_xargs_subshell_callback() {
 				_L_ur_out_w="${tmpfd[0]}"
 				_L_u_test_out_r[L_XARGS_INDEX]="${tmpfd[1]}"
 			fi
-			# Two file descriptors for transferring worker result.
-			L_mkstemp tmpfd 2
-			_L_ur_res_w="${tmpfd[0]}"
-			_L_u_test_res_r[L_XARGS_INDEX]="${tmpfd[1]}"
 			# Output
 			if (( !_L_u_quiet )); then
 				local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
@@ -6608,86 +6604,95 @@ _L_unittest_main_xargs_subshell_callback() {
 			if (( !_L_u_stream )); then
 				L_close_fd "$_L_ur_out_w"
 			fi
-			L_close_fd "$_L_ur_res_w"
 			;;
-		EXIT) # $2 - pid, $3 - exitcode
-			local tmp testresult
-			# Read test result from the child.
-			IFS= read -r -u "${_L_u_test_res_r[L_XARGS_INDEX]}" -d '' testresult || testresult=""
-			L_close_fd "${_L_u_test_res_r[L_XARGS_INDEX]}"
-			# Extract information from status. The _=DC1 lines use as a marker for some safety.
-			if [[ "$testresult" =~ ^(_=${L_DC1}\ _L_u_test_skipped\[L_XARGS_INDEX\]=[^$'\n']*\ )?(_=${L_DC1}\ _L_u_test_ret\[L_XARGS_INDEX\]=[0-9]+\ _L_u_test_duration\[L_XARGS_INDEX\]=[0-9]+:[0-9]+)$ ]]; then
-				eval "$testresult"
+		EXIT)
+			# $2 - pid, $3 - exitcode
+			local line worker="#$L_XARGS_INDEX ${_L_u_test_name[L_XARGS_INDEX]}" cause="This might be caused by an invalid test that overwrites or closes existing file descriptors used for communication with the L_unittest_main manager, a test that exits immidately without running L_ library registered traps, a test that overwrites variables starting with _L_* or L_lib library internal error like a formatting error. Please make sure your tests do not overwrite random file descriptors - use {var}<> syntax or L_get_free_fd_into function to get a free unused file descriptor. Consider using L_finally to register action to execute on signal or exit. Consider reporting a bug to L_lib."
+			if (( $3 )); then
+				L_critical "Worker $worker pid $2 exited with nonzero exit status $3. This could be an internal error in L_lib library where the worker has an internal error and terminates with non-zero exit code, like invalid expression run under set -e. I believe please report to L_lib as a bug."
+				_L_u_test_ret[L_XARGS_INDEX]=300
 			else
-				L_critical "_L_unittest_main_worker: test %s did not transfer status to the parent correctly. Check if the test does not overwrite EXIT or signal traps or overwrite open file descriptor. To allocate a free file descriptor you can use L_get_free_fd_into function. To execute an action on signal or on exit consider using L_finally function. This might also be a L_lib library error. Status data: %q" "${_L_u_test_name[L_XARGS_INDEX]}" "$testresult"
-				_L_u_test_ret[L_XARGS_INDEX]="300"
-				_L_u_test_duration[L_XARGS_INDEX]="0:$L_XARGS_INDEX"
-			fi
-			if (( !_L_u_stream )); then
-				# Read output from the child.
-				_L_u_test_output[L_XARGS_INDEX]=""
-				while IFS= read -r -u "${_L_u_test_out_r[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
-					_L_u_test_output[L_XARGS_INDEX]+="$tmp"
+				while [[ -z "${_L_u_test_ret[L_XARGS_INDEX]:-}" ]]; do
+					IFS= read -r -t 10 -u "$_L_u_res_r" line || {
+						if (( $? > 128 )); then
+							# read timeout
+							L_critical "Worker %s did not transfer the result information back to manager in 10 seconds. %s Killing" \
+								"$worker" "$cause"
+							L_raise; exit 128
+						else
+							L_critical "EOF encoutered While reading the result of worker %s. %s Killing" \
+								"$worker" "$cause"
+							L_raise; exit 128
+						fi
+					}
+					if [[ "$line" =~ ^_=$L_DC1\ (_L_u_test_skipped\[[0-9]+\]=[^$'\n']*|_L_u_test_ret\[[0-9]+\]=[0-9]+\ _L_u_test_duration\[[0-9]+\]=[0-9]+:[0-9]+)$ ]]; then
+						eval "$line"
+					else
+						L_critical "While reading result of worker %s received an invalid result line: %q. %s" \
+							"$worker" "$line" "$cause"
+					fi
 				done
-				L_close_fd "${_L_u_test_out_r[L_XARGS_INDEX]}"
-				# If not verbose, and the test is OK or is SKIPPED, we will not be needing output, so we can free memory.
-				if (( !_L_u_verbose && _L_u_test_ret[L_XARGS_INDEX] == 0 )); then
-					_L_u_test_output[L_XARGS_INDEX]=""
-				else
-					# Remove trailing newline
-					_L_u_test_output[L_XARGS_INDEX]=${_L_u_test_output[L_XARGS_INDEX]%$'\n'}
-				fi
 			fi
-			# Cleanup file descriptors.
-			unset -v "_L_u_test_out_r[$L_XARGS_INDEX]" "_L_u_test_res_r[$L_XARGS_INDEX]"
-			# Output
-			if (( _L_u_quiet )); then
-				# One quiet, just print one letter.
-				case "${_L_u_test_ret[L_XARGS_INDEX]}${_L_u_test_skipped[L_XARGS_INDEX]:-}" in
-					0) local statuscolor="$L_GREEN" status="." ;;
-					0?*) local statuscolor="$L_MAGENTA" status="S" ;;
-					300*) local statuscolor="$L_BOLD$L_RED$L_UNDERLINE" status="E" ;;
-					*) local statuscolor="$L_BOLD$L_RED" status="F" ;;
-				esac
-				printf "%s" "$statuscolor$status$L_RESET"
-			else
-				local duration_str=""
-				L_usec_to_duration -v duration_str "${_L_u_test_duration[L_XARGS_INDEX]%%:*}"
-				# Calculate the status of the test.
-				case "${_L_u_test_ret[L_XARGS_INDEX]}${_L_u_test_skipped[L_XARGS_INDEX]:-}" in
-					0) local statuscolor="$L_GREEN" status="PASSED" ;;
-					0?*)
-						local reason=${_L_u_test_skipped[L_XARGS_INDEX]:1}
-						local statuscolor="$L_MAGENTA" status="SKIPPED${reason:+ (${reason::20})}"
-						;;
-					300*) local statuscolor="$L_BOLD$L_RED$L_UNDERLINE" status="ERROR ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
-					*) local statuscolor="$L_BOLD$L_RED" status="FAILED ${_L_u_test_ret[L_XARGS_INDEX]}" ;;
-				esac
-				# Output the status.
-				local msg="$statuscolor$status$L_RESET ($duration_str)"
-				local offset="$(( COLUMNS - ( ${#_L_u_test_basename[L_XARGS_INDEX]} + ${#status} + 2 + ${#duration_str} + 9 ) ))"
-				local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
-				printf -v msg "%s %*s[%3d%%]" \
-					"$msg" \
-					"$(( offset > 0 ? offset : 0 ))" "" \
-					"$(( ${#_L_u_test_ret[*]} * 100 / ${#_L_u_test_func[*]} ))"
-				# This if aligns with the if in PREEXEC stage.
-				if (( _L_u_stream )); then
-					echo "$hdr$msg"
-				elif (( _L_u_nproc == 1 )); then
-					echo "$msg"
-				elif (( _L_u_use_term )); then
-					_L_unittest_spins_finished "$hdr$msg"
-				else
-					echo "$hdr$msg"
-				fi
-			fi
+			_L_unittest_main_worker_finished
 			;;
 	esac
 }
 
+_L_unittest_main_worker_finished() {
+	local tmp status
+	_L_u_test_output[L_XARGS_INDEX]=""
+	if (( !_L_u_stream )); then
+		# We only need to read output if verbose or test is error.
+		# Otherwise, we can just close the fd, which will remove the file by kernel.
+		if (( _L_u_verbose || _L_u_test_ret[L_XARGS_INDEX] )); then
+			# Read output from the child.
+			while IFS= read -r -u "${_L_u_test_out_r[L_XARGS_INDEX]}" -d '' tmp || [[ -n "$tmp" ]]; do
+				_L_u_test_output[L_XARGS_INDEX]+="$tmp"
+			done
+			# Remove trailing newline
+			_L_u_test_output[L_XARGS_INDEX]=${_L_u_test_output[L_XARGS_INDEX]%$'\n'}
+		fi
+		# Cleanup file descriptor.
+		L_close_fd "${_L_u_test_out_r[L_XARGS_INDEX]}"
+		unset -v "_L_u_test_out_r[$L_XARGS_INDEX]"
+	fi
+	# Prepare status=(color short_status long_status).
+	case "${_L_u_test_ret[L_XARGS_INDEX]}${_L_u_test_skipped[L_XARGS_INDEX]:-}" in
+		0) status=("$L_BOLD$L_GREEN" "." "PASSED") ;;
+		0?*)
+			local reason=${_L_u_test_skipped[L_XARGS_INDEX]:1}
+			status=("$L_MAGENTA" "S" "SKIPPED${reason:+ (${reason::20})}")
+			;;
+		300*) status=("$L_BOLD$L_RED$L_UNDERLINE" "E" "ERROR");;
+		*) status=("$L_BOLD$L_RED" "F" "FAILED ${_L_u_test_ret[L_XARGS_INDEX]}") ;;
+	esac
+	if (( _L_u_quiet )); then
+		printf "%s" "${status[0]}${status[1]}$L_RESET"
+	else
+		local duration_str=""
+		L_usec_to_duration -v duration_str "${_L_u_test_duration[L_XARGS_INDEX]%%:*}"
+		local msg="${status[0]}${status[2]}$L_RESET ($duration_str)"
+		local offset="$(( COLUMNS - ( ${#_L_u_test_basename[L_XARGS_INDEX]} + ${#status[2]} + 2 + ${#duration_str} + 9 ) ))"
+		local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
+		printf -v msg "%s %*s[%3d%%]" \
+			"$msg" \
+			"$(( offset > 0 ? offset : 0 ))" "" \
+			"$(( ${#_L_u_test_ret[*]} * 100 / ${#_L_u_test_func[*]} ))"
+		# This if aligns with the if in PREEXEC stage.
+		if (( _L_u_stream )); then
+			echo "$hdr$msg"
+		elif (( _L_u_nproc == 1 )); then
+			echo "$msg"
+		elif (( _L_u_use_term )); then
+			_L_unittest_spins_finished "$hdr$msg"
+		else
+			echo "$hdr$msg"
+		fi
+	fi
+}
+
 _L_unittest_main_worker() {
-	_L_ur_ret=300 _L_ur_test=$1 _L_ur_traceback_offset_old=${_L_print_traceback_offset:-0} _L_ur_stderr=2
+	_L_ur_ret=300 _L_ur_index=$L_XARGS_INDEX _L_ur_test=$1 _L_ur_traceback_offset_old=${_L_print_traceback_offset:-0} _L_ur_stderr=2
 	# Set traceback offset to have short tracebacks when printing errors.
 	L_finally -r -v _L_ur_finally_idx _L_unittest_main_worker_finally
 	# Run the command.
@@ -6704,7 +6709,7 @@ _L_unittest_main_worker() {
 		_L_ur_start=$L_RET
 		if (( _L_u_subshell )); then
 			# Close all file descriptors to other tests.
-			L_close_fd ${_L_u_test_out_r[@]+"${_L_u_test_out_r[@]}"} "${_L_u_test_res_r[@]}"
+			L_close_fd ${_L_u_test_out_r[@]+"${_L_u_test_out_r[@]}"}
 			# _L_run_subshell handles trap ERR set -e transferring.
 			# Note: this is double subshell. The first subshell or background process is executed in L_xargs.
 			_L_print_traceback_offset=$(( ${#BASH_SOURCE[@]} + 1 ))
@@ -6746,8 +6751,8 @@ _L_unittest_main_worker_finally() {
 			;;
 	esac
 	# Transfer data to parent.
-	printf "_=%s _L_u_test_ret[L_XARGS_INDEX]=%d _L_u_test_duration[L_XARGS_INDEX]=%s\0" \
-			"$L_DC1" "${_L_ur_ret:-255}" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
+	printf "_=%s _L_u_test_ret[%d]=%d _L_u_test_duration[%d]=%s\n" \
+			"$L_DC1" "$_L_ur_index" "${_L_ur_ret:-255}" "$_L_ur_index" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
 }
 
 _L_unittest_main_output_printer() {
@@ -6810,9 +6815,10 @@ L_unittest_main() {
 		_L_u_test_skipped \
 		_L_u_test_duration \
 		_L_u_test_out_r=() \
-		_L_u_test_res_r \
 		_L_ur_out_w \
 		_L_ur_res_w \
+		_L_u_res_r \
+		_L_u_result_reader_id="" \
 		_L_u_exitfirst=0 L_RET \
 		_L_u_durations=0 _L_u_start _L_u_end _L_u_subshell=1 _L_u_stream=0 \
 		_L_u_testscnt _L_u_verbose=0 _L_u_finally_idx _L_u_msg="" \
@@ -6822,7 +6828,7 @@ L_unittest_main() {
 		_L_u_spinner_buf=""
 	# Local variable definitions from _L_unittest_main_worker(). They are here, as the EXIT trap on bash 3.2 is executed
 	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
-	local _L_ur_ret _L_ur_test _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
+	local _L_ur_ret _L_ur_test _L_ur_index _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
 	while getopts p:k:P:Elqd:xsScFvTh _L_i; do
 		case "$_L_i" in
 			p)
@@ -6831,7 +6837,16 @@ L_unittest_main() {
 				_L_u_testscnt+=${_L_u_test_func[*]:+${#_L_u_test_func[*]}}
 				;;
 			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
-			P) if [[ "$OPTARG" == n* ]]; then L_nproc_vL_RET; _L_u_nproc=$L_RET; else _L_u_nproc=$OPTARG; fi ;;
+			P)
+				if [[ "$OPTARG" == n* ]]; then
+					L_nproc_vL_RET; _L_u_nproc=$L_RET
+				elif ! L_is_integer "$OPTARG" || (( OPTARG < 0 )); then
+					L_func_usage_error "invalid -P value: $OPTARG"
+					return "$L_EX_USAGE"
+				else
+					(( _L_u_nproc = OPTARG, 1 )) || return "$L_EX_USAGE"
+				fi
+				;;
 			E) trap - ERR ;;
 			l) _L_u_list=1 ;;
 			q) _L_u_quiet=1 ;;
@@ -6877,12 +6892,12 @@ L_unittest_main() {
 		if (( !_L_u_subshell )); then
 			_L_u_msg+="; no subshell"
 		fi
-		if (( _L_u_nproc != 1 )); then
-			if (( _L_u_nproc == 0 )); then
-				_L_u_msg+="; running all in parallel"
-			else
-				_L_u_msg+="; running up to $_L_u_nproc in parallel"
-			fi
+		if (( _L_u_nproc == 0 )); then
+			_L_u_msg+="; running all in parallel"
+		elif (( _L_u_nproc == 1 )); then
+			_L_u_msg+="; running sequentially"
+		else
+			_L_u_msg+="; running up to $_L_u_nproc in parallel"
 		fi
 		if (( _L_u_durations )); then
 			_L_u_msg+="; showing top $_L_u_durations durations"
@@ -6910,6 +6925,10 @@ L_unittest_main() {
 	fi
 	_L_u_test_basename=("${_L_u_test_name[@]/#*\/}")
 	L_finally -v _L_u_finally_idx _L_unittest_main_finally
+	# Open pipe for communication with childs
+	L_mkstemp _L_i 2
+	_L_u_res_r=${_L_i[0]}
+	_L_ur_res_w=${_L_i[1]}
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
 	if (( _L_u_subshell )); then _L_i=""; else _L_i=-F; fi
