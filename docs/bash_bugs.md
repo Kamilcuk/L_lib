@@ -147,3 +147,22 @@ The `>&` redirection to file descriptor stored in a variable becomes `&>` redire
 | 5.3  | echo >&$a  |
 
 The function itself is correct, instead this affects declare -f output and export -f inherited functions!
+
+## Bash 4.3 segfault on -o functrace when signal handler executes command substitution and registered RETURN and ERR traps.
+
+```
+command_substitution() { a=$(:); }
+set -o functrace
+sleep 0.1 && kill -USR1 "$$" &
+trap ':' RETURN ERR
+trap '/bin/echo; exit' EXIT
+trap 'command_substitution' SIGUSR1
+sleep 0.2
+exit
+```
+
+| Bash | Exit code |
+| --- | --- |
+| 4.2 | 0 |
+| 4.3 | 139 - receives segfault |
+| 4.4 | 0 |
