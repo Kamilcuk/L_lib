@@ -8470,7 +8470,7 @@ _L_argparse_spec_call_parameter() {
 		for ((--_L_argsi; ++_L_argsi < ${#_L_args[@]};)); do
 			case "${_L_args[_L_argsi]}" in
 			# {
-			--|---*|"}") break ;;
+			--|----|::|::::|"}") break ;;
 			action=*) _L_opt_action[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			nargs=*) _L_opt_nargs[_L_opti]=${_L_args[_L_argsi]#*=} ;;
 			const=*) _L_opt_const[_L_opti]=${_L_args[_L_argsi]#*=} ;;
@@ -9758,7 +9758,7 @@ _L_argparse_spec_parse_args() {
 	}
 	{
 		# Parse rest of arguments
-		while (( ${#_L_args[@]} - _L_argsi >= 2)) && [[ "${_L_args[_L_argsi]}" == "--" ]]; do
+		while (( ${#_L_args[@]} - _L_argsi >= 2)) && [[ "${_L_args[_L_argsi]}" == "--" || "${_L_args[_L_argsi]}" == "::" ]]; do
 			((++_L_opti))
 			case "${_L_args[++_L_argsi]}" in
 			""|----|--|::::|::|"{"|"}") _L_argparse_spec_fatal "invalid arguments: ${_L_args[_L_argsi]:-}" ;;
@@ -9942,10 +9942,10 @@ L_argparse() {
 	unset -v _L_parsercur
 	_L_optcnt=$_L_opti
 	#
-	if [[ "${_L_args[_L_argsi++]:-}" != "----" && "${_L_args[_L_argsi++]:-}" != "::::" ]]; then
+	case "${_L_args[_L_argsi++]:-}" in ----|::::) ;; *)
 		_L_argsi=$((_L_argsi-1))
 		_L_argparse_spec_fatal "missing separator :::: at ${_L_args[_L_argsi]:-}"
-	fi
+	esac
 	# _L_argparse_print >/dev/tty
 	_L_argparse_parse_args || return
 	{
