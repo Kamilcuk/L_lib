@@ -18,11 +18,11 @@ COPY mkdocs.yml .
 COPY README.md .
 ENTRYPOINT ["/tests/citest.sh"]
 
-FROM koalaman/shellcheck AS shellcheck
+FROM docker.io/koalaman/shellcheck AS shellcheck
 COPY bin/L_lib.sh /
 RUN ["shellcheck", "/L_lib.sh"]
 
-FROM python:3.13-alpine AS doc1
+FROM docker.io/library/python:3.13-alpine AS doc1
 COPY docs/requirements.txt docs/requirements.txt
 RUN pip install -r docs/requirements.txt
 WORKDIR /app
@@ -35,7 +35,7 @@ RUN mkdocs build
 FROM scratch AS doc
 COPY --from=doc1 /app/site /
 
-FROM alpine:3.20 AS basher
+FROM docker.io/library/alpine:3.20 AS basher
 RUN apk add --no-cache bash curl git coreutils
 RUN touch /root/.profile
 RUN curl -sSL https://raw.githubusercontent.com/basherpm/basher/master/install.sh | bash
