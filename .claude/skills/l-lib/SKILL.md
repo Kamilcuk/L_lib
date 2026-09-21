@@ -1,0 +1,1 @@
+/home/kamil/myprojects/L_lib/docs/skill.md
