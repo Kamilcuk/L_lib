@@ -52,6 +52,10 @@ nav:
     - Bash expansions: expansions.md
     - Bash bugs: bash_bugs.md
     - Measurements: measurements.md
+    - Source detection: issourced.md
+  - AI Skills:
+    - AI Skill: skill.md
+    - AI Unittest Skill: skill-unittest.md
 
 theme:
   name: material
@@ -139,6 +143,50 @@ plugins:
             includeregex: "^L_.*"
             excluderegex: "^_L_.*$"
             source_url: "https://github.com/Kamilcuk/L_lib/blob/main/{file}#L{line}"
+  - llmstxt:
+      full_output: llms-full.txt
+      sections:
+        Introduction: [index.md]
+        "Sections documentation":
+          - section/globals.md
+          - section/sysexits.md
+          - section/colors.md
+          - section/ansi.md
+          - section/has.md
+          - section/assert.md
+          - section/func.md
+          - section/stdlib.md
+          - section/time.md
+          - section/cache.md
+          - section/json.md
+          - section/exit_to.md
+          - section/path.md
+          - section/string.md
+          - section/array.md
+          - section/foreach.md
+          - section/args.md
+          - section/utilities.md
+          - section/log.md
+          - section/sort.md
+          - section/trap.md
+          - section/finally.md
+          - section/with.md
+          - section/unittest.md
+          - section/map.md
+          - section/asa.md
+          - section/uv.md
+          - section/xargs.md
+          - section/argparse.md
+          - section/proc.md
+          - section/lib.md
+        "API Reference": [section/all.md]
+        Miscellaneous:
+          - expansions.md
+          - bash_bugs.md
+          - measurements.md
+        "AI Skills":
+          - skill.md
+          - skill-unittest.md
 
 extra:
   social:
