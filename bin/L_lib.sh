@@ -1987,7 +1987,7 @@ L_is_main() { ! L_is_sourced; }
 # This function returns false, if there exists a source element in FUNCNAME array.
 L_is_sourced() {
 	local IFS=" "
-	[[ " ${FUNCNAME[*]} " == *" source "* ]]
+	[[ " ${FUNCNAME[*]:1} " == *" source "* ]]
 	# [[ "${BASH_SOURCE[0]}" != "$0" ]];
 }
 
