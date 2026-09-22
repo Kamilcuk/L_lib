@@ -461,20 +461,24 @@ _write_fd() {
 	L_eval '"${@:2}" >&"$1"' "$@"
 }
 _finally_test_waiter() {
+	L_log "in $L_SIGNAL"
 	local i j times=$3 rc=0
 	enable sleep 2>/dev/null >&2 || :
 	for ((i=0;i<times;++i)); do
 		L_unittest_cmd -c _write_fd "$1" timeout 2 echo READY
 		# First read will be interrupt by a signal.
-		read -t 2 -u "$2" REPLY || read -t 2 -u "$2" REPLY || exit
+		for ((j=0;j<3;++j)); do
+			read -t 2 -u "$2" REPLY || [[ -n "$REPLY" ]] && break || :
+		done
 		L_unittest_cmd -c test "$REPLY" = "KILLED"
 	done
 }
 _finally_test_interrupter() {
 	echo "---- $* ----"
-	local ready done bashpid times=${1:-1} REPLY
+	local ready done bashpid times=${1:-1} REPLY COUNTER=0
 	L_pipe ready
 	L_pipe done
+	L_pp ready done
 	L_finally -r _finally_test_waiter "${ready[1]}" "${done[0]}" "$times"
 	L_bashpid_into bashpid
 	_killer() {
@@ -483,6 +487,7 @@ _finally_test_interrupter() {
 		for ((i=0;i<times;++i)); do
 			L_unittest_cmd -c read -t 2 -u "${ready[0]}" REPLY
 			L_unittest_cmd -c [ "$REPLY" == "READY" ]
+			sleep 0.01
 			L_unittest_cmd -c kill -USR1 "$bashpid"
 			L_unittest_cmd -c _write_fd "${done[1]}" timeout 2 echo "KILLED"
 		done
@@ -498,19 +503,16 @@ _finally_test_interrupter() {
 }
 
 _L_test_finally_interrupt_once() {
-	local is_bash4_3=$(( L_HAS_BASH4_3 && !L_HAS_BASH4_4 ))
-	if (( is_bash4_3 )); then
-		L_unittest_skip "Bash4.3 segfaults when receiving signal twice"
-		return
-	fi
 	{
 		L_info "test interrupting error handling"
 		export -f _finally_test_waiter _finally_test_interrupter _write_fd
 		local e=$((128+$(L_trap_to_number USR1)))
+		L_log "new bash"
 		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 pop
 		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 return
 		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 exit
 		L_unittest_cmd -e "$e" "${newbash[@]}" _finally_test_interrupter 1 signal
+		L_log "subshell"
 		L_unittest_cmd -e "$e" _finally_test_interrupter 1 pop
 		L_unittest_cmd -e "$e" _finally_test_interrupter 1 return
 		L_unittest_cmd -e "$e" _finally_test_interrupter 1 exit
@@ -519,11 +521,6 @@ _L_test_finally_interrupt_once() {
 }
 
 _L_test_finally_interrupt_twice() {
-	local is_bash4_3=$(( L_HAS_BASH4_3 && !L_HAS_BASH4_4 ))
-	if (( is_bash4_3 )); then
-		L_unittest_skip "Bash4.3 segfaults when receiving signal twice"
-		return
-	fi
 	{
 		L_info "test interrupting error handling twice"
 		export -f _finally_test_waiter _finally_test_interrupter _write_fd

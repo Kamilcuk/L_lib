@@ -5839,10 +5839,8 @@ L_trap() {
 # @description BASHPID that registered traps.
 # _L_finally_pid=""
 #
-# @description Holds signal received inside a critical section.
-# [0] - signal name
-# [1] - signal number
-# _L_finally_pending=()
+# @description Holds the signal name received inside a critical section.
+# _L_finally_pending=""
 #
 # @description Use to detect nesting of signals.
 # _L_finally_running=0
@@ -5852,11 +5850,6 @@ L_trap() {
 # POP - when calling from L_finally_pop
 # NONE - used inside critical section.
 # L_SIGNAL=""
-#
-# @description Currently handled signal number.
-# Unset when handling RETURN or POP.
-# 0 for EXIT trap.
-# L_SIGNUM=""
 #
 # @description The value of $? as expanded by trap.
 # L_SIGRET=""
@@ -5886,27 +5879,27 @@ L_finally_handle_return() {
 		;;
 	esac
 	#
-	if (( ${_L_finally_pending[@]+1} )); then
+	if [[ -n "${_L_finally_pending:-}" ]]; then
 		# Execute any pending signals.
 		# Unset _L_finally_running, so that pending signal detection works correctly.
-		unset -v _L_finally_running
-		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-		exit "$((128+_L_finally_pending[1]))"
+		unset -v L_SIGNAL _L_finally_running
+		kill -"$_L_finally_pending" "$_L_finally_pid"
+		exit "$(( $(kill -l "$_L_finally_pending") + 128 ))"
 	fi
 }
 
 # @description L_finally EXIT handler.
 L_finally_handle_exit() {
-	local L_SIGNAL=EXIT L_SIGNUM=0 L_SIGRET="${1:-}" _L_finally_running=1
+	local L_SIGNAL=EXIT L_SIGRET="${1:-}" _L_finally_running=1
 	if [[ "${_L_finally_pid:-}" == "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}" ]]; then
 		# _L_finally_debug "${_L_finally_arr[@]}"
 		${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 		# During handling exit trap we received a signal. Try to preserve the exit code.
-		if (( ${_L_finally_pending[@]+1} )); then
-			# Execute any pending signals.
-			trap - "${_L_finally_pending[0]}"  # _L_finally_arr executed above already.
-			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$((128+_L_finally_pending[1]))"
+		# Execute any pending signals.
+		if [[ -n "${_L_finally_pending:-}" ]]; then
+			trap - "$_L_finally_pending"  # _L_finally_arr executed above already.
+			kill -"$_L_finally_pending" "$_L_finally_pid"
+			exit "$(( $(kill -l "$_L_finally_pending") + 128 ))"
 		fi
 		# No reason to execute anything more.
 		trap - RETURN EXIT
@@ -5922,33 +5915,34 @@ L_finally_handle_exit() {
 L_finally_handle_signal() {
 	if [[ "${_L_finally_pid:-}" == "${BASHPID:-$(exec "${BASH:-sh}" -c 'echo "$PPID"')}" ]]; then
 		# Signal handling sets L_SIGNAL variable. If it is already set, we received a signal during signal handling.
-		if [[ -n "${L_SIGNAL:-}" ]]; then
+		if [[ -n "${_L_finally_running:-}" ]]; then
 			# Is this the first time we are here?
-			if (( ${_L_finally_pending[@]+1} )); then
+			if [[ -n "${_L_finally_pending:-}" ]]; then
 				# Received multiple signals while servicing signal. Exit immidately.
 				trap - "$1" EXIT
 				L_critical "While handling $L_SIGNAL received $1 after ${_L_finally_pending[0]}. Exiting immidately" || :
 				kill -"$1" "$_L_finally_pid"
-				exit "$(( 128 + $(kill -l "$1") ))"
+				exit "$(( $(kill -l "$1") + 128 ))"
 			else
 				# Signal received during servicing of a signal. Add the signal to pending signals.
-				_L_finally_pending+=("$1" "$(kill -l "$1")" "$2")
+				_L_finally_pending="$1"
 			fi
 		else
 			trap - EXIT  # _L_finally_arr executed below, no need for EXIT trap.
 			# shellcheck disable=SC2155
-			local L_SIGNAL="$1" L_SIGNUM="$(kill -l "$1")" L_SIGRET="${2:-}"
+			local L_SIGNAL="$1" L_SIGRET="${2:-}" _L_finally_running=1
 			# _L_finally_debug "${_L_finally_arr[@]}"
 			${_L_finally_arr[@]+eval} ${_L_finally_arr[@]+"${_L_finally_arr[@]}"}
 			# Preserve signal exit status.
 			trap - "$1"
 			kill -"$1" "$_L_finally_pid"
-			exit "$(( 128 + L_SIGNUM ))"
+			exit "$(( $(kill -l "$1") + 128 ))"
 		fi
 	else
 		# If finally pid is not BASHPID, reset this trap to default and re-raise.
 		trap - "$1"
-		kill -"$1" "$_L_pid"
+		kill -"$1" "$_L_finally_pid"
+		exit "$(( $(kill -l "$1") + 128 ))"
 	fi
 }
 
@@ -6046,7 +6040,7 @@ L_finally() {
 	if [[ "${_L_finally_pid:-}" != "$_L_pid" ]]; then
 		if [[ -n "${_L_finally_pid:-}" ]]; then
 			# Reset values inherited from parent shell.
-			_L_finally_pid="" _L_finally_arr=() _L_finally_return=() _L_finally_pending=() _L_finally_item_depth=() _L_register=1
+			_L_finally_pid="" _L_finally_arr=() _L_finally_return=() _L_finally_item_depth=() _L_register=1
 		fi
 		_L_finally_idx_first=_L_offset
 		_L_finally_idx_std=$(( _L_offset * 2 ))
@@ -6188,14 +6182,14 @@ L_finally_pop() {
 	_L_elem="${_L_finally_arr[$_L_idx]}unset -v '_L_finally_arr[$_L_idx]' '_L_finally_item_depth[$_L_idx]';"
 	if (( _L_run )); then
 		# shellcheck disable=SC2294
-		local L_SIGNAL=POP
+		local L_SIGNAL=POP _L_finally_running=1
 		eval "${_L_finally_arr[_L_idx]}" || _L_ret=$?
 		# _L_finally_running unset for nested detection hadnling.
 		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[_L_idx]' L_SIGNAL _L_finally_running
 		# Execute a signal that might hhave happened while the above eval was executing.
-		if (( ${_L_finally_pending[@]+1} )); then
-			kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-			exit "$((128+_L_finally_pending[1]))"
+		if [[ -n "${_L_finally_pending:-}" ]]; then
+			kill -"$_L_finally_pending" "$_L_finally_pid"
+			exit "$(( $(kill -0 "$_L_finally_pending") + 128 ))"
 		fi
 	else
 		unset -v '_L_finally_arr[_L_idx]' '_L_finally_item_depth[$_L_idx]'
@@ -6222,9 +6216,9 @@ L_finally_critical_section() {
 	local L_SIGNAL=NONE _L_ret=0 _L_finally_running=1
 	"$@" || _L_ret=$?
 	unset -v L_SIGNAL _L_finally_running
-	if ((${_L_finally_pending[@]:+1})); then
-		kill -"${_L_finally_pending[0]}" "$_L_finally_pid"
-		exit "$((128+_L_finally_pending[1]))"
+	if [[ -n "${_L_finally_pending:-}" ]]; then
+		kill -"$_L_finally_pending" "$_L_finally_pid"
+		exit "$(( $(kill -0 "$_L_finally_pending") + 128 ))"
 	fi
 	return "$_L_ret"
 }
