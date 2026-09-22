@@ -1636,6 +1636,149 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../issourced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skills
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Skills
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill-unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Unittest Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2050,7 +2193,7 @@ increase_volume<span class="o">()</span><span class="w"> </span><span class="o">
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5821"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5823"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2072,10 +2215,8 @@ _L_finally_return=()</p>
                 <p>BASHPID that registered traps.</p>
 <p>_L_finally_pid=""</p>
 
-                <p>Holds signal received inside a critical section.</p>
-<p>[0] - signal name
-[1] - signal number
-_L_finally_pending=()</p>
+                <p>Holds the signal name received inside a critical section.</p>
+<p>_L_finally_pending=""</p>
 
                 <p>Use to detect nesting of signals.</p>
 <p>_L_finally_running=0</p>
@@ -2085,11 +2226,6 @@ _L_finally_pending=()</p>
 POP - when calling from L_finally_pop
 NONE - used inside critical section.
 L_SIGNAL=""</p>
-
-                <p>Currently handled signal number.</p>
-<p>Unset when handling RETURN or POP.
-0 for EXIT trap.
-L_SIGNUM=""</p>
 
                 <p>The value of $? as expanded by trap.</p>
 <p>L_SIGRET=""</p>
@@ -2116,7 +2252,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_return">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_return
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5868"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5863"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2156,7 +2292,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_exit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_exit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5896"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5891"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2187,7 +2323,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_handle_signal">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_handle_signal
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5919"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5914"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2227,7 +2363,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally_list">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_list
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5953"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L5949"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2258,7 +2394,7 @@ L_SIGNUM=""</p>
 
 <h3 id="L_lib.sh--L_finally">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6024"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6020"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2374,7 +2510,7 @@ See:
 
 <h3 id="L_lib.sh--L_finally_pop">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_pop
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6156"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6152"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2432,7 +2568,7 @@ See:
 
 <h3 id="L_lib.sh--L_finally_critical_section">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_finally_critical_section
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6212"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L6208"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>

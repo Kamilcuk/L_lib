@@ -1664,6 +1664,149 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../issourced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skills
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Skills
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill-unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Unittest Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2147,7 +2290,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12093"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12127"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2173,7 +2316,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12099"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12133"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2214,7 +2357,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12100"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12134"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2241,7 +2384,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_sleep">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sleep
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12141"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12175"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2280,7 +2423,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12581"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/version-up/bin/L_lib.sh#L12676"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2346,10 +2489,12 @@ limits are specified, the command executes exactly once upon reaching EOF.</p>
     Shorthand for -L1.
 
 </li><li>                <strong><code>-M &lt;global-max-time&gt;</code></strong>
-    If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+    <p>If xargs is running longer then specified time, tasks are getting killed and xargs returns.</p>
+<p>If specified second time, it specifies timeout before SIGKILL.</p>
 
 </li><li>                <strong><code>-m &lt;task-max-time&gt;</code></strong>
-    If a task is running longer then specified time, it is killed.
+    <p>If a task is running longer then specified time, it is killed.</p>
+<p>If specified second time, it specifies timeout before SIGKILL.</p>
 
 </li><li>                <strong><code>-n &lt;max-atoms&gt;</code></strong>
     Trigger execution once <max-atoms> have been accumulated.

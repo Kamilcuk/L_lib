@@ -1506,6 +1506,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#bash-43-segfault-on-o-functrace-when-signal-handler-executes-command-substitution-and-registered-return-and-err-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash 4.3 segfault on -o functrace when signal handler executes command substitution and registered RETURN and ERR traps.
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -1530,6 +1541,149 @@
     
   
     Measurements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../issourced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skills
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Skills
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../skill-unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Unittest Skill
   
 
     
@@ -1678,6 +1832,17 @@
     <span class="md-ellipsis">
       
         Bash 4.0 to 4.2 incorrectly serialize redirection with variable expansion.
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bash-43-segfault-on-o-functrace-when-signal-handler-executes-command-substitution-and-registered-return-and-err-traps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bash 4.3 segfault on -o functrace when signal handler executes command substitution and registered RETURN and ERR traps.
       
     </span>
   </a>
@@ -2031,6 +2196,38 @@ EOF
 </tbody>
 </table>
 <p>The function itself is correct, instead this affects declare -f output and export -f inherited functions!</p>
+<h2 id="bash-43-segfault-on-o-functrace-when-signal-handler-executes-command-substitution-and-registered-return-and-err-traps">Bash 4.3 segfault on -o functrace when signal handler executes command substitution and registered RETURN and ERR traps.<a class="headerlink" href="#bash-43-segfault-on-o-functrace-when-signal-handler-executes-command-substitution-and-registered-return-and-err-traps" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>command_substitution() { a=$(:); }
+set -o functrace
+sleep 0.1 &amp;&amp; kill -USR1 &quot;$$&quot; &amp;
+trap &#39;:&#39; RETURN ERR
+trap &#39;/bin/echo; exit&#39; EXIT
+trap &#39;command_substitution&#39; SIGUSR1
+sleep 0.2
+exit
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Bash</th>
+<th>Exit code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>4.2</td>
+<td>0</td>
+</tr>
+<tr>
+<td>4.3</td>
+<td>139 - receives segfault</td>
+</tr>
+<tr>
+<td>4.4</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -2051,7 +2248,7 @@ EOF
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 17, 2026 07:46:43 UTC">September 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="September 21, 2026 21:05:45 UTC">September 21, 2026</span>
   </span>
 
     
