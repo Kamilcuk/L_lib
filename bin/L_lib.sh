@@ -6599,8 +6599,9 @@ _L_unittest_main_xargs_subshell_callback() {
 			;;
 		EXIT)
 			# $2 - pid, $3 - exitcode
-			local line worker="#$L_XARGS_INDEX ${_L_u_test_name[L_XARGS_INDEX]}" cause="This might be caused by an invalid test that overwrites or closes existing file descriptors used for communication with the L_unittest_main manager, a test that exits immidately without running L_ library registered traps, a test that overwrites variables starting with _L_* or L_lib library internal error like a formatting error. Please make sure your tests do not overwrite random file descriptors - use {var}<> syntax or L_get_free_fd_into function to get a free unused file descriptor. Consider using L_finally to register action to execute on signal or exit. Consider reporting a bug to L_lib."
-			if (( $3 )); then
+			local line worker="#$L_XARGS_INDEX ${_L_u_test_basename[L_XARGS_INDEX]}" cause="This might be caused by an invalid test that overwrites or closes existing file descriptors used for communication with the L_unittest_main manager, a test that exits immidately without running L_ library registered traps, a test that overwrites variables starting with _L_* or L_lib library internal error like a formatting error. Please make sure your tests do not overwrite random file descriptors - use {var}<> syntax or L_get_free_fd_into function to get a free unused file descriptor. Consider using L_finally to register action to execute on signal or exit. Consider reporting a bug to L_lib."
+			# When exitfirst is used, childs can exit with 255 to break out of L_xargs.
+			if (( $3 && ( _L_u_exitfirst ? $3 != 255 : 1 ) )); then
 				L_critical "Worker $worker pid $2 exited with nonzero exit status $3. This could be an internal error in L_lib library where the worker has an internal error and terminates with non-zero exit code, like invalid expression run under set -e. I believe please report to L_lib as a bug."
 				_L_u_test_ret[L_XARGS_INDEX]=300
 			else
@@ -6661,10 +6662,14 @@ _L_unittest_main_worker_finished() {
 	if (( _L_u_quiet )); then
 		printf "%s" "${status[0]}${status[1]}$L_RESET"
 	else
-		local duration_str=""
-		L_usec_to_duration -v duration_str "${_L_u_test_duration[L_XARGS_INDEX]%%:*}"
-		local msg="${status[0]}${status[2]}$L_RESET ($duration_str)"
-		local offset="$(( COLUMNS - ( ${#_L_u_test_basename[L_XARGS_INDEX]} + ${#status[2]} + 2 + ${#duration_str} + 9 ) ))"
+		local msg="${status[0]}${status[2]}$L_RESET"
+		local duration_str="" duration_str_len=0
+		if [[ -n "${_L_u_test_duration[L_XARGS_INDEX]:-}" ]]; then
+			L_usec_to_duration -v duration_str "${_L_u_test_duration[L_XARGS_INDEX]%%:*}"
+			msg+=" ($duration_str)"
+			duration_str_len=$(( ${#duration_str} + 3 ))
+		fi
+		local offset="$(( COLUMNS - ( ${#_L_u_test_basename[L_XARGS_INDEX]} + ${#status[2]} + 2 + duration_str_len + 6 ) ))"
 		local hdr="${L_BOLD}${_L_u_test_basename[L_XARGS_INDEX]} "
 		printf -v msg "%s %*s[%3d%%]" \
 			"$msg" \
@@ -6794,11 +6799,15 @@ _L_unittest_main_finally() {
 # @option -v Increase verbosity. Call L_log_level_inc.
 # @option -h Print this help and return 0.
 # @option -E Execute trap - ERR.
-# @arg $@ Arguments are like -k option, but evaluated as "or".
+# @option -M <global-max-time> If running longer then specified time, tasks are getting killed.
+# @option -m <task-max-time> If a task is running longer then specified time, it is killed.
+# @arg <patterns...> Like -k argument, but allows one word only and joins arguments with AND.
 # shellcheck disable=SC2179
 L_unittest_main() {
-	set -euo pipefail
-	local OPTIND OPTARG OPTERR _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i \
+	# Local variable definitions from _L_unittest_main_worker(). They are here, as the EXIT trap on bash 3.2 is executed
+	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
+	local _L_ur_ret _L_ur_test _L_ur_index _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
+	local OPTIND=0 OPTARG OPTERR _L_u_nproc=1 _L_u_list=0 _L_u_quiet=0 _L_i \
 		_L_u_test_func=() \
 		_L_u_test_ret \
 		_L_u_test_output \
@@ -6817,50 +6826,57 @@ L_unittest_main() {
 		_L_u_spin_lines=() \
 		_L_u_use_term="" \
 		_L_u_spinner_pos="" \
-		_L_u_spinner_buf=""
-	# Local variable definitions from _L_unittest_main_worker(). They are here, as the EXIT trap on bash 3.2 is executed
-	# _outside_ the variables of the function. We want to preserve these variables, stderr in particular.
-	local _L_ur_ret _L_ur_test _L_ur_index _L_ur_traceback_offset_old _L_ur_stderr _L_ur_start _L_ur_finally_idx
-	while getopts p:k:P:Elqd:xsScFvTh _L_i; do
-		case "$_L_i" in
-			p)
-				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
-				L_compgen -V _L_u_test_func -A function -- "$OPTARG"
-				_L_u_testscnt+=${_L_u_test_func[*]:+${#_L_u_test_func[*]}}
-				;;
-			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
-			P)
-				if [[ "$OPTARG" == n* ]]; then
-					L_nproc_vL_RET; _L_u_nproc=$L_RET
-				elif ! L_is_integer "$OPTARG" || (( OPTARG < 0 )); then
-					L_func_usage_error "invalid -P value: $OPTARG"
-					return "$L_EX_USAGE"
-				else
-					(( _L_u_nproc = OPTARG, 1 )) || return "$L_EX_USAGE"
-				fi
-				;;
-			E) trap - ERR ;;
-			l) _L_u_list=1 ;;
-			q) _L_u_quiet=1 ;;
-			d) _L_u_durations=$OPTARG ;;
-			x) _L_u_exitfirst=1 ;;
-			s) _L_u_stream=1 ;;
-			S) _L_u_stream=0 ;;
-			c) _L_u_subshell=0 ;;
-			F) _L_u_subshell=0 ;;
-			v) _L_u_verbose=1 ;;
-			T) NO_COLOR=1 _L_u_use_term=0 ;;
-			h) L_func_help; return 0 ;;
-			*) L_func_usage_error; return "$L_EX_USAGE" ;;
-		esac
+		_L_u_spinner_buf="" \
+		_L_u_k="" \
+		_L_u_args="" \
+		_L_u_xargs_args=()
+	while (( $# >= OPTIND )); do
+		if getopts p:k:P:Elqd:xsScFvThm:M: _L_i; then
+			case "$_L_i" in
+				p)
+					L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
+					L_compgen -V _L_u_test_func -A function -- "$OPTARG"
+					_L_u_testscnt+=${_L_u_test_func[*]:+${#_L_u_test_func[*]}}
+					;;
+				k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
+				P)
+					if [[ "$OPTARG" == n* ]]; then
+						L_nproc_vL_RET; _L_u_nproc=$L_RET
+					elif ! L_is_integer "$OPTARG" || (( OPTARG < 0 )); then
+						L_func_usage_error "invalid -P value: $OPTARG"
+						return "$L_EX_USAGE"
+					else
+						(( _L_u_nproc = OPTARG, 1 )) || return "$L_EX_USAGE"
+					fi
+					;;
+				E) trap - ERR ;;
+				l) _L_u_list=1 ;;
+				q) _L_u_quiet=1 ;;
+				d) _L_u_durations=$OPTARG ;;
+				x) _L_u_exitfirst=1 ;;
+				s) _L_u_stream=1 ;;
+				S) _L_u_stream=0 ;;
+				c) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
+				F) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
+				v) _L_u_verbose=1 ;;
+				T) NO_COLOR=1 _L_u_use_term=0 ;;
+				m|M) _L_u_xargs_args+=("-$_L_i" "$OPTARG") ;;
+				h) L_func_help; return 0 ;;
+				*) L_func_usage_error; return "$L_EX_USAGE" ;;
+			esac
+		else
+			OPTARG=${!OPTIND}
+			(( ++OPTIND ))
+			if [[ "$OPTARG" == *[^]#%0-9!*+,-./:=?@A-Z^_a-z{}~[]* ]]; then
+				L_func_usage_error "positional argument is not a valid function name part: \`$OPTARG'"
+				return "$L_EX_USAGE"
+			fi
+			_L_u_args+=${_L_u_args:+ || }"$OPTARG"
+		fi
 	done
-	shift "$((OPTIND-1))"
 	# Handle positional arguments as filter patterns (union/OR of patterns, like -k but simpler).
-	if (($#)); then
-		local oldifs=$IFS IFS=$L_GS
-		local _L_u_k_expr="$*"
-		_L_unittest_main_handle_k "( ${_L_u_k_expr//$L_GS/ ) || ( } )"
-		IFS=$oldifs
+	if [[ -n "$_L_u_args" ]];then
+		_L_unittest_main_handle_k "$_L_u_args"
 	fi
 	# Detect colors.
 	L_color_detect
@@ -6923,8 +6939,8 @@ L_unittest_main() {
 	_L_ur_res_w=${_L_i[1]}
 	# Execute the tests.
 	L_epochrealtime_usec -v _L_u_start
-	if (( _L_u_subshell )); then _L_i=""; else _L_i=-F; fi
-	L_xargs -v _ -r -A _L_u_test_func -P "$_L_u_nproc" $_L_i -X _L_unittest_main_xargs_subshell_callback _L_unittest_main_worker
+	L_xargs -v _ -r -A _L_u_test_func -P "$_L_u_nproc" ${_L_u_xargs_args[@]:+"${_L_u_xargs_args[@]}"} \
+		-X _L_unittest_main_xargs_subshell_callback _L_unittest_main_worker
 	# L_pp -m '_L_u_test_**'
 	L_epochrealtime_usec -v _L_u_end
 	if (( _L_u_quiet )); then

@@ -2301,7 +2301,7 @@ fi
 
 if L_is_main; then
 	L_trap_err_enable
-	L_unittest_main -p _L_test_ "$@"
+	L_unittest_main -p _L_test_ -m 20 -m 2 "$@"
 
 	# Check for any new variables.
 	diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
