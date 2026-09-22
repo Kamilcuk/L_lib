@@ -23,29 +23,10 @@ USR2_CNT=0
 
 ###############################################################################
 
-. "$dir"/array_index_tests.sh
-. "$dir"/foreach_tests.sh
-. "$dir"/test_xargs.sh
-. "$dir"/test_xargs_extended.sh
-. "$dir"/test_xargs_extra.sh
-. "$dir"/test_xargs_compat.sh
-. "$dir"/test_duration.sh
-. "$dir"/test_L_date.sh
-. "$dir"/test_asserts.sh
-. "$dir"/test_var_to_string2.sh
-. "$dir"/test_var_get_nameref.sh
-. "$dir"/test_format.sh
-. "$dir"/test_finally.sh
-. "$dir"/test_finally2.sh
-. "$dir"/test_pretty_print.sh
-. "$dir"/test_fuzzy.sh
-. "$dir"/test_L_uv.sh
-. "$dir"/test_L_func.sh
-. "$dir"/test_version.sh
-. "$dir"/test_unquote.sh
-. "$dir"/test_argskeywords.sh
-. "$dir"/test_L_parse_range_list.sh
-. "$dir"/test_dedent.sh
+# Load all test files from test dir.
+for i in "$dir"/test_*.sh; do
+	. "$i"
+done
 
 _L_test_color() {
 	{
@@ -702,8 +683,6 @@ _L_test_array_max_index() {
 	L_unittest_eq "${idx:-0}" "0"
 }
 
-. "$dir"/readarray_tests.sh
-
 _L_test_array_reverse() {
 	local array=(1 2 3 4 5)
 	L_unittest_cmd -c L_array_reverse array
@@ -923,7 +902,6 @@ _L_test_setx() {
 	unset aaa_1 aaa_2
 }
 
-. ./tests/sort_tests.sh
 
 _L_test_L_trap() {
 	{
@@ -1234,11 +1212,6 @@ _L_test_asa() {
 	}
 }
 
-. "$dir"/argparse_tests.sh
-. "$dir"/argparse_tests_2.sh
-. "$dir"/argparse_tests_3.sh
-. "$dir"/argparse_tests_4.sh
-
 _L_test_path() {
 	local v
 	{
@@ -1412,7 +1385,6 @@ _L_test_path() {
 }
 
 
-. "$dir"/test_L_cache.sh
 
 
 _L_test_PATH() {
