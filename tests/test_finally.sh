@@ -498,6 +498,11 @@ _finally_test_interrupter() {
 }
 
 _L_test_finally_interrupt_once() {
+	local is_bash4_3=$(( L_HAS_BASH4_3 && !L_HAS_BASH4_4 ))
+	if (( is_bash4_3 )); then
+		L_unittest_skip "Bash4.3 segfaults when receiving signal twice"
+		return
+	fi
 	{
 		L_info "test interrupting error handling"
 		export -f _finally_test_waiter _finally_test_interrupter _write_fd
@@ -514,6 +519,11 @@ _L_test_finally_interrupt_once() {
 }
 
 _L_test_finally_interrupt_twice() {
+	local is_bash4_3=$(( L_HAS_BASH4_3 && !L_HAS_BASH4_4 ))
+	if (( is_bash4_3 )); then
+		L_unittest_skip "Bash4.3 segfaults when receiving signal twice"
+		return
+	fi
 	{
 		L_info "test interrupting error handling twice"
 		export -f _finally_test_waiter _finally_test_interrupter _write_fd
