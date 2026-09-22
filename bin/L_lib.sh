@@ -10165,7 +10165,7 @@ L_get_all_childs_vL_RET() {
 	L_RET=("${L_RET[@]:($# ? $# : 1)}")
 }
 
-# @description Kills all childs of the pid.
+# @description Kills all childs of the pid recursive.
 # @arg -sigspec Signal to use.
 # @arg [$1] Pid of the process to kill all childs of. Defualt: $BASHPID
 L_kill_all_childs() {
@@ -10800,7 +10800,7 @@ L_wait() {
 	done
 	shift "$((OPTIND-1))"
 	# local -;set -x
-	# _L_pids - runnign pids
+	# _L_pids - running pids
 	# _L_done - finished pids
 	# _L_rets - pid _L_done[i] exited with _L_rets[i]
 	# _L_return - the return code
@@ -11470,34 +11470,34 @@ _L_uv_timerheap_swap_with_L_tmp() {
 # @description Maintain the min-heap property by sifting an element up.
 # @arg $1 Current index in the heap
 _L_uv_timerheap_sift_up() {
-	local _L_curr=$1 _L_parent _L_tmp
+	local _L_th_curr=$1 _L_parent _L_tmp
 	# Bubbles up an element that expires earlier than its parent.
 	while
-		(( _L_curr > 1 && ( _L_parent = _L_curr / 2 ) )) &&
-		[[ "${L_UV[11000000 + _L_curr]}" < "${L_UV[11000000 + _L_parent]}" ]]
+		(( _L_th_curr > 1 && ( _L_parent = _L_th_curr / 2 ) )) &&
+		[[ "${L_UV[11000000 + _L_th_curr]}" < "${L_UV[11000000 + _L_parent]}" ]]
 	do
-		_L_uv_timerheap_swap_with_L_tmp _L_curr _L_parent
-		_L_curr=$_L_parent
+		_L_uv_timerheap_swap_with_L_tmp "$_L_th_curr" "$_L_parent"
+		_L_th_curr=$_L_parent
 	done
 }
 
 # @description Maintain the min-heap property by sifting an element down.
 # @arg $1 Current index in the heap
 _L_uv_timerheap_sift_down() {
-	local _L_curr=$1 _L_size=${L_UV[11000000]:-0} _L_child _L_tmp
+	local _L_th_curr=$1 _L_size=${L_UV[11000000]:-0} _L_child _L_tmp
 	# Sinks down an element that expires later than its smallest child.
 	while
-		(( ( _L_child = _L_curr * 2 ) <= _L_size )) && {
+		(( ( _L_child = _L_th_curr * 2 ) <= _L_size )) && {
 			# Selects the smaller of the two children.
 			if (( _L_child + 1 <= _L_size )) && [[ "${L_UV[11000000 + _L_child + 1]}" < "${L_UV[11000000 + _L_child]}" ]]; then
 				(( ++_L_child ))
 			fi
 			# Compare current with child.
-			[[ "${L_UV[11000000 + _L_child]}" < "${L_UV[11000000 + _L_curr]}" ]]
+			[[ "${L_UV[11000000 + _L_child]}" < "${L_UV[11000000 + _L_th_curr]}" ]]
 		}
 	do
-		_L_uv_timerheap_swap_with_L_tmp _L_curr _L_child
-		_L_curr=$_L_child
+		_L_uv_timerheap_swap_with_L_tmp "$_L_th_curr" "$_L_child"
+		_L_th_curr=$_L_child
 	done
 }
 
@@ -11609,17 +11609,17 @@ _L_uv_add_allocate_id_and_set_v() {
 }
 
 # @description Add a timer to the loop.
-# @option -r <duration> Repeat interval (e.g., 1s, 500ms; bare number is seconds) (defaults to 0)
 # @option -d <duration> Initial delay (e.g., 1s, 500ms; bare number is seconds) (defaults to 0)
+# @option -r <duration> Repeat interval (e.g., 1s, 500ms; bare number is seconds) (defaults to 0)
 # @option -v <var> Variable to assign the handle ID to
 # @option -h Show help
 # @arg $@ Callback function and its arguments. The callback is invoked with its arguments only.
 L_uv_add_timer() {
 	local OPTIND OPTARG OPTERR _L_opt _L_r=0 _L_d=0 _L_v="" _L_now_us _L_cmd _L_timerid L_RET
-	while getopts r:d:v:h _L_opt; do
+	while getopts d:r:v:h _L_opt; do
 		case "$_L_opt" in
-			r) L_duration_to_usec_vL_RET "$OPTARG" && _L_r=$L_RET || return ;;
 			d) L_duration_to_usec_vL_RET "$OPTARG" && _L_d=$L_RET || return ;;
+			r) L_duration_to_usec_vL_RET "$OPTARG" && _L_r=$L_RET || return ;;
 			v) _L_v=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
@@ -11635,6 +11635,9 @@ L_uv_add_timer() {
 	L_UV[12000000 + ((_L_timerid % 1000000) * 3) + 1]="$_L_r"
 	_L_uv_timerheap_push "$_L_next_us:$_L_timerid"
 }
+
+L_uv_timer_get_repeat_vL_RET() { L_RET=${L_UV[12000000 + (($1 % 1000000) * 3) + 1]}; }
+
 
 # @description Add a process wait handle to the loop.
 # @option -v <var> Variable to assign the handle ID to
@@ -12212,16 +12215,60 @@ _L_xargs_dobuf_stdout_cb() {
 	esac
 }
 
-# @option -9 signal number
-# @arg $2 pid to kill
-_L_xargs_task_timeout_cb() {
-	kill "$@" 2>/dev/null || :
+# @arg <SIG*>
+# @arg <pid>
+# @arg <timeout>
+_L_xargs_kill_task() {
+	if kill -0 "$2" 2>/dev/null; then
+		local L_RET
+		if (( !${_L_x_quiet:-0} )); then
+			L_duration_to_usec_vL_RET "$3"
+			L_usec_to_duration_vL_RET "$L_RET"
+			L_RET="L_xargs: ${_L_x_cmd[0]} (pid $2): timeout $L_RET exceeded"
+			if [[ "$1" == SIGKILL ]]; then
+				L_RET+=" after SIGTERM"
+			fi
+			echo "$L_RET, sending $1" >&2
+		fi
+		L_get_all_childs_vL_RET "$2"
+		kill -"$1" "$2" "${L_RET[@]}" || :
+		if [[ "$1" == SIGTERM && -n "$_L_x_task_kill_timeout" ]]; then
+			L_uv_add_timer -v "_L_x_task_kill_timers[$2]" -d "$_L_x_task_kill_timeout" \
+				_L_xargs_kill_task SIGKILL "$2" "$_L_x_task_kill_timeout"
+		else
+			unset -v "_L_x_task_kill_timers[$2]"
+		fi
+	else
+		unset -v "_L_x_task_kill_timers[$2]"
+	fi
 }
 
-# @option -9 Signal to use
-_L_xargs_global_timeout_cb() {
-	kill "$@" "${!_L_x_running[@]}" 2>/dev/null || :
-	_L_x_done=1 _L_x_input_stopped=1 _L_x_return=124
+# @arg <SIG*>
+# @arg <timeout>
+_L_xargs_kill_all_tasks() {
+	if (( ${_L_x_running[@]:+1} )); then
+		local L_RET
+		if (( !${_L_x_quiet:-0} )); then
+			L_duration_to_usec_vL_RET "$2"
+			L_usec_to_duration_vL_RET "$L_RET"
+			L_RET="L_xargs: timeout $L_RET exceeded"
+			if [[ "$1" == "SIGKILL" ]]; then
+				L_RET+=" after SIGTERM"
+			fi
+			echo "$L_RET, sending $1 to ${#_L_x_running[@]} pids: ${!_L_x_running[@]}" >&2
+		fi
+		L_get_all_childs_vL_RET "${!_L_x_running[@]}"
+		kill -"$1" "${!_L_x_running[@]}" "${L_RET[@]}" || :
+		_L_x_done=1 _L_x_input_stopped=1 _L_x_return=124
+		if [[ "$1" == SIGTERM && -n "$_L_x_all_tasks_kill_timeout" ]]; then
+			L_uv_add_timer -d "$_L_x_all_tasks_kill_timeout" -v _L_x_all_tasks_kill_timer \
+				_L_xargs_kill_all_tasks SIGKILL "$_L_x_all_tasks_kill_timeout"
+		else
+			_L_x_all_tasks_kill_timer=""
+		fi
+	else
+		_L_x_all_tasks_kill_timer=""
+	fi
 }
 
 _L_xargs_prefixer() { while IFS= read -r line || [[ -n "$line" ]]; do printf "%s: %s\n" "$1" "$line"; done; }
@@ -12275,6 +12322,7 @@ _L_xargs_run_template_no() {
 # @see https://github.com/jamesyoungman/findutils/blob/master/xargs/xargs.c#L1585
 # @see https://github.com/aixoss/findutils/blob/r4.4.2-aix/xargs/xargs.c#L1272
 _L_xargs_handle_return() {
+	local hdr="L_xargs: ${_L_x_cmd[0]}${2:+ (pid $2)}"
 	case "$1" in
 	0) ;;
 	255)
@@ -12283,7 +12331,7 @@ _L_xargs_handle_return() {
 			_L_x_return=$L_EX_TIMEOUT
 		fi
 		if (( !_L_x_quiet )); then
-			printf "L_xargs: %s: exited with status 255; aborting\n" "${_L_x_cmd[0]}" >&2
+			printf "%s: exited with status 255; aborting (no new tasks will be started)\n" "$hdr" >&2
 		fi
 		;;
 	126|127)
@@ -12298,7 +12346,7 @@ _L_xargs_handle_return() {
 			if (( !_L_x_quiet )); then
 				local L_RET
 				L_trap_to_name_vL_RET "$(( $1 - 128 ))"
-				printf "L_xargs: %s: terminated by signal %s\n" "${_L_x_cmd[0]}" "$L_RET" >&2
+				printf "%s: terminated by signal %s (rc=%d)\n" "$hdr" "$L_RET" "$1" >&2
 			fi
 			if (( _L_x_return < 125 )); then
 				_L_x_return=125
@@ -12344,22 +12392,15 @@ _L_xargs_dispatch_one() {
 		printf -v _L_tmp " %q" "${L_RET[@]}"
 		printf "+%s\n" "$_L_tmp" >&2
 	fi
-	if (( _L_x_foreground || _L_x_maxprocs == 1 )); then
-		if (( _L_x_foreground )); then
-			set -- PREEXEC f
-			eval "${_L_x_notify_cb:-}"
-			"${L_RET[@]}"
-			local _L_exitcode=$?
-		else
-			set -- PREEXEC 1
-			eval "${_L_x_notify_cb:-}"
-			local _L_exitcode
-			_L_run_subshell _L_exitcode "${L_RET[@]}"
-		fi
+	if (( _L_x_foreground )); then
+		set -- PREEXEC f
+		eval "${_L_x_notify_cb:-}"
+		"${L_RET[@]}"
+		local _L_exitcode=$?
 		# Run POSTEXEC callbacks.
 		set -- POSTEXEC
 		eval "${_L_x_notify_cb:-}"
-		_L_xargs_handle_return "$_L_exitcode"
+		_L_xargs_handle_return "$_L_exitcode" ""
 		# Assign the exit status of the command.
 		if [[ -n "$_L_x_v" ]]; then
 			L_array_set "$_L_x_v" "$L_XARGS_INDEX" "$_L_exitcode"
@@ -12376,8 +12417,9 @@ _L_xargs_dispatch_one() {
 		local _L_pid=$!
 		# Post stuff.
 		_L_x_running[_L_pid]="" _L_X_CLEANUP[_L_pid]=""
-		if [[ -n "$_L_x_task_timeout" ]]; then
-			L_uv_add_timer -v "_L_x_timers[$_L_pid]" -d "$_L_x_task_timeout" _L_xargs_task_timeout_cb "$_L_pid"
+		if [[ -n "$_L_x_task_term_timeout" ]]; then
+			L_uv_add_timer -v "_L_x_task_kill_timers[$_L_pid]" -d "$_L_x_task_term_timeout" \
+				_L_xargs_kill_task SIGTERM "$_L_pid" "$_L_x_task_term_timeout"
 		fi
 		local _L_x_job_wid
 		L_uv_add_waiter -v _L_x_job_wid "$_L_pid" _L_xargs_reaper "$L_XARGS_INDEX"
@@ -12470,6 +12512,7 @@ _L_xargs_pulse() {
 # Separate function with separate local, not to touch L_XARGS_INDEX.
 _L_xargs_reaper_call_callback() {
 	local L_XARGS_INDEX=$1
+	_L_xargs_handle_return "$3" "$2"
 	set -- EXIT "$2" "$3"
 	eval "${_L_x_notify_cb:-}"
 }
@@ -12479,8 +12522,14 @@ _L_xargs_reaper_call_callback() {
 # @arg $2 pid
 # @arg $3 exitcode
 _L_xargs_reaper() {
-	unset -v "_L_x_running[$2]" "_L_x_timers[$2]" "_L_X_CLEANUP[$2]"
-	_L_xargs_handle_return "$3"
+	# Remove killing timers
+	if [[ -n "${_L_x_task_kill_timers[$2]:-}" ]]; then
+		L_uv_remove "${_L_x_task_kill_timers[$2]}"
+		if [[ -n "${_L_x_task_kill_timers[$2]:-}" ]]; then
+			L_uv_remove "${_L_x_task_kill_timers[$2]}"
+		fi
+	fi
+	unset -v "_L_x_running[$2]" "_L_x_task_kill_timers[$2]" "_L_x_task_kill_timers[$2]" "_L_X_CLEANUP[$2]"
 	# Assign the exit status of the command.
 	if [[ -n "$_L_x_v" ]]; then
 		L_array_set "$_L_x_v" "$1" "$3"
@@ -12488,6 +12537,16 @@ _L_xargs_reaper() {
 	_L_xargs_reaper_call_callback "$@"
 	# Eat more input if possible.
 	_L_xargs_pulse
+	# If input is stopped and there are no running tasks, stop timers.
+	if (( _L_x_input_stopped && !${_L_x_running[@]:-1}0 )); then
+		if [[ -n "$_L_x_all_tasks_kill_timer" ]]; then
+			L_uv_remove "$_L_x_all_tasks_kill_timer"
+		fi
+		local i
+		for i in ${_L_x_task_kill_timers[@]:+"${_L_x_task_kill_timers[@]}"}; do
+			L_uv_remove "$i"
+		done
+	fi
 }
 
 _L_xargs_feeder_input_cb() {
@@ -12529,15 +12588,18 @@ _L_xargs_callback_array_indirect() {
 }
 
 _L_xargs_finally_kill() {
-	local L_RET
-	L_get_all_childs_vL_RET "${!_L_X_CLEANUP[@]}"
-	L_RET+=("${!_L_X_CLEANUP[@]}")
-	if (( ${_L_x_trace:-0} )); then
-		if [[ "$L_SIGNAL" == SIG* ]]; then
-			echo "L_xargs: Signal $L_SIGNAL received. Killing pids ${L_RET[*]}"
+	if [[ "$L_SIGNAL" == SIG* ]] && (( ${_L_X_CLEANUP[@]:+1}0 )); then
+		local L_RET IFS=' '
+		L_get_all_childs_vL_RET "${!_L_X_CLEANUP[@]}"
+		L_RET+=("${!_L_X_CLEANUP[@]}")
+		if (( !_L_x_quiet )); then
+			if [[ "$L_SIGNAL" == SIG* ]]; then
+				L_sort_bash -n L_RET || :
+				echo "L_xargs: signal $L_SIGNAL received, killing ${#_L_X_CLEANUP[@]} tasks (${#L_RET[@]} pids: ${L_RET[*]})"
+			fi
 		fi
+		kill ${L_RET[@]:+"${L_RET[@]}"} 2>/dev/null || :
 	fi
-	kill ${L_RET[@]:+"${L_RET[@]}"} 2>/dev/null || :
 }
 
 _L_xargs_finally_wait() {
@@ -12572,8 +12634,10 @@ _L_xargs_finally_wait() {
 # @option -i Shorthand for -I{}.
 # @option -L <max-records> Trigger execution once <max-records> have been accumulated.
 # @option -l Shorthand for -L1.
-# @option -M <global-max-time> If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+# @option -M <global-max-time> If xargs is running longer then specified time, tasks are getting killed and xargs returns.
+#                              If specified second time, it specifies timeout before SIGKILL.
 # @option -m <task-max-time> If a task is running longer then specified time, it is killed.
+#                            If specified second time, it specifies timeout before SIGKILL.
 # @option -n <max-atoms> Trigger execution once <max-atoms> have been accumulated.
 # @option -O Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
 # @option -P <max-procs> Concurrent process limit. Supports an integer or 'nproc' for CPU count.
@@ -12606,9 +12670,10 @@ L_xargs() {
 			_L_x_input_cb=() _L_x_d=$'\n' _L_x_fd=0 _L_x_split="" \
 			_L_x_v="" _L_x_rets=() L_XARGS_INDEX=0 _L_x_quiet=0 \
 			_L_x_eof_str _L_x_eof_check_cb=: _L_x_template_cb=_L_xargs_run_template_no \
-			_L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_timeout="" _L_x_timers=() \
+			_L_x_running=() _L_x_input_stopped=0 _L_x_atoms=() _L_x_task_term_timeout="" \
+			_L_x_task_kill_timeout="" _L_x_all_tasks_kill_timer="" _L_x_task_kill_timers=() \
 			_L_x_notify_cb="" _L_x_return=0 _L_x_done=0 _L_x_cur_records=0 \
-			_L_x_foreground=0 _L_x_feeder_id="" \
+			_L_x_foreground=0 _L_x_feeder_id="" _L_x_subshell=0 \
 			_L_x_dobuf_mode=0 _L_x_dobuf_pipe _L_x_dobuf_output=() _L_x_dobuf_prefix=() _L_x_dobuf_finished _L_x_dobuf_next=0 \
 			L_UV=() _L_x_finally_idx1 _L_x_finally_idx2 _L_x_mypid
 	while getopts 0a:A:C:d:s:m:M:zZu:I:in:L:lrP:tO^qv:E:e:FX:h _L_i; do
@@ -12637,8 +12702,24 @@ L_xargs() {
 			C) _L_x_input_cb=(eval "$OPTARG"); ;;
 			d) _L_x_input_cb=() _L_x_d=$OPTARG _L_x_split=${_L_x_split:-0} ;;
 			s) ;; # todo
-			m) _L_x_task_timeout=$OPTARG; L_duration_to_usec_vL_RET "$_L_x_task_timeout" || return ;;
-			M) L_uv_add_timer -v _L_x_global_timex -d "$OPTARG" _L_xargs_global_timeout_cb || return ;;
+			m)
+			 	# This call is to validate the argument.
+				L_duration_to_usec_vL_RET "$OPTARG" || return
+				if [[ -z "$_L_x_task_term_timeout" ]]; then
+					_L_x_task_term_timeout=${L_RET}us
+				else
+					_L_x_task_kill_timeout=${L_RET}us
+				fi
+				;;
+			M)
+				L_duration_to_usec_vL_RET "$OPTARG" || return
+				if [[ -z "$_L_x_all_tasks_kill_timer" ]]; then
+					L_uv_add_timer -v _L_x_all_tasks_kill_timer -d "${L_RET}us" \
+						_L_xargs_kill_all_tasks SIGTERM "${L_RET}us" || return
+				else
+					_L_x_all_tasks_kill_timeout=${L_RET}us
+				fi
+				;;
 			z) _L_x_split=1 ;;
 			Z) _L_x_split=0 ;;
 			u) _L_x_fd=$OPTARG ;;
@@ -12686,7 +12767,9 @@ L_xargs() {
 		L_finally_pop -n -i "$_L_x_finally_idx1"
 		unset -v _L_X_CLEANUP
 	fi
-	return "$_L_x_return"
+	if [[ -z "$_L_x_v" ]]; then
+		return "$_L_x_return"
+	fi
 }
 
 
