@@ -6768,6 +6768,51 @@ _L_unittest_main_finally() {
 	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
 }
 
+_L_unittest_main_statefile_entry() {
+	# Only when there are no positional arguments.
+	if [[ -z "$_L_u_args" && -r "$_L_u_R" ]]; then
+		local ok="" fail="" IFS= i
+		{ read -r ok && read -r fail || :; } <"$_L_u_R"
+		# Do not run tests we know are ok.
+		for i in "${!_L_u_test_func[@]}"; do
+			if [[ "$ok" == *"(${_L_u_test_func[i]})"* ]]; then
+				unset -v '_L_u_test_func[i]'
+			fi
+		done
+		# If there have been no failures and no tests to run, means all done.
+		if [[ -z "$fail" ]] && (( ${_L_u_test_func[@]:+1}0 == 0 )); then
+			L_ok "All tests succeeded"
+		fi
+	fi
+}
+_L_unittest_main_statefile_exit() {
+	if [[ -n "$_L_u_R" ]]; then
+		# Remove suceeded add failed function into -R file.
+		local ok="" fail="" IFS= i
+		# Read state from file.
+		if [[ -r "$_L_u_R" ]]; then
+			{ read -r ok && read -r fail || :; } <"$_L_u_R"
+		fi
+		# Update file state with our state.
+		for i in "${!_L_u_test_func[@]}"; do
+			if (( _L_u_test_ret[i] )); then
+				# Failed test. Remove from ok. Add to fail.
+				ok=${ok//(${_L_u_test_func[i]})}
+				if [[ "$fail" != *"(${_L_u_test_func[i]})" ]]; then
+					fail+="(${_L_u_test_func[i]})"
+				fi
+			elif [[ -z "${_L_u_test_skipped[i]:-}" ]]; then
+				# Non-skipped succeeded test. Add to ok. Remove from fail.
+				if [[ "$ok" != *"(${_L_u_test_func[i]})" ]]; then
+					ok+="(${_L_u_test_func[i]})"
+				fi
+				fail=${fail//(${_L_u_test_func[i]})}
+			fi
+		done
+		printf "%s\n" "$ok" "$fail" >"$_L_u_R"
+	fi
+}
+
 # @description
 # Uninteresting unittesting suite runner.
 # @option -p <prefix> Get functions with this prefix to test
@@ -6801,6 +6846,7 @@ _L_unittest_main_finally() {
 # @option -E Execute trap - ERR.
 # @option -M <global-max-time> If running longer then specified time, tasks are getting killed.
 # @option -m <task-max-time> If a task is running longer then specified time, it is killed.
+# @option -R <file> Remember failed tasks in file. If file exists, run only tests mentioned in the file.
 # @arg <patterns...> Like -k argument, but allows one word only and joins arguments with AND.
 # shellcheck disable=SC2179
 L_unittest_main() {
@@ -6829,55 +6875,80 @@ L_unittest_main() {
 		_L_u_spinner_buf="" \
 		_L_u_k="" \
 		_L_u_args="" \
+		_L_u_R="" \
 		_L_u_xargs_args=()
-	while (( $# >= OPTIND )); do
-		if getopts p:k:P:Elqd:xsScFvThm:M: _L_i; then
-			case "$_L_i" in
-				p)
-					L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
-					L_compgen -V _L_u_test_func -A function -- "$OPTARG"
-					_L_u_testscnt+=${_L_u_test_func[*]:+${#_L_u_test_func[*]}}
-					;;
-				k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
-				P)
-					if [[ "$OPTARG" == n* ]]; then
-						L_nproc_vL_RET; _L_u_nproc=$L_RET
-					elif ! L_is_integer "$OPTARG" || (( OPTARG < 0 )); then
-						L_func_usage_error "invalid -P value: $OPTARG"
-						return "$L_EX_USAGE"
-					else
-						(( _L_u_nproc = OPTARG, 1 )) || return "$L_EX_USAGE"
-					fi
-					;;
-				E) trap - ERR ;;
-				l) _L_u_list=1 ;;
-				q) _L_u_quiet=1 ;;
-				d) _L_u_durations=$OPTARG ;;
-				x) _L_u_exitfirst=1 ;;
-				s) _L_u_stream=1 ;;
-				S) _L_u_stream=0 ;;
-				c) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
-				F) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
-				v) _L_u_verbose=1 ;;
-				T) NO_COLOR=1 _L_u_use_term=0 ;;
-				m|M) _L_u_xargs_args+=("-$_L_i" "$OPTARG") ;;
-				h) L_func_help; return 0 ;;
-				*) L_func_usage_error; return "$L_EX_USAGE" ;;
-			esac
-		else
-			OPTARG=${!OPTIND}
-			(( ++OPTIND ))
-			if [[ "$OPTARG" == *[^]#%0-9!*+,-./:=?@A-Z^_a-z{}~[]* ]]; then
-				L_func_usage_error "positional argument is not a valid function name part: \`$OPTARG'"
-				return "$L_EX_USAGE"
-			fi
-			_L_u_args+=${_L_u_args:+ || }"$OPTARG"
-		fi
-	done
+	L_argparse dest_prefix=_L_u_ \
+		:: -p \
+		:: -k action=append \
+		:: -E eval='trap - ERR' \
+		:: -P \
+		:: -l flag=1 \
+		:: -q flag=1 \
+		:: -d \
+		:: -x flag=1 \
+		:: -s flag=1 \
+		:: -S eval='_L_u_s=0' \
+		:: -c -F eval='_L_u_subshell=0 _L_u_xargs_args+=(-F)' \
+		:: -T eval='NO_COLOR=1 _L_u_use_term=0' \
+		:: -m nargs=1 eval='_L_u_xargs_args+=(-m "$1")' \
+		:: -M nargs=1 eval='_L_u_xargs_args+=(-M "$1")' \
+		:: -R \
+		:: --lf flag=1 \
+		:: --ff flag=1 \
+		:::: "$@"
+	L_pp -m _L_u_**
+
+	#
+	# while (( $# >= OPTIND )); do
+	# 	if getopts p:k:P:Elqd:xsScFvThM:m:R: _L_i; then
+	# 		case "$_L_i" in
+	# 			p)
+	# 				L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
+	# 				L_compgen -V _L_u_test_func -A function -- "$OPTARG"
+	# 				_L_u_testscnt+=${_L_u_test_func[*]:+${#_L_u_test_func[*]}}
+	# 				;;
+	# 			k) _L_u_msg+="; filter [$OPTARG]"; _L_unittest_main_handle_k "$OPTARG" ;;
+	# 			P)
+	# 				if [[ "$OPTARG" == n* ]]; then
+	# 					L_nproc_vL_RET; _L_u_nproc=$L_RET
+	# 				elif ! L_is_integer "$OPTARG" || (( OPTARG < 0 )); then
+	# 					L_func_usage_error "invalid -P value: $OPTARG"
+	# 					return "$L_EX_USAGE"
+	# 				else
+	# 					(( _L_u_nproc = OPTARG, 1 )) || return "$L_EX_USAGE"
+	# 				fi
+	# 				;;
+	# 			E) trap - ERR ;;
+	# 			l) _L_u_list=1 ;;
+	# 			q) _L_u_quiet=1 ;;
+	# 			d) _L_u_durations=$OPTARG ;;
+	# 			x) _L_u_exitfirst=1 ;;
+	# 			s) _L_u_stream=1 ;;
+	# 			S) _L_u_stream=0 ;;
+	# 			c) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
+	# 			F) _L_u_subshell=0 _L_u_xargs_args+=(-F) ;;
+	# 			v) _L_u_verbose=1 ;;
+	# 			T) NO_COLOR=1 _L_u_use_term=0 ;;
+	# 			m|M) _L_u_xargs_args+=("-$_L_i" "$OPTARG") ;;
+	# 			R) _L_u_R=$OPTARG ;;
+	# 			h) L_func_help; return 0 ;;
+	# 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+	# 		esac
+	# 	else
+	# 		OPTARG=${!OPTIND}
+	# 		(( ++OPTIND ))
+	# 		if [[ "$OPTARG" == *[^]#%0-9!*+,-./:=?@A-Z^_a-z{}~[]* ]]; then
+	# 			L_func_usage_error "positional argument is not a valid function name part: \`$OPTARG'"
+	# 			return "$L_EX_USAGE"
+	# 		fi
+	# 		_L_u_args+=${_L_u_args:+ || }"$OPTARG"
+	# 	fi
+	# done
 	# Handle positional arguments as filter patterns (union/OR of patterns, like -k but simpler).
 	if [[ -n "$_L_u_args" ]];then
 		_L_unittest_main_handle_k "$_L_u_args"
 	fi
+	_L_unittest_main_statefile_entry
 	# Detect colors.
 	L_color_detect
 	if [[ -n "$L_RESET" ]]; then
@@ -6983,6 +7054,7 @@ L_unittest_main() {
 			_L_unittest_main_output_printer " != 0"
 		fi
 	fi
+	_L_unittest_main_statefile_exit
 	#
 	if (( _L_u_durations )); then
 		local IFS=$' \t\n'
