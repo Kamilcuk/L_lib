@@ -6737,15 +6737,14 @@ _L_unittest_main_worker_finally() {
 		""|RETURN|POP) ;;
 		EXIT)
 			if (( _L_u_subshell )); then
-				L_critical "_L_unittest_main_worker: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
 				_L_ur_ret=300
 			else
-				L_critical "_L_unittest_main_worker: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
 			fi
 			;;
-		SIGTERM|SIGINT) _L_ur_ret=300 ;;
 		*)
-			L_critical "_L_unittest_main_worker: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
+			L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
 			_L_ur_ret=300
 			;;
 	esac
@@ -10143,19 +10142,35 @@ L_get_all_childs_vL_RET() {
 			done
 		fi
 	elif
-		L_hash ps &&
+		L_hash ps && {
+			if [[ -z "${_L_PS_CYGWIN:-}" ]]; then
+				if [[ "$(trap - ERR; ps --help 2>&1)" == *windows* ]]; then
+					_L_PS_CYGWIN=1
+				else
+					_L_PS_CYGWIN=0
+				fi
+			fi
 			_L_ps_output=$(
 				L_bashpid_into _L_pid
 				echo "$_L_pid"
-				exec ps -e -o pid= -o ppid=
+				if (( _L_PS_CYGWIN )); then
+					exec ps -e
+				else
+					exec ps -e -o pid= -o ppid=
+				fi
 			)
+		}
 	then
 		{
 			# Extract ps _L_pid that we conveniently put as the first item.
 			read -r _L_ps_pid
+			if (( _L_PS_CYGWIN )); then
+			# Skil header
+				read -r _
+			fi
 			# Populate a sparse array mapping pids to (string) lists of child pids.
 			_L_children_of=()
-			while read -r _L_pid _L_ppid; do
+			while read -r _L_pid _L_ppid _; do
 				if (( _L_pid != _L_ps_pid && _L_ppid != _L_ps_pid )); then
 					_L_children_of[_L_ppid]+=" $_L_pid"
 				fi
