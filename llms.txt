@@ -1,0 +1,57 @@
+# L_lib
+
+> Collection of Bash usefull functions and features.
+
+## Introduction
+
+- [Introduction](https://kamilcuk.github.io/L_lib/index.md)
+
+## Sections documentation
+
+- [globals](https://kamilcuk.github.io/L_lib/section/globals/index.md)
+- [sysexits](https://kamilcuk.github.io/L_lib/section/sysexits/index.md)
+- [colors](https://kamilcuk.github.io/L_lib/section/colors/index.md)
+- [ansi](https://kamilcuk.github.io/L_lib/section/ansi/index.md)
+- [has](https://kamilcuk.github.io/L_lib/section/has/index.md)
+- [assert](https://kamilcuk.github.io/L_lib/section/assert/index.md)
+- [func](https://kamilcuk.github.io/L_lib/section/func/index.md)
+- [stdlib](https://kamilcuk.github.io/L_lib/section/stdlib/index.md)
+- [time](https://kamilcuk.github.io/L_lib/section/time/index.md)
+- [cache](https://kamilcuk.github.io/L_lib/section/cache/index.md)
+- [json](https://kamilcuk.github.io/L_lib/section/json/index.md)
+- [exit_to](https://kamilcuk.github.io/L_lib/section/exit_to/index.md)
+- [path](https://kamilcuk.github.io/L_lib/section/path/index.md)
+- [string](https://kamilcuk.github.io/L_lib/section/string/index.md)
+- [array](https://kamilcuk.github.io/L_lib/section/array/index.md)
+- [foreach](https://kamilcuk.github.io/L_lib/section/foreach/index.md)
+- [args](https://kamilcuk.github.io/L_lib/section/args/index.md)
+- [utilities](https://kamilcuk.github.io/L_lib/section/utilities/index.md)
+- [log](https://kamilcuk.github.io/L_lib/section/log/index.md)
+- [sort](https://kamilcuk.github.io/L_lib/section/sort/index.md)
+- [trap](https://kamilcuk.github.io/L_lib/section/trap/index.md)
+- [finally](https://kamilcuk.github.io/L_lib/section/finally/index.md)
+- [with](https://kamilcuk.github.io/L_lib/section/with/index.md)
+- [unittest](https://kamilcuk.github.io/L_lib/section/unittest/index.md)
+- [map](https://kamilcuk.github.io/L_lib/section/map/index.md)
+- [asa](https://kamilcuk.github.io/L_lib/section/asa/index.md)
+- [uv](https://kamilcuk.github.io/L_lib/section/uv/index.md)
+- [xargs](https://kamilcuk.github.io/L_lib/section/xargs/index.md)
+- [argparse](https://kamilcuk.github.io/L_lib/section/argparse/index.md)
+- [proc](https://kamilcuk.github.io/L_lib/section/proc/index.md)
+- [lib](https://kamilcuk.github.io/L_lib/section/lib/index.md)
+
+## API Reference
+
+- [all](https://kamilcuk.github.io/L_lib/section/all/index.md)
+
+## Miscellaneous
+
+- [Bash expansions](https://kamilcuk.github.io/L_lib/expansions/index.md)
+- [Bash bugs](https://kamilcuk.github.io/L_lib/bash_bugs/index.md)
+- [Measurements](https://kamilcuk.github.io/L_lib/measurements/index.md)
+
+## AI Skills
+
+- [AI Skill](https://kamilcuk.github.io/L_lib/skill/index.md)
+- [AI Unittest Skill](https://kamilcuk.github.io/L_lib/skill-unittest/index.md)
+

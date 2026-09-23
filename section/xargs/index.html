@@ -1664,6 +1664,149 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../issourced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Source detection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skills
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Skills
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../skill-unittest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Unittest Skill
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -2147,7 +2290,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11705"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12142"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2173,13 +2316,14 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11710"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12148"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_nproc" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            Returns the number of CPU cores.
+            <p>Returns the number of CPU cores.</p>
+<p>Caches result in _L_NPROC.</p>
 
     </p>
 
@@ -2213,7 +2357,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_nproc_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11711"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12149"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2240,7 +2384,7 @@ L_xargs<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span
 
 <h3 id="L_lib.sh--L_sleep">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sleep
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L11735"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12190"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2279,7 +2423,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12128"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L12691"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2320,23 +2464,17 @@ limits are specified, the command executes exactly once upon reaching EOF.</p>
 </li><li>                <strong><code>-d &lt;delimiter&gt;</code></strong>
     Set the Record separator to the specified character.
 
-</li><li>                <strong><code>-s &lt;max-chars&gt;</code></strong>
-    Use at most max-chars characters per command line.
+</li><li>                <strong><code>-e &lt;eof-str&gt;</code></strong>
+    Like -E, compatibility wtih GNU xargs, use -E.
 
-</li><li>                <strong><code>-m &lt;task-max-time&gt;</code></strong>
-    If a task is running longer then specified time, it is killed.
+</li><li>                <strong><code>-E &lt;eof-str&gt;</code></strong>
+    Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
 
-</li><li>                <strong><code>-M &lt;global-max-time&gt;</code></strong>
-    If xargs is runnig longer then specified time, tasks are getting killed and xargs returns.
+</li><li>                <strong><code>-F</code></strong>
+    Run the command in current shell execution context. Do not fork.
 
-</li><li>                <strong><code>-z</code></strong>
-    Split Mode: Parse internal Records into multiple Atoms using L_unquote.
-
-</li><li>                <strong><code>-Z</code></strong>
-    Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
-
-</li><li>                <strong><code>-u &lt;fd&gt;</code></strong>
-    Read the input stream from the specified file descriptor.
+</li><li>                <strong><code>-h</code></strong>
+    Display this help documentation and exit.
 
 </li><li>                <strong><code>-I &lt;replace-str&gt;</code></strong>
     Replace occurrences of replace-str in the command. Sets -n 1.
@@ -2350,41 +2488,53 @@ limits are specified, the command executes exactly once upon reaching EOF.</p>
 </li><li>                <strong><code>-l</code></strong>
     Shorthand for -L1.
 
+</li><li>                <strong><code>-M &lt;global-max-time&gt;</code></strong>
+    <p>If xargs is running longer then specified time, tasks are getting killed and xargs returns.</p>
+<p>If specified second time, it specifies timeout before SIGKILL.</p>
+
+</li><li>                <strong><code>-m &lt;task-max-time&gt;</code></strong>
+    <p>If a task is running longer then specified time, it is killed.</p>
+<p>If specified second time, it specifies timeout before SIGKILL.</p>
+
 </li><li>                <strong><code>-n &lt;max-atoms&gt;</code></strong>
     Trigger execution once <max-atoms> have been accumulated.
-
-</li><li>                <strong><code>-r</code></strong>
-    If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
-
-</li><li>                <strong><code>-P &lt;max-procs&gt;</code></strong>
-    Concurrent process limit. Supports an integer or 'nproc' for CPU count.
 
 </li><li>                <strong><code>-O</code></strong>
     Separate output of each command by using pipes. Use twice to keep the output of pipes in order.
 
-</li><li>                <strong><code>-t</code></strong>
-    Verbose: Print each command to STDERR before execution.
-
-</li><li>                <strong><code>-^</code></strong>
-    Prefix Mode: Prepends the command arguments and a colon to each line of output.
+</li><li>                <strong><code>-P &lt;max-procs&gt;</code></strong>
+    Concurrent process limit. Supports an integer or 'nproc' for CPU count.
 
 </li><li>                <strong><code>-q</code></strong>
     Be quiet.
 
+</li><li>                <strong><code>-r</code></strong>
+    If the input does not contain any atoms, do not run the command. Normally, the command is run once even if there is no input.
+
+</li><li>                <strong><code>-s &lt;max-chars&gt;</code></strong>
+    Use at most max-chars characters per command line.
+
+</li><li>                <strong><code>-t</code></strong>
+    Verbose: Print each command to STDERR before execution.
+
+</li><li>                <strong><code>-u &lt;fd&gt;</code></strong>
+    Read the input stream from the specified file descriptor.
+
 </li><li>                <strong><code>-v &lt;var&gt;</code></strong>
     Assign array variable the exit statuses of commands. Do not exit with 123-127 exit codes.
 
-</li><li>                <strong><code>-E &lt;eof-str&gt;</code></strong>
-    Set the end of file string to eof-str.  If the end of file string occurs as a line of input, the rest of the input is ignored.
+</li><li>                <strong><code>-X &lt;func&gt;</code></strong>
+    <p>Register custom function event callback that will be called</p>
+<p>with arguments: <code>PREEXEC</code>, <code>POSTEXEC $pid</code>, <code>EXIT $pid $?</code>.</p>
 
-</li><li>                <strong><code>-e &lt;eof-str&gt;</code></strong>
-    Like -E, compatibility wtih GNU xargs, use -E.
+</li><li>                <strong><code>-Z</code></strong>
+    Solid Mode: Treat the entire delimited Record as a single literal Atom (Default).
 
-</li><li>                <strong><code>-F</code></strong>
-    Run the command in current shell execution context. Do not fork.
+</li><li>                <strong><code>-z</code></strong>
+    Split Mode: Parse internal Records into multiple Atoms using L_unquote.
 
-</li><li>                <strong><code>-h</code></strong>
-    Display this help documentation and exit.
+</li><li>                <strong><code>-^</code></strong>
+    Prefix Mode: Prepends the command arguments and a colon to each line of output.
 
 </li></ul>    </p>
 

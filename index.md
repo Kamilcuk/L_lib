@@ -1,0 +1,132 @@
+# L_lib.sh
+
+Labrador Bash library. Collection of functions and libraries that I deem useful for working with Bash.
+
+- [Documentation](https://kamilcuk.github.io/L_lib/)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Features](#features)
+- [Conventions](#conventions)
+- [License](#license)
+
+# Installation
+
+The library is one file. Download the latest release from GitHub and put in your PATH:
+
+```
+mkdir -vp ~/.local/bin/
+wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v2.0.4/L_lib.sh
+export PATH=~/.local/bin:$PATH
+```
+
+### Pip
+
+```
+pip install L_lib
+```
+
+### Basher
+
+```
+basher install Kamilcuk/L_lib
+```
+
+# Usage
+
+You can use the library in scripts with:
+
+```
+. L_lib.sh -s
+```
+
+Unless `-n`, sourcing the library will enable `extglob` and `patsub_replacement` and, if `set -e` is set and there is no `ERR` trap, it will also register a `ERR` trap that will print a nice traceback on unhandled error.
+
+For example, a simple script using the library could look like:
+
+```
+#!/usr/bin/env bash
+. L_lib.sh -s
+L_log "Starting script"
+L_info "This is an info message"
+```
+
+You can test the library ad-hoc:
+
+```
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.0.4/L_lib.sh) L_setx L_log 'Hello world'
+```
+
+# Commonly used functions
+
+Here are the functions most frequently used throughout the L_lib codebase (including scripts and tests):
+
+- [`L_finally`](https://kamilcuk.github.io/L_lib/section/finally/) - Execute an action on EXIT, RETURN, or signal.
+- [`L_argparse`](https://kamilcuk.github.io/L_lib/section/argparse/) - Parse command line arguments.
+- [`L_log`](https://kamilcuk.github.io/L_lib/section/log/) - Log a message with a specified level.
+- [`L_handle_v_scalar`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_handle_v_scalar) - Handle the `-v <var>` option to store results in a variable.
+- [`L_info`](https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_info) - Log an informational message.
+- [`L_panic`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic) - Print error with traceback and exit.
+- [`L_xargs`](https://kamilcuk.github.io/L_lib/section/xargs/#L_lib.sh--L_xargs) - Run parallel background tasks with controlled concurrency.
+- [`L_foreach`](https://kamilcuk.github.io/L_lib/section/foreach/#L_lib.sh--L_foreach) - Iterate over arrays with automatic index tracking.
+- [`L_with_tmpfile_into`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_tmpfile_into) - Execute a command with its output stored in a temporary file.
+- [`L_with_process_into`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_process_into) - Execute a command and store its stdout/stderr in variables.
+
+# Features
+
+Below is a selection of the library's features. The library contains much more.
+
+- Argument parsing in Bash with short, long options, sub-parsers, sub-functions support and shell completion [`L_argparse`](https://kamilcuk.github.io/L_lib/section/argparse/)
+- Logging library with levels and configurable output and filtering [`L_log_configure`](https://kamilcuk.github.io/L_lib/section/log/) [`L_info`](https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_info) [`L_logrun`](https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_logrun) [`L_run`](https://kamilcuk.github.io/L_lib/section/log/#L_lib.sh--L_run)
+- Pretty function stack printing usually on ERR trap [`L_print_traceback`](https://kamilcuk.github.io/L_lib/section/trap/#L_lib.sh--L_print_traceback)
+- Execute an action on EXIT, any terminating signal or RETURN trap of any function [`L_finally`](https://kamilcuk.github.io/L_lib/section/finally/)
+- Create temporary directory and `cd` to it for the duration of a function with auto removal after return [`L_with_cd`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_cd) [`L_with_cd_tmpdir`](https://kamilcuk.github.io/L_lib/section/with/#L_lib.sh--L_with_cd_tmpdir)
+- Create unidirectional connected two file descriptors [`L_pipe`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_pipe)
+- Create and manage multiple processes with separate file descriptors for standard input and standard output [`L_proc_popen`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_popen) [`L_proc_communicate`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_communicate) [`L_proc_kill`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_proc_kill) [`L_kill_all_childs`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_kill_all_childs)
+- Temporary enable or disable shell features `set -x` for the duration of a command [`L_setx`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_setx) [`L_unsetx`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_unsetx) [`L_shopt_extglob`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_shopt_extglob)
+- Easily sort a Bash arrays containing any characters [`L_sort`](https://kamilcuk.github.io/L_lib/section/sort/#L_lib.sh--L_sort)
+- Print formatted data tables to the terminal [`L_table`](https://kamilcuk.github.io/L_lib/section/utilities/#L_lib.sh--L_table)
+- Pretty print variables, arrays, and associative arrays [`L_pretty_print`](https://kamilcuk.github.io/L_lib/section/utilities/#L_lib.sh--L_pretty_print)
+- Failure handling utilities [`L_assert`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_assert) [`L_die`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_die) [`L_check`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_check) [`L_panic`](https://kamilcuk.github.io/L_lib/section/assert/#L_lib.sh--L_panic)
+- Variables holding color codes depending on terminal support [`L_color_detect`](https://kamilcuk.github.io/L_lib/section/colors/#L_lib.sh--L_color_detect) [`$L_RED`](https://kamilcuk.github.io/L_lib/section/colors/) [`$L_BLUE`](https://kamilcuk.github.io/L_lib/section/colors/)
+- Checking Bash features and version [`$L_BASH_VERSION`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_BASH_VERSION) [`$L_HAS_BASH4_0`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_BASH4_0) [`$L_HAS_COMPGEN_V`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_COMPGEN_V) [`$L_HAS_WAIT_N`](https://kamilcuk.github.io/L_lib/section/globals/#L_lib.sh--L_HAS_WAIT_N)
+- Waiting on multiple PIDs with a timeout ignoring signals and collecting all exit codes [`L_wait`](https://kamilcuk.github.io/L_lib/section/proc/#L_lib.sh--L_wait)
+- Run parallel background tasks with controlled concurrency, timeout handling, and progress feedback [`L_xargs`](https://kamilcuk.github.io/L_lib/section/xargs/#L_lib.sh--L_xargs)
+- Standard exit codes based on `sysexits.h` [`$L_EX_OK`](https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_OK) [`$L_EX_USAGE`](https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_USAGE) [`$L_EX_TIMEOUT`](https://kamilcuk.github.io/L_lib/section/sysexits/#L_lib.sh--L_EX_TIMEOUT)
+- Simplify storing exit status of a command into a variable [`L_exit_into`](https://kamilcuk.github.io/L_lib/section/exit_to/#L_lib.sh--L_exit_into) [`L_exit_into_10`](https://kamilcuk.github.io/L_lib/section/exit_to/#L_lib.sh--L_exit_into_10)
+- Help with path operations, with `PATH` or `PYTHONPATH` manipulation [`L_path_stem`](https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_stem) [`L_dir_is_empty`](https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_dir_is_empty) [`L_path_append`](https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_append) [`L_path_relative_to`](https://kamilcuk.github.io/L_lib/section/path/#L_lib.sh--L_path_relative_to)
+- String utilities [`L_strip`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strip) [`L_strupper`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strupper) [`L_strstr`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_strstr) [`L_html_escape`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_html_escape) [`L_urlencode`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_urlencode)
+- Split string without remote execution and understand `$''` sequences [`L_unquote`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_unquote)
+- Template output [`L_percent_format`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_percent_format) [`L_fstring`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_fstring)
+- JSON escape [`L_json_escape`](https://kamilcuk.github.io/L_lib/section/json/#L_lib.sh--L_json_escape)
+- Cache commands execution with TTL in memory or file [`L_cache`](https://kamilcuk.github.io/L_lib/section/cache/#L_lib.sh--L_cache)
+- Easy writing function utilities by supporting `-v <var>` option or extracting comment before function [`L_handle_v_scalar`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_handle_v_scalar) [`L_func_help`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_func_help) [`L_func_usage_error`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_func_usage_error) [`L_decorate`](https://kamilcuk.github.io/L_lib/section/func/#L_lib.sh--L_decorate)
+- High-level loops with automatic trackers for index, first-element, and last-element flags [`L_foreach`](https://kamilcuk.github.io/L_lib/section/foreach/#L_lib.sh--L_foreach)
+- All with support for any Bash versions from 3.2 to latest with portability functions [`L_readarray`](https://kamilcuk.github.io/L_lib/section/array/#L_lib.sh--L_readarray) [`L_epochrealtime_usec`](https://kamilcuk.github.io/L_lib/section/time/#L_lib.sh--L_epochrealtime_usec) [`L_compgen -V`](https://kamilcuk.github.io/L_lib/section/stdlib/#L_lib.sh--L_compgen)
+- Event loop for asynchronous Bash programming [`L_uv_init`](https://kamilcuk.github.io/L_lib/section/uv/) [`L_uv_add_timer`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_add_timer) [`L_uv_run`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_run)
+
+# Talk to me
+
+Kindly feel free to have conversations and ask questions on [GitHub discussion](https://github.com/Kamilcuk/L_lib/discussions).
+
+Report bugs using [GitHub issue](https://github.com/Kamilcuk/L_lib/issues).
+
+# Contributing
+
+Contributions are welcome! You can run the tests locally with `make test` or check static analysis with `make shellcheck`. Please submit pull requests to the main repository.
+
+# Conventions
+
+- `L_*` prefix for public symbols.
+- `_L_*` prefix for private symbols, including local variables in functions taking a name-reference.
+- Upper case used for global scope read-only variables.
+- Lower case used for functions and user mutable variables.
+- Snake case for everything.
+- The option `-v <var>` is used to store the result in a variable instead of printing it.
+  - This follows the convention of `printf -v <var>`.
+  - Without the `-v` option, the function outputs the elements on lines to standard output.
+  - Associated function with `_vL_RET` suffix store the result in a hardcoded scratch variable `L_RET`.
+- Return 64 ($L_EX_USAGE) on usage error, return 124 ($L_EX_TIMEOUT) on timeout.
+
+# License
+
+[GPL-3.0](https://kamilcuk.github.io/L_lib/LICENSE)
