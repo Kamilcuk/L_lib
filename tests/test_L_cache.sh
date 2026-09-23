@@ -45,7 +45,7 @@ _L_test_cache_stdout() {
 		echo "USING $opt"
 		{
 			cachestdout() { echo 123; echo EXECUTED >&2; }
-			L_decorate L_cache -T 10 -o $opt cachestdout
+			L_decorate L_cache -T 1h -o $opt cachestdout
 			for i in _ _; do
 				L_unittest_cmd -c L_cache $opt -r cachestdout a
 				L_log "Testing L_cache with stdout: first run"
@@ -138,7 +138,7 @@ _L_test_cache_vars_norm() {
 			if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 				asaarg="-sasa"
 			fi
-			L_decorate L_cache -T 1 -s var -s array $asaarg $opt cachevars
+			L_decorate L_cache -T 1h -s var -s array $asaarg $opt cachevars
 			#
 			for i in _ _; do
 				L_cache $opt -r cachevars
