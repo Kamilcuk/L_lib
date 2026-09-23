@@ -2273,7 +2273,11 @@ fi
 
 if L_is_main; then
 	L_trap_err_enable
-	L_unittest_main -p _L_test_ -m 60 -m 60 "$@"
+	test_timeout=60
+	if [[ "$OSTYPE" == *cygwin* ]]; then
+		test_timeout=300
+	fi
+	L_unittest_main -p _L_test_ -m "$test_timeout" -m "$test_timeout" "$@"
 
 	# Check for any new variables.
 	diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
