@@ -13,7 +13,7 @@ get_all_variables() {
 	if L_var_is_set _L_finally_pid; then
 		unset -v _L_finally_arr _L_finally_pid _L_finally_pending _L_finally_return
 	fi
-	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*|_L_PIPE_CNT|_L_finally_idx_.*|_L_finally_item_depth|SRANDOM|BASH_SUBSHELL|_L_NPROC)="
+	declare -p | grep -Ev "^declare (-a|-r|-ar|-i|--) (SHELLOPTS|BASH_LINENO|BASH_REMATCH|PIPESTATUS|COLUMNS|LINES|BASHOPTS|BASHPID|RANDOM|EPOCHREALTIME|_L_CACHE|USR1_CNT|USR2_CNT|_L_logconf_level|_|BASH_COMMAND|_L_PROC_.*|_L_PIPE_CNT|_L_finally_idx_.*|_L_finally_item_depth|SRANDOM|BASH_SUBSHELL|_L_NPROC|test_timeout)="
 }
 
 L_SAFE_ALLCHARS=${L_ALLCHARS//[$'\001\177\r']}
@@ -2151,7 +2151,7 @@ _L_test_readme_links_ok() {
 }
 
 _L_test_unittest_skip() {
-	L_unittest_skip "tests skipping"
+	L_unittest_skip "tests skipping to be real this is a very long description that shoudl be shown fully I think"
 	false
 }
 
