@@ -6484,7 +6484,7 @@ L_unittest_skip() {
 	_L_u_test_skipped[L_XARGS_INDEX]=" ${*//[$'\v\t\n']/ }"
 	# Transfer skip reason to parent.
 	printf "_=%s _L_u_test_skipped[%d]=%q\n" \
-		"$L_DC1" "$_L_ur_index" "${_L_u_test_skipped[L_XARGS_INDEX]::40}" >&"$_L_ur_res_w"
+		"$L_DC1" "$_L_ur_index" "${_L_u_test_skipped[L_XARGS_INDEX]}" >&"$_L_ur_res_w"
 	exit 0
 }
 
