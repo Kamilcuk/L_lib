@@ -25,6 +25,12 @@ wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/downloa
 export PATH=~/.local/bin:$PATH
 ```
 
+### Quick testing one-liner
+
+```bash
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.1.0/L_lib.sh) L_setx L_log 'Hello world'
+```
+
 ### Pip
 
 ```bash
@@ -35,6 +41,36 @@ pip install L_lib
 
 ```bash
 basher install Kamilcuk/L_lib
+```
+
+### Auto-download from a script
+
+If you have a script that you want to auto-download the library for use, consider using the following code that will store the L_lib.sh into user ~/.cache directory:
+
+```bash
+pull_L_lib() {
+	[[ -n "${L_LIB_VERSION:-}" ]] && return
+	local ver=2.1.0
+	local cache="${XDG_CACHE_HOME:-$HOME/.cache}/L_lib-$ver.sh"
+	if [[ ! -s "$cache" ]]; then
+		local url=https://github.com/Kamilcuk/L_lib/releases/download/v$ver/L_lib.sh
+		local tmp="$cache.tmp$$"
+		mkdir -p "${cache%/*}"
+		if hash curl 2>/dev/null; then
+			curl -fsSL -o "$tmp" "$url"
+		elif hash wget 2>/dev/null; then
+			wget -qO "$tmp" "$url"
+		else
+			echo "pull_L_lib: need curl or wget" >&2; return 1
+		fi || { rm -f "$tmp"; echo "pull_L_lib: download failed" >&2; return 1; }
+		mv "$tmp" "$cache"
+	fi
+	. "$cache" -s
+}
+
+# Use in your script:
+pull_L_lib
+L_log "L_lib is now available"
 ```
 
 # Usage
