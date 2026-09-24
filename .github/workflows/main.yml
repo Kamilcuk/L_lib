@@ -17,6 +17,23 @@ env:
 
 jobs:
 
+  version-check:
+    name: Check version bump
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: MeilCli/bump-release-action@v3.0.11
+        with:
+          config_path: '.github/bump.yml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dry_run: 'true'
+          commit_user: ${{ github.actor }}
+          commit_email: ${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com
+
   test:
     runs-on: ubuntu-latest
     if: github.event.action != 'closed'

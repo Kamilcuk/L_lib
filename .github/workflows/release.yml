@@ -4,17 +4,25 @@ on:
   workflow_dispatch:
     inputs:
       bump:
-        description: 'bump type, major or minor or patch or empty string'
-        default: ''
+        description: 'bump type'
+        type: choice
+        options:
+          - 'major'
+          - 'minor'
+          - 'patch'
+        default: 'patch'
       dry_run:
         description: 'dry run, true or false'
-        default: 'false'
+        type: boolean
+        default: false
       draft:
         description: 'draft, true or false'
-        default: 'false'
+        type: boolean
+        default: false
       pre_release:
         description: 'pre release, true or false'
-        default: 'false'
+        type: boolean
+        default: false
 jobs:
   release:
     runs-on: ubuntu-latest
