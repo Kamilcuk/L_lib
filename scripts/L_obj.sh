@@ -737,42 +737,64 @@ EOF
 L_json_quote() { L_handle_v_scalar "$@"; }
 L_json_quote_vL_RET() {
 	if [[ $1 == *[$'\"\x01-\x1f\\']* ]]; then
-	  L_RET=${1//\\/\\\\}
-	  L_RET=${L_RET//\"/\\\"}
-	  L_RET=${L_RET//$'\b'/\\b}
-	  L_RET=${L_RET//$'\f'/\\f}
-	  L_RET=${L_RET//$'\n'/\\n}
-	  L_RET=${L_RET//$'\r'/\\r}
-	  L_RET=${L_RET//$'\t'/\\t}
-	  L_RET=${L_RET//$'\x01'/\\u0001}
-	  L_RET=${L_RET//$'\x02'/\\u0002}
-	  L_RET=${L_RET//$'\x03'/\\u0003}
-	  L_RET=${L_RET//$'\x04'/\\u0004}
-	  L_RET=${L_RET//$'\x05'/\\u0005}
-	  L_RET=${L_RET//$'\x06'/\\u0006}
-	  L_RET=${L_RET//$'\x07'/\\u0007}
-	  L_RET=${L_RET//$'\x0b'/\\u000b}
-	  L_RET=${L_RET//$'\x0e'/\\u000e}
-	  L_RET=${L_RET//$'\x0f'/\\u000f}
-	  L_RET=${L_RET//$'\x10'/\\u0010}
-	  L_RET=${L_RET//$'\x11'/\\u0011}
-	  L_RET=${L_RET//$'\x12'/\\u0012}
-	  L_RET=${L_RET//$'\x13'/\\u0013}
-	  L_RET=${L_RET//$'\x14'/\\u0014}
-	  L_RET=${L_RET//$'\x15'/\\u0015}
-	  L_RET=${L_RET//$'\x16'/\\u0016}
-	  L_RET=${L_RET//$'\x17'/\\u0017}
-	  L_RET=${L_RET//$'\x18'/\\u0018}
-	  L_RET=${L_RET//$'\x19'/\\u0019}
-	  L_RET=${L_RET//$'\x1a'/\\u001a}
-	  L_RET=${L_RET//$'\x1b'/\\u001b}
-	  L_RET=${L_RET//$'\x1c'/\\u001c}
-	  L_RET=${L_RET//$'\x1d'/\\u001d}
-	  L_RET=${L_RET//$'\x1e'/\\u001e}
-	  L_RET=\"${L_RET//$'\x1f'/\\u001f}\"
+		L_RET=${1//\\/\\\\}
+		L_RET=${L_RET//\"/\\\"}
+		L_RET=${L_RET//$'\b'/\\b}
+		L_RET=${L_RET//$'\f'/\\f}
+		L_RET=${L_RET//$'\n'/\\n}
+		L_RET=${L_RET//$'\r'/\\r}
+		L_RET=${L_RET//$'\t'/\\t}
+		L_RET=${L_RET//$'\x01'/\\u0001}
+		L_RET=${L_RET//$'\x02'/\\u0002}
+		L_RET=${L_RET//$'\x03'/\\u0003}
+		L_RET=${L_RET//$'\x04'/\\u0004}
+		L_RET=${L_RET//$'\x05'/\\u0005}
+		L_RET=${L_RET//$'\x06'/\\u0006}
+		L_RET=${L_RET//$'\x07'/\\u0007}
+		L_RET=${L_RET//$'\x0b'/\\u000b}
+		L_RET=${L_RET//$'\x0e'/\\u000e}
+		L_RET=${L_RET//$'\x0f'/\\u000f}
+		L_RET=${L_RET//$'\x10'/\\u0010}
+		L_RET=${L_RET//$'\x11'/\\u0011}
+		L_RET=${L_RET//$'\x12'/\\u0012}
+		L_RET=${L_RET//$'\x13'/\\u0013}
+		L_RET=${L_RET//$'\x14'/\\u0014}
+		L_RET=${L_RET//$'\x15'/\\u0015}
+		L_RET=${L_RET//$'\x16'/\\u0016}
+		L_RET=${L_RET//$'\x17'/\\u0017}
+		L_RET=${L_RET//$'\x18'/\\u0018}
+		L_RET=${L_RET//$'\x19'/\\u0019}
+		L_RET=${L_RET//$'\x1a'/\\u001a}
+		L_RET=${L_RET//$'\x1b'/\\u001b}
+		L_RET=${L_RET//$'\x1c'/\\u001c}
+		L_RET=${L_RET//$'\x1d'/\\u001d}
+		L_RET=${L_RET//$'\x1e'/\\u001e}
+		L_RET=\"${L_RET//$'\x1f'/\\u001f}\"
 	else
-    L_RET=\"$1\"
-  fi
+		L_RET=\"$1\"
+	fi
+}
+
+# Convert Bash string into Json string with only ASCII characters.
+# @option -v <var>
+# @arg <str>
+L_json_quote_ascii() { L_handle_v_scalar "$@"; }
+L_json_quote_ascii_vL_RET() {
+	L_json_quote_vL_RET "$1"
+	local _L_s=$L_RET _L_out= _L_pre _L_c _L_cp LC_ALL=C.UTF-8
+	while [[ $_L_s == *[^$'\x01'-$'\x7f']* ]]; do
+		_L_pre=${_L_s%%[^$'\x01'-$'\x7f']*}  # ASCII run before the first non-ASCII char
+		printf -v _L_cp %d "'${_L_s:${#_L_pre}:1}"  # the non-ASCII char
+		_L_s=${_L_s:${#_L_pre}+1}
+		if ((_L_cp < 0x10000)); then
+			printf -v _L_c '\\u%04x' "$_L_cp"
+		else
+			(( _L_cp -= 0x10000 ))
+			printf -v _L_c '\\u%04x\\u%04x' "$((0xd800 + (_L_cp >> 10)))" "$((0xdc00 + (_L_cp & 0x3ff)))"
+		fi
+		_L_out+="$_L_pre$_L_c"
+	done
+	L_RET=$_L_out$_L_s
 }
 
 # Convert Json string into Bash string.
@@ -784,8 +806,8 @@ _L_json_unquote_unicode_append_L_RET() {
 	_L_hex=${_L_s:1:4}
 	_L_s=${_L_s:5}
 	_L_cp=$((16#$_L_hex))
-	# Low surrogate without a preceding high surrogate is invalid.
 	if (( _L_cp >= 0xDC00 && _L_cp <= 0xDFFF )); then
+		L_func_error "Low surrogate without a preceding high surrogate is invalid: $s"
 		return "$L_EX_DATAERR"
 	fi
 	# High surrogate: must be followed immediately by \uXXXX low surrogate.
@@ -795,12 +817,15 @@ _L_json_unquote_unicode_append_L_RET() {
 				_L_lo=${s:2:4}
 				_L_lo=$((16#$_L_lo))
 				if (( _L_lo < 0xDC00 || _L_lo > 0xDFFF )); then
+			    L_func_error "Invalid json unicode sequence: $s"
 					return "$L_EX_DATAERR"
 				fi
 				s=${s:6}
 				_L_cp=$((0x10000 + ((_L_cp - 0xD800) << 10) + (_L_lo - 0xDC00)))
 				;;
-			*) return "$L_EX_DATAERR" ;;
+			*)
+			  return "$L_EX_DATAERR"
+			  ;;
 		esac
 	fi
 	printf -v _L_char '%b' "\\U$(printf '%08x' "$_L_cp")"
@@ -815,8 +840,8 @@ L_json_unquote_vL_RET() {
 		L_RET+=${_L_s%%\\*}
 		_L_s=${_L_s#*\\}
 		case $_L_s in
-			"\"") L_RET+='"' _L_s=${_L_s:1} ;;
-			'\\'*) L_RET+='\' _L_s=${_L_s:1} ;;
+			"\""*) L_RET+='"' _L_s=${_L_s:1} ;;
+			'\'*) L_RET+='\' _L_s=${_L_s:1} ;;
 			'/'*) L_RET+='/' _L_s=${_L_s:1} ;;
 			b*) L_RET+=$'\b' _L_s=${_L_s:1} ;;
 			f*) L_RET+=$'\f' _L_s=${_L_s:1} ;;
@@ -824,10 +849,56 @@ L_json_unquote_vL_RET() {
 			r*) L_RET+=$'\r' _L_s=${_L_s:1} ;;
 			t*) L_RET+=$'\t' _L_s=${_L_s:1} ;;
 			u*)	_L_json_unquote_unicode_append_L_RET || return ;;
-			*) return "$L_EX_DATAERR" ;;
+			*)
+			  L_func_error "Invalid escaped character in a json string: $_L_s"
+			  return "$L_EX_DATAERR"
+			  ;;
 		esac
 	done
 	L_RET+=$_L_s
+}
+
+# Convert json path into an array of elements with "strings" and digits.
+# ["a"][0].b -> L_RET=('"a"' 0 '"b"')
+# @option -v <var>
+# @arg <path>
+L_json_path_normalize() { L_handle_v_scalar "$@"; }
+L_json_path_normalize_vL_RET() {
+  local _L_input=$1 _L_dot='' _L_tmp _L_tok=()
+  L_RET=()
+  while (( 1 )); do
+    case "$_L_input" in
+      '["'*)
+        if [[ ! "$_L_input" =~ ^\[(\"([^\"$'\x01-\x1f'\\]|\\[\"\\/bfnrt]|\\u[0-9a-fA-F]{4})*\")\] ]]; then
+          L_func_error "Unclosed double quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
+        fi
+        L_RET+=("${BASH_REMATCH[1]}")
+        ;;
+      "['"*)
+        if [[ ! "$_L_input" =~ ^\[\'(([^\'$'\x01-\x1f'\\]|\\[\'\\/bfnrt]|\\u[0-9a-fA-F]{4})*)\'\] ]]; then
+          L_func_error "Unclosed single quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
+        fi
+        _L_tmp=${BASH_REMATCH[1]//\\\'/\'}   # \'  -> '   (undo single-quote escaping)
+        L_RET+=("${_L_tmp//\"/\\\"}")   # "   -> \"  (escape bare " for double-quote context)
+        ;;
+      '['[0-9]*)
+        if [[ ! "$_L_input" =~ ^'['(0|[1-9][0-9]*)']' ]]; then
+          L_func_error "Invalid bracket notation: $1"; return "$L_EX_DATAERR"
+        fi
+        L_RET+=("${BASH_REMATCH[1]}")
+        ;;
+      $_L_dot[^$'\x01-\x1f'"\\.\[\]@#%^&*+=|/?!~\`'\";:,{}()<>-"]*)
+        if [[ ! "$_L_input" =~ ^$_L_dot([^"]"$'\x01-\x1f'"\\.\[@#%^&*+=|/?!~\`'\";:,{}()<>-"]+) ]]; then
+          L_func_error "Empty key in JSON path: $1"; return "$L_EX_DATAERR"
+        fi
+        L_RET+=("${BASH_REMATCH[1]}")
+        ;;
+      '') break ;;
+      *) L_func_error "Invalid character in JSON path: $1"; return "$L_EX_DATAERR" ;;
+    esac
+    _L_input="${_L_input:${#BASH_REMATCH[0]}}"
+    _L_dot="."
+  done
 }
 
 # Parse a JSON-path expression (dot/bracket notation) into an L_obj key.
@@ -839,53 +910,20 @@ L_json_unquote_vL_RET() {
 #   # map "a" -> map "b" -> map "c.d" -> array index 0
 L_json_path_to_obj_key() { L_handle_v_scalar "$@"; }
 L_json_path_to_obj_key_vL_RET() {
-  local _L_input=$1 _L_dot='' _L_tmp _L_tok=() L_RET
-  while (( 1 )); do
-    case "$_L_input" in
-      '["'*)
-        if [[ "$_L_input" =~ ^\[(\"([^\"$'\x01-\x1f'\\]|\\[\"\\/bfnrt]|\\u[0-9a-fA-F]{4})*\")\] ]]; then
-          if ! L_json_unquote_vL_RET "${#BASH_REMATCH[1]}"; then
-            L_func_error "Invalid input string: $1"; return "$L_EX_DATAERR"
-          fi
-          _L_tok+=("$L_RET")
-        else
-          L_func_error "Unclosed double quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
-        fi
-        ;;
-      "['"*)
-        if [[ "$_L_input" =~ ^\[\'(([^\'$'\x01-\x1f'\\]|\\[\'\\/bfnrt]|\\u[0-9a-fA-F]{4})*)\'\] ]]; then
-          _L_tmp=${BASH_REMATCH[1]}
-          _L_tmp=${_L_tmp//\\\'/\'}   # \'  -> '   (undo single-quote escaping)
-          _L_tmp=${_L_tmp//\"/\\\"}   # "   -> \"  (escape bare " for double-quote context)
-          if ! L_json_unquote_vL_RET "\"${#BASH_REMATCH[1]}\""; then
-            L_func_error "Invalid input string: $1"; return "$L_EX_DATAERR"
-          fi
-          _L_tok+=("$L_RET")
-        else
-          L_func_error "Unclosed single quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
-        fi
-        ;;
-      '['[0-9]*)
-        if [[ "$_L_input" =~ ^'['(0|[1-9][0-9]*)']' ]]; then
-          L_RET+=("${BASH_REMATCH[1]}")
-        else
-          L_func_error "Invalid bracket notation: $1"; return "$L_EX_DATAERR"
-        fi
-        ;;
-      $_L_dot[^$'\x01-\x1f'"\\.\[\]@#%^&*+=|/?!~\`'\";:,{}()<>-"]*)
-        if [[ "$_L_input" =~ ^$_L_dot([^"]"$'\x01-\x1f'"\\.\[@#%^&*+=|/?!~\`'\";:,{}()<>-"]+) ]]; then
-          L_RET+=("${BASH_REMATCH[1]}")
-        else
-          L_func_error "Empty key in JSON path: $1"; return "$L_EX_DATAERR"
-        fi
-        ;;
-      '') break ;;
-      *) L_func_error "Invalid character in JSON path: $1"; return "$L_EX_DATAERR" ;;
-    esac
-    _L_input="${_L_input:${#BASH_REMATCH[0]}}"
-    _L_dot="."
+  L_json_path_normalize_vL_RET
+  local _L_tmp _L_i
+  for _L_i in "${!L_RET[@]}"; do
+    if [[ "${L_RET[_L_i]}" == '"'* ]]; then
+      if (( _L_i != 0 )); then
+        _L_tmp=${L_RET[0]}
+      fi
+      L_json_unquote_vL_RET "${L_RET[_L_i]}" || return
+      if (( _L_i != 0 )); then
+        L_RET[_L_i]=${L_RET[0]}
+        L_RET[0]=$_L_tmp
+      fi
+    fi
   done
-  L_obj_key_join_vL_RET "${L_RET[@]}"
 }
 
 _L_float_re='^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?'
@@ -901,52 +939,45 @@ _L_json_err() {
 _L_json_lstrip() {
   _L_json=${_L_json#"${_L_json%%[!$' \t\r\n']*}"}
 }
-_L_json_read_string() {
+_L_json_parse_string() {
   if [[ "$_L_json" =~ ^[$' \t\r\n']*($_L_json_str_re) ]]; then
     if ! L_json_unquote_vL_RET "${BASH_REMATCH[1]}"; then
       _L_json_err "invalid json string: ${BASH_REMATCH[1]}" || return
     fi
-    _L_string=$L_RET
-    # _L_string="${BASH_REMATCH[1]}"
+    _L_string=("$L_RET" "${BASH_REMATCH[1]}")
     _L_json="${_L_json:${#BASH_REMATCH[0]}}"
   else
     _L_json_err "Expected string"
   fi
 }
-_L_json_read_object_element() {
-  _L_json_read_string || return
-  "$_L_json_cb" KEY "$_L_string" || return
+_L_json_parse_object_element() {
+  _L_json_parse_string || return
+  "$_L_json_cb" KEY "${_L_string[@]}" || return
   _L_json_lstrip
   if [[ "$_L_json" != :* ]]; then
     _L_json_err "Missing ':'"; return
   fi
   "$_L_json_cb" TOKEN ":" || return
-  _L_json=${_L_json:1} _L_json_type="dict" _L_json_context+=("$_L_string")
-  _L_json_read_value || return
-  unset "_L_json_context[${#_L_json_context[@]}-1]"
+  _L_json=${_L_json:1} _L_json_type="dict" _L_JSON_PATH+=("$_L_string")
+  _L_json_parse_value || return
+  unset "_L_JSON_PATH[${#_L_JSON_PATH[@]}-1]"
 }
-_L_json_read_array_element() {
-  _L_json_type="array" _L_json_context+=("$((_L_idx++))")
-  _L_json_read_value || return;
-  unset "_L_json_context[${#_L_json_context[@]}-1]"
+_L_json_parse_array_element() {
+  _L_json_type="array" _L_JSON_PATH+=("$((_L_idx++))")
+  _L_json_parse_value || return;
+  unset "_L_JSON_PATH[${#_L_JSON_PATH[@]}-1]"
 }
-# Call _L_json_cb with:
-#   START [
-#   START {
-#   END }
-#   END ]
-#   VALUE value <number|string|float|bool|null>
-_L_json_read_value() {
+_L_json_parse_value() {
   local _L_tmp _L_string _L_idx=0
   case "$_L_json" in
-    [$' \t\r\n']*) _L_json_lstrip; _L_json_read_value; return ;;
+    [$' \t\r\n']*) _L_json_lstrip; _L_json_parse_value; return ;;
     '"'*)
-      _L_json_read_string || return
-      "$_L_json_cb" VALUE "$_L_string" string || return
+      _L_json_parse_string || return
+      "$_L_json_cb" VALUE "${_L_string[0]}" string "${_L_string[1]}" || return
       ;;
     [-0-9]*)
       if [[ "$_L_json" =~ $_L_float_re ]]; then
-        "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" number || return
+        "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" int || return
         _L_json=${_L_json:${#BASH_REMATCH[0]}}
       else
         _L_json_err "Invalid number"; return
@@ -958,7 +989,7 @@ _L_json_read_value() {
       while (( 1 )); do
         case "$_L_json" in
           [$' \t\r\n']*) _L_json_lstrip; continue ;;
-          '"'*) _L_json_read_object_element || return ;;
+          '"'*) _L_json_parse_object_element || return ;;
           '}'*) _L_json=${_L_json:1}; "$_L_json_cb" END "}" || return; return ;;
           '') _L_json_err "Unexpected EOF"; return ;;
           *) _L_json_err "Invalid object element"; return
@@ -972,7 +1003,7 @@ _L_json_read_value() {
             *) _L_json_err "Invalid object element"; return
           esac
         do
-          _L_json_read_object_element || return
+          _L_json_parse_object_element || return
         done
         _L_json_err "Missing object end '}'"; return
       done
@@ -984,7 +1015,7 @@ _L_json_read_value() {
         case "$_L_json" in
           [$' \t\r\n']*) _L_json_lstrip; continue ;;
           ']'*) _L_json=${_L_json:1}; "$_L_json_cb" END ']' || return; return ;;
-          *) _L_json_read_array_element || return ;;
+          *) _L_json_parse_array_element || return ;;
         esac
         while
           case "$_L_json" in
@@ -995,7 +1026,7 @@ _L_json_read_value() {
             *) _L_json_err "Invalid array element"; return ;;
           esac
         do
-          _L_json_read_array_element || return
+          _L_json_parse_array_element || return
         done
         _L_json_err "Missing array end ']'"; return
       done
@@ -1007,9 +1038,16 @@ _L_json_read_value() {
     *) _L_json_err "Invalid value" || return ;;
   esac
 }
-_L_json_read() {
-  local _L_json_len=${#_L_json} _L_json_type _L_json_context=() _L_json_cb=$1 _L_json_errdepth=${#FUNCNAME[*]}
-  _L_json_read_value || return
+# Call $1 with:
+#   START [{
+#   END ]}
+#   VALUE parsed_value int|float|bool|null
+#   VALUE parsed_value string raw_value
+#   KEY parsed_value raw_value
+#   TOKEN ,:
+_L_json_parse() {
+  local _L_json_len=${#_L_json} _L_json_type _L_JSON_PATH=() _L_json_cb=$1 _L_json_errdepth=${#FUNCNAME[*]}
+  _L_json_parse_value || return
   if [[ "$_L_json" == *[!$' \t\r\n']* ]]; then
     _L_json_err "Invalid tokens after value" || return
   fi
@@ -1026,17 +1064,17 @@ L_json_to_obj() {
     case "$1" in
       VALUE)
         if [[ "$3" != "string" ]]; then
-          L_obj_set_type _L_a "${_L_json_context[@]}" = "$3"
+          L_obj_set_type _L_a "${_L_JSON_PATH[@]}" = "$3"
         fi
-        L_obj_set _L_a "${_L_json_context[@]}" = "$2"
+        L_obj_set _L_a "${_L_JSON_PATH[@]}" = "$2"
         ;;
       START)
         if [[ "$2" == "[" ]]; then
-          L_obj_set_type _L_a "${_L_json_context[@]}" = "array"
+          L_obj_set_type _L_a "${_L_JSON_PATH[@]}" = "array"
         fi
     esac
   }
-  _L_json_read _L_json_to_obj_cb
+  _L_json_parse _L_json_to_obj_cb
 }
 
 L_obj_to_json() { L_handle_v_scalar "$@"; }
@@ -1045,32 +1083,33 @@ _L_obj_to_json_cb() {
     START)
       L_json_quote_vL_RET "${!#}"  # group name = last part
       _L_cb_out+="$_L_cb_sep$L_RET="
-      if L_obj_get_type_vL_RET "$1" "${@:3}" && [[ "$L_RET" == array ]]; then
+      if _L_obj_is_array "$1" "$3"; then
         _L_cb_out+="["
+        _L_stack+=("[")
       else
         _L_cb_out+="{"
+        _L_stack+=("{")
       fi
       _L_cb_sep=""
       ;;
     END)
-      if L_obj_get_type_vL_RET "$1" "${@:3}" && [[ "$L_RET" == array ]]; then
+      if _L_obj_is_array "$1" "$3"; then
         _L_cb_out+="]"
       else
         _L_cb_out+="}"
       fi
+      unset -v "_L_stack[${#_L_stack[@]}-1]"
       _L_cb_sep=" "
       ;;
     VALUE)
       _L_cb_out+="$_L_cb_sep"
-      if L_obj_get_type_vL_RET "$1" "${@:3:$#-4}" && [[ "$L_RET" == array ]]; then
-        :
-      else
+      if [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
         _L_obj_pp_q_vL_RET "${@:$#-1:1}"  # key name
         _L_cb_out+="$L_RET="
       fi
-      L_obj_get_type_vL_RET "$1" "${@:3:$#-3}" || L_RET=string
+      L_obj_get_type_default_vL_RET "$1" "$3" string
       case "$L_RET" in
-        bool|null|float|number) L_RET=${!#} ;;
+        bool|null|float|int) L_RET=${!#} ;;
         *) L_json_quote_vL_RET "${!#}" ;;
       esac
       _L_cb_out+="$L_RET"
@@ -1079,24 +1118,30 @@ _L_obj_to_json_cb() {
   esac
 }
 L_obj_to_json_vL_RET() {
-  local _L_cb_out="" _L_cb_sep=""
+  local _L_cb_out="" _L_cb_sep="" _L_stack=()
   L_obj_walk_all "$1" _L_obj_to_json_cb "$1" || return
   L_RET=$_L_cb_out
+}
+
+L_json_is_valid() {
+  _L_json_cb() { :; }
+  local _L_json="$1"
+  _L_json_parse _L_json_cb
 }
 
 L_json_get() { L_handle_v_array "$@"; }
 L_json_get_vL_RET() {
   local _L_json="$1" _L_orig_json="$1" _L_initlen="${#1}" _L_key _L_start="" _L_end="" _L_value_captured=0 _L_value=""
-  L_json_path_to_obj_key -v _L_key "$2" || return
+  L_json_path_normalize -v _L_key "$2" || return
   _L_json_cb() {
-    L_obj_key_join_vL_RET "${_L_json_context[@]}"
+    L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
     case "$1 $L_RET" in
       "START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" ;;
       "END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))"; return 124 ;;
       "VALUE $_L_key") _L_value=$2 _L_value_captured=1; return 124 ;;
     esac
   }
-  _L_json_read _L_json_cb || eval "(( $? == 124 )) || return $?"
+  _L_json_parse _L_json_cb || eval "(( $? == 124 )) || return $?"
   if [[ -n "$_L_start" && -n "$_L_end" ]]; then
     L_RET=("${_L_orig_json:_L_start:_L_end-_L_start}" "$_L_start" "$(( _L_end-_L_start ))")
   elif [[ -z "${_L_value:-}" && $_L_value_captured -eq 0 ]]; then
@@ -1110,80 +1155,123 @@ L_json_rm_vL_RET() {
   local _L_json="$1" _L_initlen="${#1}" _L_start _L_end _L_key
   L_json_path_to_obj_key -v _L_key "$2" || return
   _L_json_cb() {
-    L_obj_key_join_vL_RET "${_L_json_context[@]}"
+    L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
     case "$1 $L_RET" in
       "START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" ;;
       "END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))"; return 124 ;;
     esac
   }
-  _L_json_read _L_json_cb || eval "(( $? == 124 )) || return $?"
+  _L_json_parse _L_json_cb || eval "(( $? == 124 )) || return $?"
   L_RET="${_L_json::_L_start}"
   L_RET="${L_RET%,}${_L_json:_L_end}"
 }
 
 # @description Print nicely looking version of the json.
+# @option -a Use only ascii characters escapes in strings.
+# @option -c Compact output.
+# @option -i <int> Indent count of spaces.
+# @option -C <auto|1|0> Color output, auto - autodetect, 1 - force, 0 - don't.
 # @option -v <var> Store the output in variable instead of printing it.
+# @optino -h Print this help and return 0.
 # @arg $1 JSON
-# @arg $2 Number of spaces.
-L_json_pretty() { L_handle_v_scalar "$@"; }
-_L_json_pretty() {
+L_json_print() {
+  local OPTIND OPTARG OPTERR _L_out="" _L_lvl=0 _L_indent=2 _L_last="" _L_empty=() \
+    _L_i _L_v="" _L_wide=1 _L_color=auto _L_ascii=0
+  while getopts acC:i:v:h _L_i; do
+    case "$_L_i" in
+      c) _L_wide="" ;;
+      i)
+        if ! L_is_integer "$OPTARG"; then
+          L_func_error "must be an integer: $OPTARG"
+          return "$L_EX_USAGE"
+        fi
+        _L_indent=$OPTARG
+        ;;
+      a) _L_ascii=1 ;;
+      C) _L_color=$OPTARG ;;
+      v) _L_v=$OPTARG ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+		esac
+  done
+  shift "$((OPTIND-1))"
+  if (( $# != 1 )); then
+    L_func_error "expected one positional arguments"
+    return "$L_EX_USAGE"
+  fi
+  case "$_L_color" in
+    auto) L_color_detect ;;
+    1) local "${L_COLOR_VARIABLES[@]}"; L_color_enable ;;
+    *) local "${L_COLOR_VARIABLES[@]}"; L_color_disable ;;
+  esac
+  local _L_json=$1
+  _L_json_parse _L_json_print
+  if [[ -n "$_L_v" ]]; then
+    printf -v "$_L_v" "%s" "$_L_out"
+  else
+    printf "%s\n" "$_L_out"
+  fi
+}
+_L_json_print() {
   local indent
   printf -v indent "%*s" "$(( _L_indent * _L_lvl ))" ""
   case "$1 $2" in
     "START "["[{"])
-      case "$_L_last" in
-        ["{,"]) _L_out+=$'\n'$indent ;;
-        ":") _L_out+=" " ;;
-      esac
+      if [[ -n "$_L_wide" ]]; then
+        case "$_L_last" in
+          ["{,"]) _L_out+=$'\n'$indent ;;
+          ":") _L_out+=" " ;;
+        esac
+      fi
       (( ++_L_lvl ))
+      _L_empty[_L_lvl]=1
       _L_out+="$L_BOLD$2$L_RESET"
       ;;
     "END "["]}"])
       (( _L_lvl-- ))
       printf -v indent "%*s" "$((_L_indent*_L_lvl))" ""
-      _L_out+=$'\n'"$indent$L_BOLD$2$L_RESET"
+      if (( _L_empty[_L_lvl+1] )); then
+        _L_out+=$L_BOLD$2$L_RESET
+      else
+        _L_out+=${_L_wide:+$'\n'$indent}$L_BOLD$2$L_RESET
+      fi
       ;;
     "TOKEN "":")
-      if [[ "$_L_last" == ["{,"] ]]; then _L_out+=$'\n'; fi
+      if [[ -n "$_L_wide" && "$_L_last" == ["{,"] ]]; then _L_out+=$'\n'; fi
       _L_out+="$L_BOLD$2$L_RESET"
       ;;
     "TOKEN "",") _L_out+="$L_BOLD,$L_RESET" ;;
     KEY*|VALUE*)
-      case "$_L_last" in
-        ["{[,"]) _L_out+=$'\n'$indent ;;
-        ":") _L_out+=" " ;;
-        *) _L_out+=$indent ;;
-      esac
-      if [[ "$1" == key ]]; then
-        _L_out+=$L_LIGHT_BLUE$2$L_RESET
-      elif [[ "$2" == '"'* ]]; then
-        _L_out+=$L_GREEN$2$L_RESET
+      _L_empty[_L_lvl]=0
+      if [[ -n "$_L_wide" ]]; then
+        case "$_L_last" in
+          ["{[,"]) _L_out+=$'\n'$indent ;;
+          ":") _L_out+=" " ;;
+          *) _L_out+=$indent ;;
+        esac
+      fi
+      if [[ "$1" == "KEY" || $3 == "string" ]]; then
+        if (( _L_ascii )); then
+          L_json_quote_ascii_vL_RET "$2"
+        else
+          L_json_quote_vL_RET "$2"
+        fi
       else
-        _L_out+=$2
+        L_RET=$2
+      fi
+      if [[ "$1" == KEY ]]; then
+        _L_out+=$L_LIGHT_BLUE$L_RET$L_RESET
+      elif [[ "$3" == string ]]; then
+        _L_out+=$L_GREEN$L_RET$L_RESET
+      elif [[ "$3" == null ]]; then
+        _L_out+=$L_DARK_GRAY$L_RET$L_RESET
+      else
+        _L_out+=$L_RET
       fi
       ;;
     *) _L_json_err "could not print. args: $*"; return "$L_EX_SOFTWARE" ;;
   esac
   _L_last=${2:${#2}-1}
-}
-L_json_pretty_vL_RET() {
-  local _L_out="" _L_lvl=0 _L_indent=${2:-2} _L_json=$1 _L_last=""
-  L_color_detect
-  _L_json_read _L_json_pretty
-  L_RET=$_L_out
-}
-
-# @description Print compact version of the json.
-# @option -v <var> Store the output in variable instead of printing it.
-# @arg $1 JSON
-L_json_compact() { L_handle_v_scalar "$@"; }
-_L_json_compact() {
-  _L_out+="$2"
-}
-L_json_compact_vL_RET() {
-  local _L_json=$1 _L_out=""
-  _L_json_read _L_json_compact
-  L_RET=$_L_out
 }
 
 ###############################################################################
@@ -1191,30 +1279,258 @@ L_json_compact_vL_RET() {
 _L_json_test() {
   _L_json_cb() {
     local IFS=" " tmp
-    printf -v tmp "%q " "${_L_json_context[@]}"
+    printf -v tmp "%q " "${_L_JSON_PATH[@]}"
     printf "!! context: %-8s | args: %s\n" "$tmp" "$*"
   }
   local _L_json=$1
   echo "$1"
-  _L_json_read _L_json_cb
+  _L_json_parse _L_json_cb
 }
 _L_json_test_quiet() {
   local _L_json=$1
-  _L_json_read :
+  _L_json_parse :
 }
 
-declare _L_JSON_TEST1='{ "a" : "b" , "c" : [ "d" , 1 , true ], "e": { "f.": { "g": "h" } } } '
+declare _L_JSON_TEST1='{ "a" : "b" , "c" : [ "d" , 1 , true ], "e": { "f.": { "g": null } } } '
+declare _L_JSON_TEST2='{"str":"a","empty_str":"","esc .\\":"q\"\\\/\b\f\n\r\t\u00e9 .","uni":"ąę😀","int":1,"neg":-1,"zero":0,"float":1.5,"exp":1e3,"negexp":-2.5E-2,"t":true,"f":false,"n":null,"arr":[],"obj":{},"mixed":["d",1,true,null,[],{}],"nest":{"f.":{"g":null}}}'
 
 _L_test_json_1() {
+  if L_hash jq; then
+    jq . <<<"$_L_JSON_TEST1"
+  fi
   _L_json_test "$_L_JSON_TEST1"
 }
-
-_L_test_json_change() {
-  L_json_compact "$_L_JSON_TEST1"
-  L_unittest_cmd -o '{"a":"b","c":["d",1,true],"e":{"f.":{"g":"h"}}}' \
-    L_json_compact "$_L_JSON_TEST1"
-  L_json_pretty "$_L_JSON_TEST1"
+_L_test_json_2() {
+  if L_hash jq; then
+    jq . <<<"$_L_JSON_TEST2"
+  fi
+  _L_json_test "$_L_JSON_TEST2"
 }
+
+test_json_roundtrip() {
+  local json=$1 compact=$2 compact_ascii=$3
+  echo "     input: $json"
+  {
+    if L_hash jq; then
+      echo "jq_compact: $(jq -C -c <<<"$json")"
+    fi
+    echo "my_compact: $(L_json_print -C 1 -c "$json")"
+    echo " cexpected: $compact"
+    L_unittest_cmd -o "$compact" L_json_print -c "$json"
+    if L_hash jq; then
+      L_log '--- jq ---'
+      jq <<<"$json"
+    fi
+  }
+  {
+    if L_hash jq; then
+      echo "jq_-ac: $(jq -C -ac <<<"$json")"
+    fi
+    echo "my_-ac: $(L_json_print -C 1 -ac "$json")"
+    echo "exp-ac: $compact_ascii"
+    L_unittest_cmd -o "$compact_ascii" L_json_print -ac "$json"
+  }
+  {
+    if L_hash jq; then
+      L_log '--- jq pretty ---'
+      jq -ca <<<"$json"
+    fi
+    L_log '--- my pretty ---'
+    L_json_print "$json"
+  }
+}
+
+_L_test_json_change_1() {
+  local j='{"a":"b","c":["d",1,true],"e":{"f.":{"g":null}}}'
+  test_json_roundtrip "$_L_JSON_TEST1" "$j" "$j"
+}
+
+_L_test_json_change_2() {
+  local compact='{"str":"a","empty_str":"","esc .\\":"q\"\\/\b\f\n\r\té .","uni":"ąę😀","int":1,"neg":-1,"zero":0,"float":1.5,"exp":1e3,"negexp":-2.5E-2,"t":true,"f":false,"n":null,"arr":[],"obj":{},"mixed":["d",1,true,null,[],{}],"nest":{"f.":{"g":null}}}'
+  local compact_ascii='{"str":"a","empty_str":"","esc .\\":"q\"\\/\b\f\n\r\t\u00e9 .","uni":"\u0105\u0119\ud83d\ude00","int":1,"neg":-1,"zero":0,"float":1.5,"exp":1e3,"negexp":-2.5E-2,"t":true,"f":false,"n":null,"arr":[],"obj":{},"mixed":["d",1,true,null,[],{}],"nest":{"f.":{"g":null}}}'
+  test_json_roundtrip "$_L_JSON_TEST2" "$compact" "$compact_ascii"
+}
+
+_L_test_json_unquote() {
+  # Test basic unquoting
+  L_unittest_cmd -o hello L_json_unquote '"hello"'
+  L_unittest_cmd -o 'hello world' L_json_unquote '"hello world"'
+  L_unittest_cmd -o 'hello"world' L_json_unquote '"hello\"world"'
+  L_unittest_cmd -o $'hello\nworld' L_json_unquote '"hello\nworld"'
+  L_unittest_cmd -o $'hello\tworld' L_json_unquote '"hello\tworld"'
+  L_unittest_cmd -o 'hello\world' L_json_unquote '"hello\\world"'
+  L_unittest_cmd -o 'hello/world' L_json_unquote '"hello\/world"'
+  L_unittest_cmd -o $'hello\bworld' L_json_unquote '"hello\bworld"'
+  L_unittest_cmd -o $'hello\fworld' L_json_unquote '"hello\fworld"'
+  L_unittest_cmd -o $'hello\rworld' L_json_unquote '"hello\rworld"'
+  L_unittest_cmd -o A L_json_unquote '"A"'
+  L_unittest_cmd -o $'ሴ' L_json_unquote '"ሴ"'
+
+  # Test empty string
+  L_unittest_cmd -o '' L_json_unquote '""'
+
+  # Test with -v
+  local result
+  L_json_unquote -v result '"test"'
+  L_unittest_eq "$result" 'test'
+}
+
+_L_test_json_is_valid() {
+  local json jsons
+
+  L_log 'Valid JSON'
+  jsons=(
+    '{}' '[]' '{"a":1}' '[1,2,3]' '{"a":[1,2,{"b":3}]}'
+    '{"a":1,"b":2}' '{"a":1,"b":2,"c":3}'
+    'null' 'true' 'false' '"string"'
+    '123' '-123.45' '1e10' '1E-5'
+    '{"a":"b","c":"d"}'
+    '{"a":"b","c":[1,2,3],"d":{"e":"f"}}'
+    # Nested empty containers
+    '[[]]' '[ [ ] ]' '[[[]]]' '[{}]' '{"a":{}}' '{"a":[]}'
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd L_json_is_valid "$json"; done
+
+  L_log 'Valid complex float forms'
+  jsons=(
+    # Zeros, signs and decimals
+    '0' '-0' '0.0' '-0.0' '1.0' '0.5' '-1.5'
+    '0.000000000000001' '9999999999999999999'
+    # Exponent variations (case, sign, leading zeros in exponent)
+    '1E10' '1e+10' '1e-10' '1E+100' '0e0' '1e0' '1e007' '1E00' '100e-2'
+    # Mantissa with fraction and exponent combined
+    '1.5e3' '1.5e-3' '-1.5e-3' '1.0e0' '6.022e23' '123.456e-78' '1.7976931348623157E308'
+    # Complex floats inside containers
+    '[1.5,2.5,-3e-3]' '[1E+100 , 2E-100]' '[ -0 , 0 ]' '{"a":1e10,"b":-0.0}' '{"x":6.022e23}'
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd L_json_is_valid "$json"; done
+
+  L_log 'Invalid float forms'
+  jsons=(
+    '1.' '.5' '-.5' '+1' '01' '00' '-'
+    '1e' '1e+' '1e-' '1e1.5' '1e1e1' '1e10e5' '1e--1'
+    '1..2' '1.2.3' '1.5.3' '1.0.'
+    '0x1f' '0b1' '1_000' '1,000'
+    'NaN' 'Infinity' 'nan' 'e1' '--1'
+    '[1.]' '{"a":+1}' '{"a":.5}'
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd ! L_json_is_valid "$json"; done
+
+  L_log 'Invalid JSON'
+  jsons=(
+    '{' '[' '{a:1}' '{"a":}' '{"a":1,}' '[1,2,]' '{"a":1 "b":2}'
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd ! L_json_is_valid "$json"; done
+
+  L_log 'Invalid repeated/doubled structural characters, without whitespace'
+  jsons=(
+    '{,,}' '[,,]' '[[' ']]' '{{' '}}' '{{}}' ',,'
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd ! L_json_is_valid "$json"; done
+
+  L_log 'Invalid repeated/doubled structural characters, with whitespace between them'
+  jsons=(
+    '{ , , }' '[ , , ]' '[ [' '] ]' '{ {' '} }' '{ { } }' ' , , '
+  )
+  for json in "${jsons[@]}"; do L_unittest_cmd ! L_json_is_valid "$json"; done
+}
+
+_L_test_json_path() {
+  L_readarray -t cases <<'EOF'
+a[""] 0 "a" ""
+["a"] 0 "a"
+[""] 0 ""
+[0] 0 0
+["0"] 0 "0"
+["a"][""]["0"][0]["0"] 0 "a" "" "0" 0 "0"
+a["\""] 0 "a" "\""
+a["\\"] 0 "a" "\\"
+a["\\\""] 0 "a" "\\\""
+a["\\\\"] 0 "a" "\\\\"
+a["\\\\\""] 0 "a" "\\\\\""
+a["\\\\\\\""] 0 "a" "\\\\\\\""
+["\""] 0 "\""
+["\\"] 0 "\\"
+["\\\""] 0 "\\\""
+["\\\\"] 0 "\\\\"
+["\\\\\""] 0 "\\\\\""
+["\\\\\\\""] 0 "\\\\\\\""
+["a.b[c]d"] 0 "a.b[c]d"
+["["] 0 "["
+["]"] 0 "]"
+["."] 0 "."
+[""] 0 ""
+["0"] 0 "0"
+[0] 0 0
+["0"][0]["0"] 0 "0" 0 "0"
+["a"]["b"]["c"] 0 "a" "b" "c"
+a[0] 0 "a" 0
+a["0"] 0 "a" "0"
+a["a.b"] 0 "a" "a.b"
+["a.b"][0]["c[d]"] 0 "a.b" 0 "c[d]"
+["a\\b"] 0 "a\\b"
+["a\"b"] 0 "a\"b"
+["a\\\\b"] 0 "a\\\\b"
+["a\\\\\\\"b"] 0 "a\\\\\\\"b"
+["x"]tail 1
+["x" 1
+["x] 1
+["\" 1
+["x"y] 1
+[x] 1
+[] 1
+[01] 1
+[-1] 1
+["a"]["b.c"]["d[e]"]["f\"g"]["h\\i"] 0 "a" "b.c" "d[e]" "f\"g" "h\\i"
+[""][0][""][1][""] 0 "" 0 "" 1 ""
+["0"][0]["00"][00] 1
+["a"][0][1][2][3] 0 "a" 0 1 2 3
+a.b.c[0][1].d 0 "a" "b" "c" 0 1 "d"
+["a.b"][0]["c.d"][1] 0 "a.b" 0 "c.d" 1
+["a[b]"]["c]d"]["[e"] 0 "a[b]" "c]d" "[e"
+["\"\""] 0 "\"\""
+["\\\\"] 0 "\\\\"
+["\\\\\\\\"] 0 "\\\\\\\\"
+["\\\\\\\"] 1
+["a\\\\\""] 0 "a\\\\\""
+["a\\\\\\\""] 0 "a\\\\\\\""
+["a\\\\\\\\\""] 0 "a\\\\\\\\\""
+["a.b[0].c"] 0 "a.b[0].c"
+["\t"] 0 "\t"
+["\n"] 0 "\n"
+["\r"] 0 "\r"
+["\u0000"] 0 "\u0000"
+["\\u1234"] 0 "\\u1234"
+["a\\u1234b"] 0 "a\\u1234b"
+["a"]["b"][999999999999999999999] 0 "a" "b" 999999999999999999999
+EOF
+  for input in "${cases[@]}"; do
+    if [[ -z "$input" ]]; then continue; fi
+    IFS=' ' read -ra tmp <<<"$input"
+    input=${tmp[0]}
+    expectedfail=${tmp[1]}
+    printf -v expectedoutput "\t%s" "${tmp[@]:2}"
+    if ! L_json_path_normalize -v output "$input"; then
+      if (( expectedfail )); then
+        continue
+      else
+        exit 1
+      fi
+    fi
+    exit=$?
+    L_pretty_print input " -> " output " ?=$exit"
+    if (( expectedfail )); then
+      L_unittest_ne "$exit" 0
+    else
+      L_unittest_eq "$exit" 0
+    fi
+    if (( exit == 0 )); then
+      L_unittest_arreq output "${expectedoutput[@]}"
+    fi
+  done
+}
+
+
 
 ###############################################################################
 
