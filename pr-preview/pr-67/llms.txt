@@ -1,0 +1,57 @@
+# L_lib
+
+> Collection of Bash usefull functions and features.
+
+## Introduction
+
+- [Introduction](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/index.md)
+
+## Sections documentation
+
+- [globals](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/globals/index.md)
+- [sysexits](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/sysexits/index.md)
+- [colors](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/colors/index.md)
+- [ansi](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/ansi/index.md)
+- [has](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/has/index.md)
+- [assert](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/assert/index.md)
+- [func](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/func/index.md)
+- [stdlib](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/stdlib/index.md)
+- [time](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/time/index.md)
+- [cache](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/cache/index.md)
+- [json](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/json/index.md)
+- [exit_to](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/exit_to/index.md)
+- [path](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/path/index.md)
+- [string](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/string/index.md)
+- [array](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/array/index.md)
+- [foreach](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/foreach/index.md)
+- [args](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/args/index.md)
+- [utilities](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/utilities/index.md)
+- [log](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/log/index.md)
+- [sort](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/sort/index.md)
+- [trap](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/trap/index.md)
+- [finally](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/finally/index.md)
+- [with](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/with/index.md)
+- [unittest](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/unittest/index.md)
+- [map](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/map/index.md)
+- [asa](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/asa/index.md)
+- [uv](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/uv/index.md)
+- [xargs](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/xargs/index.md)
+- [argparse](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/argparse/index.md)
+- [proc](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/proc/index.md)
+- [lib](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/lib/index.md)
+
+## API Reference
+
+- [all](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/section/all/index.md)
+
+## Miscellaneous
+
+- [Bash expansions](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/expansions/index.md)
+- [Bash bugs](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/bash_bugs/index.md)
+- [Measurements](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/measurements/index.md)
+
+## AI Skills
+
+- [AI Skill](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/skill/index.md)
+- [AI Unittest Skill](https://Kamilcuk.github.io/L_lib/pr-preview/pr-67/skill-unittest/index.md)
+
