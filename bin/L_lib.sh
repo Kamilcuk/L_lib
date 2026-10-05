@@ -6727,30 +6727,36 @@ _L_unittest_main_worker() {
 }
 
 _L_unittest_main_worker_finally() {
+	# Restore print_traceback_offset.
+	_L_print_traceback_offset=${_L_ur_traceback_offset_old:-0}
+	if ! L_var_is_set _L_ur_index; then
+		# This means we have been called outside of main_worker context, for example from EXIT handler outside of L_unittest_main.
+		# This happens when -EFs options are used - in the foreground, when child executes exit, we might just die.
+		# There is nothing to do here - the EXIT handler of L_unittest_main will print error message.
+		return
+	fi
 	# Store duration.
 	L_epochrealtime_usec_vL_RET
 	local duration=$(( L_RET - ${_L_ur_start:-L_RET} ))
-	# Restore print_traceback_offset.
-	_L_print_traceback_offset=${_L_ur_traceback_offset_old:-0}
 	# Handle reason we get called.
 	case "${L_SIGNAL:-}" in
 		""|RETURN|POP) ;;
 		EXIT)
 			if (( _L_u_subshell )); then
-				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"$_L_ur_stderr" 2>&1
 				_L_ur_ret=300
 			else
-				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: The testing function called exit. Exiting." 1>&"$_L_ur_stderr" 2>&1
 			fi
 			;;
 		*)
-			L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
+			L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: Exiting because received $L_SIGNAL" 1>&"$_L_ur_stderr" 2>&1
 			_L_ur_ret=300
 			;;
 	esac
 	# Transfer data to parent.
 	printf "_=%s _L_u_test_ret[%d]=%d _L_u_test_duration[%d]=%s\n" \
-			"$L_DC1" "$_L_ur_index" "${_L_ur_ret:-255}" "$_L_ur_index" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
+			"$L_DC1" "$_L_ur_index" "$_L_ur_ret" "$_L_ur_index" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
 }
 
 _L_unittest_main_output_printer() {
@@ -6766,7 +6772,11 @@ _L_unittest_main_output_printer() {
 
 _L_unittest_main_finally() {
 	# L_xargs will kill all childs
-	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
+	if [[ "$L_SIGNAL" == EXIT ]]; then
+		L_critical "L_unittest_main: Exiting because test called exit $L_SIGRET" >&2
+	else
+		L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
+	fi
 }
 
 # @description
