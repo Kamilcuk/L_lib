@@ -58,9 +58,24 @@ L_handle_v_asa() {
 
 L_obj_new() { local -n _L_obj=$1 && _L_obj=(); }
 
+# .a -> .a
+# .a. -> .a
+# '' -> .
+# a -> .a
+_L_obj_key_normalize_vL_KEY() {
+  case "${1//\\[.\\]/xx}" in
+    *\\*) return 1 ;;
+    .*[^.].) L_KEY=${1%.} ;;
+    *[^.].) L_KEY=.${1%.} ;;
+    .*) L_KEY=$1 ;;
+    *) L_KEY=.$1 ;;
+  esac
+}
+
 _L_obj_is_valid_key() { [[ "${1//\\[.\\]/}" != *\\* ]]; }
 # a.b.c -> a
-_L_obj_key_get_first_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET%%.*} L_RET=${1::${#L_RET}}; }
+_L_obj_key_get_first_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%%.*} L_RET=${1::${#L_RET}}; }
+_L_obj_key_remove_last_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%.*} L_RET=${1::${#L_RET}}; }
 _L_obj_set_raw() { local -n _L_obj=$1 && _L_obj_is_valid_key "$2" && _L_obj["$2"]=$3; }
 _L_obj_get_raw_vL_RET() {
   local -n _L_obj=$1 && _L_obj_is_valid_key "$2" && [[ -v "$1[$2]" ]] && L_RET=${_L_obj["$2"]}
@@ -70,19 +85,21 @@ _L_obj_get_raw_setdefault_vL_RET() {
 }
 _L_obj_key_escape_vL_RET() { L_RET=("${@//\\/\\\\}") L_RET=("${L_RET[@]//./\\.}"); }
 _L_obj_key_unescape_vL_RET() { L_RET=("${@/\\\\/\\}") L_RET=("${L_RET[@]//\\./.}"); }
-_L_obj_is_array() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.$2"]:-}" == array ]]; }
-_L_obj_is_object() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.$2"]:-}" == object ]]; }
+_L_obj_is_array() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.${2#.}"]:-}" == "array" ]]; }
+_L_obj_is_object() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.${2#.}"]:-}" == "dict" ]]; }
 
 L_obj_key_join() { L_handle_v_scalar "$@"; }
 L_obj_key_join_vL_RET() { local IFS=.; L_RET=("${@//\\/\\\\}") L_RET="${L_RET[*]//./\\.}"; }
 
 L_obj_key_split() { L_handle_v_scalar "$@"; }
 L_obj_key_split_vL_RET() {
+  _L_obj_is_valid_key "$1" || return
+  L_RET=${1#.}
   if [[ $1 != *\\* ]]; then
-    readarray -t -d . L_RET <<<"$1."
+    readarray -t -d . L_RET <<<"$L_RET."
     unset 'L_RET[-1]'
   else
-    L_RET=${1//$'\2'/$'\2\3'}
+    L_RET=${L_RET//$'\2'/$'\2\3'}
     L_RET=${L_RET//\\\\/$'\2\5'}
     L_RET=${L_RET//\\./$'\2\4'}
     readarray -t -d . L_RET <<<"$L_RET."
@@ -96,22 +113,24 @@ L_obj_key_split_vL_RET() {
 # L_obj_set_type obj word.word.3 = 3
 L_obj_set_type() {
   case "${!#}" in
-    none|bool|integer|float|string|array|object) ;;
-    *) return $L_EX_USAGE
+    null|bool|integer|float|string|array|dict) ;;
+    *)
+      L_func_error "Invalid type: ${!#}. Muse be one of: null bool integer float string array dict."
+      return $L_EX_USAGE
   esac
-  _L_obj_set_raw "$1" "TYPE.$2" "${!#}" || return
+  _L_obj_set_raw "$1" "TYPE.${2#.}" "${!#}" || return
   local -n _L_obj=$1 || return
   _L_obj["HASTYPE"]=1
 }
 
 L_obj_get_type() { L_handle_v_scalar "$@"; }
-L_obj_get_type_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.$2"; }
+L_obj_get_type_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.${2#.}"; }
 
 L_obj_get_type_default() { L_handle_v_scalar "$@"; }
-L_obj_get_type_default_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.$2" || L_RET=$3; }
+L_obj_get_type_default_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.${2#.}" || L_RET=$3; }
 
 L_obj_get_type_setdefault() { L_handle_v_scalar "$@"; }
-L_obj_get_type_setdefault_vL_RET() { _L_obj_get_raw_setdefault_vL_RET "$1" "TYPE.$2" "$3"; }
+L_obj_get_type_setdefault_vL_RET() { _L_obj_get_raw_setdefault_vL_RET "$1" "TYPE.${2#.}" "$3"; }
 
 _L_is_natural_integer() {
   case "$1" in
@@ -123,20 +142,29 @@ L_obj_infer_type() { L_handle_v_scalar "$@"; }
 L_obj_infer_type_vL_RET() {
   if ! L_obj_get_type_vL_RET "$@"; then
     local -n _L_obj=$1 || return
-    if [[ -v "_L_obj[VALUE.$2]" ]]; then
-      L_RET=string
+    if [[ -v "_L_obj[VALUE.${2#.}]" ]]; then
+      local _L_value="${_L_obj["VALUE.${2#.}"]}"
+      if _L_is_natural_integer "$_L_value"; then
+        L_RET=integer
+      elif L_is_float "$_L_value"; then
+        L_RET=float
+      else
+        L_RET=string
+      fi
     else
-      local _L_key _L_prefix="VALUE.$2" _L_seen=() _L_max=0
+      # local -;set -x;echo "CALLING:: ${FUNCNAME[0]} $*"
+      local _L_key _L_prefix=${2#.} _L_seen=() _L_max=0
+      _L_prefix=VALUE.${_L_prefix:+$_L_prefix.}
       for _L_key in "${!_L_obj[@]}"; do
-        if [[ "$_L_key" == "$_L_prefix".* ]]; then
-          _L_obj_key_get_first_vL_RET "${_L_key:${#_L_prefix}+1}"
+        if [[ "$_L_key" == "$_L_prefix"* ]]; then
+          _L_obj_key_get_first_vL_RET "${_L_key:${#_L_prefix}}"
           if ! _L_is_natural_integer "$L_RET"; then
-            L_RET=object
+            L_RET=dict
             return
           fi
-          _L_seen[$L_RET]=""
+          _L_seen[L_RET]=""
           if (( _L_max < L_RET )); then
-            _L_max=L_RET
+            _L_max=$L_RET
           fi
         fi
       done
@@ -146,10 +174,10 @@ L_obj_infer_type_vL_RET() {
         else
           return 1
         fi
-      elif (( _L_max >= 0 && ${#_L_seen[@]} == _L_max + 1 )); then
+      elif (( ${#_L_seen[@]} == _L_max + 1 )); then
         L_RET=array
       else
-        L_RET=object
+        L_RET=dict
       fi
     fi
     L_obj_set_type "$1" "$2" "$L_RET"
@@ -157,23 +185,15 @@ L_obj_infer_type_vL_RET() {
 }
 
 # L_obj_set obj word.word.3 = 3
-L_obj_set() {
+L_obj_set_value() {
   local -n _L_obj=$1 || return
   if [[ -v "_L_obj[HASTYPE]" ]]; then
     : todo check types of indexes
   fi
-  _L_obj_set_raw "$1" "VALUE.$2" "${!#}"
+  _L_obj_set_raw "$1" "VALUE.${2#.}" "${!#}"
 }
 
-# L_obj_set_many obj prefix name value [name value]...
-L_obj_set_many() {
-  local _L_name=$1 _L_prefix=$2
-  shift 2
-  while (( $# >= 2 )); do
-    L_obj_set "$_L_name" "$_L_prefix.$1" = "$2" || return
-    shift 2
-  done
-}
+L_obj_set() { L_obj_set_value "$@"; }
 
 L_obj_get() { L_handle_v_scalar "$@"; }
 L_obj_get_vL_RET() { _L_obj_get_raw_vL_RET "$1" "VALUE.$2"; }
@@ -187,14 +207,15 @@ L_obj_get_setdefault_vL_RET() { _L_obj_get_raw_setdefault_vL_RET "$1" "VALUE.$2"
 L_obj_keys() { L_handle_v_array "$@"; }
 L_obj_keys_vL_RET() {
   local -n _L_obj=$1 || return
-  _L_obj_is_valid_key "${2:-}" || return
-  if [[ -v "_L_obj[VALUE.${2:-}]" ]]; then
-    L_RET=("${2:-}")
+  local _L_key=.${2:+${2#.}}
+  _L_obj_is_valid_key "$_L_key" || return
+  if [[ -v "_L_obj[VALUE$_L_key]" ]]; then
+    L_RET=("$_L_key")
   else
     declare -A L_ARET=()
     for L_RET in "${!_L_obj[@]}"; do
-      if [[ "$L_RET" == "VALUE.${2:-}."* ]]; then
-        _L_obj_key_get_first_vL_RET "${L_RET##"VALUE.${2:-}."}"
+      if [[ "$L_RET" == "VALUE$_L_key."* ]]; then
+        _L_obj_key_get_first_vL_RET "${L_RET##"VALUE$_L_key."}"
         L_ARET["$L_RET"]=""
       fi
     done
@@ -206,20 +227,20 @@ L_obj_len() { L_handle_v_scalar "$@"; }
 L_obj_len_vL_RET() {
   L_obj_infer_type_vL_RET "$1" "${2:-}" || return
   case "$L_RET" in
-    array|object) L_obj_keys_vL_RET "$@" && (( L_RET=${#L_RET[@]} )) ;;
+    array|dict) L_obj_keys_vL_RET "$@" && (( L_RET=${#L_RET[@]} )) ;;
     *) L_obj_get_vL_RET "$1" "${2:-}" && L_RET=${#L_RET} ;;
   esac
 }
 
-L_obj_has() { [[ -v "$1[VALUE.$2]" ]]; }
+L_obj_has() { [[ -v "$1[VALUE.${2#.}]" ]]; }
 
 L_obj_del() {
   local -n _L_obj=$1 || return
   _L_obj_is_valid_key "${2:-}" || return
-  local _L_i
+  local _L_i _L_key=.${2#.}
   for _L_i in "${!_L_obj[@]}"; do
     case "$_L_i" in
-      "TYPE.${2:-}"|"VALUE.${2:-}"|"TYPE.${2:-}."*|"VALUE.${2:-}."*) unset -v "_L_obj[$_L_i]"
+      "TYPE$_L_key"|"VALUE$_L_key"|"TYPE$_L_key."*|"VALUE$_L_key."*) unset -v "_L_obj[$_L_i]"
     esac
   done
 }
@@ -233,7 +254,7 @@ L_obj_string_append() {
     L_func_error "cannot append to '$2' in '$1': it is type $L_RET, expected string"
     return "$L_EX_USAGE"
   fi
-  _L_obj["VALUE.${2:-}"]+="${!#}"
+  _L_obj["VALUE.${2#.}"]+="${!#}"
 }
 
 # L_obj_array_push obj a.b += a
@@ -270,56 +291,95 @@ L_obj_walk_values() {
   done
 }
 
-# L_obj_walk_all obj cb <args>...
+# L_obj_walk_all obj cb...
 # Calls:
-#   cb <args>... START <key> <parts...>
-#   cb <args>... VALUE <key> <value> <parts...>
-#   cb <args>... END <key> <parts...>
-#   cb <args>... META <key> <value>
+#   cb... START    <key> <type> <parts...>
+#   cb... VALUE    <key> <type> <value> <parts...>
+#   cb... END      <key> <type> <parts...>
+#   cb... META <key> <value>
+#
+# <path>   canonical path of the node: "." root, ".a", ".a.b"
+# <type>   START/END: dict|array
+#          VALUE:     string|integer|float|bool|null
+# <parts>  keys from the root down to this node, unescaped, root excluded
+#          (root has zero parts; the last part is the node's own key/index)
 L_obj_walk_all() {
-  local -n _L_obj="$1" || return
+  local -n _L_w_obj="$1" || return
   shift
-  local _L_keys=("${!_L_obj[@]}") _L_key _L_level _L_parts=() _L_prev_group=() \
-    _L_group_depth _L_prev_depth _L_common_depth  _L_open_keys=() L_RET
-  L_sort _L_keys
-  for _L_key in "${_L_keys[@]}"; do
+  local -A _L_keys=()
+  local _L_key _L_level _L_parts=() _L_prev_group=() _L_i _L_j \
+    _L_group_depth _L_prev_depth=0 _L_common_depth  _L_open_keys=() L_RET _L_root_open=0 _L_type
+  for _L_key in "${!_L_w_obj[@]}"; do
     case "$_L_key" in
       VALUE.*)
-        _L_key="${_L_key:6}"
         L_obj_key_split -v _L_parts "$_L_key"
-        (( ${#_L_parts[@]} > 0 )) || continue
-        _L_group_depth=$(( ${#_L_parts[@]} - 1 ))  # last part is the key name, the rest is the group path
-        _L_prev_depth=${#_L_prev_group[@]}
-        # how many leading group names the previous and current keys share
-        _L_common_depth=0
-        while (( _L_common_depth < _L_prev_depth && _L_common_depth < _L_group_depth )) &&
-              [[ "${_L_prev_group[_L_common_depth]}" == "${_L_parts[_L_common_depth]}" ]]; do
-          (( ++_L_common_depth ))
-        done
-        # close groups we left (deepest first)
-        for (( _L_level = _L_prev_depth; _L_level > _L_common_depth; _L_level-- )); do
-          "$@" END "${_L_open_keys[_L_level - 1]}" "${_L_prev_group[@]:0:_L_level}" || return
-        done
-        _L_open_keys=("${_L_open_keys[@]:0:_L_common_depth}")   # forget closed groups
-        # open groups we entered (shallowest first)
-        for (( _L_level = _L_common_depth + 1; _L_level <= _L_group_depth; _L_level++ )); do
-          L_obj_key_join_vL_RET "${_L_parts[@]:0:_L_level}"
-          _L_open_keys+=("$L_RET")
-          "$@" START "$L_RET" "${_L_parts[@]:0:_L_level}" || return
-        done
-        "$@" VALUE "$_L_key" "${_L_obj["VALUE.$_L_key"]}" "${_L_parts[@]}" || return
-        _L_prev_group=("${_L_parts[@]:0:_L_group_depth}")
+        _L_keys["${_L_key:5}"]=""
         ;;
-      TYPE.*) ;;
-      *)
-        # META: keys that are not packed section keys
-        "$@" META "$_L_key" "${_L_obj["$_L_key"]}" || return
+      TYPE.*)
+        _L_keys["${_L_key:4}"]=""
+        ;;
+      *) "$@" META "$_L_key" "${_L_w_obj["$_L_key"]}" || return ;;
     esac
   done
-  # close whatever is still open
-  for (( _L_level = ${#_L_prev_group[@]}; _L_level > 0; _L_level-- )); do
-    "$@" END "${_L_open_keys[_L_level - 1]}" "${_L_prev_group[@]:0:_L_level}" || return
+  L_pp ${!_L_w_obj} _L_keys
+  for _L_key in "${!_L_keys[@]}"; do
+    if [[ "$_L_key" == "." ]]; then
+      L_obj_infer_type_vL_RET _L_w_obj "$_L_key"
+      if [[ -v "_L_w_obj[VALUE$_L_key]" ]]; then
+        "$@" VALUE "$_L_key" "$L_RET" "${_L_w_obj["VALUE$_L_key"]}" "${_L_parts[@]}" || return
+      else
+        "$@" START "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
+        "$@" END "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
+      fi
+    else
+      if (( !_L_root_open )); then
+        _L_root_open=1
+        L_obj_infer_type_vL_RET _L_w_obj .
+        "$@" START . "$L_RET"
+      fi
+      L_obj_key_split -v _L_parts "$_L_key"
+      _L_group_depth=$(( ${#_L_parts[@]} - 1 ))  # last part is the key name, the rest is the group path
+      # how many leading group names the previous and current keys share
+      _L_common_depth=0
+      L_pp _L_prev_group _L_common_depth _L_prev_depth _L_group_depth
+      while (( _L_common_depth < _L_prev_depth && _L_common_depth < _L_group_depth )) &&
+            [[ "${_L_prev_group[_L_common_depth]}" == "${_L_parts[_L_common_depth]}" ]]; do
+        (( ++_L_common_depth ))
+      done
+      # close groups we left (deepest first)
+      for (( _L_level = _L_prev_depth; _L_level > _L_common_depth; _L_level-- )); do
+        L_obj_infer_type_vL_RET _L_w_obj "${_L_open_keys[_L_level-1]}"
+        "$@" END "${_L_open_keys[_L_level-1]}" "$L_RET" "${_L_prev_group[@]::_L_level}" || return
+      done
+      _L_open_keys=("${_L_open_keys[@]::_L_common_depth}")   # forget closed groups
+      # open groups we entered (shallowest first)
+      for (( _L_level = _L_common_depth + 1; _L_level <= _L_group_depth; _L_level++ )); do
+        L_obj_key_join_vL_RET "${_L_parts[@]::_L_level}"
+        _L_open_keys+=("$L_RET")
+        L_obj_infer_type -v _L_type _L_w_obj "$L_RET"
+        "$@" START "$L_RET" "$_L_type" "${_L_parts[@]::_L_level}" || return
+      done
+      L_obj_infer_type_vL_RET _L_w_obj "$_L_key"
+      if [[ -v "_L_w_obj[VALUE$_L_key]" ]]; then
+        "$@" VALUE "$_L_key" "$L_RET" "${_L_w_obj["VALUE$_L_key"]}" "${_L_parts[@]}" || return
+      else
+        L_pp "${!_L_w_obj}" _L_key
+        "$@" START "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
+        "$@" END "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
+      fi
+      _L_prev_group=("${_L_parts[@]::_L_group_depth}")
+      _L_prev_depth=$_L_group_depth
+    fi
   done
+  # close whatever is still open
+  for (( _L_level = _L_prev_depth; _L_level > 0; _L_level-- )); do
+    L_obj_infer_type_vL_RET _L_w_obj "${_L_open_keys[_L_level-1]}"
+    "$@" END "${_L_open_keys[_L_level-1]}" "$L_RET" "${_L_prev_group[@]:0:_L_level}" || return
+  done
+  if (( _L_root_open )); then
+    L_obj_infer_type_vL_RET _L_w_obj .
+    "$@" END . "$L_RET"
+  fi
 }
 
 # _L_obj_pp_q_vL_RET VAR STR: leave simple tokens bare, %q-quote anything with
@@ -399,12 +459,12 @@ _L_test_obj_1() {
   local -A obj=()
   {
     # # {"a":{"b":[1,2,3]}}
-    L_obj_set obj a.b.1 = 1
-    L_obj_set obj a.b.2 = 2
-    L_obj_set obj a.b.3 = 3
-    L_obj_set obj a.c = dead1
-    L_obj_set obj a.d = dead2
-    L_obj_set obj a.f = dead3
+    L_obj_set obj .a.b.1 = 1
+    L_obj_set obj .a.b.2 = 2
+    L_obj_set obj .a.b.3 = 3
+    L_obj_set obj .a.c = dead1
+    L_obj_set obj .a.d = dead2
+    L_obj_set obj .a.f = dead3
     L_obj_get_vL_RET obj a.b.1
     L_unittest_vareq L_RET 1
     L_obj_get_vL_RET obj a.b.2
@@ -516,6 +576,24 @@ _L_test_obj_2() {
 
   # --- iteration 3: flat dump of the raw keys, to see the escaping
   L_time L_obj_print obj
+}
+
+_L_test_obj_walk() {
+  local -A obj=()
+  local out k
+  L_obj_set obj .a.b = 1
+  L_obj_set obj .c.d = 2
+  out=$(L_obj_walk_all obj echo)$'\n'
+  L_unittest_vareq out "\
+START . dict
+START .a dict a
+VALUE .a.b integer 1 a b
+END .a dict a
+START .c dict c
+VALUE .c.d integer 2 c d
+END .c dict c
+END . dict
+"
 }
 
 ###############################################################################
@@ -891,7 +969,7 @@ L_json_path_normalize_vL_RET() {
         if [[ ! "$_L_input" =~ ^$_L_dot([^"]"$'\x01-\x1f'"\\.\[@#%^&*+=|/?!~\`'\";:,{}()<>-"]+) ]]; then
           L_func_error "Empty key in JSON path: $1"; return "$L_EX_DATAERR"
         fi
-        L_RET+=("${BASH_REMATCH[1]}")
+        L_RET+=("\"${BASH_REMATCH[1]}\"")
         ;;
       '') break ;;
       *) L_func_error "Invalid character in JSON path: $1"; return "$L_EX_DATAERR" ;;
@@ -977,7 +1055,7 @@ _L_json_parse_value() {
       ;;
     [-0-9]*)
       if [[ "$_L_json" =~ $_L_float_re ]]; then
-        "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" int || return
+        "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" integer || return
         _L_json=${_L_json:${#BASH_REMATCH[0]}}
       else
         _L_json_err "Invalid number"; return
@@ -1041,7 +1119,7 @@ _L_json_parse_value() {
 # Call $1 with:
 #   START [{
 #   END ]}
-#   VALUE parsed_value int|float|bool|null
+#   VALUE parsed_value integer|float|bool|null
 #   VALUE parsed_value string raw_value
 #   KEY parsed_value raw_value
 #   TOKEN ,:
@@ -1063,14 +1141,16 @@ L_json_to_obj() {
   _L_json_to_obj_cb() {
     case "$1" in
       VALUE)
-        if [[ "$3" != "string" ]]; then
-          L_obj_set_type _L_a "${_L_JSON_PATH[@]}" = "$3"
-        fi
-        L_obj_set _L_a "${_L_JSON_PATH[@]}" = "$2"
+        L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
+        L_logrun L_obj_set_type _L_a "$L_RET" = "$3"
+        L_obj_set _L_a "$L_RET" = "$2"
         ;;
       START)
+        L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
         if [[ "$2" == "[" ]]; then
-          L_obj_set_type _L_a "${_L_JSON_PATH[@]}" = "array"
+          L_obj_set_type _L_a "$L_RET" = "array"
+        else
+          L_obj_set_type _L_a "$L_RET" = "dict"
         fi
     esac
   }
@@ -1079,48 +1159,54 @@ L_json_to_obj() {
 
 L_obj_to_json() { L_handle_v_scalar "$@"; }
 _L_obj_to_json_cb() {
+  #   cb... START <key> <type> <parts...>
+  #   cb... VALUE <key> <type> <value> <parts...>
+  #   cb... END   <key> <type> <parts...>
+  #   cb... META <key> <value>
+  echo "+ ${FUNCNAME[0]} $@" >&2
   case $2 in
     START)
-      L_json_quote_vL_RET "${!#}"  # group name = last part
-      _L_cb_out+="$_L_cb_sep$L_RET="
+      if (( ${_L_stack[@]:+1}0 )) && [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
+        L_json_quote_vL_RET "${!#}"  # group name = last part
+        _L_cb_out+="$_L_cb_sep$L_RET:"
+      fi
       if _L_obj_is_array "$1" "$3"; then
         _L_cb_out+="["
-        _L_stack+=("[")
       else
         _L_cb_out+="{"
-        _L_stack+=("{")
       fi
+      _L_stack+=("${_L_cb_out:${#_L_cb_out}-1}")
       _L_cb_sep=""
       ;;
     END)
-      if _L_obj_is_array "$1" "$3"; then
-        _L_cb_out+="]"
-      else
+      if [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
         _L_cb_out+="}"
+      else
+        _L_cb_out+="]"
       fi
       unset -v "_L_stack[${#_L_stack[@]}-1]"
-      _L_cb_sep=" "
+      _L_cb_sep=","
       ;;
     VALUE)
       _L_cb_out+="$_L_cb_sep"
-      if [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
-        _L_obj_pp_q_vL_RET "${@:$#-1:1}"  # key name
-        _L_cb_out+="$L_RET="
+      if (( ${_L_stack[@]:+1}0 )) && [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
+        L_json_quote_vL_RET "${!#}"  # key name
+        _L_cb_out+="$L_RET:"
       fi
       L_obj_get_type_default_vL_RET "$1" "$3" string
       case "$L_RET" in
-        bool|null|float|int) L_RET=${!#} ;;
-        *) L_json_quote_vL_RET "${!#}" ;;
+        bool|null|float|integer) L_RET=$5 ;;
+        *) L_json_quote_vL_RET "$5" ;;
       esac
       _L_cb_out+="$L_RET"
-      _L_cb_sep=" "
+      _L_cb_sep=","
       ;;
   esac
 }
 L_obj_to_json_vL_RET() {
-  local _L_cb_out="" _L_cb_sep="" _L_stack=()
+  local _L_cb_out="" _L_cb_sep="" _L_stack=() _L_type=""
   L_obj_walk_all "$1" _L_obj_to_json_cb "$1" || return
-  L_RET=$_L_cb_out
+  L_RET="$_L_cb_out"
 }
 
 L_json_is_valid() {
@@ -1129,39 +1215,43 @@ L_json_is_valid() {
   _L_json_parse _L_json_cb
 }
 
-L_json_get() { L_handle_v_array "$@"; }
-L_json_get_vL_RET() {
-  local _L_json="$1" _L_orig_json="$1" _L_initlen="${#1}" _L_key _L_start="" _L_end="" _L_value_captured=0 _L_value=""
-  L_json_path_normalize -v _L_key "$2" || return
+# Get a value from json including additional info.
+# @return (<value> <type> <start_byte_count> <end_byte_count>)
+L_json_get_all() { L_handle_v_array "$@"; }
+L_json_get_all_vL_RET() {
+  local _L_json="$1" _L_orig_json="$1" _L_initlen="${#1}" _L_key _L_start="" _L_end="" \
+    _L_value_captured=0 _L_value="" _L_type=""
+  L_json_path_to_obj_key -v _L_key "$2" || return
   _L_json_cb() {
     L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
     case "$1 $L_RET" in
-      "START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" ;;
-      "END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))"; return 124 ;;
-      "VALUE $_L_key") _L_value=$2 _L_value_captured=1; return 124 ;;
+      "START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" _L_type=$2 ;;
+      "END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))" _L_type=$2; return 124 ;;
+      "VALUE $_L_key") _L_value=$2 _L_type=$3 _L_value_captured=1; return 124 ;;
     esac
   }
   _L_json_parse _L_json_cb || eval "(( $? == 124 )) || return $?"
   if [[ -n "$_L_start" && -n "$_L_end" ]]; then
-    L_RET=("${_L_orig_json:_L_start:_L_end-_L_start}" "$_L_start" "$(( _L_end-_L_start ))")
+    L_RET=(
+      "${_L_value:-${_L_orig_json:_L_start:_L_end-_L_start}}"
+      "$_L_type"
+      "$_L_start"
+      "$(( _L_end-_L_start ))"
+    )
   elif [[ -z "${_L_value:-}" && $_L_value_captured -eq 0 ]]; then
     return 1
   fi
 }
 
+# Get a value from json.
+L_json_get() { L_handle_v_scalar "$@"; }
+L_json_get_vL_RET() { L_json_get_all_vL_RET "$@"; }
+
 # Remove an element from json.
 L_json_rm() { L_handle_v_scalar "$@"; }
 L_json_rm_vL_RET() {
-  local _L_json="$1" _L_initlen="${#1}" _L_start _L_end _L_key
-  L_json_path_to_obj_key -v _L_key "$2" || return
-  _L_json_cb() {
-    L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
-    case "$1 $L_RET" in
-      "START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" ;;
-      "END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))"; return 124 ;;
-    esac
-  }
-  _L_json_parse _L_json_cb || eval "(( $? == 124 )) || return $?"
+  L_json_get_all_vL_RET "$1" "$2" || return
+  local _L_start=${L_RET[2]} _L_end=${L_RET[3]}
   L_RET="${_L_json::_L_start}"
   L_RET="${L_RET%,}${_L_json:_L_end}"
 }
@@ -1509,7 +1599,7 @@ EOF
     IFS=' ' read -ra tmp <<<"$input"
     input=${tmp[0]}
     expectedfail=${tmp[1]}
-    printf -v expectedoutput "\t%s" "${tmp[@]:2}"
+    expectedoutput=("${tmp[@]:2}")
     if ! L_json_path_normalize -v output "$input"; then
       if (( expectedfail )); then
         continue
@@ -1518,7 +1608,7 @@ EOF
       fi
     fi
     exit=$?
-    L_pretty_print input " -> " output " ?=$exit"
+    L_pp input " -> " output " !! " expectedoutput " \$?=$exit"
     if (( expectedfail )); then
       L_unittest_ne "$exit" 0
     else
@@ -1530,7 +1620,60 @@ EOF
   done
 }
 
-
+_L_test_json_to_obj() {
+  local json back jsons
+  L_readarray -t jsons <<'EOF'
+{"a":"b","c":"d"}
+[1,2,3,4]
+{"a":[{"b":"c"}]}
+{"a":[{"b":"c"}],"d":[{"e":"f"}]}
+123
+-1.5
+"str"
+""
+true
+false
+null
+{}
+[]
+[[]]
+[{}]
+[[],{}]
+{"a":{}}
+{"a":[]}
+{"a":{},"b":[],"c":null}
+{"a":null,"b":false,"c":0,"d":""}
+[null,null]
+[0,1,2,3,4,5,6,7,8,9,10,11,12]
+[[0],[1],[2],[3],[4],[5],[6],[7],[8],[9],[10],[11]]
+[[1,2],[3,[4,5]]]
+[[[[]]]]
+[{"a":1},{"a":2},{"a":3}]
+{"a":[1,[2,{"b":[3]}]]}
+{"a":[{"b":"c"},{"d":"e"}]}
+{"a":{"b":{"c":{"d":{"e":"f"}}}}}
+{"":"empty key"}
+{"":{"":[]}}
+{"a.b":1,"a":{"b":2}}
+{"a":{"b.c":1},"a.b":{"c":2}}
+{"1":"x","2":"y"}
+{"0":[1],"1":{"2":3}}
+{"k\"\\":"a\nb\tc\u0001","\n":1}
+{"VALUE.a":1,"TYPE.b":2}
+{"a b":1,"c\td":2}
+EOF
+  for json in "${jsons[@]}"; do
+    declare -A dest=()
+    L_json_to_obj dest "$json"
+    L_pp -m dest
+    L_obj_to_json -v back dest
+    echo "$back"
+    local a b
+    a=$(jq -caS <<<"$json")
+    b=$(jq -caS <<<"$back")
+    L_unittest_eq "$a" "$b"
+  done
+}
 
 ###############################################################################
 
