@@ -842,7 +842,7 @@ L_func_help() { L_func_doc -s 1 "$@" help; }
 # @see L_func_help for example
 L_func_error() {
 	if [[ -n "${1:-}" ]]; then
-		echo "$0: ${FUNCNAME[1+${2:-0}]}: error: $1" >&2
+		echo "$0: ${FUNCNAME[1+${2:-0}]:-}:${BASH_LINENO[1+${2:-0}]}: error: $1" >&2
 	fi
 }
 
@@ -2275,8 +2275,8 @@ L_init_COLUMNS() {
 L_time() {
 	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
 	L_quote_printf -v _L_time_cmd "$@"
-	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [$_L_time_cmd]"
-	time TIMEFORMAT="$_L_time_sav" "$@"
+	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [${_L_time_cmd//%/%%}]"
+	time TIMEFORMAT="${_L_time_sav//\\/\\\\}" "$@"
 }
 
 # @description Parse 1y2w3d4h5m6s7ms8us or 1y2w3d4h5m6.789s or 1.234 into number of microseconds.
@@ -4218,6 +4218,7 @@ L_min_vL_RET() {
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
 # @option -X Ignore color escape sequences when calculting column width.
+# @optino -t Ignored
 # @option -h Print this help and return 0.
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
@@ -4226,65 +4227,49 @@ L_min_vL_RET() {
 #         a     b c
 #         d     e f
 L_table() {
-	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last _L_X=0 L_RET _L_len
-	while getopts v:s:o:R:Xh _L_i; do
+	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i IFS=$'\n' _L_s=$' \t' _L_v="" _L_tmp _L_column \
+		_L_columns=0 _L_W=() _L_o=" " _L_R="" _L_X="" L_RET _L_len \
+		_L_fmts=('') _L_line _L_offset=0 _L_fmt_prefix="" _L_args=() _L_fmt=""
+	while getopts v:s:o:R:Xth _L_i; do
 		case $_L_i in
-		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
+		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" || return ;;
 		s) _L_s=$OPTARG ;;
-		o) _L_o=$OPTARG ;;
+		o) _L_o=${OPTARG//%/%%}; _L_o=${_L_o//\\/\\\\} ;; # Escape sequences in output separator for printf.
 		R) _L_R=$OPTARG ;;
 		X) _L_X=1 ;;
+		t) ;;
 		h) L_func_help; return 0 ;;
 		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	# Fill the array, find number of columns and rows.
-	while IFS="$_L_s" read -r -a _L_tmp; do
-		for _L_column in "${!_L_tmp[@]}"; do
-			_L_arr[999999 * _L_rows + _L_column]=${_L_tmp[_L_column]}
+	# Find number and max widths of columns and store in _L_W.
+	# _L_W has short name, for Bash to be fast. This format string potentially might be long.
+	while IFS="$_L_s" read -r -a _L_line; do
+		# Store all arguments in _L_args.
+		_L_args+=(${_L_line[@]+"${_L_line[@]}"})
+		for _L_column in "${!_L_line[@]}"; do
 			if (( _L_X )); then
-				L_strip_ansi_vL_RET "${_L_tmp[_L_column]}"
-				_L_len=${#L_RET}
+				L_strip_ansi_vL_RET "${_L_line[_L_column]}"
+				# The printf width has to be adjusted for the number of ascii escape sequences.
+				_L_len=${#L_RET} _L_fmt_width="($(( ${#_L_line[_L_column]} - _L_len ))+_L_W[$_L_column])"
 			else
-				_L_len=${#_L_tmp[_L_column]}
+				_L_len=${#_L_line[_L_column]} _L_fmt_width="_L_W[$_L_column]"
 			fi
-			(( _L_widths[_L_column] < _L_len ? _L_widths[_L_column] = _L_len : 0, 1 ))
+			# Build printf format string for all arguments.
+    	if (( _L_W[_L_column] < _L_len && ( _L_W[_L_column] = _L_len ), _L_column < ${#_L_line[@]} - 1 )); then
+        _L_fmt+="%\$((\${_L_R[$((_L_column+1))]+- }-$_L_fmt_width))s\$_L_o"
+    	else
+        _L_fmt+="%\${_L_R[$((_L_column+1))]+\$(($_L_fmt_width))}s"
+    	fi
 		done
-		(( _L_columns < _L_column + 1 ? _L_columns = _L_column + 1 : 0, ++_L_rows ))
+		(( _L_columns < _L_column + 1 ? (_L_columns = _L_column + 1) : 1 ))
+    _L_fmt+='\\n'
 	done <<<"$*"
-	#
-	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R"
-	#
-	for ((_L_row = 0; _L_row < _L_rows; _L_row++)); do
-		if L_var_is_set "_L_arr[999999 * _L_row + 0]"; then
-			for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
-				_L_tmp=${_L_arr[999999 * _L_row + _L_column]:-}
-				L_exit_into _L_last L_var_is_set "_L_arr[999999 * _L_row + _L_column + 1]"
-				if L_var_is_set "_L_R[_L_column+1]"; then
-					L_printf_append "$_L_v" "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
-				else
-					if ((_L_last)); then
-						L_printf_append "$_L_v" "%s" "$_L_tmp"
-					else
-						_L_len="${_L_widths[_L_column]:-0}"
-						if (( _L_X )); then
-							L_strip_ansi_vL_RET "${_L_tmp}"
-							(( _L_len += ${#_L_tmp} - ${#L_RET} ))
-						fi
-						L_printf_append "$_L_v" "%-*s" "$_L_len" "$_L_tmp"
-					fi
-				fi
-				if ((_L_last)); then
-					break
-				fi
-				if ((_L_column < _L_columns)); then
-					L_printf_append "$_L_v" "%s" "$_L_o"
-				fi
-			done
-		fi
-		L_printf_append "$_L_v" "\n"
-	done
+	# Parse the -R argument. Must be after knowing the number of columns.
+	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R" || return
+	# Call a single printf with all the arguments.
+	eval "printf ${_L_v:+-v\"\$_L_v\"} $_L_fmt \"\${_L_args[@]}\""
 }
 
 # @description Parse cut range list into an array.
@@ -4430,8 +4415,8 @@ _L_pretty_print_declare() {
 			# Dense normal array
 			eval "_L_pp_len=\"\${#$1[@]}\""
 			for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
-				printf -v _L_pp_v "%q" "${!_L_pp_ref}"
-				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_ref}"
+				_L_pretty_print_output_array "$L_RET" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
 		else
@@ -4441,8 +4426,10 @@ _L_pretty_print_declare() {
 				L_sort -z _L_pp_keys
 			fi
 			for _L_pp_i in "${_L_pp_keys[@]}"; do
-				printf -v _L_pp_v "[%q]=%q" "$_L_pp_i" "${!_L_pp_ref}"
-				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				"$_L_pp_quote_vL_RET" "$_L_pp_i"
+				_L_pp_v="$L_RET"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_ref}"
+				_L_pretty_print_output_array "[$_L_pp_v]=$L_RET" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
 		fi
@@ -4450,13 +4437,16 @@ _L_pretty_print_declare() {
 	elif [[ "$_L_pp_declare_opts" == -*n* ]]; then
 		# Namereference
 		local _L_pp_nameref=${_L_pp_declare##*=}
-		_L_pp_nameref=${_L_pp_nameref//'"'}
-		printf -v _L_pp_v "%s->%s${!1+=%q}" "$1" "$_L_pp_nameref" ${!1+"${!1}"}
+		_L_pp_v="$1->${_L_pp_nameref//\"}"
+		if L_var_is_set "$1"; then
+			"$_L_pp_quote_vL_RET" "${!1}"
+			_L_pp_v+=$L_RET
+		fi
 		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
 	else
 		# Scalar
-		printf -v _L_pp_v "%s=%q" "$1" "${!1:-}"
-		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
+		"$_L_pp_quote_vL_RET" "${!1:-}"
+		_L_pretty_print_output "${_L_flags}$1=$L_RET"
 	fi
 }
 
@@ -4478,8 +4468,8 @@ _L_pretty_print_output_array_of_structures() {
 		for _L_pp_var in "${_L_pp_vars[@]}"; do
 			_L_pp_i="$_L_pp_var[_L_pp_key]"
 			if L_var_is_set "$_L_pp_i"; then
-				printf -v _L_pp_i "%s=%q" "${_L_pp_var#"$_L_pp_varprefix"}" "${!_L_pp_i}"
-				_L_pretty_print_output_array "$_L_pp_i" "$_L_pp_val_indent"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_i}"
+				_L_pretty_print_output_array "${_L_pp_var#"$_L_pp_varprefix"}=$L_RET" "$_L_pp_val_indent"
 				_L_pp_val_indent=" "
 			fi
 		done
@@ -4501,6 +4491,7 @@ _L_pretty_print_output_array_of_structures() {
 # @option -c Make the output compact. The default.
 # @option -m Multiline output. Invert of -c.
 # @option -C Alias for -m.
+# @option -Q Use different quoting style.
 # @option -h Print this help and return 0.
 # @arg <expr...> Expressions to pretty print.
 # @example
@@ -4516,14 +4507,21 @@ L_pretty_print() {
 	local OPTIND OPTARG OPTERR \
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
-		_L_pp_line_len=0 _L_pp_ref _L_pp_vars _L_pp_out_sep=" "
-	while getopts p:v:w:cmCh _L_pp_i; do
+		_L_pp_line_len=0 _L_pp_ref _L_pp_vars _L_pp_out_sep=" " _L_pp_quote_vL_RET="L_quote_printf_vL_RET"
+	while getopts p:v:w:cmCQh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
 			v) _L_pp_var=$OPTARG ;;
 			w) _L_pp_width=$OPTARG ;;
 			c) _L_pp_oneline=1 ;;
 			m|C) _L_pp_oneline=0 ;;
+			Q)
+				if [[ "$_L_pp_quote_vL_RET" == "L_quote_printf_vL_RET" ]]; then
+					_L_pp_quote_vL_RET=L_quote_setx_vL_RET
+				else
+					_L_pp_quote_vL_RET=L_quote_bin_printf_vL_RET
+				fi
+				;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -4568,8 +4566,8 @@ L_pretty_print() {
 		elif L_is_valid_variable_or_array_element "$1" && ( L_var_is_set "$1" ) 2>/dev/null; then
 			# Array reference, arr[index]. Everything else was matched above.
 			# Is subshell above the best I can do? The ${!1} indirect expansion terminates the shell if invalid under -e.
-			printf -v _L_pp_v "$1=%q" "${!1}"
-			_L_pretty_print_output "$_L_pp_v"
+			"$_L_pp_quote_vL_RET" "${!1}"
+			_L_pretty_print_output "$1=$L_RET"
 		else
 			# Literal string arg (not a variable name)
 			_L_pretty_print_output "$1"
@@ -6727,30 +6725,36 @@ _L_unittest_main_worker() {
 }
 
 _L_unittest_main_worker_finally() {
+	# Restore print_traceback_offset.
+	_L_print_traceback_offset=${_L_ur_traceback_offset_old:-0}
+	if ! L_var_is_set _L_ur_index; then
+		# This means we have been called outside of main_worker context, for example from EXIT handler outside of L_unittest_main.
+		# This happens when -EFs options are used - in the foreground, when child executes exit, we might just die.
+		# There is nothing to do here - the EXIT handler of L_unittest_main will print error message.
+		return
+	fi
 	# Store duration.
 	L_epochrealtime_usec_vL_RET
 	local duration=$(( L_RET - ${_L_ur_start:-L_RET} ))
-	# Restore print_traceback_offset.
-	_L_print_traceback_offset=${_L_ur_traceback_offset_old:-0}
 	# Handle reason we get called.
 	case "${L_SIGNAL:-}" in
 		""|RETURN|POP) ;;
 		EXIT)
 			if (( _L_u_subshell )); then
-				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: Internal error. The finally handler was executed for EXIT trap. This most probably is an error in internal code and requires investigation. Traceback $(L_print_traceback)" 1>&"$_L_ur_stderr" 2>&1
 				_L_ur_ret=300
 			else
-				L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: The testing function called exit. Exiting." 1>&"${_L_ur_stderr:-2}" 2>&1
+				L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: The testing function called exit. Exiting." 1>&"$_L_ur_stderr" 2>&1
 			fi
 			;;
 		*)
-			L_critical "_L_unittest_main_worker #${L_XARGS_INDEX:-} ${_L_ur_test:-}: Exiting because received $L_SIGNAL" 1>&"${_L_ur_stderr:-2}" 2>&1
+			L_critical "_L_unittest_main_worker #$L_XARGS_INDEX $_L_ur_test: Exiting because received $L_SIGNAL" 1>&"$_L_ur_stderr" 2>&1
 			_L_ur_ret=300
 			;;
 	esac
 	# Transfer data to parent.
 	printf "_=%s _L_u_test_ret[%d]=%d _L_u_test_duration[%d]=%s\n" \
-			"$L_DC1" "$_L_ur_index" "${_L_ur_ret:-255}" "$_L_ur_index" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
+			"$L_DC1" "$_L_ur_index" "$_L_ur_ret" "$_L_ur_index" "$duration:$L_XARGS_INDEX" >&"$_L_ur_res_w"
 }
 
 _L_unittest_main_output_printer() {
@@ -6766,7 +6770,11 @@ _L_unittest_main_output_printer() {
 
 _L_unittest_main_finally() {
 	# L_xargs will kill all childs
-	L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
+	if [[ "$L_SIGNAL" == EXIT ]]; then
+		L_critical "L_unittest_main: Exiting because test called exit $L_SIGRET" >&2
+	else
+		L_critical "L_unittest_main: Exiting because received $L_SIGNAL" >&2
+	fi
 }
 
 # @description

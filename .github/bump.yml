@@ -23,4 +23,8 @@ files:
   - file-path: 'README.md'
     line: 24
   - file-path: 'README.md'
-    line: 62
+    line: 31
+  - file-path: 'README.md'
+    line: 53
+  - file-path: 'README.md'
+    line: 98
