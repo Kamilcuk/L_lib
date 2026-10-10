@@ -52,17 +52,21 @@ L_handle_v_asa() {
 	esac
 }
 
+L_is_natural_integer() {
+  case "$1" in
+    ''|*[!0-9]*|0?*) return 1 ;;
+  esac
+}
+
 ###############################################################################
 # @section obj
 # Implementation of a class that can hold arbitrary nested data of maps and arrays.
-
-L_obj_new() { local -n _L_obj=$1 && _L_obj=(); }
 
 # .a -> .a
 # .a. -> .a
 # '' -> .
 # a -> .a
-_L_obj_key_normalize_vL_KEY() {
+_L_dotkey_normalize_vL_KEY() {
   case "${1//\\[.\\]/xx}" in
     *\\*) return 1 ;;
     .*[^.].) L_KEY=${1%.} ;;
@@ -72,28 +76,20 @@ _L_obj_key_normalize_vL_KEY() {
   esac
 }
 
-_L_obj_is_valid_key() { [[ "${1//\\[.\\]/}" != *\\* ]]; }
+_L_dotkey_is_valid() { [[ "${1//\\[.\\]/}" != *\\* ]]; }
 # a.b.c -> a
-_L_obj_key_get_first_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%%.*} L_RET=${1::${#L_RET}}; }
-_L_obj_key_remove_last_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%.*} L_RET=${1::${#L_RET}}; }
-_L_obj_set_raw() { local -n _L_obj=$1 && _L_obj_is_valid_key "$2" && _L_obj["$2"]=$3; }
-_L_obj_get_raw_vL_RET() {
-  local -n _L_obj=$1 && _L_obj_is_valid_key "$2" && [[ -v "$1[$2]" ]] && L_RET=${_L_obj["$2"]}
-}
-_L_obj_get_raw_setdefault_vL_RET() {
-  local -n _L_obj=$1 && _L_obj_is_valid_key "$2" && L_RET=${_L_obj["$2"]=$3}
-}
-_L_obj_key_escape_vL_RET() { L_RET=("${@//\\/\\\\}") L_RET=("${L_RET[@]//./\\.}"); }
-_L_obj_key_unescape_vL_RET() { L_RET=("${@/\\\\/\\}") L_RET=("${L_RET[@]//\\./.}"); }
-_L_obj_is_array() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.${2#.}"]:-}" == "array" ]]; }
-_L_obj_is_object() { local -n _L_obj=$1 && [[ "${_L_obj["TYPE.${2#.}"]:-}" == "dict" ]]; }
+_L_dotkey_get_first_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%%.*} L_RET=${1::${#L_RET}}; }
+_L_dotkey_remove_last_vL_RET() { L_RET=${1//\\[.\\]/XX} L_RET=${L_RET#.} L_RET=${L_RET%.*} L_RET=${1::${#L_RET}}; }
 
-L_obj_key_join() { L_handle_v_scalar "$@"; }
-L_obj_key_join_vL_RET() { local IFS=.; L_RET=("${@//\\/\\\\}") L_RET="${L_RET[*]//./\\.}"; }
+_L_dotkey_escape_vL_RET() { L_RET=("${@//\\/\\\\}") L_RET=("${L_RET[@]//./\\.}"); }
+_L_dotkey_unescape_vL_RET() { L_RET=("${@/\\\\/\\}") L_RET=("${L_RET[@]//\\./.}"); }
 
-L_obj_key_split() { L_handle_v_scalar "$@"; }
-L_obj_key_split_vL_RET() {
-  _L_obj_is_valid_key "$1" || return
+L_dotkey_join() { L_handle_v_scalar "$@"; }
+L_dotkey_join_vL_RET() { local IFS=.; L_RET=("${@//\\/\\\\}") L_RET="${L_RET[*]//./\\.}"; }
+
+L_dotkey_split() { L_handle_v_scalar "$@"; }
+L_dotkey_split_vL_RET() {
+  _L_dotkey_is_valid "$1" || return
   L_RET=${1#.}
   if [[ $1 != *\\* ]]; then
     readarray -t -d . L_RET <<<"$L_RET."
@@ -110,452 +106,556 @@ L_obj_key_split_vL_RET() {
   fi
 }
 
-# L_obj_set_type obj word.word.3 = 3
-L_obj_set_type() {
-  case "${!#}" in
-    null|bool|integer|float|string|array|dict) ;;
-    *)
-      L_func_error "Invalid type: ${!#}. Muse be one of: null bool integer float string array dict."
-      return $L_EX_USAGE
-  esac
-  _L_obj_set_raw "$1" "TYPE.${2#.}" "${!#}" || return
-  local -n _L_obj=$1 || return
-  _L_obj["HASTYPE"]=1
+_L_obj_maybe_find_child_from_args_vL_RET() {
+  local _L_i
+  L_RET=0
+  for _L_arg; do
+    L_RET[1]=${L_RET[0]}
+    case ${_L_obj[L_RET]} in
+      MAP)
+        L_RET=${_L_obj[L_RET+2]}
+        if (( !L_RET )); then return; fi
+        while [[ ${_L_obj[L_RET+1]} != "$_L_arg" ]]; do
+          L_RET=${_L_obj[L_RET+3]}
+          if (( !L_RET )); then return; fi
+        done
+        ;;
+      ARRAY)
+        if ! L_is_natural_integer "$_L_arg"; then
+          L_func_error "Array index must be an integer"
+          return "$L_EX_USAGE"
+        fi
+        L_RET=${_L_obj[L_RET+2]}
+        if (( !L_RET )); then return; fi
+        for (( _L_i = _L_arg; _L_i > 0; --_L_i )); do
+          L_RET=${_L_obj[L_RET+3]}
+          if (( !L_RET )); then return; fi
+        done
+        ;;
+      *)
+        L_func_error "Can't nest into non-container type"
+        return "$L_EX_USAGE"
+        ;;
+    esac
+  done
 }
 
-L_obj_get_type() { L_handle_v_scalar "$@"; }
-L_obj_get_type_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.${2#.}"; }
-
-L_obj_get_type_default() { L_handle_v_scalar "$@"; }
-L_obj_get_type_default_vL_RET() { _L_obj_get_raw_vL_RET "$1" "TYPE.${2#.}" || L_RET=$3; }
-
-L_obj_get_type_setdefault() { L_handle_v_scalar "$@"; }
-L_obj_get_type_setdefault_vL_RET() { _L_obj_get_raw_setdefault_vL_RET "$1" "TYPE.${2#.}" "$3"; }
-
-_L_is_natural_integer() {
-  case "$1" in
-    ''|*[!0-9]*|0?*) return 1 ;;
-  esac
-}
-
-L_obj_infer_type() { L_handle_v_scalar "$@"; }
-L_obj_infer_type_vL_RET() {
-  if ! L_obj_get_type_vL_RET "$@"; then
-    local -n _L_obj=$1 || return
-    if [[ -v "_L_obj[VALUE.${2#.}]" ]]; then
-      local _L_value="${_L_obj["VALUE.${2#.}"]}"
-      if _L_is_natural_integer "$_L_value"; then
-        L_RET=integer
-      elif L_is_float "$_L_value"; then
-        L_RET=float
-      else
-        L_RET=string
-      fi
-    else
-      # local -;set -x;echo "CALLING:: ${FUNCNAME[0]} $*"
-      local _L_key _L_prefix=${2#.} _L_seen=() _L_max=0
-      _L_prefix=VALUE.${_L_prefix:+$_L_prefix.}
-      for _L_key in "${!_L_obj[@]}"; do
-        if [[ "$_L_key" == "$_L_prefix"* ]]; then
-          _L_obj_key_get_first_vL_RET "${_L_key:${#_L_prefix}}"
-          if ! _L_is_natural_integer "$L_RET"; then
-            L_RET=dict
-            return
-          fi
-          _L_seen[L_RET]=""
-          if (( _L_max < L_RET )); then
-            _L_max=$L_RET
-          fi
-        fi
-      done
-      if (( ${#_L_seen[@]} == 0 )); then
-        if (( $# >= 3 )); then
-          L_RET=$3
-        else
-          return 1
-        fi
-      elif (( ${#_L_seen[@]} == _L_max + 1 )); then
-        L_RET=array
-      else
-        L_RET=dict
-      fi
-    fi
-    L_obj_set_type "$1" "$2" "$L_RET"
+_L_obj_get_raw_idx_of_vL_RET() {
+  _L_obj_maybe_find_child_from_args_vL_RET "$@" || return
+  if [[ -z "$L_RET" ]]; then
+    L_func_error "index not found: $*" 1
+    return "$L_EX_USAGE"
   fi
 }
 
-# L_obj_set obj word.word.3 = 3
-L_obj_set_value() {
-  local -n _L_obj=$1 || return
-  if [[ -v "_L_obj[HASTYPE]" ]]; then
-    : todo check types of indexes
-  fi
-  _L_obj_set_raw "$1" "VALUE.${2#.}" "${!#}"
-}
+L_obj_clear() { local -n _L_obj=$1 && _L_obj=(); }
 
-L_obj_set() { L_obj_set_value "$@"; }
-
+# L_obj_get_vL_RET obj [part...]  -> L_RET = scalar value, return 1 if missing or not a scalar
 L_obj_get() { L_handle_v_scalar "$@"; }
-L_obj_get_vL_RET() { _L_obj_get_raw_vL_RET "$1" "VALUE.$2"; }
+L_obj_get_vL_RET() {
+  local -n _L_obj=$1
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
+  case ${_L_obj[L_RET]} in
+    MAP|ARRAY|"")
+      L_func_error "cannot get value of a container"
+      return 1
+      ;;
+  esac
+  L_RET=${_L_obj[L_RET+2]}
+}
 
-L_obj_get_default() { L_handle_v_scalar "$@"; }
-L_obj_get_default_vL_RET() { _L_obj_get_raw_vL_RET "$1" "VALUE.$2" || L_RET=$3; }
+# L_obj_get_vL_RET obj [part...] default -> L_RET = scalar value
+L_obj_get_default_vL_RET() {
+  local -n _L_obj=$1
+  _L_obj_maybe_find_child_from_args_vL_RET "${@:2:$#-2}"
+  if [[ -z $L_RET ]]; then
+    L_RET=${!#}
+  else
+    case ${_L_obj[L_RET]} in MAP|ARRAY|"")
+      L_func_error "cannot get value of a container"
+      return 1
+      ;;
+    esac
+    L_RET=${_L_obj[L_RET+2]-}
+  fi
+}
 
-L_obj_get_setdefault() { L_handle_v_scalar "$@"; }
-L_obj_get_setdefault_vL_RET() { _L_obj_get_raw_setdefault_vL_RET "$1" "VALUE.$2" "$3"; }
+# Creates missing containers: a natural-integer part creates an ARRAY, anything else a MAP.
+_L_obj_descend_vL_RET() {
+  # local -n _L_obj has to be done by parent.
+  local _L_cur=0 _L_arg _L_kind _L_child _L_last _L_i _L_new
+  # init: node 0 is the root, its key field (offset 1) is the free-list head
+  if (( ! ${_L_obj[@]:+1}0 )); then
+    _L_obj=("" "" "" "" "")
+  fi
+  for _L_arg; do
+    # If freshly created node, create it with ARRAY if index is 0.
+    if [[ $_L_arg == 0 ]]; then
+      _L_kind=${_L_obj[_L_cur]:=ARRAY}
+    else
+      _L_kind=${_L_obj[_L_cur]:=MAP}
+    fi
+    _L_child=${_L_obj[_L_cur+2]} _L_last=
+    case $_L_kind in
+      MAP)
+        while [[ -n $_L_child && ${_L_obj[_L_child+1]} != "$_L_arg" ]]; do
+          _L_last=$_L_child _L_child=${_L_obj[_L_child+3]}
+        done
+        ;;
+      ARRAY)
+        if ! L_is_natural_integer "$_L_arg"; then
+          L_func_error "Array index has to be integer"; return 1
+        fi
+        for (( _L_i = _L_arg; _L_i > 0 && ${#_L_child}; --_L_i )); do
+          _L_last=$_L_child _L_child=${_L_obj[_L_child+3]}
+        done
+        if ! [[ -n $_L_child || $_L_i == 0 ]]; then
+          L_func_error "only index <= len allowed"; return 1
+        fi
+        ;;
+      *) L_func_error "a scalar is in the way"; return 1 ;;
+    esac
+    if [[ -z $_L_child ]]; then
+      # create and append at the tail
+      _L_new=${_L_obj[1]:-${#_L_obj[@]}}
+      [[ -n ${_L_obj[1]} ]] && _L_obj[1]=${_L_obj[_L_new+3]}
+      _L_obj[_L_new]= _L_obj[_L_new+1]= _L_obj[_L_new+2]= _L_obj[_L_new+3]= _L_obj[_L_new+4]=$_L_last
+      if [[ $_L_kind == MAP ]]; then
+        _L_obj[_L_new+1]=$_L_arg
+      fi
+      if [[ -n $_L_last ]]; then
+        _L_obj[_L_last+3]=$_L_new
+      else
+        _L_obj[_L_cur+2]=$_L_new
+      fi
+      _L_child=$_L_new
+    fi
+    _L_cur=$_L_child
+  done
+  L_RET=$_L_cur
+}
 
+# L_obj_set_type_value obj [part...] = type value
+L_obj_set_type_value() {
+  local -n _L_obj=$1
+  local L_RET _L_type=${*:$#-1:1}
+  if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
+  _L_obj_descend_vL_RET "${@:2:$#-4}" || return
+  case "${_L_obj[L_RET]}" in
+    MAP|ARRAY)
+      L_func_error "Can't set container to scalar"
+      return 1
+  esac
+  _L_obj[L_RET]=$_L_type
+  case "$_L_type" in
+    MAP|ARRAY) ;;
+    *) _L_obj[L_RET+2]=${!#} ;;
+  esac
+}
+
+# L_obj_set_type_value obj [part...] = type
+L_obj_set_type() { L_obj_set_type_value "$@" ""; }
+
+# L_obj_set_default_value obj [part...] = type default
+L_obj_set_type_default_value() {
+  local -n _L_obj=$1
+  local L_RET _L_type=${*:$#-1:1}
+  if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
+  _L_obj_descend_vL_RET "${@:2:$#-4}" || return
+  case ${_L_obj[L_RET]} in MAP|ARRAY)
+    L_func_error "Can't set container to scalar"
+    return 1
+  esac
+  _L_obj[L_RET]=$_L_type
+  case "$_L_type" in
+    MAP|ARRAY) ;;
+    *) _L_obj[L_RET+2]=${!#} ;;
+  esac
+}
+
+_L_obj_infer_type_from_value_vL_RET() {
+  if [[ $1 =~ ^[-+]?(0|[1-9][0-9]*)((\.[0-9]+)?([eE][+-]?[0-9]+)?)$ ]]; then
+    if [[ -z "${BASH_REMATCH[2]}" ]]; then
+      L_RET=INTEGER
+    else
+      L_RET=FLOAT
+    fi
+  else
+    L_RET=STRING
+  fi
+}
+
+# L_obj_set_type_value obj [part...] = value
+L_obj_set_value() {
+  local L_RET
+  _L_obj_infer_type_from_value_vL_RET "${!#}"
+  L_obj_set_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
+}
+
+# L_obj_set_default_value obj [part...] = default
+L_obj_set_default_value() {
+  local L_RET
+  _L_obj_infer_type_from_value_vL_RET "${!#}"
+  L_obj_set_type_default_value "${@:1$#-1}" "$L_RET" "${!#}"
+}
+
+_L_obj_rm_fill_stack() {
+  case ${_L_obj[$1]} in
+    MAP|ARRAY)
+      local _L_child=${_L_obj[$1+2]}
+      while [[ -n $_L_child ]]; do
+        _L_stack+=("$_L_child")
+        _L_child=${_L_obj[_L_child+3]}
+      done
+      ;;
+    STRING|INTEGER|FLOAT|BOOL|NULL) ;;       # leaf: nothing to push
+    *) L_func_error "internal error: \$1=$1 \${_L_obj[\$1]}=${_L_obj[$1]}"; return 1 ;;
+  esac
+}
+
+# L_obj_rm obj [part...]  -> remove the node at the path and free its subtree
+# return 1 if the path doesn't exist. No parts = clear the whole object.
+L_obj_rm() {
+  local -n _L_obj=$1
+  if (( ! ${#_L_obj[@]} )); then
+    L_func_error "cannot remove from empty object"
+    return 1
+  fi
+  if (( $# == 1 )); then
+    _L_obj=()
+    return
+  fi
+  local L_RET
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
+  local _L_idx=$L_RET _L_par=${L_RET[1]:-} _L_arg _L_cur _L_child _L_prev _L_next _L_stack=()
+  if (( _L_idx )); then
+    # unlink from the sibling list, or from the parent's first-child field
+    _L_prev=${_L_obj[_L_idx+4]} _L_next=${_L_obj[_L_idx+3]}
+    if [[ -n $_L_prev ]]; then _L_obj[_L_prev+3]=$_L_next; else _L_obj[_L_par+2]=$_L_next; fi
+    if [[ -n $_L_next ]]; then _L_obj[_L_next+4]=$_L_prev; fi
+    _L_stack=("$_L_idx")
+  else
+    # root: free its children, keep node 0 and the free-list head in its key field
+    _L_obj_rm_fill_stack 0
+    _L_obj[0]="FREE" _L_obj[2]= _L_obj[3]= _L_obj[4]=
+  fi
+  # free the subtree iteratively, pushing children before freeing the node
+  while (( ${#_L_stack[@]} )); do
+    _L_cur=${_L_stack[-1]}
+    unset '_L_stack[-1]'
+    _L_obj_rm_fill_stack "$_L_cur"
+    _L_obj[_L_cur]="FREE" _L_obj[_L_cur+1]= _L_obj[_L_cur+2]= _L_obj[_L_cur+3]=${_L_obj[1]} _L_obj[_L_cur+4]=
+    _L_obj[1]=$_L_cur
+  done
+}
+
+L_obj_print_table() {
+  local -n _L_obj=$1
+  local _L_idx=0 _L_buf="[idx]|kind|key|val|next|prev" _L_tmp
+  for (( _L_idx = 0; _L_idx < ${#_L_obj[@]}; _L_idx += 5 )); do
+    printf -v _L_tmp "[%d]" "$_L_idx"
+    _L_buf+=$'\n'$_L_tmp
+    printf -v _L_tmp "|%q" "${_L_obj[@]:_L_idx:5}"
+    _L_buf+=$_L_tmp
+  done
+  L_table -t -s '|' "$_L_buf"
+}
+
+# L_obj_walk obj cb...
+#   cb... START <type> <parts...>          type: MAP|ARRAY
+#   cb... VALUE <type> <value> <parts...>  type: STRING|INTEGER|FLOAT|BOOL|NULL
+#   cb... END   <type> <parts...>
+# Parts exclude the root. A nonzero callback return aborts the walk and is returned.
+L_obj_walk() {
+  local -n _L_obj=$1
+  shift
+  (( ${#_L_obj[@]} )) || return 0
+  local _L_cur=0 _L_parts=() _L_stack=() _L_kind _L_next _L_par
+  while :; do
+    _L_kind=${_L_obj[_L_cur]}
+    case $_L_kind in
+      MAP|ARRAY)
+        "$@" START "$_L_kind" "${_L_parts[@]}" || return
+        _L_next=${_L_obj[_L_cur+2]}
+        if [[ -n $_L_next ]]; then
+          # descend into the first child
+          _L_stack+=("$_L_cur")
+          if [[ $_L_kind == MAP ]]; then
+            _L_parts+=("${_L_obj[_L_next+1]}")
+          else
+            _L_parts+=(0)
+          fi
+          _L_cur=$_L_next
+          continue
+        fi
+        "$@" END "$_L_kind" "${_L_parts[@]}" || return   # empty container
+        ;;
+      # STRING|INTEGER|FLOAT|BOOL|NULL)
+      *) "$@" VALUE "$_L_kind" "${_L_obj[_L_cur+2]}" "${_L_parts[@]}" || return ;;
+    esac
+    # advance to the next sibling, closing parents that are exhausted
+    while :; do
+      (( ${#_L_stack[@]} )) || return 0
+      _L_par=${_L_stack[-1]}
+      _L_next=${_L_obj[_L_cur+3]}
+      if [[ -n $_L_next ]]; then
+        if [[ ${_L_obj[_L_par]} == MAP ]]; then
+          _L_parts[-1]=${_L_obj[_L_next+1]}
+        else
+          _L_parts[-1]=$(( _L_parts[-1] + 1 ))
+        fi
+        _L_cur=$_L_next
+        break
+      fi
+      unset '_L_parts[-1]' '_L_stack[-1]'
+      "$@" END "${_L_obj[_L_par]}" "${_L_parts[@]}" || return
+      _L_cur=$_L_par
+    done
+  done
+}
+
+# L_obj_keys [-v var] obj [part...]
+# Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY.
+# Returns 1 if the path is missing or the node is a scalar.
 L_obj_keys() { L_handle_v_array "$@"; }
 L_obj_keys_vL_RET() {
-  local -n _L_obj=$1 || return
-  local _L_key=.${2:+${2#.}}
-  _L_obj_is_valid_key "$_L_key" || return
-  if [[ -v "_L_obj[VALUE$_L_key]" ]]; then
-    L_RET=("$_L_key")
-  else
-    declare -A L_ARET=()
-    for L_RET in "${!_L_obj[@]}"; do
-      if [[ "$L_RET" == "VALUE$_L_key."* ]]; then
-        _L_obj_key_get_first_vL_RET "${L_RET##"VALUE$_L_key."}"
-        L_ARET["$L_RET"]=""
-      fi
-    done
-    L_RET=("${!L_ARET[@]}")
-  fi
+  local -n _L_obj=$1
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
+  local _L_cur=$L_RET _L_i=0
+  L_RET=()
+  case ${_L_obj[_L_cur]} in
+    MAP)
+      for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+        L_RET+=("${_L_obj[_L_cur+1]}")
+      done
+      ;;
+    ARRAY)
+      for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+        L_RET+=("$((_L_i++))")
+      done
+      ;;
+    STRING|INTEGER|FLOAT|BOOL|NULL) L_func_error "Scalar value does not have keys"; return "$L_EX_USAGE" ;;
+    *) L_func_error "Internal error"; return "$L_EX_DATAERR" ;;
+  esac
 }
 
 L_obj_len() { L_handle_v_scalar "$@"; }
 L_obj_len_vL_RET() {
-  L_obj_infer_type_vL_RET "$1" "${2:-}" || return
-  case "$L_RET" in
-    array|dict) L_obj_keys_vL_RET "$@" && (( L_RET=${#L_RET[@]} )) ;;
-    *) L_obj_get_vL_RET "$1" "${2:-}" && L_RET=${#L_RET} ;;
+  local -n _L_obj=$1 || return
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
+  local _L_cur=$L_RET _L_i=0
+  L_RET=0
+  case ${_L_obj[_L_cur]} in
+    MAP|ARRAY)
+      for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+        L_RET=$((L_RET+1))
+      done
+      ;;
+    STRING|INTEGER|FLOAT|BOOL|NULL) L_RET=${#_L_obj[_L_cur+2]} ;;
+    *) L_func_error "Internal error"; return "$L_EX_DATAERR" ;;
   esac
 }
 
-L_obj_has() { [[ -v "$1[VALUE.${2#.}]" ]]; }
-
-L_obj_del() {
+L_obj_has() {
   local -n _L_obj=$1 || return
-  _L_obj_is_valid_key "${2:-}" || return
-  local _L_i _L_key=.${2#.}
-  for _L_i in "${!_L_obj[@]}"; do
-    case "$_L_i" in
-      "TYPE$_L_key"|"VALUE$_L_key"|"TYPE$_L_key."*|"VALUE$_L_key."*) unset -v "_L_obj[$_L_i]"
-    esac
-  done
+  local L_RET
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" 2>/dev/null
 }
 
+L_obj_has_scalar() {
+  local -n _L_obj=$1 || return
+  local L_RET
+  _L_obj_get_raw_idx_of_vL_RET "${@:2}" 2>/dev/null || return 1
+  case "${_L_obj[L_RET]}" in MAP|ARRAY|FREE|"") return 1 ;; esac
+}
+
+L_obj_has_type() {
+  local -n _L_obj=$1 || return
+  local L_RET
+  _L_obj_get_raw_idx_of_vL_RET "${@:2:$#-2}" 2>/dev/null || return 1
+  [[ "${_L_obj[L_RET]}" == "${!#}" ]]
+}
+
+# L_obj_string_append obj [parts...] += value
 L_obj_string_append() {
   local -n _L_obj=$1 || return
   local L_RET
-  _L_obj_is_valid_key "${2:-}" || return
-  L_obj_get_type_default_vL_RET "$1" "${2:-}" "string"
-  if [[ "$L_RET" != string ]]; then
-    L_func_error "cannot append to '$2' in '$1': it is type $L_RET, expected string"
-    return "$L_EX_USAGE"
-  fi
-  _L_obj["VALUE.${2#.}"]+="${!#}"
-}
-
-# L_obj_array_push obj a.b += a
-L_obj_array_append() {
-  local -n _L_obj=$1 || return
-  local _L_nextidx=0 L_RET
-  L_obj_infer_type_vL_RET "$1" "$2" "array"
-  if [[ "$L_RET" != "array" ]]; then
-    L_func_error "cannot append to '$2' in '$1': it is type $L_RET, exepcted array"
-    return "$L_EX_USAGE"
-  fi
-  for L_RET in "${!_L_obj[@]}"; do
-    if [[ "$L_RET" == "VALUE.$2."* ]]; then
-      _L_obj_key_get_first_vL_RET "${L_RET##"VALUE.$2."}"
-      if (( _L_nextidx <= L_RET )); then
-        _L_nextidx=$(( L_RET + 1 ))
-      fi
-    fi
-  done
-  _L_obj["VALUE.$2.$_L_nextidx"]="${!#}"
-}
-
-# L_obj_walk_values obj cb <args>...
-# calls cb <args>... <section> <value>
-L_obj_walk_values() {
-  local -n _L_obj="$1" || return
-  shift
-  local _L_keys=("${!_L_obj[@]}") _L_i L_RET
-  L_sort _L_keys
-  for _L_i in "${_L_keys[@]}"; do
-    if [[ "$_L_i" == VALUE.* ]]; then
-      "$@" "${_L_i:6}" "${_L_obj["$_L_i"]}" || return
-    fi
-  done
-}
-
-# L_obj_walk_all obj cb...
-# Calls:
-#   cb... START    <key> <type> <parts...>
-#   cb... VALUE    <key> <type> <value> <parts...>
-#   cb... END      <key> <type> <parts...>
-#   cb... META <key> <value>
-#
-# <path>   canonical path of the node: "." root, ".a", ".a.b"
-# <type>   START/END: dict|array
-#          VALUE:     string|integer|float|bool|null
-# <parts>  keys from the root down to this node, unescaped, root excluded
-#          (root has zero parts; the last part is the node's own key/index)
-L_obj_walk_all() {
-  local -n _L_w_obj="$1" || return
-  shift
-  local -A _L_keys=()
-  local _L_key _L_level _L_parts=() _L_prev_group=() _L_i _L_j \
-    _L_group_depth _L_prev_depth=0 _L_common_depth  _L_open_keys=() L_RET _L_root_open=0 _L_type
-  for _L_key in "${!_L_w_obj[@]}"; do
-    case "$_L_key" in
-      VALUE.*)
-        L_obj_key_split -v _L_parts "$_L_key"
-        _L_keys["${_L_key:5}"]=""
-        ;;
-      TYPE.*)
-        _L_keys["${_L_key:4}"]=""
-        ;;
-      *) "$@" META "$_L_key" "${_L_w_obj["$_L_key"]}" || return ;;
-    esac
-  done
-  L_pp ${!_L_w_obj} _L_keys
-  for _L_key in "${!_L_keys[@]}"; do
-    if [[ "$_L_key" == "." ]]; then
-      L_obj_infer_type_vL_RET _L_w_obj "$_L_key"
-      if [[ -v "_L_w_obj[VALUE$_L_key]" ]]; then
-        "$@" VALUE "$_L_key" "$L_RET" "${_L_w_obj["VALUE$_L_key"]}" "${_L_parts[@]}" || return
-      else
-        "$@" START "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
-        "$@" END "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
-      fi
-    else
-      if (( !_L_root_open )); then
-        _L_root_open=1
-        L_obj_infer_type_vL_RET _L_w_obj .
-        "$@" START . "$L_RET"
-      fi
-      L_obj_key_split -v _L_parts "$_L_key"
-      _L_group_depth=$(( ${#_L_parts[@]} - 1 ))  # last part is the key name, the rest is the group path
-      # how many leading group names the previous and current keys share
-      _L_common_depth=0
-      L_pp _L_prev_group _L_common_depth _L_prev_depth _L_group_depth
-      while (( _L_common_depth < _L_prev_depth && _L_common_depth < _L_group_depth )) &&
-            [[ "${_L_prev_group[_L_common_depth]}" == "${_L_parts[_L_common_depth]}" ]]; do
-        (( ++_L_common_depth ))
-      done
-      # close groups we left (deepest first)
-      for (( _L_level = _L_prev_depth; _L_level > _L_common_depth; _L_level-- )); do
-        L_obj_infer_type_vL_RET _L_w_obj "${_L_open_keys[_L_level-1]}"
-        "$@" END "${_L_open_keys[_L_level-1]}" "$L_RET" "${_L_prev_group[@]::_L_level}" || return
-      done
-      _L_open_keys=("${_L_open_keys[@]::_L_common_depth}")   # forget closed groups
-      # open groups we entered (shallowest first)
-      for (( _L_level = _L_common_depth + 1; _L_level <= _L_group_depth; _L_level++ )); do
-        L_obj_key_join_vL_RET "${_L_parts[@]::_L_level}"
-        _L_open_keys+=("$L_RET")
-        L_obj_infer_type -v _L_type _L_w_obj "$L_RET"
-        "$@" START "$L_RET" "$_L_type" "${_L_parts[@]::_L_level}" || return
-      done
-      L_obj_infer_type_vL_RET _L_w_obj "$_L_key"
-      if [[ -v "_L_w_obj[VALUE$_L_key]" ]]; then
-        "$@" VALUE "$_L_key" "$L_RET" "${_L_w_obj["VALUE$_L_key"]}" "${_L_parts[@]}" || return
-      else
-        L_pp "${!_L_w_obj}" _L_key
-        "$@" START "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
-        "$@" END "$_L_key" "${_L_w_obj["TYPE$_L_key"]}" "${_L_parts[@]}" || return
-      fi
-      _L_prev_group=("${_L_parts[@]::_L_group_depth}")
-      _L_prev_depth=$_L_group_depth
-    fi
-  done
-  # close whatever is still open
-  for (( _L_level = _L_prev_depth; _L_level > 0; _L_level-- )); do
-    L_obj_infer_type_vL_RET _L_w_obj "${_L_open_keys[_L_level-1]}"
-    "$@" END "${_L_open_keys[_L_level-1]}" "$L_RET" "${_L_prev_group[@]:0:_L_level}" || return
-  done
-  if (( _L_root_open )); then
-    L_obj_infer_type_vL_RET _L_w_obj .
-    "$@" END . "$L_RET"
-  fi
-}
-
-# _L_obj_pp_q_vL_RET VAR STR: leave simple tokens bare, %q-quote anything with
-# spaces, ",{}=", quotes, newlines, etc. (empty becomes '')
-_L_obj_pp_q_vL_RET() {
-  if [[ -n "$1" && "$1" != *[!a-zA-Z0-9_.@/:+-]* ]]; then
-    printf -v L_RET %s "$1"
-  else
-    printf -v L_RET %q "$1"
-  fi
-}
-# args: <obj> START|VALUE|END|META <key> [VALUE] <sections...>
-_L_obj_pp_cb() {
-  case $2 in
-  META)
-    if [[ "$3" != TYPE.* ]]; then
-      _L_obj_pp_q_vL_RET "$3"
-      _L_obj_pp_meta+="$_L_obj_pp_meta_sep$L_RET="
-      _L_obj_pp_q_vL_RET "$4"
-      _L_obj_pp_meta+="$L_RET"
-      _L_obj_pp_meta_sep=" "
-    fi
-    ;;
-  START)
-    _L_obj_pp_q_vL_RET "${!#}"  # group name = last part
-    _L_cb_out+="$_L_cb_sep$L_RET="
-    if _L_obj_is_array "$1" "$3"; then
-      _L_cb_out+="["
-    else
-      _L_cb_out+="{"
-    fi
-    _L_cb_sep=""  # first child of a group gets no leading space
-    ;;
-  END)
-    if _L_obj_is_array "$1" "$3"; then
-      _L_cb_out+="]"
-    else
-      _L_cb_out+="}"
-    fi
-    _L_cb_sep=" "
-    ;;
-  VALUE)
-    _L_cb_out+="$_L_cb_sep"
-    _L_obj_pp_q_vL_RET "${!#}"  # key name
-    _L_cb_out+="$L_RET"
-    if L_obj_get_type_vL_RET "$1" "$3"; then
-      _L_cb_out+=":$L_RET"
-    fi
-    _L_obj_pp_q_vL_RET "$4"  # value
-    _L_cb_out+="=$L_RET"
-    _L_cb_sep=" "
-    ;;
+  if [[ "${*:$#-1:1}" != "+=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
+  _L_obj_get_raw_idx_of_vL_RET "${@:2:$#-3}" || return 1
+  case "${_L_obj[L_RET]}" in
+    MAP|ARRAY)
+      L_func_error "cannot append ${!#} in $1: it is type ${_L_obj[L_RET]}, expected string"
+      return "$L_EX_USAGE"
+      ;;
+    STRING) ;;
+    *) _L_obj[L_RET]=STRING ;;
   esac
+  _L_obj[L_RET+2]+=${!#}
 }
-# L_obj_print_vL_RET OBJ  ->  _L_cb_out
-L_obj_print_vL_RET() {
-  local _L_obj_pp_meta="" _L_obj_pp_meta_sep="" _L_cb_out="" _L_cb_sep=""
-  L_obj_walk_all "$1" _L_obj_pp_cb "$1" || return
-  L_RET="$1($_L_cb_out)${_L_obj_pp_meta:+!($_L_obj_pp_meta)}"
+
+# L_obj_array_append_type_value obj [parts...] += type value
+L_obj_array_append_type_value() {
+  local -n _L_obj=$1
+  local _L_type=${@:$#-1:1} _L_value=${!#} L_RET _L_cur _L_new _L_last=""
+  if [[ "${*:$#-2:1}" != "+=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
+  if (( $# < 3 )); then
+    L_func_usage_error "Not enough arguments"
+    return "$L_EX_USAGE"
+  fi
+  _L_obj_descend_vL_RET "${@:2:$#-4}" || return
+  _L_cur=$L_RET
+  if [[ ${_L_obj[_L_cur]:=ARRAY} != "ARRAY" ]]; then
+    L_func_error "cannot append to $1: node is ${_L_obj[_L_cur]}, expected ARRAY"
+    return "$L_EX_DATAERR"
+  fi
+  # find the tail
+  _L_new=${_L_obj[_L_cur+2]}
+  while [[ -n $_L_new ]]; do
+    _L_last=$_L_new
+    _L_new=${_L_obj[_L_new+3]}
+  done
+  # allocate: free-list head is obj[1], otherwise grow the array
+  _L_new=${_L_obj[1]:-${#_L_obj[@]}}
+  if [[ -n ${_L_obj[1]} ]]; then _L_obj[1]=${_L_obj[_L_new+3]}; fi
+  # fill and link at the tail
+  _L_obj[_L_new]=$_L_type _L_obj[_L_new+1]= _L_obj[_L_new+2]=$_L_value _L_obj[_L_new+3]= _L_obj[_L_new+4]=$_L_last
+  if [[ -n $_L_last ]]; then
+    _L_obj[_L_last+3]=$_L_new
+  else
+    _L_obj[_L_cur+2]=$_L_new
+  fi
 }
-L_obj_print() { L_handle_v_scalar "$@"; }
+
+# L_obj_array_append_value obj [parts...] += value
+# Appends a scalar to the ARRAY at the path. Creates the array if the path is missing
+# (or the node is untyped). Returns 1 if the node is not an array.
+L_obj_array_append_value() {
+  local L_RET
+  _L_obj_infer_type_from_value_vL_RET "${!#}"
+  L_obj_array_append_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
+}
+
+L_obj_get_value_idx_of_vL_RET() {
+  _L_obj_get_raw_idx_of_vL_RET "$@"
+  L_RET=$((L_RET+2))
+}
 
 ###############################################################################
 
-_L_test_obj_1() {
-  local L_RET
+_L_test_dotkey_1() {
   {
-    L_obj_key_join_vL_RET word word 3
-    L_obj_key_split_vL_RET "$L_RET"
+    L_dotkey_join_vL_RET word word 3
+    L_dotkey_split_vL_RET "$L_RET"
     L_unittest_arreq L_RET word word 3
   }
   {
-    L_obj_key_join_vL_RET word word 3 $'\t' $'\2' $'\2D' $'\2E' $'\3'
-    L_obj_key_split_vL_RET "$L_RET"
+    L_dotkey_join_vL_RET word word 3 $'\t' $'\2' $'\2D' $'\2E' $'\3'
+    L_dotkey_split_vL_RET "$L_RET"
     L_unittest_arreq L_RET word word 3 $'\t' $'\2' $'\2D' $'\2E' $'\3'
   }
-  local -A obj=()
+}
+
+_L_test_obj_1() {
+  local L_RET
+  local obj
   {
     # # {"a":{"b":[1,2,3]}}
-    L_obj_set obj .a.b.1 = 1
-    L_obj_set obj .a.b.2 = 2
-    L_obj_set obj .a.b.3 = 3
-    L_obj_set obj .a.c = dead1
-    L_obj_set obj .a.d = dead2
-    L_obj_set obj .a.f = dead3
-    L_obj_get_vL_RET obj a.b.1
+    L_obj_set_value obj a b 0 = 1
+    L_obj_set_value obj a b 1 = 2
+    L_obj_set_value obj a b 2 = 3
+    L_obj_set_value obj a c = dead1
+    L_obj_set_value obj a d = dead2
+    L_obj_set_value obj a f = dead3
+    L_obj_get_vL_RET obj a b 0
     L_unittest_vareq L_RET 1
-    L_obj_get_vL_RET obj a.b.2
+    L_obj_get_vL_RET obj a b 1
     L_unittest_vareq L_RET 2
-    L_obj_get_vL_RET obj a.b.3
+    L_obj_get_vL_RET obj a b 2
     L_unittest_vareq L_RET 3
-    L_obj_get_vL_RET obj a.c
+    L_obj_get_vL_RET obj a c
     L_unittest_vareq L_RET dead1
-    L_obj_get_vL_RET obj a.d
+    L_obj_get_vL_RET obj a d
     L_unittest_vareq L_RET dead2
-    L_obj_get_vL_RET obj a.f
+    L_obj_get_vL_RET obj a f
     L_unittest_vareq L_RET dead3
-    L_obj_len_vL_RET obj a.b
+    L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 3
     L_obj_len_vL_RET obj a
     L_unittest_vareq L_RET 4
-    L_obj_len_vL_RET obj a.b.1
+    L_obj_len_vL_RET obj a b 1
     L_unittest_vareq L_RET 1
-    L_obj_len_vL_RET obj a.c
+    L_obj_len_vL_RET obj a c
     L_unittest_vareq L_RET 5
     #
-    L_unittest_failure L_obj_len_vL_RET obj a.b.c
+    L_unittest_cmd -r '.*' ! L_obj_len_vL_RET obj a b c
   }
   {
-    L_obj_array_append obj a.b += 4
-    L_obj_len_vL_RET obj a.b
+    L_obj_array_append_value obj a b += 4
+    L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 4
-    L_obj_array_append obj a.b += 5
-    L_obj_len_vL_RET obj a.b
+    L_obj_array_append_value obj a b += 5
+    L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 5
   }
   {
-    L_obj_string_append obj a.f += dead
-    L_obj_get_vL_RET obj a.f
+    L_obj_string_append obj a f += dead
+    L_obj_get_vL_RET obj a f
     L_unittest_vareq L_RET dead3dead
   }
-  L_obj_print obj
-  L_pp -m obj
+  L_obj_print_table obj
+  L_pp obj
 }
 
 _L_test_obj_2() {
   local L_RET
-  local -A obj=()
+  local obj=()
   local stations=(warsaw "krakow.south" gdansk)
   local sensors=(temperature humidity pressure)
   local units=(C % hPa)
   local station base i s tick n
 
-  # build the skeleton: stations.<id>.sensors.<1..3>.{name,unit}
+  # build the skeleton: stations.<station>.sensors.<0..2>.{name,unit}
   for station in "${stations[@]}"; do
-    L_obj_key_join -v base stations "$station"   # escapes the dot in "krakow.south"
-    L_obj_set obj "$base.name" = "$station"
-    L_obj_set_type obj "$base.sensors" = array
+    L_obj_set_value obj stations "$station" name = "$station"
     for i in "${!sensors[@]}"; do
-      L_obj_set obj "$base.sensors.$i.name" = "${sensors[i]}"
-      L_obj_set obj "$base.sensors.$i.unit" = "${units[i]}"
+      L_obj_set_value obj stations "$station" sensors "$i" name = "${sensors[i]}"
+      L_obj_set_value obj stations "$station" sensors "$i" unit = "${units[i]}"
     done
   done
 
   # simulate 5 sampling ticks; the first tick seeds readings.1, the rest append
   for tick in 1 2 3 4 5; do
     for station in "${stations[@]}"; do
-      L_obj_key_join -v base stations "$station"
+      base=(stations "$station")
       for s in 0 1 2; do
-        L_obj_array_append obj "$base.sensors.$s.readings" += "$(( RANDOM % 100 ))"
+        L_obj_array_append_value obj "${base[@]}" sensors "$s" readings += "$(( RANDOM % 100 ))"
       done
     done
-    L_obj_set obj last_update = "$EPOCHSECONDS"
+    L_obj_set_value obj last_update = "$EPOCHSECONDS"
   done
 
+  L_obj_print_table obj
+
     # --- lookups and lengths
-  L_obj_key_join_vL_RET stations krakow.south
-  base=$L_RET
-  L_obj_get_vL_RET obj "$base.name"
+  base=(stations krakow.south)
+  L_obj_get_vL_RET obj "${base[@]}" name
   L_unittest_vareq L_RET krakow.south
-  L_obj_len_vL_RET obj "$base.sensors"
+  L_obj_len_vL_RET obj "${base[@]}" sensors
   L_unittest_vareq L_RET 3
-  L_obj_len_vL_RET obj "$base.sensors.1.readings"
+  L_obj_len_vL_RET obj "${base[@]}" sensors 1 readings
   L_unittest_vareq L_RET 5
-  L_obj_get_vL_RET obj "$base.sensors.2.unit"
+  L_obj_get_vL_RET obj "${base[@]}" sensors 2 unit
   L_unittest_vareq L_RET hPa
 
   # --- iteration 1: by index (arrays), average each sensor of one station
-  L_obj_len_vL_RET obj "$base.sensors"; local nsensors=$L_RET
+  L_obj_len -v nsensors obj "${base[@]}" sensors
   for (( s = 0; s < nsensors; s++ )); do
     local sum=0 name unit
-    L_obj_get_vL_RET obj "$base.sensors.$s.name"; name=$L_RET
-    L_obj_get_vL_RET obj "$base.sensors.$s.unit"; unit=$L_RET
-    L_obj_len_vL_RET obj "$base.sensors.$s.readings"; n=$L_RET
+    L_obj_get -v name obj "${base[@]}" sensors "$s" name
+    L_obj_get -v unit obj "${base[@]}" sensors "$s" unit
+    L_obj_len -v n obj "${base[@]}" sensors "$s" readings
     for (( i = 0; i < n; i++ )); do
-      L_obj_get_vL_RET obj "$base.sensors.$s.readings.$i"
+      L_obj_get -v L_RET obj "${base[@]}" sensors "$s" readings "$i"
       (( sum += L_RET ))
     done
     printf '%s avg=%d%s (n=%d)\n' "$name" $(( sum / n )) "$unit" "$n"
@@ -572,28 +672,146 @@ _L_test_obj_2() {
     END|META) ;;
     esac
   }
-  L_time L_obj_walk_all obj obj_walk_cb
+  L_obj_walk obj obj_walk_cb
 
   # --- iteration 3: flat dump of the raw keys, to see the escaping
-  L_time L_obj_print obj
+  L_obj_print_table obj
 }
 
 _L_test_obj_walk() {
-  local -A obj=()
-  local out k
-  L_obj_set obj .a.b = 1
-  L_obj_set obj .c.d = 2
-  out=$(L_obj_walk_all obj echo)$'\n'
-  L_unittest_vareq out "\
-START . dict
-START .a dict a
-VALUE .a.b integer 1 a b
-END .a dict a
-START .c dict c
-VALUE .c.d integer 2 c d
-END .c dict c
-END . dict
+  local obj out=""
+  L_obj_set_value obj a b = 1
+  L_obj_set_value obj c 0 = str
+  L_obj_set_value obj c 1 = 1.2
+  add_to_out(){
+    local tmp
+    printf -v tmp "%s " "$@"
+    out+=${tmp%% }$'\n'
+  }
+  L_obj_walk obj add_to_out
+  local exp="\
+START MAP
+START MAP a
+VALUE INTEGER 1 a b
+END MAP a
+START ARRAY c
+VALUE STRING str c 0
+VALUE FLOAT 1.2 c 1
+END ARRAY c
+END MAP
 "
+  sdiff - <<<"$out" <(echo "$exp")
+  L_unittest_vareq out "$exp"
+}
+
+_L_test_obj_3() {
+  # obj=()
+  L_obj_set_value obj a b 0 = string
+  L_obj_set_value obj a b 1 = string
+  L_obj_set_value obj a b 2 = string
+
+  L_obj_array_append_value obj a b += string1
+  L_obj_array_append_value obj a b += string2
+  L_obj_array_append_value obj a b += string3
+  L_obj_array_append_value obj a b += string4
+
+  # L_obj_print_table obj
+  L_obj_rm obj a
+  # L_obj_rm obj
+  # L_obj_set_value obj a b 2 string
+  L_obj_set_type obj a b c = MAP
+  L_obj_walk obj echo
+  L_obj_print_table obj
+}
+
+_L_test_obj_rm_add() {
+	local out=""
+	add_to_out() { out+="$*"$'\n'; }
+	_walk() { out=""; L_obj_walk obj add_to_out; }
+	{
+		# add
+		local obj=()
+		L_obj_set_value obj a b = x
+		_walk
+		L_unittest_vareq out "\
+START MAP
+START MAP a
+VALUE STRING x a b
+END MAP a
+END MAP
+"
+	}
+	{
+		# remove leaf, parent stays
+		L_obj_rm obj a b
+		_walk
+		L_unittest_vareq out "\
+START MAP
+START MAP a
+END MAP a
+END MAP
+"
+	}
+	{
+		# re-add after remove
+		L_obj_set_value obj a b = y
+		_walk
+		L_unittest_vareq out "\
+START MAP
+START MAP a
+VALUE STRING y a b
+END MAP a
+END MAP
+"
+	}
+	{
+		# remove subtree
+		L_obj_rm obj a
+		_walk
+		L_unittest_vareq out "\
+START MAP
+END MAP
+"
+	}
+	{
+		# add array after remove
+		L_obj_set_value obj c 0 = s1
+		L_obj_array_append_value obj c += s2
+		_walk
+		L_unittest_vareq out "\
+START MAP
+START ARRAY c
+VALUE STRING s1 c 0
+VALUE STRING s2 c 1
+END ARRAY c
+END MAP
+"
+	}
+	{
+		# remove array, add map at the same key
+		L_obj_rm obj c
+		L_obj_set_type obj c d = MAP
+		_walk
+		L_unittest_vareq out "\
+START MAP
+START MAP c
+START MAP c d
+END MAP c d
+END MAP c
+END MAP
+"
+	}
+	{
+		# remove root content, then add again
+		L_obj_rm obj
+		L_obj_set_value obj k = v
+		_walk
+		L_unittest_vareq out "\
+START MAP
+VALUE STRING v k
+END MAP
+"
+	}
 }
 
 ###############################################################################
@@ -670,13 +888,8 @@ L_ini_read_into_obj() {
   _L_ini_cb() {
     local L_RET
     case "$1" in
-      KV)
-        L_obj_key_join_vL_RET "$2" "$3"
-        L_obj_set _L_dest "$L_RET" = "$4" ;;
-      CONTINUATION)
-        L_obj_key_join_vL_RET "$2" "$3"
-        L_obj_string_append _L_dest "$L_RET" += $'\n'"$4"
-        ;;
+      KV) L_obj_set_value _L_dest "$2" "$3" = "$4" ;;
+      CONTINUATION) L_obj_string_append _L_dest "$2" "$3" += $'\n'"$4" ;;
     esac
   }
   L_ini_read _L_ini_cb
@@ -713,30 +926,32 @@ _L_ini_quote() {
 L_ini_from_obj_vL_RET() {
   local _L_ini_ret="" _L_last_section="" _L_ini_rc=0
   _L_ini_cb() {
-    local line quotedline first=1 L_RET
-    L_obj_key_split_vL_RET "$1"
-    local section=${L_RET[0]} key=${L_RET[1]:-} rest=$2
-    if [[ $section != "$_L_last_section" ]]; then
-      _L_last_section=$section
-      _L_ini_ret+="[$section]"$'\n'
+    #   cb... VALUE <type> <value> <parts...>  type: STRING|INTEGER|FLOAT|BOOL|NULL
+    if [[ "$1" == VALUE ]]; then
+      local line quotedline first=1 L_RET section=$4 key=$5 value=$3
+      L_pp section key rest
+      if [[ $section != "$_L_last_section" ]]; then
+        _L_last_section=$section
+        _L_ini_ret+="[$section]"$'\n'
+      fi
+      while :; do
+        line=${value%%$'\n'*}
+        if ! _L_ini_quote quotedline "$line" "$(( !first ))"; then
+          _L_ini_rc=1
+          return 1
+        fi
+        if (( first )); then
+          _L_ini_ret+="$key =${quotedline:+ $quotedline}"$'\n'
+          first=0
+        else
+          _L_ini_ret+="  $quotedline"$'\n'
+        fi
+        [[ $value == *$'\n'* ]] || break
+        value=${value#*$'\n'}
+      done
     fi
-    while :; do
-      line=${rest%%$'\n'*}
-      if ! _L_ini_quote quotedline "$line" "$(( !first ))"; then
-        _L_ini_rc=1
-        return 1
-      fi
-      if (( first )); then
-        _L_ini_ret+="$key =${quotedline:+ $quotedline}"$'\n'
-        first=0
-      else
-        _L_ini_ret+="  $quotedline"$'\n'
-      fi
-      [[ $rest == *$'\n'* ]] || break
-      rest=${rest#*$'\n'}
-    done
   }
-  L_obj_walk_values "$1" _L_ini_cb || _L_ini_rc=1
+  L_obj_walk "$1" _L_ini_cb || _L_ini_rc=1
   unset -f _L_ini_cb
   L_RET=$_L_ini_ret
   return "$_L_ini_rc"
@@ -775,32 +990,31 @@ EOF
 root1 = hello
 root2 = "quoted ; not a comment"
 root3 = "single ; also not a comment"
+[server]
+host = localhost
+port = 8080
+long = first line
+  second line
+  third line
+[spaced section]
+key = value
+quoted = "with ; semicolon"
+single = "with # hash"
+empty =
+  bare_no_eq
+after = trailing
 [section]
 key = first line
   second line
   third line
-[server]
-host = localhost
-long = first line
-  second line
-  third line
-port = 8080
-[spaced section]
-after = trailing
-empty =
-  bare_no_eq
-key = value
-quoted = "with ; semicolon"
-single = "with # hash"
 EOF
-  declare -A out=()
+  declare out=()
   echo "$var"
   L_ini_read_into_obj out <<<"$var"
-  L_pp -m out
-  L_obj_print out
+  L_obj_print_table out
   L_ini_from_obj_vL_RET out
   if [[ "$L_RET" != "$expected" ]]; then
-    diff <(<<<"$L_RET" cat) - <<<"$expected" || :
+    sdiff <(<<<"$L_RET" cat) - <<<"$expected" || :
     L_unittest_fail "ini obj roundtrip failure"
     exit 1
   fi
@@ -814,7 +1028,7 @@ EOF
 # @arg <str>
 L_json_quote() { L_handle_v_scalar "$@"; }
 L_json_quote_vL_RET() {
-	if [[ $1 == *[$'\"\x01-\x1f\\']* ]]; then
+  if [[ $1 == *[$'\"\\\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f']* ]]; then
 		L_RET=${1//\\/\\\\}
 		L_RET=${L_RET//\"/\\\"}
 		L_RET=${L_RET//$'\b'/\\b}
@@ -1051,11 +1265,15 @@ _L_json_parse_value() {
     [$' \t\r\n']*) _L_json_lstrip; _L_json_parse_value; return ;;
     '"'*)
       _L_json_parse_string || return
-      "$_L_json_cb" VALUE "${_L_string[0]}" string "${_L_string[1]}" || return
+      "$_L_json_cb" VALUE "${_L_string[0]}" STRING "${_L_string[1]}" || return
       ;;
     [-0-9]*)
       if [[ "$_L_json" =~ $_L_float_re ]]; then
-        "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" integer || return
+        if [[ -n ${BASH_REMATCH[2]}${BASH_REMATCH[3]} ]]; then
+          "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" FLOAT || return
+        else
+          "$_L_json_cb" VALUE "${BASH_REMATCH[0]}" INTEGER || return
+        fi
         _L_json=${_L_json:${#BASH_REMATCH[0]}}
       else
         _L_json_err "Invalid number"; return
@@ -1109,9 +1327,9 @@ _L_json_parse_value() {
         _L_json_err "Missing array end ']'"; return
       done
       ;;
-    null*) "$_L_json_cb" VALUE null null || return; _L_json=${_L_json:4} ;;
-    true*) "$_L_json_cb" VALUE true bool || return; _L_json=${_L_json:4} ;;
-    false*) "$_L_json_cb" VALUE false bool || return; _L_json=${_L_json:5} ;;
+    null*) "$_L_json_cb" VALUE null NULL || return; _L_json=${_L_json:4} ;;
+    true*) "$_L_json_cb" VALUE true BOOL || return; _L_json=${_L_json:4} ;;
+    false*) "$_L_json_cb" VALUE false BOOL || return; _L_json=${_L_json:5} ;;
     '') _L_json_err "Unexpected EOF"; return ;;
     *) _L_json_err "Invalid value" || return ;;
   esac
@@ -1133,80 +1351,63 @@ _L_json_parse() {
 
 # Convert a json into an object.
 # @arg <object>
-# @arg <json string>
-L_json_to_obj() {
-  local -n _L_a=$1
-  local _L_json=$2
-  _L_a=()
-  _L_json_to_obj_cb() {
+# @stdin <json string>
+L_json_read_into_obj() {
+  local -n _L_json_obj=$1
+  local _L_json=$(cat)
+  _L_json_into_obj_cb() {
     case "$1" in
-      VALUE)
-        L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
-        L_logrun L_obj_set_type _L_a "$L_RET" = "$3"
-        L_obj_set _L_a "$L_RET" = "$2"
-        ;;
+      VALUE) L_obj_set_type_value _L_json_obj "${_L_JSON_PATH[@]}" = "$3" "$2" ;;
       START)
-        L_obj_key_join_vL_RET "${_L_JSON_PATH[@]}"
         if [[ "$2" == "[" ]]; then
-          L_obj_set_type _L_a "$L_RET" = "array"
+          local _L_type=ARRAY
         else
-          L_obj_set_type _L_a "$L_RET" = "dict"
+          local _L_type=MAP
         fi
+        L_obj_set_type _L_json_obj "${_L_JSON_PATH[@]}" = "$_L_type"
     esac
   }
-  _L_json_parse _L_json_to_obj_cb
+  _L_json_parse _L_json_into_obj_cb
 }
 
 L_obj_to_json() { L_handle_v_scalar "$@"; }
+# callback for L_obj_walk, uses variables of L_obj_to_json
 _L_obj_to_json_cb() {
-  #   cb... START <key> <type> <parts...>
-  #   cb... VALUE <key> <type> <value> <parts...>
-  #   cb... END   <key> <type> <parts...>
-  #   cb... META <key> <value>
-  echo "+ ${FUNCNAME[0]} $@" >&2
-  case $2 in
-    START)
-      if (( ${_L_stack[@]:+1}0 )) && [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
-        L_json_quote_vL_RET "${!#}"  # group name = last part
-        _L_cb_out+="$_L_cb_sep$L_RET:"
-      fi
-      if _L_obj_is_array "$1" "$3"; then
-        _L_cb_out+="["
-      else
-        _L_cb_out+="{"
-      fi
-      _L_stack+=("${_L_cb_out:${#_L_cb_out}-1}")
-      _L_cb_sep=""
-      ;;
-    END)
-      if [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
-        _L_cb_out+="}"
-      else
-        _L_cb_out+="]"
-      fi
-      unset -v "_L_stack[${#_L_stack[@]}-1]"
-      _L_cb_sep=","
-      ;;
-    VALUE)
-      _L_cb_out+="$_L_cb_sep"
-      if (( ${_L_stack[@]:+1}0 )) && [[ "${_L_stack[${#_L_stack[@]}-1]}" == "{" ]]; then
-        L_json_quote_vL_RET "${!#}"  # key name
-        _L_cb_out+="$L_RET:"
-      fi
-      L_obj_get_type_default_vL_RET "$1" "$3" string
-      case "$L_RET" in
-        bool|null|float|integer) L_RET=$5 ;;
-        *) L_json_quote_vL_RET "$5" ;;
-      esac
-      _L_cb_out+="$L_RET"
-      _L_cb_sep=","
-      ;;
-  esac
+	local ev=$1 type=$2 top val
+	shift 2
+	if [[ $ev == VALUE ]]; then
+		val=$1
+		shift
+	fi
+	top=$(( ${#_L_jt[@]} - 1 ))
+	if [[ $ev == END ]]; then
+		unset "_L_jt[$top]" "_L_jf[$top]"
+		[[ $type == MAP ]] && _L_out+='}' || _L_out+=']'
+		return 0
+	fi
+	if (( top >= 0 )); then
+		if (( _L_jf[top] )); then _L_jf[top]=0; else _L_out+=,; fi
+		if [[ ${_L_jt[top]} == MAP ]]; then
+			L_json_quote_vL_RET "${!#}"
+			_L_out+="$L_RET:"
+		fi
+	fi
+	if [[ $ev == START ]]; then
+		_L_jt+=("$type") _L_jf+=(1)
+		[[ $type == MAP ]] && _L_out+='{' || _L_out+='['
+		return 0
+	fi
+	case $type in
+	  STRING) L_json_quote_vL_RET "$val"; _L_out+=$L_RET ;;
+	  INTEGER|FLOAT) _L_out+=$val ;;
+	  BOOL) case $val in true|1) _L_out+=true ;; *) _L_out+=false ;; esac ;;
+	  NULL) _L_out+=null ;;
+	esac
 }
 L_obj_to_json_vL_RET() {
-  local _L_cb_out="" _L_cb_sep="" _L_stack=() _L_type=""
-  L_obj_walk_all "$1" _L_obj_to_json_cb "$1" || return
-  L_RET="$_L_cb_out"
+  local _L_v="" _L_out="" _L_js _L_jt=() _L_jf=() _L_i
+  L_obj_walk "$1" _L_obj_to_json_cb || return
+  L_RET="$_L_out"
 }
 
 L_json_is_valid() {
@@ -1340,7 +1541,7 @@ _L_json_print() {
           *) _L_out+=$indent ;;
         esac
       fi
-      if [[ "$1" == "KEY" || $3 == "string" ]]; then
+      if [[ "$1" == "KEY" || $3 == "STRING" ]]; then
         if (( _L_ascii )); then
           L_json_quote_ascii_vL_RET "$2"
         else
@@ -1351,9 +1552,9 @@ _L_json_print() {
       fi
       if [[ "$1" == KEY ]]; then
         _L_out+=$L_LIGHT_BLUE$L_RET$L_RESET
-      elif [[ "$3" == string ]]; then
+      elif [[ "$3" == STRING ]]; then
         _L_out+=$L_GREEN$L_RET$L_RESET
-      elif [[ "$3" == null ]]; then
+      elif [[ "$3" == NULL ]]; then
         _L_out+=$L_DARK_GRAY$L_RET$L_RESET
       else
         _L_out+=$L_RET
@@ -1663,10 +1864,13 @@ null
 {"a b":1,"c\td":2}
 EOF
   for json in "${jsons[@]}"; do
-    declare -A dest=()
-    L_json_to_obj dest "$json"
-    L_pp -m dest
-    L_obj_to_json -v back dest
+    echo
+    echo "====== $json ======="
+    declare obj=()
+    L_json_read_into_obj obj <<<"$json"
+    # L_pp -m obj
+    L_obj_print_table obj
+    L_obj_to_json -v back obj
     echo "$back"
     local a b
     a=$(jq -caS <<<"$json")
@@ -1677,6 +1881,373 @@ EOF
 
 ###############################################################################
 
+# Events (same protocol as L_obj_walk, parts are full paths from the root):
+#   VALUE <type> <value> <parts...>   type: STRING|INTEGER|FLOAT|BOOL|DATETIME|DATE|TIME
+#   START <MAP|ARRAY> <parts...>      inline table / array
+#   END   <MAP|ARRAY> <parts...>
+#   TABLE MAP <parts...>              [a.b] header, also emitted for each [[a.b]] element (last part is the index)
+#   TABLE ARRAY <parts...>            emitted once, before the first [[a.b]] element
+# A nonzero callback return aborts the parse and is returned.
+
+_L_toml_bare_re='^[A-Za-z0-9_-]+'
+_L_toml_bstr_re=$'^"(([^"\\\\\x01-\x08\x0a-\x1f\x7f]|\\\\[btnfre"\\\\]|\\\\u[0-9a-fA-F]{4}|\\\\U[0-9a-fA-F]{8})*)"'
+_L_toml_lstr_re=$'^\'([^\'\x01-\x08\x0a-\x1f\x7f]*)\''
+_L_toml_dt_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}([Tt ][0-9]{2}:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?([Zz]|[+-][0-9]{2}:[0-9]{2})?)?'
+_L_toml_time_re='^[0-9]{2}:[0-9]{2}(:[0-9]{2}([.][0-9]+)?)?'
+_L_toml_radix_re='^0(x[0-9a-fA-F]+(_[0-9a-fA-F]+)*|o[0-7]+(_[0-7]+)*|b[01]+(_[01]+)*)'
+_L_toml_num_re='^[+-]?(0|[1-9][0-9]*(_[0-9]+)*)([.][0-9]+(_[0-9]+)*)?([eE][+-]?[0-9]+(_[0-9]+)*)?'
+
+_L_toml_err() {
+	local tmp
+	printf -v tmp "%q" "${_L_toml::64}"
+	L_func_error "$1 pos=$(( _L_toml_len - ${#_L_toml} )) at: \`$tmp'" "$(( ${#FUNCNAME[*]} - _L_toml_errdepth + 1 ))"
+	return "$L_EX_DATAERR"
+}
+
+# spaces and tabs
+_L_toml_ws() {
+	_L_toml=${_L_toml#"${_L_toml%%[!$' \t']*}"}
+}
+
+# whitespace, newlines and comments
+_L_toml_skip() {
+	while :; do
+		_L_toml=${_L_toml#"${_L_toml%%[!$' \t\r\n']*}"}
+		[[ $_L_toml == '#'* ]] || break
+		if [[ $_L_toml == *$'\n'* ]]; then _L_toml=${_L_toml#*$'\n'}; else _L_toml=; fi
+	done
+}
+
+# rest of the line: optional comment, then newline or EOF
+_L_toml_eol() {
+	_L_toml_ws
+	if [[ $_L_toml == '#'* ]]; then
+		if [[ $_L_toml == *$'\n'* ]]; then _L_toml=$'\n'${_L_toml#*$'\n'}; else _L_toml=; fi
+	fi
+	case $_L_toml in
+	  '') ;;
+	  $'\r\n'*) _L_toml=${_L_toml:2} ;;
+	  $'\n'*) _L_toml=${_L_toml:1} ;;
+	  *) _L_toml_err "Expected end of line"; return ;;
+	esac
+}
+
+# $1 = raw content of a basic string -> L_RET
+_L_toml_unescape_vL_RET() {
+	local s=$1 out= c h n
+	while [[ $s == *\\* ]]; do
+		out+=${s%%\\*}
+		s=${s#*\\}
+		c=${s::1}
+		case $c in
+		b) out+=$'\b'; s=${s:1} ;;
+		t) out+=$'\t'; s=${s:1} ;;
+		n) out+=$'\n'; s=${s:1} ;;
+		f) out+=$'\f'; s=${s:1} ;;
+		r) out+=$'\r'; s=${s:1} ;;
+		e) out+=$'\e'; s=${s:1} ;;
+		'"') out+='"'; s=${s:1} ;;
+		\\) out+='\'; s=${s:1} ;;
+		u|U)
+			if [[ $c == u ]]; then n=4; else n=8; fi
+			h=${s:1:n}
+			if [[ ${#h} -ne n || $h == *[!0-9a-fA-F]* ]] ||
+				(( 16#$h >= 0xD800 && 16#$h <= 0xDFFF || 16#$h > 0x10FFFF )); then
+				_L_toml_err "Invalid unicode escape"; return
+			fi
+			printf -v h '%08x' "$((16#$h))"
+			printf -v c "\\U$h"
+			out+=$c
+			s=${s:1+n}
+			;;
+		' '|$'\t'|$'\r'|$'\n')   # line ending backslash: trim whitespace and newlines
+			s=${s#"${s%%[!$' \t\r\n']*}"}
+			;;
+		*) _L_toml_err "Invalid escape"; return ;;
+		esac
+	done
+	L_RET=$out$s
+}
+
+# single line "..." or '...' -> L_RET
+_L_toml_parse_sstring() {
+	local _L_m _L_raw
+	case $_L_toml in
+	'"'*)
+		[[ $_L_toml =~ $_L_toml_bstr_re ]] || { _L_toml_err "Invalid string"; return; }
+		_L_m=${BASH_REMATCH[0]} _L_raw=${BASH_REMATCH[1]}
+		_L_toml=${_L_toml:${#_L_m}}
+		_L_toml_unescape_vL_RET "$_L_raw"
+		;;
+	*)
+		[[ $_L_toml =~ $_L_toml_lstr_re ]] || { _L_toml_err "Invalid string"; return; }
+		L_RET=${BASH_REMATCH[1]}
+		_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
+		;;
+	esac
+}
+
+# any string -> L_RET
+_L_toml_parse_string() {
+	local _L_m _L_raw _L_rest
+	case $_L_toml in
+	'"""'*)
+		_L_rest=${_L_toml:3}
+		case $_L_rest in $'\r\n'*) _L_rest=${_L_rest:2} ;; $'\n'*) _L_rest=${_L_rest:1} ;; esac
+		_L_raw=
+		while :; do
+			case $_L_rest in
+			'"""'*)
+				_L_rest=${_L_rest:3}
+				if [[ $_L_rest == '"'* ]]; then
+					_L_raw+='"'; _L_rest=${_L_rest:1}
+					if [[ $_L_rest == '"'* ]]; then _L_raw+='"'; _L_rest=${_L_rest:1}; fi
+				fi
+				break ;;
+			\\?*) _L_raw+=${_L_rest::2}; _L_rest=${_L_rest:2} ;;
+			'') _L_toml_err "Unterminated multi-line string"; return ;;
+			*)
+				_L_m=${_L_rest%%[\"\\]*}
+				if [[ -z $_L_m ]]; then _L_m=${_L_rest::1}; fi
+				_L_raw+=$_L_m; _L_rest=${_L_rest:${#_L_m}}
+				;;
+			esac
+		done
+		_L_toml=$_L_rest
+		_L_toml_unescape_vL_RET "$_L_raw"
+		;;
+	"'''"*)
+		_L_rest=${_L_toml:3}
+		case $_L_rest in $'\r\n'*) _L_rest=${_L_rest:2} ;; $'\n'*) _L_rest=${_L_rest:1} ;; esac
+		if [[ $_L_rest != *"'''"* ]]; then _L_toml_err "Unterminated multi-line string"; return; fi
+		L_RET=${_L_rest%%"'''"*}
+		_L_rest=${_L_rest#*"'''"}
+		if [[ $_L_rest == "'"* ]]; then
+			L_RET+="'"; _L_rest=${_L_rest:1}
+			if [[ $_L_rest == "'"* ]]; then L_RET+="'"; _L_rest=${_L_rest:1}; fi
+		fi
+		_L_toml=$_L_rest
+		;;
+	*) _L_toml_parse_sstring ;;
+	esac
+}
+
+# a.b."c d".e -> _L_keys
+_L_toml_parse_key() {
+	_L_keys=()
+	while :; do
+		_L_toml_ws
+		case $_L_toml in
+		'"'*|"'"*) _L_toml_parse_sstring || return; _L_keys+=("$L_RET") ;;
+		*)
+			if [[ $_L_toml =~ $_L_toml_bare_re ]]; then
+				_L_keys+=("${BASH_REMATCH[0]}")
+				_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
+			else
+				_L_toml_err "Expected key"; return
+			fi
+			;;
+		esac
+		_L_toml_ws
+		[[ $_L_toml == .* ]] || break
+		_L_toml=${_L_toml:1}
+	done
+}
+
+# $@ = parts
+_L_toml_parse_number() {
+	local _L_m _L_v _L_t
+	if [[ $_L_toml =~ $_L_toml_dt_re ]]; then
+		_L_m=${BASH_REMATCH[0]}
+		if [[ -n ${BASH_REMATCH[1]} ]]; then _L_t=DATETIME; else _L_t=DATE; fi
+		_L_toml=${_L_toml:${#_L_m}}
+		"$_L_toml_cb" VALUE "$_L_t" "$_L_m" "$@"
+	elif [[ $_L_toml =~ $_L_toml_time_re ]]; then
+		_L_m=${BASH_REMATCH[0]}
+		_L_toml=${_L_toml:${#_L_m}}
+		"$_L_toml_cb" VALUE TIME "$_L_m" "$@"
+	elif [[ $_L_toml =~ $_L_toml_radix_re ]]; then
+		_L_m=${BASH_REMATCH[0]}
+		_L_toml=${_L_toml:${#_L_m}}
+		_L_v=${_L_m//_/}
+		case ${_L_v:1:1} in
+		x) _L_v=$((16#${_L_v:2})) ;;
+		o) _L_v=$((8#${_L_v:2})) ;;
+		b) _L_v=$((2#${_L_v:2})) ;;
+		esac
+		"$_L_toml_cb" VALUE INTEGER "$_L_v" "$@"
+	elif [[ $_L_toml =~ ^[+-]?(inf|nan) ]]; then
+		_L_m=${BASH_REMATCH[0]}
+		_L_toml=${_L_toml:${#_L_m}}
+		"$_L_toml_cb" VALUE FLOAT "$_L_m" "$@"
+	elif [[ $_L_toml =~ $_L_toml_num_re ]]; then
+		_L_m=${BASH_REMATCH[0]}
+		if [[ -n ${BASH_REMATCH[3]}${BASH_REMATCH[5]} ]]; then _L_t=FLOAT; else _L_t=INTEGER; fi
+		_L_toml=${_L_toml:${#_L_m}}
+		_L_v=${_L_m//_/}
+		"$_L_toml_cb" VALUE "$_L_t" "${_L_v#+}" "$@"
+	else
+		_L_toml_err "Invalid number"
+	fi
+}
+
+# $@ = parts
+_L_toml_parse_value() {
+	local _L_i=0
+	case $_L_toml in
+	'"'*|"'"*)
+		_L_toml_parse_string || return
+		"$_L_toml_cb" VALUE STRING "$L_RET" "$@"
+		;;
+	true*)  _L_toml=${_L_toml:4}; "$_L_toml_cb" VALUE BOOL true "$@" ;;
+	false*) _L_toml=${_L_toml:5}; "$_L_toml_cb" VALUE BOOL false "$@" ;;
+	'['*)
+		"$_L_toml_cb" START ARRAY "$@" || return
+		_L_toml=${_L_toml:1}
+		while :; do
+			_L_toml_skip
+			case $_L_toml in
+			']'*) break ;;
+			'') _L_toml_err "Unexpected EOF"; return ;;
+			esac
+			_L_toml_parse_value "$@" "$((_L_i++))" || return
+			_L_toml_skip
+			case $_L_toml in
+			,*) _L_toml=${_L_toml:1} ;;
+			']'*) break ;;
+			'') _L_toml_err "Unexpected EOF"; return ;;
+			*) _L_toml_err "Expected ',' or ']'"; return ;;
+			esac
+		done
+		_L_toml=${_L_toml:1}
+		"$_L_toml_cb" END ARRAY "$@"
+		;;
+	'{'*)
+		"$_L_toml_cb" START MAP "$@" || return
+		_L_toml=${_L_toml:1}
+		_L_toml_ws
+		if [[ $_L_toml == '}'* ]]; then
+			_L_toml=${_L_toml:1}
+		else
+			while :; do
+				_L_toml_parse_key || return
+				_L_toml_ws
+				if [[ $_L_toml != =* ]]; then _L_toml_err "Missing '='"; return; fi
+				_L_toml=${_L_toml:1}
+				_L_toml_ws
+				_L_toml_parse_value "$@" "${_L_keys[@]}" || return
+				_L_toml_ws
+				case $_L_toml in
+				,*) _L_toml=${_L_toml:1}; _L_toml_ws ;;
+				'}'*) _L_toml=${_L_toml:1}; break ;;
+				'') _L_toml_err "Unexpected EOF"; return ;;
+				*) _L_toml_err "Expected ',' or '}'"; return ;;
+				esac
+			done
+		fi
+		"$_L_toml_cb" END MAP "$@"
+		;;
+	[0-9+-]*|inf*|nan*) _L_toml_parse_number "$@" ;;
+	'') _L_toml_err "Unexpected EOF" ;;
+	*) _L_toml_err "Invalid value" ;;
+	esac
+}
+
+_L_toml_parse_keyval() {
+	_L_toml_parse_key || return
+	_L_toml_ws
+	if [[ $_L_toml != =* ]]; then _L_toml_err "Missing '='"; return; fi
+	_L_toml=${_L_toml:1}
+	_L_toml_ws
+	_L_toml_parse_value "${_L_toml_table[@]}" "${_L_keys[@]}"
+}
+
+# [a.b] or [[a.b]] -> sets _L_toml_table
+_L_toml_parse_header() {
+	local _L_isarr=0 _L_i _L_n _L_k
+	if [[ $_L_toml == '[['* ]]; then _L_isarr=1; _L_toml=${_L_toml:2}; else _L_toml=${_L_toml:1}; fi
+	_L_toml_parse_key || return
+	_L_toml_ws
+	if (( _L_isarr )); then
+		[[ $_L_toml == ']]'* ]] || { _L_toml_err "Expected ']]'"; return; }
+		_L_toml=${_L_toml:2}
+	else
+		[[ $_L_toml == ']'* ]] || { _L_toml_err "Expected ']'"; return; }
+		_L_toml=${_L_toml:1}
+	fi
+	# resolve: insert the current element index after every parent that is an array of tables
+	_L_toml_table=()
+	_L_n=${#_L_keys[@]}
+	for (( _L_i = 0; _L_i < _L_n; _L_i++ )); do
+		_L_toml_table+=("${_L_keys[_L_i]}")
+		if (( _L_i < _L_n - 1 )); then
+			printf -v _L_k '%s\x1f' "${_L_toml_table[@]}"
+			if [[ -n ${_L_toml_aot[$_L_k]+y} ]]; then
+				_L_toml_table+=("$(( ${_L_toml_aot[$_L_k]} - 1 ))")
+			fi
+		fi
+	done
+	printf -v _L_k '%s\x1f' "${_L_toml_table[@]}"
+	if (( _L_isarr )); then
+		_L_n=${_L_toml_aot[$_L_k]:-0}
+		_L_toml_aot[$_L_k]=$(( _L_n + 1 ))
+		(( _L_n )) || "$_L_toml_cb" TABLE ARRAY "${_L_toml_table[@]}" || return
+		_L_toml_table+=("$_L_n")
+	else
+		if [[ -n ${_L_toml_def[$_L_k]+y} ]]; then _L_toml_err "Duplicate table"; return; fi
+		_L_toml_def[$_L_k]=1
+	fi
+	"$_L_toml_cb" TABLE MAP "${_L_toml_table[@]}"
+}
+
+_L_toml_parse() {
+	local _L_toml_len=${#_L_toml} _L_toml_cb=$1 _L_toml_errdepth=${#FUNCNAME[*]}
+	local _L_toml_table=() _L_keys=()
+	local -A _L_toml_aot=() _L_toml_def=()
+	while :; do
+		_L_toml_skip
+		case $_L_toml in
+		'') break ;;
+		'['*) _L_toml_parse_header || return ;;
+		*) _L_toml_parse_keyval || return ;;
+		esac
+		_L_toml_eol || return
+	done
+}
+
+# @description Parse TOML, call callback for every event.
+# @arg $1 callback
+# @arg $2 toml string
+L_toml_read() {
+	local _L_toml=$(cat)
+	_L_toml_parse "$1"
+}
+
+###############################################################################
+
+_L_test_toml() {
+	local out=""
+	add_to_out() { out+="$*"$'\n'; }
+	L_toml_read add_to_out <<<$'a = 1\n[t]\nb = "x"\n[[arr]]\nc = [1, 2]\n'
+	L_unittest_vareq out "\
+VALUE INTEGER 1 a
+TABLE MAP t
+VALUE STRING x t b
+TABLE ARRAY arr
+TABLE MAP arr 0
+START ARRAY arr 0 c
+VALUE INTEGER 1 arr 0 c 0
+VALUE INTEGER 2 arr 0 c 1
+END ARRAY arr 0 c
+"
+}
+
+###############################################################################
+
 if L_is_main; then
-  L_unittest_main -p _L_test_ "$@"
+  if [[ "$1" == eval ]]; then
+    "$@"
+  else
+    L_unittest_main -p _L_test_ "$@"
+  fi
 fi
