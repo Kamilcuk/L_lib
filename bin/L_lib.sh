@@ -4415,8 +4415,8 @@ _L_pretty_print_declare() {
 			# Dense normal array
 			eval "_L_pp_len=\"\${#$1[@]}\""
 			for (( _L_pp_i = 0; _L_pp_i < _L_pp_len; _L_pp_i++ )); do
-				printf -v _L_pp_v "%q" "${!_L_pp_ref}"
-				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_ref}"
+				_L_pretty_print_output_array "$L_RET" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
 		else
@@ -4426,8 +4426,10 @@ _L_pretty_print_declare() {
 				L_sort -z _L_pp_keys
 			fi
 			for _L_pp_i in "${_L_pp_keys[@]}"; do
-				printf -v _L_pp_v "[%q]=%q" "$_L_pp_i" "${!_L_pp_ref}"
-				_L_pretty_print_output_array "$_L_pp_v" "$_L_pp_nonfirst_sep"
+				"$_L_pp_quote_vL_RET" "$_L_pp_i"
+				_L_pp_v="$L_RET"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_ref}"
+				_L_pretty_print_output_array "[$_L_pp_v]=$L_RET" "$_L_pp_nonfirst_sep"
 				_L_pp_nonfirst_sep=" "
 			done
 		fi
@@ -4435,13 +4437,16 @@ _L_pretty_print_declare() {
 	elif [[ "$_L_pp_declare_opts" == -*n* ]]; then
 		# Namereference
 		local _L_pp_nameref=${_L_pp_declare##*=}
-		_L_pp_nameref=${_L_pp_nameref//'"'}
-		printf -v _L_pp_v "%s->%s${!1+=%q}" "$1" "$_L_pp_nameref" ${!1+"${!1}"}
+		_L_pp_v="$1->${_L_pp_nameref//\"}"
+		if L_var_is_set "$1"; then
+			"$_L_pp_quote_vL_RET" "${!1}"
+			_L_pp_v+=$L_RET
+		fi
 		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
 	else
 		# Scalar
-		printf -v _L_pp_v "%s=%q" "$1" "${!1:-}"
-		_L_pretty_print_output "${_L_flags}${_L_pp_v}"
+		"$_L_pp_quote_vL_RET" "${!1:-}"
+		_L_pretty_print_output "${_L_flags}$1=$L_RET"
 	fi
 }
 
@@ -4463,8 +4468,8 @@ _L_pretty_print_output_array_of_structures() {
 		for _L_pp_var in "${_L_pp_vars[@]}"; do
 			_L_pp_i="$_L_pp_var[_L_pp_key]"
 			if L_var_is_set "$_L_pp_i"; then
-				printf -v _L_pp_i "%s=%q" "${_L_pp_var#"$_L_pp_varprefix"}" "${!_L_pp_i}"
-				_L_pretty_print_output_array "$_L_pp_i" "$_L_pp_val_indent"
+				"$_L_pp_quote_vL_RET" "${!_L_pp_i}"
+				_L_pretty_print_output_array "${_L_pp_var#"$_L_pp_varprefix"}=$L_RET" "$_L_pp_val_indent"
 				_L_pp_val_indent=" "
 			fi
 		done
@@ -4486,6 +4491,7 @@ _L_pretty_print_output_array_of_structures() {
 # @option -c Make the output compact. The default.
 # @option -m Multiline output. Invert of -c.
 # @option -C Alias for -m.
+# @option -Q Use different quoting style.
 # @option -h Print this help and return 0.
 # @arg <expr...> Expressions to pretty print.
 # @example
@@ -4501,14 +4507,21 @@ L_pretty_print() {
 	local OPTIND OPTARG OPTERR \
 		_L_pp_prefix="" _L_pp_var="" _L_pp_oneline=1 _L_pp_width=${COLUMNS:-80} \
 		_L_pp_i _L_pp_declare _L_pp_len _L_pp_v _L_pp_keys _L_pp_k _L_pp_out="" \
-		_L_pp_line_len=0 _L_pp_ref _L_pp_vars _L_pp_out_sep=" "
-	while getopts p:v:w:cmCh _L_pp_i; do
+		_L_pp_line_len=0 _L_pp_ref _L_pp_vars _L_pp_out_sep=" " _L_pp_quote_vL_RET="L_quote_printf_vL_RET"
+	while getopts p:v:w:cmCQh _L_pp_i; do
 		case $_L_pp_i in
 			p) _L_pp_prefix=$OPTARG ;;
 			v) _L_pp_var=$OPTARG ;;
 			w) _L_pp_width=$OPTARG ;;
 			c) _L_pp_oneline=1 ;;
 			m|C) _L_pp_oneline=0 ;;
+			Q)
+				if [[ "$_L_pp_quote_vL_RET" == "L_quote_printf_vL_RET" ]]; then
+					_L_pp_quote_vL_RET=L_quote_setx_vL_RET
+				else
+					_L_pp_quote_vL_RET=L_quote_bin_printf_vL_RET
+				fi
+				;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -4553,8 +4566,8 @@ L_pretty_print() {
 		elif L_is_valid_variable_or_array_element "$1" && ( L_var_is_set "$1" ) 2>/dev/null; then
 			# Array reference, arr[index]. Everything else was matched above.
 			# Is subshell above the best I can do? The ${!1} indirect expansion terminates the shell if invalid under -e.
-			printf -v _L_pp_v "$1=%q" "${!1}"
-			_L_pretty_print_output "$_L_pp_v"
+			"$_L_pp_quote_vL_RET" "${!1}"
+			_L_pretty_print_output "$1=$L_RET"
 		else
 			# Literal string arg (not a variable name)
 			_L_pretty_print_output "$1"
