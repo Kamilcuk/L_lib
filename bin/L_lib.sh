@@ -2275,8 +2275,8 @@ L_init_COLUMNS() {
 L_time() {
 	local _L_time_cmd _L_time_sav=${TIMEFORMAT:-$'\nreal\t%3lR\nuser\t%3lU\nsys\t%3lS'}
 	L_quote_printf -v _L_time_cmd "$@"
-	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [$_L_time_cmd]"
-	time TIMEFORMAT="$_L_time_sav" "$@"
+	local TIMEFORMAT="real=%6lR user=%6lU system=%6lS [${_L_time_cmd//%/%%}]"
+	time TIMEFORMAT="${_L_time_sav//\\/\\\\}" "$@"
 }
 
 # @description Parse 1y2w3d4h5m6s7ms8us or 1y2w3d4h5m6.789s or 1.234 into number of microseconds.
