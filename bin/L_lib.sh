@@ -4218,6 +4218,7 @@ L_min_vL_RET() {
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
 # @option -X Ignore color escape sequences when calculting column width.
+# @optino -t Ignored
 # @option -h Print this help and return 0.
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
@@ -4226,65 +4227,49 @@ L_min_vL_RET() {
 #         a     b c
 #         d     e f
 L_table() {
-	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i _L_s=$' \t' _L_v="" _L_arr=() _L_tmp="" _L_column=0 _L_columns=0 _L_rows=0 _L_row=0 _L_widths=() _L_o=" " _L_R="" _L_last _L_X=0 L_RET _L_len
-	while getopts v:s:o:R:Xh _L_i; do
+	local OPTIND OPTARG OPTERR IFS=$'\n ' _L_i IFS=$'\n' _L_s=$' \t' _L_v="" _L_tmp _L_column \
+		_L_columns=0 _L_W=() _L_o=" " _L_R="" _L_X="" L_RET _L_len \
+		_L_fmts=('') _L_line _L_offset=0 _L_fmt_prefix="" _L_args=() _L_fmt=""
+	while getopts v:s:o:R:Xth _L_i; do
 		case $_L_i in
-		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" ;;
+		v) _L_v=$OPTARG; printf -v "$_L_v" "%s" "" || return ;;
 		s) _L_s=$OPTARG ;;
-		o) _L_o=$OPTARG ;;
+		o) _L_o=${OPTARG//%/%%}; _L_o=${_L_o//\\/\\\\} ;; # Escape sequences in output separator for printf.
 		R) _L_R=$OPTARG ;;
 		X) _L_X=1 ;;
+		t) ;;
 		h) L_func_help; return 0 ;;
 		*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	# Fill the array, find number of columns and rows.
-	while IFS="$_L_s" read -r -a _L_tmp; do
-		for _L_column in "${!_L_tmp[@]}"; do
-			_L_arr[999999 * _L_rows + _L_column]=${_L_tmp[_L_column]}
+	# Find number and max widths of columns and store in _L_W.
+	# _L_W has short name, for Bash to be fast. This format string potentially might be long.
+	while IFS="$_L_s" read -r -a _L_line; do
+		# Store all arguments in _L_args.
+		_L_args+=(${_L_line[@]+"${_L_line[@]}"})
+		for _L_column in "${!_L_line[@]}"; do
 			if (( _L_X )); then
-				L_strip_ansi_vL_RET "${_L_tmp[_L_column]}"
-				_L_len=${#L_RET}
+				L_strip_ansi_vL_RET "${_L_line[_L_column]}"
+				# The printf width has to be adjusted for the number of ascii escape sequences.
+				_L_len=${#L_RET} _L_fmt_width="($(( ${#_L_line[_L_column]} - _L_len ))+_L_W[$_L_column])"
 			else
-				_L_len=${#_L_tmp[_L_column]}
+				_L_len=${#_L_line[_L_column]} _L_fmt_width="_L_W[$_L_column]"
 			fi
-			(( _L_widths[_L_column] < _L_len ? _L_widths[_L_column] = _L_len : 0, 1 ))
+			# Build printf format string for all arguments.
+    	if (( _L_W[_L_column] < _L_len && ( _L_W[_L_column] = _L_len ), _L_column < ${#_L_line[@]} - 1 )); then
+        _L_fmt+="%\$((\${_L_R[$((_L_column+1))]+- }-$_L_fmt_width))s\$_L_o"
+    	else
+        _L_fmt+="%\${_L_R[$((_L_column+1))]+\$(($_L_fmt_width))}s"
+    	fi
 		done
-		(( _L_columns < _L_column + 1 ? _L_columns = _L_column + 1 : 0, ++_L_rows ))
+		(( _L_columns < _L_column + 1 ? (_L_columns = _L_column + 1) : 1 ))
+    _L_fmt+='\\n'
 	done <<<"$*"
-	#
-	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R"
-	#
-	for ((_L_row = 0; _L_row < _L_rows; _L_row++)); do
-		if L_var_is_set "_L_arr[999999 * _L_row + 0]"; then
-			for ((_L_column = 0; _L_column < _L_columns; _L_column++)); do
-				_L_tmp=${_L_arr[999999 * _L_row + _L_column]:-}
-				L_exit_into _L_last L_var_is_set "_L_arr[999999 * _L_row + _L_column + 1]"
-				if L_var_is_set "_L_R[_L_column+1]"; then
-					L_printf_append "$_L_v" "%*s" "${_L_widths[_L_column]}" "$_L_tmp"
-				else
-					if ((_L_last)); then
-						L_printf_append "$_L_v" "%s" "$_L_tmp"
-					else
-						_L_len="${_L_widths[_L_column]:-0}"
-						if (( _L_X )); then
-							L_strip_ansi_vL_RET "${_L_tmp}"
-							(( _L_len += ${#_L_tmp} - ${#L_RET} ))
-						fi
-						L_printf_append "$_L_v" "%-*s" "$_L_len" "$_L_tmp"
-					fi
-				fi
-				if ((_L_last)); then
-					break
-				fi
-				if ((_L_column < _L_columns)); then
-					L_printf_append "$_L_v" "%s" "$_L_o"
-				fi
-			done
-		fi
-		L_printf_append "$_L_v" "\n"
-	done
+	# Parse the -R argument. Must be after knowing the number of columns.
+	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R" || return
+	# Call a single printf with all the arguments.
+	eval "printf ${_L_v:+-v\"\$_L_v\"} $_L_fmt \"\${_L_args[@]}\""
 }
 
 # @description Parse cut range list into an array.
