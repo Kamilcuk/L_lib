@@ -3381,6 +3381,7 @@ humans_name=(Carl Susan [5]=Mike) humans_age=(15 30 40); L_pp 'humans_**'
 - **`-c`** Make the output compact. The default.
 - **`-m`** Multiline output. Invert of -c.
 - **`-C`** Alias for -m.
+- **`-Q`** Use different quoting style.
 - **`-h`** Print this help and return 0.
 
 **Argument:** **`<expr...>`** Expressions to pretty print.
