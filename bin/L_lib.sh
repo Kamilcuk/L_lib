@@ -842,7 +842,7 @@ L_func_help() { L_func_doc -s 1 "$@" help; }
 # @see L_func_help for example
 L_func_error() {
 	if [[ -n "${1:-}" ]]; then
-		echo "$0: ${FUNCNAME[1+${2:-0}]}: error: $1" >&2
+		echo "$0: ${FUNCNAME[1+${2:-0}]:-}:${BASH_LINENO[1+${2:-0}]}: error: $1" >&2
 	fi
 }
 
