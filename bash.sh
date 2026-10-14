@@ -48,7 +48,7 @@ docker_run() {
   local version=$1
   if (( opt_jq )); then
     echo "/-- dockerfile-tester:$version"
-    local image=$($docker build --target tester -q .)
+    local image=$(set -x; $docker build --build-arg "VERSION=$version" --target tester -q .)
   else
     echo "/-- bash:$version"
     local image=docker.io/library/bash:$version
