@@ -46,6 +46,10 @@ nav:
     - xargs: section/xargs.md
     - argparse: section/argparse.md
     - proc: section/proc.md
+    - obj: section/obj.md
+    - json: section/json.md
+    - ini: section/ini.md
+    - toml: section/toml.md
     - lib: section/lib.md
   - all: section/all.md
   - Miscellaneous:
