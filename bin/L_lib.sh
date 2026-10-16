@@ -738,6 +738,9 @@ L_func_doc() {
 						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"$_L_j"
 						;;
 					*)    # continuation line
+						if (( !${_L_help_map[@]:+1}0 )); then
+							_L_help_map+=("description" "")
+						fi
 						_L_help_map[${#_L_help_map[@]}-1]+=$'\n'"${BASH_REMATCH[11]}" ;;
 				esac
 				_L_last="${_L_help_map[${#_L_help_map[@]}-2]}"
