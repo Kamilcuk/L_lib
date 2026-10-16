@@ -1277,6 +1277,57 @@ L_handle_v_array() {
 	esac
 }
 
+# @description Version of L_handle_v_scalar for associative arrays.
+# @see L_handle_v_scalar.
+# shellcheck disable=SC2317
+L_handle_v_asa() {
+	case "${1:-}" in
+		-vL_ARET)
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
+			else
+				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
+			fi
+			;;
+		-v?*)
+			local -n L_ARET="${1##-v}" || return "$L_EX_USAGE"
+			if [[ "${2:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
+			else
+				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
+			fi
+			;;
+		-v)
+			if [[ "$2" != L_ARET ]]; then
+				local -n L_ARET="$2" || return "$L_EX_USAGE"
+			fi
+			if [[ "${3:-}" == -- ]]; then
+				"${FUNCNAME[1]}"_vL_ARET "${@:4}"
+			else
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
+			fi
+			;;
+		--)
+			local -A L_ARET
+			local _L_handle_v_i _L_r=0
+			"${FUNCNAME[1]}"_vL_ARET "${@:2}" || _L_r=$?
+			for _L_handle_v_i in "${!L_ARET[@]}"; do
+				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
+			done
+			return "$_L_r"
+			;;
+		-h) L_func_help 1; return 0 ;;
+		*)
+			local -A L_ARET
+			local _L_handle_v_i _L_r=0
+			"${FUNCNAME[1]}"_vL_ARET "$@" || _L_r=$?
+			for _L_handle_v_i in "${!L_ARET[@]}"; do
+				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
+			done
+			return "$_L_r"
+	esac
+}
+
 else  # L_HAS_NAMEREF
 
 	L_handle_v_scalar() {
@@ -2848,13 +2899,21 @@ L_is_integer() { [[ -n ${1#[+-]} && ${1#[+-]} != *[^0-9]* ]]; }
 # L_is_integer() { [[ $1 != *[^0-9]* || ( ${#1} -gt 1 && ${1:0:1} == [-+] && ${1:1} != *[^0-9]* ) ]]; }
 # L_is_integer() { [[ $1 == ?([+-])+([0-9]) ]]; }
 
-# @description Return 0 if the string characters is a float
+# @description Return 0 if the string characters is a float [+-][0-9]*.[0-9]*
 # @arg $1 string to check
 L_is_float() {
 	local val="${1#[+-]}"
 	[[ ( $val == *.* && ${val%%.*} != *[^0-9]* && ${val#*.} != *[^0-9]* && ( -n ${val%%.*} || -n ${val#*.} ) ) || ( $val != *.* && -n $val && $val != *[^0-9]* ) ]]
 }
 # L_is_float() { [[ "$*" == ?([+-])@(+([0-9])?(.)|*([0-9]).+([0-9])) ]]; }
+
+# Return 0 if the string is an integer. No leading +-.
+# @arg $1 string
+L_is_natural_integer() {
+	case "$1" in
+		''|*[!0-9]*|0?*) return 1 ;;
+	esac
+}
 
 # @description newline
 L_NL=$'\n'
