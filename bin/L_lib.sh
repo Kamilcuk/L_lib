@@ -4277,7 +4277,7 @@ L_min_vL_RET() {
 # @option -o <str> Output separator to use
 # @option -R <list[int]> Right align columns with these indexes
 # @option -X Ignore color escape sequences when calculting column width.
-# @optino -t Ignored
+# @option -t Ignored
 # @option -h Print this help and return 0.
 # @arg $@ Lines to print, joined and separated by newline.
 # @example
@@ -4316,14 +4316,14 @@ L_table() {
 				_L_len=${#_L_line[_L_column]} _L_fmt_width="_L_W[$_L_column]"
 			fi
 			# Build printf format string for all arguments.
-    	if (( _L_W[_L_column] < _L_len && ( _L_W[_L_column] = _L_len ), _L_column < ${#_L_line[@]} - 1 )); then
-        _L_fmt+="%\$((\${_L_R[$((_L_column+1))]+- }-$_L_fmt_width))s\$_L_o"
-    	else
-        _L_fmt+="%\${_L_R[$((_L_column+1))]+\$(($_L_fmt_width))}s"
-    	fi
+			if (( _L_W[_L_column] < _L_len && ( _L_W[_L_column] = _L_len ), _L_column < ${#_L_line[@]} - 1 )); then
+				_L_fmt+="%\$((\${_L_R[$((_L_column+1))]+- }-$_L_fmt_width))s\$_L_o"
+			else
+				_L_fmt+="%\${_L_R[$((_L_column+1))]+\$(($_L_fmt_width))}s"
+			fi
 		done
 		(( _L_columns < _L_column + 1 ? (_L_columns = _L_column + 1) : 1 ))
-    _L_fmt+='\\n'
+		_L_fmt+='\\n'
 	done <<<"$*"
 	# Parse the -R argument. Must be after knowing the number of columns.
 	L_parse_range_list -v _L_R -m "$_L_columns" "$_L_R" || return
@@ -5196,7 +5196,7 @@ L_log_format_json() {
 			out+=",$i"
 		else
 			out+=",\"${i%%:*}\":"
-			L_json_escape_vL_RET "${i#*:}"
+			L_json_quote_vL_RET "${i#*:}"
 			out+="$L_RET"
 		fi
 	done
