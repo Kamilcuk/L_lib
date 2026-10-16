@@ -307,6 +307,7 @@ name1 name2 name3
 - **`-o <str>`** Output separator to use
 - **`-R <list[int]>`** Right align columns with these indexes
 - **`-X`** Ignore color escape sequences when calculting column width.
+- **`-t`** Ignored
 - **`-h`** Print this help and return 0.
 
 **Argument:** **`$@`** Lines to print, joined and separated by newline.

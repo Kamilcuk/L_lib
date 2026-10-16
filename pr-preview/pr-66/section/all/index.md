@@ -1107,6 +1107,14 @@ L_hello -v var   # assigns var=(hello world)
 
 **See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
 
+#### L_handle_v_asa
+
+Version of L_handle_v_scalar for associative arrays.
+
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
+
 ### cache
 
 #### L_cache
@@ -2173,9 +2181,15 @@ Return 0 if the string characters is an integer
 
 #### L_is_float
 
-Return 0 if the string characters is a float
+Return 0 if the string characters is a float +-*.[0-9]*
 
 **Argument:** **`$1`** string to check
+
+#### L_is_natural_integer
+
+Return 0 if the string is an integer. No leading +-.
+
+**Argument:** **`$1`** string
 
 #### $L_NL
 
@@ -2775,55 +2789,6 @@ Fuzzy search a key in a list of strings, returning matches in L_RET.
 
 #### L_fuzzy_vL_RET
 
-### json
-
-#### L_json_escape
-
-Produces a string properly quoted for JSON inclusion
-
-Poor man's jq
-
-Example
-
-```
-L_json_escape -v tmp "some string"
-echo "{\"key\":$tmp}" | jq .
-```
-
-**Option:** **`-v <var>`** Store the output in variable instead of printing it.
-
-**See:**
-
-- <https://ecma-international.org/wp-content/uploads/ECMA-404.pdf> figure 5
-- <https://stackoverflow.com/a/27516892/9072753>
-
-#### L_json_escape_vL_RET
-
-#### L_json_create
-
-Very simple function to create JSON.
-
-Every second argument is quoted for JSON, unless This argument is preceeded by a previous argument ending with \] or }, when the counter starts over.
-
-Example
-
-```
-L_json_create { \
-  a : b , \
-  b :[ 1 , 2 , 3 , 4 ] \
-  c :[true, 1 ,null,false] \
-}
-#   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
-# outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
-```
-
-**Options:**
-
-- **`-v <var>`** Store the output in variable instead of printing it.
-- **`-h`** Print this help and return 0.
-
-#### L_json_create_vL_RET
-
 ### array
 
 Operations on various lists, arrays and arguments. L_array\_\*
@@ -3306,6 +3271,7 @@ name1 name2 name3
 - **`-o <str>`** Output separator to use
 - **`-R <list[int]>`** Right align columns with these indexes
 - **`-X`** Ignore color escape sequences when calculting column width.
+- **`-t`** Ignored
 - **`-h`** Print this help and return 0.
 
 **Argument:** **`$@`** Lines to print, joined and separated by newline.
@@ -5753,6 +5719,411 @@ Wake up the event loop immediately.
 Note
 
 This skips the next polling delay (sleep), causing the loop to proceed immediately to the next iteration. Useful for signaling state changes from traps or async callbacks.
+
+### obj
+
+#### L_obj_clear
+
+Clear the L_obj. Just sets the array to ().
+
+**Argument:** **`$1`** L_obj namereference.
+
+#### L_obj_get
+
+Get value in the object. The value can't be MAP or ARRAY type.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference.
+- **`[parts...]`**
+
+#### L_obj_get_vL_RET
+
+#### L_obj_get_default
+
+Like L_obj_get, but if not exists, return default.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference.
+- **`[parts...]`**
+- **`<default>`**
+
+#### L_obj_get_default_vL_RET
+
+#### L_obj_set_type_value
+
+Set the node value with the type.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<type>`** The type of the value. If type is MAP or ARRAY, the value is ignored.
+- **`<value>`** The value of the node.
+
+#### L_obj_set_type
+
+Alias for L_obj_set_type_value that passes an empty value.
+
+**See:** [L_obj_set_type_value](#L_lib.sh--L_obj_set_type_value)
+
+#### L_obj_set_type_default_value
+
+Set the type and value only if node is unset.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<type>`** The type of the value. If type is MAP or ARRAY, the value is ignored.
+- **`<default>`** The default value.
+
+#### L_obj_set_value
+
+Like L_obj_set_type_value, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<value>`** The value to set to the node.
+
+**See:** [L_obj_set_type_value](#L_lib.sh--L_obj_set_type_value)
+
+#### L_obj_set_default_value
+
+Like L_obj_set_value, but only sets value if not already set.
+
+**See:** [L_obj_set_value](#L_lib.sh--L_obj_set_value)
+
+#### L_obj_rm
+
+Remove the node at the path and free its subtree No parts = clear the whole object.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`** The path to remove.
+
+**Return:** 1 if the path doesn't exist.
+
+#### L_obj_walk
+
+Walks the L_obj recursively and calls the callback with the following arguments:
+
+```
+cb... START <type>      -- <parts...>  for type: MAP|ARRAY
+cb... VALUE <type> <value> <parts...>  for other types
+cb... END   <type>      -- <parts...>
+```
+
+Parts exclude the root. A nonzero callback return aborts the walk and is returned.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-h`** print this help and return 0
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`<cb...>`** Callback with arguments to call.
+
+#### L_obj_keys
+
+Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY. Returns 1 if the path is missing or the node is a scalar.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+
+#### L_obj_keys_vL_RET
+
+#### L_obj_len
+
+The count of elements in an MAP or ARRAY, or the length of value for a scalar.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_len_vL_RET
+
+#### L_obj_has
+
+Check if object has a path.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_string_append
+
+Append to the value of a node. Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+- **`<+=>`**
+- value
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_array_append_type_value
+
+Append value with type to an array.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[parts...]`**
+- **`<+=>`**
+- **`<type>`**
+- **`<value>`**
+
+#### L_obj_array_append_value
+
+Like L_obj_array_append_type_value but infer type of value.
+
+**See:** [L_obj_array_append_type_value](#L_lib.sh--L_obj_array_append_type_value)
+
+#### L_obj_cmp_obj
+
+Structural compare of two objects. MAP key order is ignored, ARRAY order matters.
+
+**Arguments:**
+
+- **`$1`** first object name
+- **`$2`** second object name
+
+**Return:** 0 if equal, 1 if different
+
+#### L_obj_foreach
+
+Iterate over elements in a MAP or ARRAY.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`<cb...>`** called as: cb...
+
+### json
+
+#### L_json_quote
+
+Convert Bash string into Json string.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_quote_vL_RET
+
+#### L_json_quote_ascii
+
+Convert Bash string into Json string with only ASCII characters.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_quote_ascii_vL_RET
+
+#### L_json_unquote
+
+Convert Json string into Bash string.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_unquote_vL_RET
+
+#### L_json_path_normalize
+
+Convert json path into an array of elements with "strings" and digits. "a".b -> L_RET=('"a"' 0 '"b"')
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<path>`**
+
+#### L_json_path_normalize_vL_RET
+
+#### L_json_path_to_obj_key
+
+Parse a JSON-path expression (dot/bracket notation) into an L_obj key.
+
+Example
+
+```
+L_json_path_to_obj_key -v key 'a.b["c.d"][0]'
+# key now holds the packed L_obj key for:
+# map "a" -> map "b" -> map "c.d" -> array index 0
+```
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<path>`**
+
+#### L_json_path_to_obj_key_vL_RET
+
+#### L_json_to_obj
+
+Convert a json into an object.
+
+**Arguments:**
+
+- **`<object>`**
+- **`<offset...>`**
+
+#### L_obj_to_json
+
+Convert obj into json.
+
+**Options:**
+
+- **`-a`** Use only ascii characters escapes in strings.
+- **`-c`** Compact output.
+- **`-i <int>`** Indent count of spaces.
+- **`-C`** Color output.
+- **`-S`** Sort keys.
+- **`-v <var>`** Store the output in variable instead of printing it.
+- **`-h`** Print this help and return 0.
+
+**Argument:** **`$1`** JSON
+
+#### L_json_get_all
+
+Get a value from json including additional info.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+**Return:** ( )
+
+#### L_json_get_all_vL_RET
+
+#### L_json_get
+
+Get a value from json.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+#### L_json_get_vL_RET
+
+#### L_json_rm
+
+Remove an element from json.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+#### L_json_rm_vL_RET
+
+#### L_json_print
+
+Print nicely looking version of the json.
+
+**Options:**
+
+- **`-a`** Use only ascii characters escapes in strings.
+- **`-c`** Compact output.
+- **`-i <int>`** Indent count of spaces.
+- **`-C`** Color output.
+- **`-v <var>`** Store the output in variable instead of printing it.
+
+**Argument:** **`$1`** JSON
+
+### ini
+
+#### L_ini_read
+
+Parses ini file. Calls: callback... SECTION section callback... KV section key value callback... CONTINUATION section key value
+
+**Argument:** **`<callback...>`** Callback to call.
+
+#### L_ini_to_obj
+
+Convert ini to L_obj
+
+**Argument:** **`$1`** L_obj namerefrence
+
+#### L_obj_to_ini
+
+Serializes OBJ to INI text.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-v <var>`** Store into varaible instead of printing.
+- **`-h`**
+
+**Argument:** **`$1`** L_obj namereference.
+
+### toml
+
+#### L_toml_read
+
+Parse TOML, call callback for every event. Events:
+
+```
+VALUE <type> <value> <parts...>   type: STRING|INTEGER|FLOAT|BOOL|DATETIME|DATE|TIME
+START <MAP|ARRAY> <parts...>      inline table / array
+END   <MAP|ARRAY> <parts...>
+TABLE MAP <parts...>              [a.b] header, also emitted for each [[a.b]] element (last part is the index)
+TABLE ARRAY <parts...>            emitted once, before the first [[a.b]] element
+```
+
+A nonzero callback return aborts the parse and is returned.
+
+**Argument:** **`<callback...>`**
+
+#### L_toml_to_obj
+
+Parse TOML into an L_obj.
+
+**Argument:** **`$1`** obj variable name
+
+#### L_obj_to_toml
+
+Convert obj into toml.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-v <var>`** Store output in variable.
+- **`-h`** Print this help and return 0.
+
+**Argument:**
+
+obj
 
 ### xargs
 

@@ -15,6 +15,10 @@
         <link rel="canonical" href="https://Kamilcuk.github.io/L_lib/pr-preview/pr-66/section/obj/">
       
       
+        <link rel="prev" href="../proc/">
+      
+      
+        <link rel="next" href="../json/">
       
       
         
@@ -25,7 +29,7 @@
     
     
       
-        <title>L_obj is a Bash array of 5 elements per node. - L_lib</title>
+        <title>obj - L_lib</title>
       
     
     
@@ -80,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#l_obj-is-a-bash-array-of-5-elements-per-node" class="md-skip">
+        <a href="#l_obj" class="md-skip">
           Skip to content
         </a>
       
@@ -116,7 +120,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              L_obj is a Bash array of 5 elements per node.
+              obj
             
           </span>
         </div>
@@ -298,8 +302,10 @@
       
   
   
+    
   
   
+  
     
     
     
@@ -310,11 +316,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
@@ -335,7 +341,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1190,6 +1196,601 @@
                 
   
   
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    obj
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    obj
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#container-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Container Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#value-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value Types
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-an-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building an object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#value-type-inference-with-l_obj_set_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value type inference with L_obj_set_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appending-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appending values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-nested-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building nested objects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterating-over-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iterating over keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-existence-and-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking existence and length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converting-to-other-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting to other formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Internal Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> obj
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="obj">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_clear
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_default_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_default_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type_default_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type_default_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_default_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_default_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_rm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_rm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_walk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_walk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_keys_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_keys_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_len" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_len
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_len_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_len_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_has" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_has
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_string_append" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_string_append
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_array_append_type_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_array_append_type_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_array_append_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_array_append_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_cmp_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_cmp_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_foreach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_foreach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ini/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ini
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    toml
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
   
   
     <li class="md-nav__item">
@@ -1561,10 +2162,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#node-fields" class="md-nav__link">
+  <a href="#container-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Node fields:
+        Container Types
       
     </span>
   </a>
@@ -1572,13 +2173,427 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
+  <a href="#value-types" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Examples
+        Value Types
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#building-an-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building an object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#value-type-inference-with-l_obj_set_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Value type inference with L_obj_set_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appending-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appending values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reading-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reading values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#building-nested-objects" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building nested objects
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#iterating-over-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Iterating over keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-existence-and-length" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking existence and length
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converting-to-other-formats" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting to other formats
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Details
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Internal Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#node-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Node fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> obj
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="obj">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_clear" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_clear
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_default
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_get_default_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_get_default_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_type_default_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_type_default_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_set_default_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_set_default_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_rm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_rm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_walk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_walk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_keys_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_keys_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_len" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_len
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_len_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_len_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_has" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_has
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_string_append" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_string_append
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_array_append_type_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_array_append_type_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_array_append_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_array_append_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_cmp_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_cmp_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_obj_foreach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_foreach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1599,6 +2614,46 @@
 
   
 
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Introduction
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../globals/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Sections documentation
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
 
               
               <article class="md-content__inner md-typeset">
@@ -1623,8 +2678,92 @@
   
 
 
-<h1 id="l_obj-is-a-bash-array-of-5-elements-per-node">L_obj is a Bash array of 5 elements per node.<a class="headerlink" href="#l_obj-is-a-bash-array-of-5-elements-per-node" title="Permanent link">&para;</a></h1>
-<h2 id="node-fields">Node fields:<a class="headerlink" href="#node-fields" title="Permanent link">&para;</a></h2>
+<h1 id="l_obj">L_obj<a class="headerlink" href="#l_obj" title="Permanent link">&para;</a></h1>
+<p>L_obj represents arbitrary nested data with two container types: MAP and ARRAY. MAP holds a mapping of string keys to values, while ARRAY holds a list of values. Values can be any type: STRING, INTEGER, FLOAT, BOOL, NULL, MAP, ARRAY.</p>
+<h2 id="container-types">Container Types<a class="headerlink" href="#container-types" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>MAP</strong> – Holds a mapping of string keys to values</li>
+<li><strong>ARRAY</strong> – Holds an ordered list of values</li>
+</ul>
+<h2 id="value-types">Value Types<a class="headerlink" href="#value-types" title="Permanent link">&para;</a></h2>
+<p>Each node holds one of these types: STRING, INTEGER, FLOAT, BOOL, NULL, DATETIME, DATE, TIME, MAP, ARRAY.</p>
+<h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<h3 id="building-an-object">Building an object<a class="headerlink" href="#building-an-object" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_clear<span class="w"> </span>obj
+L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;MyApp&quot;</span>
+L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span>
+</code></pre></div>
+<p>The <code>=</code> argument is required as the 3rd argument from the back, separating path parts from the type and value. Path parts are all arguments between the object name and the <code>=</code>:</p>
+<div class="highlight"><pre><span></span><code>L_obj_set_type_value &lt;obj&gt; &lt;parts...&gt; = &lt;type&gt; &lt;value&gt;
+</code></pre></div>
+<p><code>L_obj_set_type</code> and <code>L_obj_set_type_value</code> auto-create intermediate container nodes as you descend through path parts. Each missing intermediate node is created as MAP by default (ARRAY if the path part is <code>0</code>). For example:</p>
+<div class="highlight"><pre><span></span><code>L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;localhost&quot;</span>
+<span class="c1"># Auto-creates: root MAP -&gt; child &quot;server&quot; (MAP) -&gt; grandchild &quot;host&quot; (STRING = &quot;localhost&quot;)</span>
+</code></pre></div>
+<p>Only the final node in the path gets its type set; intermediate nodes default to MAP.</p>
+<h3 id="value-type-inference-with-l_obj_set_value">Value type inference with <code>L_obj_set_value</code><a class="headerlink" href="#value-type-inference-with-l_obj_set_value" title="Permanent link">&para;</a></h3>
+<p><code>L_obj_set_value</code> infers the type from the value without requiring an explicit type argument:</p>
+<ul>
+<li><strong>INTEGER</strong> – whole numbers (e.g. <code>42</code>, <code>-7</code>, <code>+100</code>)</li>
+<li><strong>FLOAT</strong> – numbers with a decimal point or exponent (e.g. <code>3.14</code>, <code>-2.5e10</code>, <code>1E3</code>)</li>
+<li><strong>STRING</strong> – everything else</li>
+</ul>
+<div class="highlight"><pre><span></span><code>L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">42</span><span class="w">          </span><span class="c1"># inferred: INTEGER</span>
+L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">pi</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">3</span>.14<span class="w">           </span><span class="c1"># inferred: FLOAT</span>
+L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;MyApp&quot;</span><span class="w">      </span><span class="c1"># inferred: STRING</span>
+L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">exp</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>1e10<span class="w">          </span><span class="c1"># inferred: FLOAT</span>
+</code></pre></div>
+<p><code>L_obj_set_default_value</code> works the same but only sets the value if the node is not already set.</p>
+<h3 id="appending-values">Appending values<a class="headerlink" href="#appending-values" title="Permanent link">&para;</a></h3>
+<p><code>L_obj_array_append_value</code> appends a new element to an ARRAY node. The <code>+=</code> argument is required as the second-to-last argument, before the value:</p>
+<div class="highlight"><pre><span></span><code>L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span>&lt;parts...&gt;<span class="w"> </span>+<span class="o">=</span><span class="w"> </span>&lt;value&gt;
+</code></pre></div>
+<p>The type is inferred from the value (INTEGER, FLOAT, or STRING):</p>
+<div class="highlight"><pre><span></span><code>L_obj_set_type<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>ARRAY
+L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="m">1</span><span class="w">        </span><span class="c1"># INTEGER</span>
+L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="m">2</span>.5<span class="w">      </span><span class="c1"># FLOAT</span>
+L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="w">   </span><span class="c1"># STRING</span>
+</code></pre></div>
+<p><code>L_obj_string_append</code> appends text to an existing STRING node. The <code>+=</code> argument is required as the second-to-last argument:</p>
+<div class="highlight"><pre><span></span><code>L_obj_string_append<span class="w"> </span>obj<span class="w"> </span>&lt;parts...&gt;<span class="w"> </span>+<span class="o">=</span><span class="w"> </span>&lt;text&gt;
+</code></pre></div>
+<p>Example:</p>
+<div class="highlight"><pre><span></span><code>L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;Hello&quot;</span>
+L_obj_string_append<span class="w"> </span>obj<span class="w"> </span><span class="nv">msg</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s2">&quot;, World&quot;</span>
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>RESULT<span class="w"> </span>obj<span class="w"> </span>msg<span class="w">     </span><span class="c1"># &quot;Hello, World&quot;</span>
+</code></pre></div>
+<h3 id="reading-values">Reading values<a class="headerlink" href="#reading-values" title="Permanent link">&para;</a></h3>
+<p>Use <code>L_obj_get</code> with path parts as separate arguments:</p>
+<div class="highlight"><pre><span></span><code>L_obj_get<span class="w"> </span>-v<span class="w"> </span>name<span class="w"> </span>obj<span class="w"> </span>name<span class="w">          </span><span class="c1"># &quot;MyApp&quot;</span>
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>version<span class="w"> </span>obj<span class="w"> </span>version<span class="w">    </span><span class="c1"># &quot;1.0.0&quot;</span>
+</code></pre></div>
+<h3 id="building-nested-objects">Building nested objects<a class="headerlink" href="#building-nested-objects" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_set_type<span class="w"> </span>obj<span class="w"> </span><span class="nv">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>MAP
+L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;localhost&quot;</span>
+L_obj_set_type_value<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>INTEGER<span class="w"> </span><span class="m">8080</span>
+
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>host<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>host<span class="w">   </span><span class="c1"># &quot;localhost&quot;</span>
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>port<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>port<span class="w">   </span><span class="c1"># 8080</span>
+</code></pre></div>
+<h3 id="iterating-over-keys">Iterating over keys<a class="headerlink" href="#iterating-over-keys" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_keys<span class="w"> </span>-v<span class="w"> </span>keys<span class="w"> </span>obj
+<span class="k">for</span><span class="w"> </span>key<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">keys</span><span class="p">[@]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span>L_obj_get<span class="w"> </span>-v<span class="w"> </span>value<span class="w"> </span>obj<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$key</span><span class="s2">&quot;</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$key</span><span class="s2">: </span><span class="nv">$value</span><span class="s2">&quot;</span>
+<span class="k">done</span>
+</code></pre></div>
+<h3 id="checking-existence-and-length">Checking existence and length<a class="headerlink" href="#checking-existence-and-length" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_has<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;server exists&quot;</span>
+L_obj_len<span class="w"> </span>-v<span class="w"> </span>len<span class="w"> </span>obj<span class="w">                </span><span class="c1"># number of top-level keys</span>
+</code></pre></div>
+<h3 id="converting-to-other-formats">Converting to other formats<a class="headerlink" href="#converting-to-other-formats" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_to_json<span class="w"> </span>-v<span class="w"> </span>json_text<span class="w"> </span>obj
+L_obj_to_toml<span class="w"> </span>-v<span class="w"> </span>toml_text<span class="w"> </span>obj
+L_obj_to_ini<span class="w"> </span>-v<span class="w"> </span>ini_text<span class="w"> </span>obj
+</code></pre></div>
+<h2 id="internal-details">Internal Details<a class="headerlink" href="#internal-details" title="Permanent link">&para;</a></h2>
+<p>OBJ stores a tree structure in a flat Bash array where each node occupies 5 consecutive elements: [kind, key, value, next, prev].</p>
+<h3 id="node-fields">Node fields<a class="headerlink" href="#node-fields" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -1637,7 +2776,7 @@
 <tr>
 <td>0</td>
 <td>kind</td>
-<td>One of FREE MAP ARRAY STRING INTEGER FLOAT BOOL NULL</td>
+<td>One of FREE MAP ARRAY STRING INTEGER FLOAT BOOL NULL DATETIME DATE TIME</td>
 </tr>
 <tr>
 <td>1</td>
@@ -1661,7 +2800,6 @@
 </tr>
 </tbody>
 </table>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>&quot;A&quot; becomes: (
   [0]  STRING  &quot;&quot;  A  &quot;&quot;  &quot;&quot;
 )
@@ -1706,6 +2844,981 @@
     [35] NULL    c   &quot;&quot;  &quot;&quot;  5
 )
 </code></pre></div>
+<h3 id="implementation">Implementation<a class="headerlink" href="#implementation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Tree structure stored in a flat Bash array (no associative arrays required)</li>
+<li>Nodes indexed by array position, enabling Bash 3.2+ compatibility</li>
+<li>Free list for memory reuse (deleted nodes return to the free list)</li>
+<li>Recursive traversal via <code>L_obj_walk</code></li>
+</ul>
+<p>This structure enables efficient lookup without associative arrays on Bash 3.2+.</p>
+<h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
+<h2 id="L_lib.sh--obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
+    obj
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12124"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--obj" class="headerlink" title="Permanent link">&para;</a></h2>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+<h3 id="L_lib.sh--L_obj_clear">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_clear
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12165"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_clear" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Clear the L_obj. Just sets the array to ().
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    L_obj namereference.
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_get
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12171"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_get" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Get value in the object. The value can't be MAP or ARRAY type.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference.
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_get_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12172"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_get_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_get_default">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_get_default
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12189"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_get_default" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Like L_obj_get, but if not exists, return default.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference.
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;default&gt;</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_get_default_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_get_default_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12190"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_get_default_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_set_type_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_set_type_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12266"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_set_type_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Set the node value with the type.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;=&gt;</code></strong>
+    The character = to visually sinigify end of parts and start if arguments.
+
+</li><li>                <strong><code>&lt;type&gt;</code></strong>
+    The type of the value. If type is MAP or ARRAY, the value is ignored.
+
+</li><li>                <strong><code>&lt;value&gt;</code></strong>
+    The value of the node.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_set_type">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_set_type
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12286"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_set_type" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Alias for L_obj_set_type_value that passes an empty value.
+
+    </p>
+
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_obj_set_type_value">L_obj_set_type_value</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_obj_set_type_default_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_set_type_default_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12294"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_set_type_default_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Set the type and value only if node is unset.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;=&gt;</code></strong>
+    The character = to visually sinigify end of parts and start if arguments.
+
+</li><li>                <strong><code>&lt;type&gt;</code></strong>
+    The type of the value. If type is MAP or ARRAY, the value is ignored.
+
+</li><li>                <strong><code>&lt;default&gt;</code></strong>
+    The default value.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_set_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_set_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12331"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_set_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Like L_obj_set_type_value, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;=&gt;</code></strong>
+    The character = to visually sinigify end of parts and start if arguments.
+
+</li><li>                <strong><code>&lt;value&gt;</code></strong>
+    The value to set to the node.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_obj_set_type_value">L_obj_set_type_value</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_obj_set_default_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_set_default_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12339"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_set_default_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Like L_obj_set_value, but only sets value if not already set.
+
+    </p>
+
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_obj_set_value">L_obj_set_value</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_obj_rm">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_rm
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12360"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_rm" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Remove the node at the path and free its subtree
+No parts = clear the whole object.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    The path to remove.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            1 if the path doesn't exist.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_walk">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_walk
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12438"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_walk" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            <p>Walks the L_obj recursively and calls the callback with the following arguments:</p>
+<pre><code>cb... START &lt;type&gt;      -- &lt;parts...&gt;  for type: MAP|ARRAY
+cb... VALUE &lt;type&gt; &lt;value&gt; &lt;parts...&gt;  for other types
+cb... END   &lt;type&gt;      -- &lt;parts...&gt;
+</code></pre>
+<p>Parts exclude the root. A nonzero callback return aborts the walk and is returned.</p>
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-S</code></strong>
+    sort keys
+
+</li><li>                <strong><code>-h</code></strong>
+    print this help and return 0
+
+</li></ul>    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>&lt;cb...&gt;</code></strong>
+    Callback with arguments to call.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_keys">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_keys
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12502"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_keys" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY.
+Returns 1 if the path is missing or the node is a scalar.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_keys_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_keys_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12503"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_keys_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_len">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_len
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12529"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_len" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            The count of elements in an MAP or ARRAY, or the length of value for a scalar.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            1 if the path is missing.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_len_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_len_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12530"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_len_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_has">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_has
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12549"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_has" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Check if object has a path.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            1 if the path is missing.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_string_append">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_string_append
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12562"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_string_append" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Append to the value of a node.
+Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;+=&gt;</code></strong>
+    
+
+</li><li>                <strong><code> </code></strong>
+    value
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            1 if the path is missing.
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_array_append_type_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_array_append_type_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12584"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_array_append_type_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Append value with type to an array.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    
+
+</li><li>                <strong><code>&lt;+=&gt;</code></strong>
+    
+
+</li><li>                <strong><code>&lt;type&gt;</code></strong>
+    
+
+</li><li>                <strong><code>&lt;value&gt;</code></strong>
+    
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_array_append_value">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_array_append_value
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12615"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_array_append_value" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Like L_obj_array_append_type_value but infer type of value.
+
+    </p>
+
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+      <p>
+        <strong>
+See:
+        </strong>
+            <a href="#L_lib.sh--L_obj_array_append_type_value">L_obj_array_append_type_value</a>
+
+    </p>
+
+
+
+<h3 id="L_lib.sh--L_obj_cmp_obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_cmp_obj
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12625"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_cmp_obj" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Structural compare of two objects. MAP key order is ignored, ARRAY order matters.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    first object name
+
+</li><li>                <strong><code>$2</code></strong>
+    second object name
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            0 if equal, 1 if different
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_obj_foreach">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_obj_foreach
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12666"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_obj_foreach" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Iterate over elements in a MAP or ARRAY.
+
+    </p>
+
+  
+  
+  
+  
+  
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference
+
+</li><li>                <strong><code>&lt;cb...&gt;</code></strong>
+    called as: cb... <key|index> <type> <value>
+
+</li></ul>    </p>
 
 
 
@@ -1726,7 +3839,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 10, 2026 22:53:06 UTC">October 10, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 23:06:18 UTC">October 16, 2026</span>
   </span>
 
     
@@ -1811,6 +3924,44 @@
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../proc/" class="md-footer__link md-footer__link--prev" aria-label="Previous: proc">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                proc
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../json/" class="md-footer__link md-footer__link--next" aria-label="Next: json">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                json
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
     
   
   <div class="md-footer-meta md-typeset">

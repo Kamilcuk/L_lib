@@ -490,3 +490,11 @@ L_hello -v var   # assigns var=(hello world)
 **Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
 
 **See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
+
+### L_handle_v_asa
+
+Version of L_handle_v_scalar for associative arrays.
+
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
