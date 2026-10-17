@@ -25,6 +25,12 @@ wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/downloa
 export PATH=~/.local/bin:$PATH
 ```
 
+### Quick testing one-liner
+
+```bash
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.1.0/L_lib.sh) L_setx L_log 'Hello world'
+```
+
 ### Pip
 
 ```bash
@@ -35,6 +41,36 @@ pip install L_lib
 
 ```bash
 basher install Kamilcuk/L_lib
+```
+
+### Auto-download from a script
+
+If you have a script that you want to auto-download the library for use, consider using the following code that will store the L_lib.sh into user ~/.cache directory:
+
+```bash
+pull_L_lib() {
+	[[ -n "${L_LIB_VERSION:-}" ]] && return
+	local ver=2.1.0
+	local cache="${XDG_CACHE_HOME:-$HOME/.cache}/L_lib-$ver.sh"
+	if [[ ! -s "$cache" ]]; then
+		local url=https://github.com/Kamilcuk/L_lib/releases/download/v$ver/L_lib.sh
+		local tmp="$cache.tmp$$"
+		mkdir -p "${cache%/*}"
+		if hash curl 2>/dev/null; then
+			curl -fsSL -o "$tmp" "$url"
+		elif hash wget 2>/dev/null; then
+			wget -qO "$tmp" "$url"
+		else
+			echo "pull_L_lib: need curl or wget" >&2; return 1
+		fi || { rm -f "$tmp"; echo "pull_L_lib: download failed" >&2; return 1; }
+		mv "$tmp" "$cache"
+	fi
+	. "$cache" -s
+}
+
+# Use in your script:
+pull_L_lib
+L_log "L_lib is now available"
 ```
 
 # Usage
@@ -154,8 +190,6 @@ Below is a selection of the library's features. The library contains much more.
 - Template output
     [`L_percent_format`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_percent_format)
     [`L_fstring`](https://kamilcuk.github.io/L_lib/section/string/#L_lib.sh--L_fstring)
-- JSON escape
-    [`L_json_escape`](https://kamilcuk.github.io/L_lib/section/json/#L_lib.sh--L_json_escape)
 - Cache commands execution with TTL in memory or file
     [`L_cache`](https://kamilcuk.github.io/L_lib/section/cache/#L_lib.sh--L_cache)
 - Easy writing function utilities by supporting `-v <var>` option or extracting comment before function
@@ -173,6 +207,20 @@ Below is a selection of the library's features. The library contains much more.
     [`L_uv_init`](https://kamilcuk.github.io/L_lib/section/uv/)
     [`L_uv_add_timer`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_add_timer)
     [`L_uv_run`](https://kamilcuk.github.io/L_lib/section/uv/#L_lib.sh--L_uv_run)
+- L_obj core data structure: flat Bash array for nested MAP/ARRAY data
+    [`L_obj_set_value`](https://kamilcuk.github.io/L_lib/section/obj/#L_lib.sh--L_obj_set_value)
+    [`L_obj_get`](https://kamilcuk.github.io/L_lib/section/obj/#L_lib.sh--L_obj_get)
+    [`L_obj_keys`](https://kamilcuk.github.io/L_lib/section/obj/#L_lib.sh--L_obj_keys)
+    [`L_obj_len`](https://kamilcuk.github.io/L_lib/section/obj/#L_lib.sh--L_obj_len)
+- JSON parser and serializer: parse JSON into L_obj, query directly, and serialize back
+    [`L_json_to_obj`](https://kamilcuk.github.io/L_lib/section/json/#L_lib.sh--L_json_to_obj)
+    [`L_obj_to_json`](https://kamilcuk.github.io/L_lib/section/json/#L_lib.sh--L_obj_to_json)
+- INI parser: parse INI config into L_obj and serialize back
+    [`L_ini_to_obj`](https://kamilcuk.github.io/L_lib/section/ini/#L_lib.sh--L_ini_to_obj)
+    [`L_obj_to_ini`](https://kamilcuk.github.io/L_lib/section/ini/#L_lib.sh--L_obj_to_ini)
+- TOML parser: parse TOML config into L_obj and serialize back
+    [`L_toml_to_obj`](https://kamilcuk.github.io/L_lib/section/toml/#L_lib.sh--L_toml_to_obj)
+    [`L_obj_to_toml`](https://kamilcuk.github.io/L_lib/section/toml/#L_lib.sh--L_obj_to_toml)
 
 # Talk to me
 
