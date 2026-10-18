@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # vim: foldmethod=marker foldmarker=[[[,]]] ft=bash
-# shellcheck disable=SC2034,SC2178,SC2016,SC2128,SC1083,SC1087
+# shellcheck disable=SC2034,SC2178,SC2016,SC2128,SC1083,SC1087,SC1003
 # SPDX-License-Identifier: GPL-3.0
 #    L_lib.sh
 #    Copyright (C) 2024 Kamil Cukrowski
@@ -637,7 +637,7 @@ L_func_doc() {
 				fi
 				;;
 			s) _L_up=$(( _L_up + OPTARG )) ;;
-			i) _L_comment=$(cat) ;;
+			i) L_cat_into _L_comment ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -3853,6 +3853,50 @@ L_array_reverse() {
 	if ((_L_len)); then
 		eval eval "'$1=(' '\"\${$1['{$((_L_len-1))..0}']}\"' ')'"
 	fi
+}
+
+# Cat from stdin into a variable.
+# @warning Do not use with positional arguments. To read a file in bash, use var=$(<file) expansion.
+# This function is meant to read from a file descriptor.
+# It is roughly equal to  IFS= read -r -d '' var || :
+# @warning To be fast, read errors are not properly handled. You have to pass correct -t -u options.
+# @option -u fd
+# @option -N count
+# @option -t timeout
+# @option -n Strip trailing newlines, just like $(cat) does.
+# @option -h
+# @arg $1 Variable to store the result into.
+L_cat_into() {
+	local OPTIND OPTARG OPTERR _L_o _L_n=":" _L_args=() _L_chunk _L_rc
+	while getopts nt:u:h _L_o; do
+		case "$_L_o" in
+			n) _L_n="" ;;
+			t) _L_args+=(-t "$OPTARG") ;;
+			u) _L_args+=(-u "$OPTARG") ;;
+			h) L_func_help; return 0 ;;
+			*) L_func_usage_error; return "$L_EX_USAGE" ;;
+		esac
+	done
+	shift "$((OPTIND-1))"
+	if (( $# != 1 )); then
+		L_func_usage_error "expected exactly one variable name; to read a file use var=\$(<file)"
+		return "$L_EX_USAGE"
+	fi
+	if ! L_is_valid_variable_name "$1"; then
+		L_func_usage_error "not a valid identifier: $1"
+		return "$L_EX_USAGE"
+	fi
+	if IFS= read "${_L_args[@]}" -r -d '' "$1"; then
+		# A NUL ended the first chunk. Read the rest, dropping NULs.
+		while IFS= read "${_L_args[@]}" -r -d '' _L_chunk || (( (_L_rc=$?) == 0 )); do
+			eval "$1+=\$_L_chunk"
+		done
+		eval "$1+=\$_L_chunk"
+	else
+		_L_rc=$?
+	fi
+	$_L_n eval "$1=\${$1%\"\${$1##*[!\$'\\n']}\"}"
+	(( _L_rc == 1 ))
 }
 
 # @description Wrapper for readarray/mapfile for bash versions that do not have it.
@@ -13016,8 +13060,8 @@ _L_json_parse() {
 # @arg <offset...>
 # @stdin <json string>
 L_json_to_obj() {
-	local _L_json=$(cat) _L_obj_offset=("${@:2}")
-	_L_json_parse _L_json_to_obj_cb "$1"
+	local _L_json _L_obj_offset=("${@:2}")
+	L_cat_into _L_json && _L_json_parse _L_json_to_obj_cb "$1"
 }
 _L_json_to_obj_cb() {
 	case "$2" in
@@ -13653,8 +13697,8 @@ _L_toml_parse() {
 # @arg <callback...>
 # @stdin <toml>
 L_toml_read() {
-	local _L_toml=$(cat)
-	_L_toml_parse "$@"
+	local _L_toml
+	L_cat_into _L_toml && _L_toml_parse "$@"
 }
 
 # Parse TOML into an L_obj.
