@@ -1285,47 +1285,47 @@ L_handle_v_array() {
 # shellcheck disable=SC2317
 L_handle_v_asa() {
 	case "${1:-}" in
-		-vL_RET)
+		-vL_ARET)
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
 			fi
 			;;
 		-v?*)
-			local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
+			local -n L_ARET="${1##-v}" || return "$L_EX_USAGE"
 			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
 			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
 			fi
 			;;
 		-v)
-			if [[ "$2" != L_RET ]]; then
-				local -n L_RET="$2" || return "$L_EX_USAGE"
+			if [[ "$2" != L_ARET ]]; then
+				local -n L_ARET="$2" || return "$L_EX_USAGE"
 			fi
 			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:4}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:4}"
 			else
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
+				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
 			fi
 			;;
 		--)
-			local -A L_RET
+			local -A L_ARET
 			local _L_handle_v_i _L_r=0
-			"${FUNCNAME[1]}"_vL_RET "${@:2}" || _L_r=$?
-			for _L_handle_v_i in "${!L_RET[@]}"; do
-				printf "%q=%s\n" "$_L_handle_v_i" "${L_RET[@]}" || return
+			"${FUNCNAME[1]}"_vL_ARET "${@:2}" || _L_r=$?
+			for _L_handle_v_i in "${!L_ARET[@]}"; do
+				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
 			done
 			return "$_L_r"
 			;;
 		-h) L_func_help 1; return 0 ;;
 		*)
-			local -A L_RET
+			local -A L_ARET
 			local _L_handle_v_i _L_r=0
-			"${FUNCNAME[1]}"_vL_RET "$@" || _L_r=$?
-			for _L_handle_v_i in "${!L_RET[@]}"; do
-				printf "%q=%s\n" "$_L_handle_v_i" "${L_RET[@]}" || return
+			"${FUNCNAME[1]}"_vL_ARET "$@" || _L_r=$?
+			for _L_handle_v_i in "${!L_ARET[@]}"; do
+				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
 			done
 			return "$_L_r"
 	esac
