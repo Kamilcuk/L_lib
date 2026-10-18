@@ -3886,9 +3886,9 @@ L_cat_into() {
 		L_func_usage_error "not a valid identifier: $1"
 		return "$L_EX_USAGE"
 	fi
-	if IFS= read "${_L_args[@]}" -r -d '' "$1"; then
+	if IFS= read ${_L_args[@]+"${_L_args[@]}"} -r -d '' "$1"; then
 		# A NUL ended the first chunk. Read the rest, dropping NULs.
-		while IFS= read "${_L_args[@]}" -r -d '' _L_chunk || (( (_L_rc=$?) == 0 )); do
+		while IFS= read ${_L_args[@]+"${_L_args[@]}"} -r -d '' _L_chunk || (( (_L_rc=$?) == 0 )); do
 			eval "$1+=\$_L_chunk"
 		done
 		eval "$1+=\$_L_chunk"
@@ -6779,7 +6779,7 @@ _L_unittest_main_output_printer() {
 	local i
 	for i in "${!_L_u_test_ret[@]}"; do
 		# shellcheck disable=SC2211,SC2086
-		if (( _L_u_test_ret[i] $1 )); then
+		if (( !!_L_u_test_ret[i] == $1 )); then
 			_L_unittest_main_print_line "-" "${_L_u_test_func[i]}" "$L_CYAN"
 			echo "${_L_u_test_output[i]:-no output}"
 		fi
@@ -6989,7 +6989,7 @@ L_unittest_main() {
 		# Ouptut passed if verbose
 		if (( _L_u_verbose && passed )); then
 			_L_unittest_main_print_line "=" "$passed PASSES" "$L_GREEN$L_BOLD"
-			_L_unittest_main_output_printer " == 0"
+			_L_unittest_main_output_printer "0"
 		fi
 		if (( skipped )); then
 			_L_unittest_main_print_line "=" "$skipped SKIPPED" "$L_YELLOW$L_BOLD"
@@ -7007,7 +7007,7 @@ L_unittest_main() {
 				msg+="S"
 			fi
 			_L_unittest_main_print_line "=" "$msg" "$L_RED$L_BOLD"
-			_L_unittest_main_output_printer " != 0"
+			_L_unittest_main_output_printer "1"
 		fi
 	fi
 	#
@@ -7077,8 +7077,7 @@ L_unittest_checkexit() {
 		_L_invert=1
 		shift
 	fi
-	"$@" || _L_ret=$?
-	(( _L_invert ? _L_ret = !_L_ret, 1 : 1 ))
+	"$@" || _L_ret=$(( _L_invert ? !$? : $? ))
 	_L_unittest_internal "[$(L_quote_printf "$@")] exited with $_L_ret" "$_L_ret != $_L_shouldbe" \
 		[ "$_L_ret" -eq "$_L_shouldbe" ]
 }
@@ -12286,7 +12285,7 @@ _L_obj_descend_vL_RET() {
 			# create and append at the tail
 			_L_new=${_L_obj[1]:-${#_L_obj[@]}}
 			[[ -n ${_L_obj[1]} ]] && _L_obj[1]=${_L_obj[_L_new+3]}
-			_L_obj[_L_new]= _L_obj[_L_new+1]= _L_obj[_L_new+2]= _L_obj[_L_new+3]= _L_obj[_L_new+4]=$_L_last
+			_L_obj[_L_new]="" _L_obj[_L_new+1]="" _L_obj[_L_new+2]="" _L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last
 			if [[ $_L_kind == MAP ]]; then
 				_L_obj[_L_new+1]=$_L_arg
 			fi
@@ -12421,14 +12420,14 @@ L_obj_rm() {
 	else
 		# root: free its children, keep node 0 and the free-list head in its key field
 		_L_obj_rm_fill_stack 0
-		_L_obj[0]="FREE" _L_obj[2]= _L_obj[3]= _L_obj[4]=
+		_L_obj[0]="FREE" _L_obj[2]="" _L_obj[3]="" _L_obj[4]=""
 	fi
 	# free the subtree iteratively, pushing children before freeing the node
 	while (( ${#_L_stack[@]} )); do
 		_L_cur=${_L_stack[-1]}
 		unset '_L_stack[-1]'
 		_L_obj_rm_fill_stack "$_L_cur"
-		_L_obj[_L_cur]="FREE" _L_obj[_L_cur+1]= _L_obj[_L_cur+2]= _L_obj[_L_cur+3]=${_L_obj[1]} _L_obj[_L_cur+4]=
+		_L_obj[_L_cur]="FREE" _L_obj[_L_cur+1]="" _L_obj[_L_cur+2]="" _L_obj[_L_cur+3]=${_L_obj[1]} _L_obj[_L_cur+4]=""
 		_L_obj[1]=$_L_cur
 	done
 }
@@ -12628,7 +12627,7 @@ L_obj_string_append() {
 # @arg <value>
 L_obj_array_append_type_value() {
 	local -n _L_obj=$1 || return
-	local _L_type=${@:$#-1:1} _L_value=${!#} L_RET _L_cur _L_new _L_last=""
+	local _L_type=${*:$#-1:1} _L_value=${!#} L_RET _L_cur _L_new _L_last=""
 	if [[ "${*:$#-2:1}" != "+=" ]]; then L_func_usage_error "+= missing"; return "$L_EX_USAGE"; fi
 	if (( $# < 3 )); then L_func_usage_error "Not enough arguments"; return "$L_EX_USAGE"; fi
 	_L_obj_descend_vL_RET "${@:2:$#-4}" || return
@@ -12647,7 +12646,7 @@ L_obj_array_append_type_value() {
 	_L_new=${_L_obj[1]:-${#_L_obj[@]}}
 	if [[ -n ${_L_obj[1]} ]]; then _L_obj[1]=${_L_obj[_L_new+3]}; fi
 	# fill and link at the tail
-	_L_obj[_L_new]=$_L_type _L_obj[_L_new+1]= _L_obj[_L_new+2]=$_L_value _L_obj[_L_new+3]= _L_obj[_L_new+4]=$_L_last
+	_L_obj[_L_new]=$_L_type _L_obj[_L_new+1]="" _L_obj[_L_new+2]=$_L_value _L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last
 	if [[ -n $_L_last ]]; then
 		_L_obj[_L_last+3]=$_L_new
 	else
@@ -12732,6 +12731,7 @@ L_obj_foreach() {
 # json [[[
 # @section json
 
+# shellcheck disable=SC2059
 _L_printf_or_store() { printf ${1:+"-v$1"} "$2%${1:+.}0s" "${@:3}" $'\n'; }
 
 # Convert Bash string into Json string.
@@ -12785,7 +12785,7 @@ L_json_quote_vL_RET() {
 L_json_quote_ascii() { L_handle_v_scalar "$@"; }
 L_json_quote_ascii_vL_RET() {
 	L_json_quote_vL_RET "$1"
-	local _L_s=$L_RET _L_out= _L_pre _L_c _L_cp LC_ALL=C.UTF-8
+	local _L_s=$L_RET _L_out="" _L_pre _L_c _L_cp LC_ALL=C.UTF-8
 	while [[ $_L_s == *[^$'\x01'-$'\x7f']* ]]; do
 		_L_pre=${_L_s%%[^$'\x01'-$'\x7f']*}  # ASCII run before the first non-ASCII char
 		printf -v _L_cp %d "'${_L_s:${#_L_pre}:1}"  # the non-ASCII char
@@ -12860,74 +12860,6 @@ L_json_unquote_vL_RET() {
 		esac
 	done
 	L_RET+=$_L_s
-}
-
-# Convert json path into an array of elements with "strings" and digits.
-# ["a"][0].b -> L_RET=('"a"' 0 '"b"')
-# @option -v <var>
-# @arg <path>
-L_json_path_normalize() { L_handle_v_scalar "$@"; }
-L_json_path_normalize_vL_RET() {
-	local _L_input=$1 _L_dot='' _L_tmp _L_tok=()
-	L_RET=()
-	while (( 1 )); do
-		case "$_L_input" in
-			'["'*)
-				if [[ ! "$_L_input" =~ ^\[(\"([^\"$'\x01-\x1f'\\]|\\[\"\\/bfnrt]|\\u[0-9a-fA-F]{4})*\")\] ]]; then
-					L_func_error "Unclosed double quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
-				fi
-				L_RET+=("${BASH_REMATCH[1]}")
-				;;
-			"['"*)
-				if [[ ! "$_L_input" =~ ^\[\'(([^\'$'\x01-\x1f'\\]|\\[\'\\/bfnrt]|\\u[0-9a-fA-F]{4})*)\'\] ]]; then
-					L_func_error "Unclosed single quote string in bracket notation: $_L_input"; return "$L_EX_DATAERR"
-				fi
-				_L_tmp=${BASH_REMATCH[1]//\\\'/\'}   # \'  -> '   (undo single-quote escaping)
-				L_RET+=("${_L_tmp//\"/\\\"}")   # "   -> \"  (escape bare " for double-quote context)
-				;;
-			'['[0-9]*)
-				if [[ ! "$_L_input" =~ ^'['(0|[1-9][0-9]*)']' ]]; then
-					L_func_error "Invalid bracket notation: $1"; return "$L_EX_DATAERR"
-				fi
-				L_RET+=("${BASH_REMATCH[1]}")
-				;;
-			$_L_dot[^$'\x01-\x1f'"\\.\[\]@#%^&*+=|/?!~\`'\";:,{}()<>-"]*)
-				if [[ ! "$_L_input" =~ ^$_L_dot([^"]"$'\x01-\x1f'"\\.\[@#%^&*+=|/?!~\`'\";:,{}()<>-"]+) ]]; then
-					L_func_error "Empty key in JSON path: $1"; return "$L_EX_DATAERR"
-				fi
-				L_RET+=("\"${BASH_REMATCH[1]}\"")
-				;;
-			'') break ;;
-			*) L_func_error "Invalid character in JSON path: $1"; return "$L_EX_DATAERR" ;;
-		esac
-		_L_input="${_L_input:${#BASH_REMATCH[0]}}"
-		_L_dot="."
-	done
-}
-
-# Parse a JSON-path expression (dot/bracket notation) into an L_obj key.
-# @option -v <var>
-# @arg <path>
-# @example
-#   L_json_path_to_obj_key -v key 'a.b["c.d"][0]'
-#   # key now holds the packed L_obj key for:
-#   # map "a" -> map "b" -> map "c.d" -> array index 0
-L_json_path_to_obj_key() { L_handle_v_scalar "$@"; }
-L_json_path_to_obj_key_vL_RET() {
-	L_json_path_normalize_vL_RET
-	local _L_tmp _L_i
-	for _L_i in "${!L_RET[@]}"; do
-		if [[ "${L_RET[_L_i]}" == '"'* ]]; then
-			if (( _L_i != 0 )); then
-				_L_tmp=${L_RET[0]}
-			fi
-			L_json_unquote_vL_RET "${L_RET[_L_i]}" || return
-			if (( _L_i != 0 )); then
-				L_RET[_L_i]=${L_RET[0]}
-				L_RET[0]=$_L_tmp
-			fi
-		fi
-	done
 }
 
 _L_json_float_re='^-?(0|[1-9][0-9]*)([.][0-9]+)?([eE][+-]?[0-9]+)?'
@@ -13162,15 +13094,7 @@ L_json_get_all_vL_RET() {
 	local _L_json="$1" _L_orig_json="$1" _L_initlen="${#1}" _L_key _L_key2 _L_start="" _L_end="" \
 		_L_value_captured=0 _L_value="" _L_type=""
 	printf -v _L_key "%q " "${2:2}"
-	_L_json_cb() {
-		printf -v _L_key2 "%q " ${_L_JSON_PATH[@]+"${_L_JSON_PATH[@]}"}
-		case "$1 $_L_key2" in
-			"START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" _L_type=$2 ;;
-			"END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))" _L_type=$2; return 124 ;;
-			"VALUE $_L_key") _L_value=$2 _L_type=$3 _L_value_captured=1; return 124 ;;
-		esac
-	}
-	_L_json_parse _L_json_cb || eval "(( $? == 124 )) || return $?"
+	_L_json_parse _L_json_get_all_cb || eval "(( $? == 124 )) || return $?"
 	if [[ -n "$_L_start" && -n "$_L_end" ]]; then
 		L_RET=(
 			"${_L_value:-${_L_orig_json:_L_start:_L_end-_L_start}}"
@@ -13181,6 +13105,14 @@ L_json_get_all_vL_RET() {
 	elif [[ -z "${_L_value:-}" && $_L_value_captured -eq 0 ]]; then
 		return 1
 	fi
+}
+_L_json_get_all_cb() {
+	printf -v _L_key2 "%q " ${_L_JSON_PATH[@]+"${_L_JSON_PATH[@]}"}
+	case "$1 $_L_key2" in
+		"START $_L_key") _L_start="$(( _L_initlen - ${#_L_json} ))" _L_type=$2 ;;
+		"END $_L_key") _L_end="$(( _L_initlen - ${#_L_json} ))" _L_type=$2; return 124 ;;
+		"VALUE $_L_key") _L_value=$2 _L_type=$3 _L_value_captured=1; return 124 ;;
+	esac
 }
 
 # Get a value from json.
@@ -13321,18 +13253,18 @@ _L_ini_quote_vL_RET() {
 # @option -v <var> Store into varaible instead of printing.
 # @option -h
 L_obj_to_ini() {
-	local OPTIND OPTARG OPTERR _L_c _L_v="" _L_last_section="" _L_sort=() _L_ini_buf=("" "")
+	local OPTIND OPTARG OPTERR _L_c _L_v="" _L_last_section="" _L_sort="" _L_ini_buf=("" "")
 	# _L_ini_buf[0] - keys without a section, _L_ini_buf[1] - sections with keys
 	while getopts Sv:h _L_c; do
 		case $_L_c in
-			S) _L_sort=(-S) ;;
+			S) _L_sort=-S ;;
 			v) _L_v=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
 	done
 	shift "$((OPTIND-1))"
-	L_obj_walk "${_L_sort[@]}" "$1" _L_obj_to_ini_cb || return
+	L_obj_walk $_L_sort "$1" _L_obj_to_ini_cb || return
 	_L_printf_or_store "$_L_v" "%s" "${_L_ini_buf[0]}${_L_ini_buf[1]}"
 }
 _L_obj_to_ini_cb() {
@@ -13419,36 +13351,37 @@ _L_toml_eol() {
 
 # $1 = raw content of a basic string -> L_RET
 _L_toml_unescape_vL_RET() {
-	local s=$1 out= c h n
+	local s=$1 out="" c h n
 	while [[ $s == *\\* ]]; do
 		out+=${s%%\\*}
 		s=${s#*\\}
 		c=${s::1}
 		case $c in
-		b) out+=$'\b'; s=${s:1} ;;
-		t) out+=$'\t'; s=${s:1} ;;
-		n) out+=$'\n'; s=${s:1} ;;
-		f) out+=$'\f'; s=${s:1} ;;
-		r) out+=$'\r'; s=${s:1} ;;
-		e) out+=$'\e'; s=${s:1} ;;
-		'"') out+='"'; s=${s:1} ;;
-		\\) out+='\'; s=${s:1} ;;
-		u|U)
-			if [[ $c == u ]]; then n=4; else n=8; fi
-			h=${s:1:n}
-			if [[ ${#h} -ne n || $h == *[!0-9a-fA-F]* ]] ||
-				(( 16#$h >= 0xD800 && 16#$h <= 0xDFFF || 16#$h > 0x10FFFF )); then
-				_L_toml_err "Invalid unicode escape"; return
-			fi
-			printf -v h '%08x' "$((16#$h))"
-			printf -v c "\\U$h"
-			out+=$c
-			s=${s:1+n}
-			;;
-		' '|$'\t'|$'\r'|$'\n')   # line ending backslash: trim whitespace and newlines
-			s=${s#"${s%%[!$' \t\r\n']*}"}
-			;;
-		*) _L_toml_err "Invalid escape"; return ;;
+			b) out+=$'\b'; s=${s:1} ;;
+			t) out+=$'\t'; s=${s:1} ;;
+			n) out+=$'\n'; s=${s:1} ;;
+			f) out+=$'\f'; s=${s:1} ;;
+			r) out+=$'\r'; s=${s:1} ;;
+			e) out+=$'\e'; s=${s:1} ;;
+			'"') out+='"'; s=${s:1} ;;
+			\\) out+='\'; s=${s:1} ;;
+			u|U)
+				if [[ $c == u ]]; then n=4; else n=8; fi
+				h=${s:1:n}
+				if [[ ${#h} -ne n || $h == *[!0-9a-fA-F]* ]] ||
+					(( 16#$h >= 0xD800 && 16#$h <= 0xDFFF || 16#$h > 0x10FFFF )); then
+					_L_toml_err "Invalid unicode escape"; return
+				fi
+				printf -v h '%08x' "$((16#$h))"
+				# shellcheck disable=SC2059
+				printf -v c "\\U$h"
+				out+=$c
+				s=${s:1+n}
+				;;
+			[$' \t\r\n'])   # line ending backslash: trim whitespace and newlines
+				s=${s#"${s%%[!$' \t\r\n']*}"}
+				;;
+			*) _L_toml_err "Invalid escape"; return ;;
 		esac
 	done
 	L_RET=$out$s
@@ -13475,23 +13408,23 @@ _L_toml_mlbasic_re=$'^"""(\r?\n)?((([^"\\\\]|\\\\.|"{1,2}([^"\\\\]|\\\\.))*)"?"?
 _L_toml_parse_string() {
 	local _L_rest=${_L_toml:3} _L_raw="" _L_m
 	case $_L_toml in
-	'"""'*)
-		[[ $_L_toml =~ $_L_toml_mlbasic_re ]] || { _L_toml_err "Unterminated multi-line string"; return; }
-		_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
-		_L_toml_unescape_vL_RET "${BASH_REMATCH[2]}"
-		;;
-	"'''"*)
-		case $_L_rest in $'\r\n'*) _L_rest=${_L_rest:2} ;; $'\n'*) _L_rest=${_L_rest:1} ;; esac
-		if [[ $_L_rest != *"'''"* ]]; then _L_toml_err "Unterminated multi-line string"; return; fi
-		L_RET=${_L_rest%%"'''"*}
-		_L_rest=${_L_rest#*"'''"}
-		if [[ $_L_rest == "'"* ]]; then
-		L_RET+="'" _L_rest=${_L_rest:1}
-		if [[ $_L_rest == "'"* ]]; then L_RET+="'" _L_rest=${_L_rest:1}; fi
-		fi
-		_L_toml=$_L_rest
-		;;
-	*) _L_toml_parse_sstring_vL_RET ;;
+		'"""'*)
+			[[ $_L_toml =~ $_L_toml_mlbasic_re ]] || { _L_toml_err "Unterminated multi-line string"; return; }
+			_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
+			_L_toml_unescape_vL_RET "${BASH_REMATCH[2]}"
+			;;
+		"'''"*)
+			case $_L_rest in $'\r\n'*) _L_rest=${_L_rest:2} ;; $'\n'*) _L_rest=${_L_rest:1} ;; esac
+			if [[ $_L_rest != *"'''"* ]]; then _L_toml_err "Unterminated multi-line string"; return; fi
+			L_RET=${_L_rest%%"'''"*}
+			_L_rest=${_L_rest#*"'''"}
+			if [[ $_L_rest == "'"* ]]; then
+			L_RET+="'" _L_rest=${_L_rest:1}
+			if [[ $_L_rest == "'"* ]]; then L_RET+="'" _L_rest=${_L_rest:1}; fi
+			fi
+			_L_toml=$_L_rest
+			;;
+		*) _L_toml_parse_sstring_vL_RET ;;
 	esac
 }
 
@@ -13501,15 +13434,15 @@ _L_toml_parse_key_v_L_keys() {
 	while
 		_L_toml_ws
 		case $_L_toml in
-		'"'*|"'"*) _L_toml_parse_sstring_vL_RET || return; _L_keys+=("$L_RET") ;;
-		*)
-		if [[ $_L_toml =~ ^[A-Za-z0-9_-]+ ]]; then
-			_L_keys+=("${BASH_REMATCH[0]}")
-			_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
-		else
-			_L_toml_err "Expected key"; return
-		fi
-		;;
+			'"'*|"'"*) _L_toml_parse_sstring_vL_RET || return; _L_keys+=("$L_RET") ;;
+			*)
+			if [[ $_L_toml =~ ^[A-Za-z0-9_-]+ ]]; then
+				_L_keys+=("${BASH_REMATCH[0]}")
+				_L_toml=${_L_toml:${#BASH_REMATCH[0]}}
+			else
+				_L_toml_err "Expected key"; return
+			fi
+			;;
 		esac
 		_L_toml_ws
 		[[ $_L_toml == .* ]]
@@ -13529,27 +13462,27 @@ _L_toml_parse_number() {
 		_L_value=${BASH_REMATCH[1]}
 		_L_toml=${_L_toml:${#_L_value}}
 		case $_L_value in
-		[0-9][0-9][0-9][0-9]-*) _L_type=DATE${BASH_REMATCH[9]:+TIME} ;;
-		[0-9][0-9]:*) _L_type=TIME ;;
-		0[xob]*)
-		_L_type=INTEGER
-		_L_value=${_L_value//_/}
-		case ${_L_value:1:1} in
-			x) _L_value=$((_L_value)) ;;
-			o) _L_value=$((8#${_L_value:2})) ;;
-			b) _L_value=$((2#${_L_value:2})) ;;
-		esac
-		;;
-		[-+][inf|inf|[+-]nan|nan|*[.eE]*)
-		_L_type=FLOAT
-		_L_value=${_L_value//_/}
-		_L_value=${_L_value#+}
-		;;
-		[0-9]*|[+-][0-9]*)
-		_L_type=INTEGER
-		_L_value=${_L_value//_/}
-		_L_value=${_L_value#+}
-		;;
+			[0-9][0-9][0-9][0-9]-*) _L_type=DATE${BASH_REMATCH[9]:+TIME} ;;
+			[0-9][0-9]:*) _L_type=TIME ;;
+			0[xob]*)
+				_L_type=INTEGER
+				_L_value=${_L_value//_/}
+				case ${_L_value:1:1} in
+					x) _L_value=$((_L_value)) ;;
+					o) _L_value=$((8#${_L_value:2})) ;;
+					b) _L_value=$((2#${_L_value:2})) ;;
+				esac
+				;;
+			[-+][inf|inf|[+-]nan|nan|*[.eE]*)
+				_L_type=FLOAT
+				_L_value=${_L_value//_/}
+				_L_value=${_L_value#+}
+				;;
+			[0-9]*|[+-][0-9]*)
+				_L_type=INTEGER
+				_L_value=${_L_value//_/}
+				_L_value=${_L_value#+}
+				;;
 			*) _L_toml_err "Internal error when parsing number: $_L_value" || return ;;
 		esac
 		"${_L_toml_cb[@]}" VALUE "$_L_type" "$_L_value" "$@"
@@ -13562,61 +13495,61 @@ _L_toml_parse_number() {
 _L_toml_parse_value() {
 	local _L_i=0
 	case $_L_toml in
-	["\"'"]*)
-		_L_toml_parse_string || return
-		"${_L_toml_cb[@]}" VALUE STRING "$L_RET" "$@"
-		;;
-	true*)  _L_toml=${_L_toml:4}; "${_L_toml_cb[@]}" VALUE BOOL true "$@" ;;
-	false*) _L_toml=${_L_toml:5}; "${_L_toml_cb[@]}" VALUE BOOL false "$@" ;;
-	'['*)
-		"${_L_toml_cb[@]}" START ARRAY "$@" || return
-		_L_toml=${_L_toml:1}
-		while :; do
-		_L_toml_skip
-		case $_L_toml in
-			']'*) break ;;
-			'') _L_toml_err "Unexpected EOF"; return ;;
-		esac
-		_L_toml_parse_value "$@" "$((_L_i++))" || return
-		_L_toml_skip
-		case $_L_toml in
-			,*) _L_toml=${_L_toml:1} ;;
-			']'*) break ;;
-			'') _L_toml_err "Unexpected EOF"; return ;;
-			*) _L_toml_err "Expected ',' or ']'"; return ;;
-		esac
-		done
-		_L_toml=${_L_toml:1}
-		"${_L_toml_cb[@]}" END ARRAY "$@"
-		;;
-	'{'*)
-		"${_L_toml_cb[@]}" START MAP "$@" || return
-		_L_toml=${_L_toml:1}
-		_L_toml_ws
-		if [[ $_L_toml == '}'* ]]; then
-		_L_toml=${_L_toml:1}
-		else
-		while :; do
-			_L_toml_parse_key_v_L_keys || return
-			_L_toml_ws
-			if [[ $_L_toml != =* ]]; then _L_toml_err "Missing '='"; return; fi
+		["\"'"]*)
+			_L_toml_parse_string || return
+			"${_L_toml_cb[@]}" VALUE STRING "$L_RET" "$@"
+			;;
+		true*)  _L_toml=${_L_toml:4}; "${_L_toml_cb[@]}" VALUE BOOL true "$@" ;;
+		false*) _L_toml=${_L_toml:5}; "${_L_toml_cb[@]}" VALUE BOOL false "$@" ;;
+		'['*)
+			"${_L_toml_cb[@]}" START ARRAY "$@" || return
+			_L_toml=${_L_toml:1}
+			while :; do
+			_L_toml_skip
+			case $_L_toml in
+				']'*) break ;;
+				'') _L_toml_err "Unexpected EOF"; return ;;
+			esac
+			_L_toml_parse_value "$@" "$((_L_i++))" || return
+			_L_toml_skip
+			case $_L_toml in
+				,*) _L_toml=${_L_toml:1} ;;
+				']'*) break ;;
+				'') _L_toml_err "Unexpected EOF"; return ;;
+				*) _L_toml_err "Expected ',' or ']'"; return ;;
+			esac
+			done
+			_L_toml=${_L_toml:1}
+			"${_L_toml_cb[@]}" END ARRAY "$@"
+			;;
+		'{'*)
+			"${_L_toml_cb[@]}" START MAP "$@" || return
 			_L_toml=${_L_toml:1}
 			_L_toml_ws
-			_L_toml_parse_value "$@" "${_L_keys[@]}" || return
-			_L_toml_ws
-			case $_L_toml in
-				,*) _L_toml=${_L_toml:1}; _L_toml_ws ;;
-				'}'*) _L_toml=${_L_toml:1}; break ;;
-				'') _L_toml_err "Unexpected EOF"; return ;;
-				*) _L_toml_err "Expected ',' or '}'"; return ;;
-			esac
-		done
-		fi
-		"${_L_toml_cb[@]}" END MAP "$@"
-		;;
-	[0-9+-]*|inf*|nan*) _L_toml_parse_number "$@" ;;
-	'') _L_toml_err "Unexpected EOF" ;;
-	*) _L_toml_err "Invalid value" ;;
+			if [[ $_L_toml == '}'* ]]; then
+			_L_toml=${_L_toml:1}
+			else
+			while :; do
+				_L_toml_parse_key_v_L_keys || return
+				_L_toml_ws
+				if [[ $_L_toml != =* ]]; then _L_toml_err "Missing '='"; return; fi
+				_L_toml=${_L_toml:1}
+				_L_toml_ws
+				_L_toml_parse_value "$@" "${_L_keys[@]}" || return
+				_L_toml_ws
+				case $_L_toml in
+					,*) _L_toml=${_L_toml:1}; _L_toml_ws ;;
+					'}'*) _L_toml=${_L_toml:1}; break ;;
+					'') _L_toml_err "Unexpected EOF"; return ;;
+					*) _L_toml_err "Expected ',' or '}'"; return ;;
+				esac
+			done
+			fi
+			"${_L_toml_cb[@]}" END MAP "$@"
+			;;
+		[0-9+-]*|inf*|nan*) _L_toml_parse_number "$@" ;;
+		'') _L_toml_err "Unexpected EOF" ;;
+		*) _L_toml_err "Invalid value" ;;
 	esac
 }
 
@@ -13676,9 +13609,9 @@ _L_toml_parse() {
 	while :; do
 		_L_toml_skip
 		case $_L_toml in
-		'') break ;;
-		'['*) _L_toml_parse_header || return ;;
-		*) _L_toml_parse_keyval || return ;;
+			'') break ;;
+			'['*) _L_toml_parse_header || return ;;
+			*) _L_toml_parse_keyval || return ;;
 		esac
 		_L_toml_eol || return
 	done
@@ -13715,10 +13648,11 @@ _L_toml_cb() {
 }
 
 # Characters that must be escaped in a TOML basic string.
-_L_toml_special='[\"\\'$'\x01'-$'\x1f\x7f]'
+_L_toml_special='[\\\"'$'\x01'-$'\x1f\x7f]'
 
+# shellcheck disable=SC2295
 _L_toml_quote_vL_RET() {
-	local rest=$1 out= char
+	local rest=$1 out="" char
 	while [[ $rest == *$_L_toml_special* ]]; do
 		out+=${rest%%$_L_toml_special*}
 		rest=${rest#"${rest%%$_L_toml_special*}"}
@@ -13851,7 +13785,7 @@ L_obj_to_toml() {
 	L_obj_walk "$1" _L_obj_to_toml_scan_cb || return
 	_L_kinds=()
 	L_obj_walk $_L_sort "$1" _L_obj_to_toml_emit_cb || return
-	_L_out="${_L_bufs[@]+${_L_bufs[*]}}"
+	_L_out="${_L_bufs[*]+${_L_bufs[*]}}"
 	_L_printf_or_store "$_L_v" "%s" "${_L_out%%$'\n'}"
 }
 
