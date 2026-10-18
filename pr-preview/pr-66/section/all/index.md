@@ -3005,6 +3005,30 @@ echo "${arr[@]}"  # prints Hello world
 
 **Argument:** **`$1`** array nameref
 
+#### L_cat_into
+
+Cat from stdin into a variable.
+
+Warning
+
+Do not use with positional arguments. To read a file in bash, use var=$(\<file) expansion.
+
+This function is meant to read from a file descriptor. It is roughly equal to IFS= read -r -d '' var || :
+
+Warning
+
+To be fast, read errors are not properly handled. You have to pass correct -t -u options.
+
+**Options:**
+
+- **`-u`** fd
+- **`-N`** count
+- **`-t`** timeout
+- **`-n`** Strip trailing newlines, just like $(cat) does.
+- **`-h`**
+
+**Argument:** **`$1`** Variable to store the result into.
+
 #### L_readarray
 
 Wrapper for readarray/mapfile for bash versions that do not have it.
@@ -5958,34 +5982,6 @@ Convert Json string into Bash string.
 **Argument:** **`<str>`**
 
 #### L_json_unquote_vL_RET
-
-#### L_json_path_normalize
-
-Convert json path into an array of elements with "strings" and digits. "a".b -> L_RET=('"a"' 0 '"b"')
-
-**Option:** **`-v <var>`**
-
-**Argument:** **`<path>`**
-
-#### L_json_path_normalize_vL_RET
-
-#### L_json_path_to_obj_key
-
-Parse a JSON-path expression (dot/bracket notation) into an L_obj key.
-
-Example
-
-```
-L_json_path_to_obj_key -v key 'a.b["c.d"][0]'
-# key now holds the packed L_obj key for:
-# map "a" -> map "b" -> map "c.d" -> array index 0
-```
-
-**Option:** **`-v <var>`**
-
-**Argument:** **`<path>`**
-
-#### L_json_path_to_obj_key_vL_RET
 
 #### L_json_to_obj
 

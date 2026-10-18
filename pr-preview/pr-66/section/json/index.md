@@ -135,34 +135,6 @@ Convert Json string into Bash string.
 
 ### L_json_unquote_vL_RET
 
-### L_json_path_normalize
-
-Convert json path into an array of elements with "strings" and digits. "a".b -> L_RET=('"a"' 0 '"b"')
-
-**Option:** **`-v <var>`**
-
-**Argument:** **`<path>`**
-
-### L_json_path_normalize_vL_RET
-
-### L_json_path_to_obj_key
-
-Parse a JSON-path expression (dot/bracket notation) into an L_obj key.
-
-Example
-
-```
-L_json_path_to_obj_key -v key 'a.b["c.d"][0]'
-# key now holds the packed L_obj key for:
-# map "a" -> map "b" -> map "c.d" -> array index 0
-```
-
-**Option:** **`-v <var>`**
-
-**Argument:** **`<path>`**
-
-### L_json_path_to_obj_key_vL_RET
-
 ### L_json_to_obj
 
 Convert a json into an object.

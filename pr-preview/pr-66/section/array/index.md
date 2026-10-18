@@ -216,6 +216,30 @@ echo "${arr[@]}"  # prints Hello world
 
 **Argument:** **`$1`** array nameref
 
+### L_cat_into
+
+Cat from stdin into a variable.
+
+Warning
+
+Do not use with positional arguments. To read a file in bash, use var=$(\<file) expansion.
+
+This function is meant to read from a file descriptor. It is roughly equal to IFS= read -r -d '' var || :
+
+Warning
+
+To be fast, read errors are not properly handled. You have to pass correct -t -u options.
+
+**Options:**
+
+- **`-u`** fd
+- **`-N`** count
+- **`-t`** timeout
+- **`-n`** Strip trailing newlines, just like $(cat) does.
+- **`-h`**
+
+**Argument:** **`$1`** Variable to store the result into.
+
 ### L_readarray
 
 Wrapper for readarray/mapfile for bash versions that do not have it.
