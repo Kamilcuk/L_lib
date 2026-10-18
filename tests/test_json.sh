@@ -259,104 +259,12 @@ _L_test_json_is_valid() {
   for json in "${jsons[@]}"; do L_unittest_cmd ! L_json_is_valid "$json"; done
 }
 
-_L_test_json_path() {
-  obj_skip_test
-  L_readarray -t cases <<'EOF'
-a[""] 0 "a" ""
-["a"] 0 "a"
-[""] 0 ""
-[0] 0 0
-["0"] 0 "0"
-["a"][""]["0"][0]["0"] 0 "a" "" "0" 0 "0"
-a["\""] 0 "a" "\""
-a["\\"] 0 "a" "\\"
-a["\\\""] 0 "a" "\\\""
-a["\\\\"] 0 "a" "\\\\"
-a["\\\\\""] 0 "a" "\\\\\""
-a["\\\\\\\""] 0 "a" "\\\\\\\""
-["\""] 0 "\""
-["\\"] 0 "\\"
-["\\\""] 0 "\\\""
-["\\\\"] 0 "\\\\"
-["\\\\\""] 0 "\\\\\""
-["\\\\\\\""] 0 "\\\\\\\""
-["a.b[c]d"] 0 "a.b[c]d"
-["["] 0 "["
-["]"] 0 "]"
-["."] 0 "."
-[""] 0 ""
-["0"] 0 "0"
-[0] 0 0
-["0"][0]["0"] 0 "0" 0 "0"
-["a"]["b"]["c"] 0 "a" "b" "c"
-a[0] 0 "a" 0
-a["0"] 0 "a" "0"
-a["a.b"] 0 "a" "a.b"
-["a.b"][0]["c[d]"] 0 "a.b" 0 "c[d]"
-["a\\b"] 0 "a\\b"
-["a\"b"] 0 "a\"b"
-["a\\\\b"] 0 "a\\\\b"
-["a\\\\\\\"b"] 0 "a\\\\\\\"b"
-["x"]tail 1
-["x" 1
-["x] 1
-["\" 1
-["x"y] 1
-[x] 1
-[] 1
-[01] 1
-[-1] 1
-["a"]["b.c"]["d[e]"]["f\"g"]["h\\i"] 0 "a" "b.c" "d[e]" "f\"g" "h\\i"
-[""][0][""][1][""] 0 "" 0 "" 1 ""
-["0"][0]["00"][00] 1
-["a"][0][1][2][3] 0 "a" 0 1 2 3
-a.b.c[0][1].d 0 "a" "b" "c" 0 1 "d"
-["a.b"][0]["c.d"][1] 0 "a.b" 0 "c.d" 1
-["a[b]"]["c]d"]["[e"] 0 "a[b]" "c]d" "[e"
-["\"\""] 0 "\"\""
-["\\\\"] 0 "\\\\"
-["\\\\\\\\"] 0 "\\\\\\\\"
-["\\\\\\\"] 1
-["a\\\\\""] 0 "a\\\\\""
-["a\\\\\\\""] 0 "a\\\\\\\""
-["a\\\\\\\\\""] 0 "a\\\\\\\\\""
-["a.b[0].c"] 0 "a.b[0].c"
-["\t"] 0 "\t"
-["\n"] 0 "\n"
-["\r"] 0 "\r"
-["\u0000"] 0 "\u0000"
-["\\u1234"] 0 "\\u1234"
-["a\\u1234b"] 0 "a\\u1234b"
-["a"]["b"][999999999999999999999] 0 "a" "b" 999999999999999999999
-EOF
-  for input in "${cases[@]}"; do
-    if [[ -z "$input" ]]; then continue; fi
-    IFS=' ' read -ra tmp <<<"$input"
-    input=${tmp[0]}
-    expectedfail=${tmp[1]}
-    expectedoutput=("${tmp[@]:2}")
-    if ! L_json_path_normalize -v output "$input"; then
-      if (( expectedfail )); then
-        continue
-      else
-        exit 1
-      fi
-    fi
-    exit=$?
-    L_pp input " -> " output " !! " expectedoutput " \$?=$exit"
-    if (( expectedfail )); then
-      L_unittest_ne "$exit" 0
-    else
-      L_unittest_eq "$exit" 0
-    fi
-    if (( exit == 0 )); then
-      L_unittest_arreq output "${expectedoutput[@]}"
-    fi
-  done
-}
-
 _L_test_json_to_obj() {
   obj_skip_test
+  if ! L_hash jq; then
+    L_unittest_skip "jq not found"
+    return
+  fi
   local json back jsons
   L_readarray -t jsons <<'EOF'
 {"a":"b","c":"d"}

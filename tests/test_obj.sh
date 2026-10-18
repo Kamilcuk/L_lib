@@ -105,7 +105,7 @@ _L_test_obj_2() {
     L_logrun L_obj_len -v n obj "${base[@]}" sensors "$s" readings
     for (( i = 0; i < n; i++ )); do
       L_logrun L_obj_get -v L_RET obj "${base[@]}" sensors "$s" readings "$i"
-      (( sum += L_RET ))
+      sum=$(( sum + L_RET ))
     done
     printf '%s avg=%d%s (n=%d)\n' "$name" "$(( sum / n ))" "$unit" "$n"
   done
