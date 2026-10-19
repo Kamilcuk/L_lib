@@ -5,9 +5,10 @@ _L_test_json_quote() {
 		return
 	fi
 	t() {
-		local tmp input="$1"
+		local input="$1" tmp actual
 		L_json_quote -v tmp "$1"
-		MSYS_NO_PATHCONV=1 L_unittest_cmd -o "$tmp" jq -n --arg input "$input" '$input'
+		actual=$(MSYS_NO_PATHCONV=1 jq -n --arg input "$input" '$input' | tr -d '\r')
+		L_unittest_eq "$tmp" "$actual"
 	}
 	t $'1 hello\n\t\bworld'
 	t $'\1f'
@@ -47,11 +48,11 @@ _L_test_json() {
 			local json1="$1" expr="$2" input="$3" json2
 			#
 			L_json_pretty -v json1 "$json1"
-			json2=$(jq "$expr" <<<"$input")
+			json2=$(jq "$expr" <<<"$input" | tr -d '\r')
 			L_unittest_eq "$json1" "$json2"
 			#
 			L_json_compact -v json1 "$json1"
-			json2=$(jq -c "$expr" <<<"$input")
+			json2=$(jq -c "$expr" <<<"$input" | tr -d '\r')
 			L_unittest_eq "$json1" "$json2"
 		}
 
@@ -118,7 +119,7 @@ _L_test_json_5KB() {
     L_unittest_skip "64KB JSON fetch unavailable"
     return 0
   fi
-  L_RET=$(jq '.[:20]' <<<"$L_RET" 2>/dev/null || head -n 20 <<<"$L_RET")
+  L_RET=$( { jq '.[:20]' <<<"$L_RET" 2>/dev/null || head -n 20 <<<"$L_RET"; } | tr -d '\r')
   _L_json_test_parse "$L_RET" || exit
 }
 
@@ -313,7 +314,7 @@ EOF
     # L_pp -m obj
     L_unittest_cmd -c _L_obj_print_table obj
     L_unittest_cmd -c L_obj_to_json -v back $opts obj
-    local expected=$(jq $opts <<<"$json")
+    local expected=$(jq $opts <<<"$json" | tr -d '\r')
     if [[ "$back" != "$expected" ]]; then
       sdiff <(cat -A <<<"$back") <(cat -A <<<"$expected") || :
       L_unittest_fail "Output mismatch for $opts $json"
