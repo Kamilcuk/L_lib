@@ -12801,39 +12801,58 @@ L_json_quote_ascii_vL_RET() {
 	L_RET=$_L_out$_L_s
 }
 
+# $1 = Unicode code point (number) -> UTF-8 bytes, any locale.
+# \xHH always emits raw bytes, so the result is locale-independent (unlike
+# printf '\uXXXX' / '%b \UXXXXXXXX', which depend on LC_CTYPE).
+_L_utf8_encode_v_L_dec() {
+	if (( $1 < 0x80 )); then
+		printf -v _L_dec '\\x%02x' "$1"
+	elif (( $1 < 0x800 )); then
+		printf -v _L_dec '\\x%02x\\x%02x' \
+			"$((0xC0 | $1>>6))" "$((0x80 | $1&0x3F))"
+	elif (( $1 < 0x10000 )); then
+		printf -v _L_dec '\\x%02x\\x%02x\\x%02x' \
+			"$((0xE0 | $1>>12))" "$((0x80 | ($1>>6)&0x3F))" "$((0x80 | $1&0x3F))"
+	else
+		printf -v _L_dec '\\x%02x\\x%02x\\x%02x\\x%02x' \
+			"$((0xF0 | $1>>18))" "$((0x80 | ($1>>12)&0x3F))" "$((0x80 | ($1>>6)&0x3F))" "$((0x80 | $1&0x3F))"
+	fi
+	# shellcheck disable=SC2059
+	printf -v _L_dec "$_L_dec"
+}
+
 # Convert Json string into Bash string.
 # @option -v <var>
 # @arg <str>
 L_json_unquote() { L_handle_v_scalar "$@"; }
 _L_json_unquote_unicode_append_L_RET() {
-	local _L_hex _L_cp _L_hi _L_lo
+	local _L_hex _L_cp _L_hi _L_lo _L_saved _L_dec
 	_L_hex=${_L_s:1:4}
 	_L_s=${_L_s:5}
 	_L_cp=$((16#$_L_hex))
 	if (( _L_cp >= 0xDC00 && _L_cp <= 0xDFFF )); then
-		L_func_error "Low surrogate without a preceding high surrogate is invalid: $s"
+		L_func_error "Low surrogate without a preceding high surrogate is invalid: $_L_s"
 		return "$L_EX_DATAERR"
 	fi
 	# High surrogate: must be followed immediately by \uXXXX low surrogate.
 	if (( _L_cp >= 0xD800 && _L_cp <= 0xDBFF )); then
-		case $s in
+		case $_L_s in
 			\\u[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]*)
-				_L_lo=${s:2:4}
-				_L_lo=$((16#$_L_lo))
+				_L_lo=$(( 16#${_L_s:2:4} ))
 				if (( _L_lo < 0xDC00 || _L_lo > 0xDFFF )); then
-			L_func_error "Invalid json unicode sequence: $s"
+					L_func_error "Invalid json unicode sequence: $_L_s"
 					return "$L_EX_DATAERR"
 				fi
-				s=${s:6}
+				_L_s=${_L_s:6}
 				_L_cp=$((0x10000 + ((_L_cp - 0xD800) << 10) + (_L_lo - 0xDC00)))
 				;;
 			*)
-		return "$L_EX_DATAERR"
-		;;
+				return "$L_EX_DATAERR"
+				;;
 		esac
 	fi
-	printf -v _L_char '%b' "\\U$(printf '%08x' "$_L_cp")"
-	L_RET+=${_L_char}
+	_L_utf8_encode_v_L_dec "$_L_cp"
+	L_RET+=$_L_dec
 }
 L_json_unquote_vL_RET() {
 	local _L_s=$1
@@ -13351,7 +13370,7 @@ _L_toml_eol() {
 
 # $1 = raw content of a basic string -> L_RET
 _L_toml_unescape_vL_RET() {
-	local s=$1 out="" c h n
+	local s=$1 out="" c h n cp _L_dec
 	while [[ $s == *\\* ]]; do
 		out+=${s%%\\*}
 		s=${s#*\\}
@@ -13365,19 +13384,17 @@ _L_toml_unescape_vL_RET() {
 			e) out+=$'\e'; s=${s:1} ;;
 			'"') out+='"'; s=${s:1} ;;
 			\\) out+='\'; s=${s:1} ;;
-			u|U)
-				if [[ $c == u ]]; then n=4; else n=8; fi
-				h=${s:1:n}
-				if [[ ${#h} -ne n || $h == *[!0-9a-fA-F]* ]] ||
-					(( 16#$h >= 0xD800 && 16#$h <= 0xDFFF || 16#$h > 0x10FFFF )); then
+			u[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]*|\
+			U[[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]][[:xdigit:]]*)
+				if [[ $s == u* ]]; then n=4; else n=8; fi
+				if (( (cp = "16#${s:1:n}") >> 11 == 0x1B || cp > 0x10FFFF )); then   # surrogates or too big
 					_L_toml_err "Invalid unicode escape"; return
 				fi
-				printf -v h '%08x' "$((16#$h))"
-				# shellcheck disable=SC2059
-				printf -v c "\\U$h"
-				out+=$c
+				_L_utf8_encode_v_L_dec "$cp"
+				out+=$_L_dec
 				s=${s:1+n}
 				;;
+			[uU]*) _L_toml_err "Invalid unicode escape"; return ;;
 			[$' \t\r\n'])   # line ending backslash: trim whitespace and newlines
 				s=${s#"${s%%[!$' \t\r\n']*}"}
 				;;
