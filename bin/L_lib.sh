@@ -668,6 +668,7 @@ L_func_doc() {
 		_L_source=${_L_source:-${BASH_SOURCE[_L_up]}}
 		#
 		local _L_content _L_comment
+		[[ -r "$_L_source" ]] || return "$L_EX_IOERR"
 		_L_content=$(< "$_L_source") || return "$L_EX_IOERR"
 		L_regex_escape_vL_RET "$_L_funcname"
 		if ! [[ "$_L_content" =~ $'\n'([^\#$'\n'][^$'\n']*)?((\#[^$'\n']*($'\n'\#[^$'\n']*)*))$'\n'(function[[:space:]]+$L_RET|$L_RET[[:space:]]*\() ]]; then
@@ -981,7 +982,7 @@ L_decorate_copy() {
 		eval "$func(){$deco \"\$@\";}"
 }
 
-_L_getopts_in_initer() {
+_L_getopts_run_initer() {
 	if [[ "$1" == -a ]]; then
 		L_array_assign "${2%%=*}"
 	else
@@ -1014,6 +1015,7 @@ _L_getopts_in_initer() {
 # @option -g Declare variables globally with `declare -g`.
 # @option -w Just set variables, without `local` or `declare -g`.
 # @option -E eval the command.
+# @option -i Interleave positional arguments with options.
 # @option -h Show this help and return 0.
 # @arg $1 The getopts spec.
 # @arg $2 Function to call.
@@ -1023,22 +1025,24 @@ _L_getopts_in_initer() {
 #         0 if -h option was given,
 #         64 ($L_EX_USAGE) on child usage error.
 # @example
-#    myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+#    myfunc() { L_getopts_run -p opt_ n::vq myfunc_in "$@"; }
 #    myfunc_in() {
 #      echo "${opt_n[@]} $opt_v $opt_q"
 #    }
 #
-L_getopts_in() {
-	local OPTIND OPTARG OPTERR _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0
-	while getopts p:n:s:e:gwEh _L_opt; do
+L_getopts_run() {
+	local OPTIND OPTARG OPTERR _L_opt _L_prefix="" _L_nargs="*" _L_up=1 _L_es=() _L_tmp _L_local=(local) _L_eval=0 \
+		_L_args=() _L_interleave=0
+	while getopts p:n:s:e:gwEih _L_opt; do
 		case "$_L_opt" in
 			p) _L_prefix=$OPTARG ;;
 			n) _L_nargs=$OPTARG ;;
 			s) _L_up=$OPTARG ;;
 			e) printf -v _L_tmp "%d" "'${OPTARG%%=*}"; _L_es[_L_tmp]="${OPTARG#*=}" ;;
 			g) _L_local=(declare -g) ;;
-			w) _L_local=(_L_getopts_in_initer) ;;
+			w) _L_local=(_L_getopts_run_initer) ;;
 			E) _L_eval=1 ;;
+			i) _L_interleave=1 ;;
 			h) L_func_help; return ;;
 			*) L_func_usage_error; return "$L_EX_SOFTWARE" ;;
 		esac
@@ -1049,6 +1053,10 @@ L_getopts_in() {
 	# Initialize variables.
 	_L_tmp=$_L_spec
 	while [[ -n "$_L_tmp" ]]; do
+		if [[ ${_L_tmp:1} == *"${_L_tmp::1}"* ]]; then
+			L_func_usage_error "Repeated character in getopts specification string: ${_L_tmp::1}"
+			return "$L_EX_SOFTWARE"
+		fi
 		case "$_L_tmp" in
 			[^:]::*) "${_L_local[@]}" -a "${_L_prefix}${_L_tmp::1}=()" || return "$L_EX_SOFTWARE"; _L_tmp=${_L_tmp:3} ;;
 			[^:]:*) _L_tmp=${_L_tmp:2} ;;
@@ -1057,21 +1065,39 @@ L_getopts_in() {
 		esac
 	done
 	#
-	OPTIND=0
-	while getopts "${_L_spec//::/:}h" _L_opt; do
-		# Execute action given by -e. Some optimization.
-		${_L_es[@]:+printf} ${_L_es[@]:+-v_L_tmp} ${_L_es[@]:+"%d"} ${_L_es[@]:+"'$_L_opt"}
-		${_L_es[@]:+${_L_es[_L_tmp]:+eval}} ${_L_es[@]:+${_L_es[_L_tmp]:+"${_L_es[_L_tmp]}"}}
-		# Parse the command.
-		case "$_L_spec" in
-			*"$_L_opt::"*) L_array_append "$_L_prefix$_L_opt" "$OPTARG" ;;
-			*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
-			*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
-			h) L_func_help "$_L_up"; return 0 ;;
-			*) L_func_usage_error "$_L_up"; return "$L_EX_USAGE" ;;
-		esac
+	OPTIND=1
+	while (( OPTIND <= $# )); do
+		if getopts ":${_L_spec//::/:}h" _L_opt; then
+			# Execute action given by -e.
+			if (( ${_L_es[@]+1}0 )); then
+    		printf -v _L_tmp '%d' "'$_L_opt"
+    		if [[ -n "${_L_es[_L_tmp]-}" ]]; then
+    			eval "${_L_es[_L_tmp]}"
+    		fi
+			fi
+			# Parse the command.
+			case "$_L_spec" in
+				*"$_L_opt::"*) L_array_append "$_L_prefix$_L_opt" "$OPTARG" ;;
+				*"$_L_opt:"*) "${_L_local[@]}" "$_L_prefix$_L_opt=$OPTARG" ;;
+				*"$_L_opt"*) printf -v "$_L_prefix$_L_opt" "%s" "$(( ${_L_prefix}${_L_opt} + 1 ))" ;;
+				*)
+					case "$_L_opt" in
+						h) L_func_help "$_L_up"; return 0 ;;
+						*) L_func_usage_error "Unknown option: -$OPTARG" "$_L_up"; return "$L_EX_USAGE" ;;
+					esac
+			esac
+		elif (( _L_interleave )); then
+			_L_args+=("${!OPTIND}")
+      ((OPTIND++))
+    else
+      break
+    fi
 	done
-	shift "$((OPTIND-1))"
+	if (( _L_interleave )); then
+		set -- ${_L_args[@]+"${_L_args[@]}"}
+	else
+		shift "$((OPTIND-1))"
+	fi
 	#
 	case "$_L_nargs" in
 		'*') ;;
@@ -12167,12 +12193,14 @@ L_uv_poke() { _L_uv_poked=1; }
 # obj [[[
 # @section obj
 
+# @arg $1 position
+# @arg $@ [parts...]
 # Sets L_RET=(<current index> <parent index>)
-_L_obj_maybe_find_child_from_args_vL_RET() {
+_L_obj_pos_try_get_pos_vL_RET() {
 	local _L_arg
-	L_RET=(0)
-	for _L_arg; do
-		case ${_L_obj[L_RET[1]=L_RET[0]]} in
+	L_RET=("$1")
+	for _L_arg in "${@:2}"; do
+		case ${_L_obj[L_RET]} in
 			MAP)
 				L_RET=${_L_obj[L_RET+2]}
 				if (( !L_RET )); then return; fi
@@ -12195,66 +12223,42 @@ _L_obj_maybe_find_child_from_args_vL_RET() {
 	done
 }
 
-# Same as maybe, but has to exist.
-_L_obj_get_raw_idx_of_vL_RET() {
-	_L_obj_maybe_find_child_from_args_vL_RET "$@" || return
+# Same as try, but has to exist.
+# @arg $1 position
+# @arg $@ [parts...]
+_L_obj_pos_get_pos_verbose_vL_RET() {
+	_L_obj_pos_try_get_pos_vL_RET "$@" || return
 	if [[ -z "$L_RET" ]]; then
-		L_func_error "index not found: $*" 1
+		L_func_error "index not found: ${*:2} starting from $1" 1
 		return 1
 	fi
 }
 
-# Clear the L_obj. Just sets the array to ().
-# @arg $1 L_obj namereference.
-L_obj_clear() { local -n _L_obj=$1 && _L_obj=(); }
-
-# Get value in the object. The value can't be MAP or ARRAY type.
-# @arg $1 L_obj namereference.
-# @arg [parts...]
-# @option -v <var>
-L_obj_get() { L_handle_v_scalar "$@"; }
-L_obj_get_vL_RET() {
-	local -n _L_obj=$1 || return
-	_L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
-	case ${_L_obj[L_RET]} in
-		MAP|ARRAY|"")
-			L_func_error "cannot get value of a container"
-			return 1
-			;;
-	esac
-	L_RET=${_L_obj[L_RET+2]}
+# Check that a position is a live node.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @return 0 if valid
+L_objpos_is_valid() { local -n _L_obj=$1 && _L_objpos_is_valid "$2"; }
+_L_objpos_is_valid() {
+	L_is_natural_integer "$2" &&
+		(( $2 % 6 == 0 && $2 < ${#_L_obj[@]} )) &&
+		[[ -n ${_L_obj[$2]} && ${_L_obj[$2]} != FREE ]]
 }
 
-# Like L_obj_get, but if not exists, return default.
-# @arg $1 L_obj namereference.
-# @arg [parts...]
-# @arg <default>
-# @option -v <var>
-L_obj_get_default() { L_handle_v_scalar "$@"; }
-L_obj_get_default_vL_RET() {
-	local -n _L_obj=$1 || return
-	_L_obj_maybe_find_child_from_args_vL_RET "${@:2:$#-2}"
-	if [[ -z $L_RET ]]; then
-		L_RET=${!#}
-	else
-		case ${_L_obj[L_RET]} in MAP|ARRAY|"")
-			L_func_error "cannot get value of a container"
-			return 1
-			;;
-		esac
-		L_RET=${_L_obj[L_RET+2]-}
-	fi
+_L_objpos_alloc_v_L_new() {
+	_L_new=${_L_obj[1]:-${#_L_obj[@]}}
+	if [[ -n ${_L_obj[1]} ]]; then _L_obj[1]=${_L_obj[_L_new+3]}; fi
 }
 
 # Creates missing containers: a natural-integer part creates an ARRAY, anything else a MAP.
-_L_obj_descend_vL_RET() {
+_L_obj_pos_descend_vL_RET() {
 	# local -n _L_obj has to be done by parent.
-	local _L_cur=0 _L_arg _L_kind _L_child _L_last _L_i _L_new
+	local _L_cur=$1 _L_arg _L_kind _L_child _L_last _L_i _L_new
 	# init: node 0 is the root, its key field (offset 1) is the free-list head
 	if (( ! ${_L_obj[@]:+1}0 )); then
-		_L_obj=("" "" "" "" "")
+		_L_obj=("" "" "" "" "" "")
 	fi
-	for _L_arg; do
+	for _L_arg in "${@:2}"; do
 		# If freshly created node, create it with ARRAY if index is 0.
 		if [[ $_L_arg == 0 ]]; then
 			_L_kind=${_L_obj[_L_cur]:=ARRAY}
@@ -12283,9 +12287,9 @@ _L_obj_descend_vL_RET() {
 		esac
 		if [[ -z $_L_child ]]; then
 			# create and append at the tail
-			_L_new=${_L_obj[1]:-${#_L_obj[@]}}
-			[[ -n ${_L_obj[1]} ]] && _L_obj[1]=${_L_obj[_L_new+3]}
-			_L_obj[_L_new]="" _L_obj[_L_new+1]="" _L_obj[_L_new+2]="" _L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last
+			_L_objpos_alloc_v_L_new
+			_L_obj[_L_new]="" _L_obj[_L_new+1]="" _L_obj[_L_new+2]="" \
+				_L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last _L_obj[_L_new+5]=$_L_cur
 			if [[ $_L_kind == MAP ]]; then
 				_L_obj[_L_new+1]=$_L_arg
 			fi
@@ -12301,59 +12305,6 @@ _L_obj_descend_vL_RET() {
 	L_RET=$_L_cur
 }
 
-# Set the node value with the type.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @arg <=> The character = to visually sinigify end of parts and start if arguments.
-# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
-# @arg <value> The value of the node.
-L_obj_set_type_value() {
-	local -n _L_obj=$1 || return
-	local L_RET _L_type=${*:$#-1:1}
-	if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "= missing"; return "$L_EX_USAGE"; fi
-	_L_obj_descend_vL_RET "${@:2:$#-4}" || return
-	case "${_L_obj[L_RET]}" in
-		MAP|ARRAY)
-			L_func_error "Can't set container to scalar"
-			return 1
-			;;
-	esac
-	_L_obj[L_RET]=$_L_type
-	case "$_L_type" in
-		MAP|ARRAY) ;;
-		*) _L_obj[L_RET+2]=${!#} ;;
-	esac
-}
-
-# Alias for L_obj_set_type_value that passes an empty value.
-# @see L_obj_set_type_value
-L_obj_set_type() { L_obj_set_type_value "$@" ""; }
-
-# Set the type and value only if node is unset.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @arg <=> The character = to visually sinigify end of parts and start if arguments.
-# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
-# @arg <default> The default value.
-L_obj_set_type_default_value() {
-	local -n _L_obj=$1 || return
-	local L_RET _L_type=${*:$#-1:1}
-	if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "= missing"; return "$L_EX_USAGE"; fi
-	_L_obj_descend_vL_RET "${@:2:$#-4}" || return
-	case ${_L_obj[L_RET]} in
-		MAP|ARRAY)
-			L_func_error "Can't set container to scalar"
-			return 1
-			;;
-		'')
-			_L_obj[L_RET]=$_L_type
-			case "$_L_type" in
-				MAP|ARRAY) ;;
-				*) _L_obj[L_RET+2]=${!#} ;;
-			esac
-	esac
-}
-
 _L_obj_infer_type_from_value_vL_RET() {
 	if [[ $1 =~ ^[-+]?(0|[1-9][0-9]*)((\.[0-9]+)?([eE][+-]?[0-9]+)?)$ ]]; then
 		if [[ -z "${BASH_REMATCH[2]}" ]]; then
@@ -12366,84 +12317,562 @@ _L_obj_infer_type_from_value_vL_RET() {
 	fi
 }
 
+# Print the L_obj as a table. Usefull in debugging.
+_L_obj_dump() {
+	local -n _L_obj=$1 || return
+	local _L_idx=0 _L_buf="[idx]|kind|key|val|next|prev|parent" _L_tmp
+	for (( _L_idx = 0; _L_idx < ${#_L_obj[@]}; _L_idx += 6 )); do
+		printf -v _L_tmp "[%d]" "$_L_idx"
+		_L_buf+=$'\n'$_L_tmp
+		printf -v _L_tmp "|%q" "${_L_obj[@]:_L_idx:6}"
+		_L_buf+=$_L_tmp
+	done
+	L_table -t -s '|' "$_L_buf"
+}
+
+###############################################################################
+
+# Position of the node at the path, relative to a position.
+# @arg $1 L_obj namereference
+# @arg $2 start position
+# @arg [parts...]
+# @option -v <var>
+# @return 1 if the path is missing.
+L_objpos_get_pos() { L_handle_v_scalar "$@"; }
+L_objpos_get_pos_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_try_get_pos_vL_RET "${@:2}" && [[ -n $L_RET ]]
+}
+# Get position of a parts path in L_obj objects.
+# @arg $1 L_obj namereference.
+# @arg [parts...]
+# @option -v <var>
+L_obj_get_pos() { L_handle_v_scalar "$@"; }
+L_obj_get_pos_vL_RET() { L_objpos_get_pos_vL_RET "$1" 0 "${@:2}"; }
+
+# @arg $1 L_obj namereference.
+# @arg $2 position
+# @arg [parts...]
+# @option -v <var>
+L_objpos_get_value() { L_handle_v_array "$@"; }
+L_objpos_get_value_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	case ${_L_obj[L_RET]-} in
+		MAP|ARRAY|FREE|"") L_RET=; L_func_error "no scalar value at position $2"; return 1 ;;
+	esac
+	L_RET=${_L_obj[L_RET+2]} ;;
+}
+# Get value in the object. The value can't be MAP or ARRAY type.
+# @arg $1 L_obj namereference.
+# @arg [parts...]
+# @option -v <var>
+L_obj_get_value() { L_handle_v_scalar "$@"; }
+L_obj_get_value_vL_RET() { L_objpos_get_value_vL_RET "$1" 0 "${@:2}"; }
+
+# Children of a container as triples: <key> <type> <value>.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @option -v <var>
+L_objpos_get_items() { L_handle_v_array "$@"; }
+L_objpos_get_items_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	local _L_pos=$L_RET
+	L_RET=()
+	L_objpos_foreach "$1" "$_L_pos" L_eval 'L_RET+=("$@")'
+}
+L_obj_get_items() { L_handle_v_array "$@"; }
+L_obj_get_items_vL_RET() { L_objpos_get_items_vL_RET "$1" 0 "${@:2}"; }
+
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @arg <default>
+# @option -v <var>
+L_objpos_get_type() { L_handle_v_scalar "$@"; }
+L_objpos_get_type_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	L_RET=${_L_obj[L_RET]}
+	[[ -n $L_RET && $L_RET != FREE ]]
+}
+
+# Like L_obj_get, but if not exists, return default.
+# @arg $1 L_obj namereference.
+# @arg [parts...]
+# @arg <default>
+# @option -v <var>
+L_objpos_get_default() { L_handle_v_scalar "$@"; }
+L_objpos_get_default_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_try_get_pos_vL_RET "${@:2:$#-2}" || return
+	if [[ -z $L_RET ]]; then
+		L_RET=${!#}
+	else
+		case ${_L_obj[L_RET]} in
+			MAP|ARRAY|"") L_func_error "cannot get value of a container"; return 1 ;;
+		esac
+		L_RET=${_L_obj[L_RET+2]-}
+	fi
+}
+
+# @arg $1 L_obj namereference
+# @arg position
+# @arg [parts...]
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored,
+#             but must be given to keep count of arguments.
+# @arg <value> The default value.
+L_objpos_set_type_value() {
+	local -n _L_obj=$1 || return
+	local L_RET _L_type=${*:$#-1:1}
+	if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "missing '='"; return "$L_EX_USAGE"; fi
+	_L_obj_pos_descend_vL_RET "${@:2:$#-4}" || return
+	case "${_L_obj[L_RET]}" in
+		MAP|ARRAY) L_func_error "Can't set container to scalar"; return 1 ;;
+	esac
+	_L_obj[L_RET]=$_L_type
+	case "$_L_type" in
+		MAP|ARRAY) ;;
+		*) _L_obj[L_RET+2]=${!#} ;;
+	esac
+}
+
+# Like L_obj_set_type_value, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+# @arg $1 L_obj namereference
+# @arg position
+# @arg [parts...]
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <value> The value to set to the node.
+# @see L_obj_set_type_value
+L_objpos_set_value() {
+	local L_RET
+	_L_obj_infer_type_from_value_vL_RET "${!#}"
+	L_objpos_set_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
+}
+
+# Set the type and value only if node is unset.
+# @arg $1 L_obj namereference
+# @arg position
+# @arg [parts...]
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
+# @arg <default> The default value.
+L_objpos_set_type_default() {
+	local -n _L_obj=$1 || return
+	local L_RET _L_type=${*:$#-1:1}
+	if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "missing '='"; return "$L_EX_USAGE"; fi
+	_L_obj_pos_descend_vL_RET "${@:2:$#-4}" || return
+	case ${_L_obj[L_RET]} in
+		MAP|ARRAY) L_func_error "Can't set container to scalar"; return 1 ;;
+		'')
+			_L_obj[L_RET]=$_L_type
+			case "$_L_type" in
+				MAP|ARRAY) ;;
+				*) _L_obj[L_RET+2]=${!#} ;;
+			esac
+	esac
+}
+
+# Like L_obj_set_value, but only sets value if not already set.
+# @see L_obj_set_value
+L_objpos_set_default() {
+	local L_RET
+	_L_obj_infer_type_from_value_vL_RET "${!#}"
+	L_objpos_set_type_default "${@:1$#-1}" "$L_RET" "${!#}"
+}
+
+# Remove the node at a position, or at a path below it, and free its subtree.
+# Position 0 with no parts removes the root, which clears the whole object.
+# @arg $1 L_obj namereference
+# @arg position
+# @arg [parts...] The path to remove.
+# @return 1 if the path doesn't exist.
+L_objpos_rm() {
+	local -n _L_obj=$1 || return
+	local L_RET _L_idx=$2 _L_par _L_prev _L_next _L_cur _L_stack=()
+	if (( $# > 2 )); then
+		if (( ! ${_L_obj[@]:+1}0 )); then
+			L_func_error "cannot remove from empty object"
+			return 1
+		fi
+		_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+		_L_idx=$L_RET
+	elif (( _L_idx == 0 )); then
+		_L_obj=()
+		return
+	else
+		if ! _L_objpos_is_valid "$_L_idx"; then L_func_error "invalid position: $_L_idx"; return 1; fi
+	fi
+	local _L_idx=$L_RET _L_par=${_L_obj[L_RET+5]} _L_arg _L_cur _L_child _L_prev _L_next _L_stack=()
+	# unlink from the sibling list, or from the parent's first-child field
+	_L_par=${_L_obj[L_RET+5]} _L_prev=${_L_obj[_L_idx+4]} _L_next=${_L_obj[_L_idx+3]}
+	if [[ -n $_L_prev ]]; then _L_obj[_L_prev+3]=$_L_next; else _L_obj[_L_par+2]=$_L_next; fi
+	if [[ -n $_L_next ]]; then _L_obj[_L_next+4]=$_L_prev; fi
+	_L_stack=("$_L_idx")
+	# free the subtree iteratively, pushing children before freeing the node
+	while (( ${#_L_stack[@]} )); do
+		_L_cur=${_L_stack[-1]}
+		unset '_L_stack[-1]'
+		case ${_L_obj[_L_cur]} in
+			MAP|ARRAY)
+				local _L_child=${_L_obj[_L_cur+2]}
+				while [[ -n $_L_child ]]; do
+					_L_stack+=("$_L_child")
+					_L_child=${_L_obj[_L_child+3]}
+				done
+				;;
+		esac
+		_L_obj[_L_cur]="FREE" _L_obj[_L_cur+1]="" _L_obj[_L_cur+2]="" \
+			_L_obj[_L_cur+3]=${_L_obj[1]} _L_obj[_L_cur+4]="" _L_obj[_L_cur+5]="" \
+			_L_obj[1]=$_L_cur
+	done
+}
+
+# Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY.
+# Returns 1 if the path is missing or the node is a scalar.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @option -v <var>
+L_objpos_keys() { L_handle_v_array "$@"; }
+L_objpos_keys_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	local _L_cur=$L_RET _L_i=0
+	L_RET=()
+	case ${_L_obj[_L_cur]} in
+		MAP)
+			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+				L_RET+=("${_L_obj[_L_cur+1]}")
+			done
+			;;
+		ARRAY)
+			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+				L_RET+=("$((_L_i++))")
+			done
+			;;
+		STRING|INTEGER|FLOAT|BOOL|NULL) L_func_error "Scalar value does not have keys"; return "$L_EX_USAGE" ;;
+		*) L_func_error "Internal error"; return "$L_EX_DATAERR" ;;
+	esac
+}
+
+# The count of elements in an MAP or ARRAY, or the length of value for a scalar.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @option -v <var>
+# @return 1 if the path is missing.
+L_objpos_len() { L_handle_v_scalar "$@"; }
+L_objpos_len_vL_RET() {
+	local -n _L_obj=$1 || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	local _L_cur=$L_RET
+	L_RET=0
+	case ${_L_obj[_L_cur]} in
+		MAP|ARRAY)
+			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+				L_RET=$((L_RET+1))
+			done
+			;;
+		*) L_RET=${#_L_obj[_L_cur+2]} ;;
+	esac
+}
+
+# Check if object has a path.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @return 1 if the path is missing.
+L_objpos_has() {
+	local -n _L_obj=$1 || return
+	local L_RET
+	_L_obj_pos_try_get_pos_vL_RET "${@:2}" && [[ -n "$L_RET" ]]
+}
+
+# Append to the value of a node.
+# Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @arg <+=>
+# @arg value
+# @return 1 if the path is missing.
+L_objpos_string_append() {
+	local -n _L_obj=$1 || return
+	local L_RET
+	if [[ "${*:$#-1:1}" != "+=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2:$#-3}" || return
+	case "${_L_obj[L_RET]}" in
+		MAP|ARRAY)
+			L_func_error "cannot append ${!#} in $1: it is type ${_L_obj[L_RET]}, expected string"
+			return "$L_EX_USAGE"
+			;;
+		STRING) ;;
+		*) _L_obj[L_RET]=STRING ;;
+	esac
+	_L_obj[L_RET+2]+=${!#}
+}
+
+# Append value with type to an array.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @arg <+=>
+# @arg <type>
+# @arg <value>
+L_objpos_array_append_type_value() {
+	local -n _L_obj=$1 || return
+	local _L_type=${*:$#-1:1} _L_value=${!#} L_RET _L_cur _L_new _L_last=""
+	if [[ "${*:$#-2:1}" != "+=" ]]; then L_func_usage_error "+= missing"; return "$L_EX_USAGE"; fi
+	if (( $# < 3 )); then L_func_usage_error "Not enough arguments"; return "$L_EX_USAGE"; fi
+	_L_obj_pos_descend_vL_RET "${@:2:$#-4}" || return
+	_L_cur=$L_RET
+	if [[ ${_L_obj[_L_cur]:=ARRAY} != "ARRAY" ]]; then
+		L_func_error "cannot append to $1: node is ${_L_obj[_L_cur]}, expected ARRAY"
+		return "$L_EX_DATAERR"
+	fi
+	# find the tail
+	_L_new=${_L_obj[_L_cur+2]}
+	while [[ -n $_L_new ]]; do
+		_L_last=$_L_new
+		_L_new=${_L_obj[_L_new+3]}
+	done
+	# allocate: free-list head is obj[1], otherwise grow the array
+	_L_objpos_alloc_v_L_new
+	# fill and link at the tail
+	_L_obj[_L_new]=$_L_type _L_obj[_L_new+1]="" _L_obj[_L_new+2]=$_L_value _L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last
+	if [[ -n $_L_last ]]; then
+		_L_obj[_L_last+3]=$_L_new
+	else
+		_L_obj[_L_cur+2]=$_L_new
+	fi
+}
+
+# Insert a new first child into the container at a position. O(1).
+# @arg $1 L_obj namereference
+# @arg $2 position of the MAP or ARRAY
+# @arg $3 key (pass "" for ARRAY)
+# @arg $4 type
+# @arg $5 value (ignored for MAP and ARRAY)
+# @option -v <var> position of the new node
+L_objpos_prepend() { L_handle_v_scalar "$@"; }
+L_objpos_prepend_vL_RET() {
+	local -n _L_obj=$1 || return
+	local _L_pos=$2 _L_first _L_new
+	L_objpos_is_valid "$1" "$_L_pos" || { L_func_error "invalid position: $_L_pos"; return 1; }
+	case ${_L_obj[_L_pos]} in MAP|ARRAY) ;; *) L_func_error "position $_L_pos is not a container"; return 1 ;; esac
+	_L_first=${_L_obj[_L_pos+2]}
+	_L_objpos_alloc_v_L_new
+	_L_obj[_L_new]=$4 _L_obj[_L_new+1]=$3 _L_obj[_L_new+2]=$5 \
+		_L_obj[_L_new+3]=$_L_first _L_obj[_L_new+4]="" _L_obj[_L_new+5]=$_L_pos
+	case $4 in MAP|ARRAY) _L_obj[_L_new+2]="" ;; esac
+	_L_obj[_L_p+2]=$_L_new
+	if [[ -n $_L_first ]]; then _L_obj[_L_first+4]=$_L_new; fi
+	L_RET=$_L_new
+}
+
+# Like L_obj_array_append_type_value but infer type of value.
+# @see L_obj_array_append_type_value
+L_objpos_array_append_value() {
+	local L_RET
+	_L_obj_infer_type_from_value_vL_RET "${!#}"
+	L_objpos_array_append_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
+}
+
+# @arg $1 first object name
+# @arg $2 first position
+# @arg $3 second object name
+# @arg $4 secton position
+L_objpos_cmp_objpos() {
+	local -n _L_cmp_a=$1 _L_cmp_b=$3 || return
+	_L_objpos_cmp_objpos "$2" "$3"
+}
+# $1 node index in _L_cmp_a, $2 node index in _L_cmp_b
+_L_objpos_cmp_objpos() {
+	local _L_kind=${_L_cmp_a[$1]} _L_child_a _L_child_b _L_count_a=0 _L_count_b=0
+	[[ $_L_kind == "${_L_cmp_b[$2]}" ]] || return 1
+	case $_L_kind in
+		MAP)
+			for (( _L_child_a = _L_cmp_a[$1+2]; _L_child_a; _L_child_a = _L_cmp_a[_L_child_a+3] )); do
+				(( ++_L_count_a ))
+				for (( _L_child_b = _L_cmp_b[$2+2]; _L_child_b; _L_child_b = _L_cmp_b[_L_child_b+3] )); do
+					if [[ ${_L_cmp_a[_L_child_a+1]} == "${_L_cmp_b[_L_child_b+1]}" ]]; then
+						break
+					fi
+				done
+				(( _L_child_b )) || return 1
+				_L_obj_cmp_node "$_L_child_a" "$_L_child_b" || return 1
+			done
+			for (( _L_child_b = _L_cmp_b[$2+2]; _L_child_b; _L_child_b = _L_cmp_b[_L_child_b+3] )); do
+				(( ++_L_count_b ))
+			done
+			(( _L_count_a == _L_count_b ))
+			;;
+		ARRAY)
+			_L_child_a=${_L_cmp_a[$1+2]} _L_child_b=${_L_cmp_b[$2+2]}
+			while [[ -n $_L_child_a && -n $_L_child_b ]]; do
+				_L_obj_cmp_node "$_L_child_a" "$_L_child_b" || return 1
+				_L_child_a=${_L_cmp_a[_L_child_a+3]} _L_child_b=${_L_cmp_b[_L_child_b+3]}
+			done
+			[[ -z $_L_child_a && -z $_L_child_b ]]
+			;;
+		*) [[ ${_L_cmp_a[$1+2]} == "${_L_cmp_b[$2+2]}" ]] ;;
+	esac
+}
+
+# Cursor over the direct children of a container.
+# The iterator variable is set to the container position before the loop.
+# It then holds "next:count" and is emptied at the end.
+# It is safe to L_objpos_rm the current child inside the loop,
+# because the next node is stored before the body runs.
+# @arg $1 L_obj namereference
+# @arg $2 iterator variable
+# @arg $3 variable for the key (MAP) or index (ARRAY)
+# @arg $4 variable for the value, empty for MAP and ARRAY
+# @arg [$5] variable for the child type
+# @arg [$6] variable for the child position
+# @return 0 got a child, 1 end or not a container, 2 iterator not initialized
+# @example L_obj_get_pos -v it obj a b; while L_objpos_iter obj it k v; do echo "$k=$v"; done
+L_objpos_iter() {
+	local _L_cur _L_idx _L_parent
+	local -n _L_obj=$1 _L_it=$2 _L_key_var=$3 _L_val_var=$4 _L_type_var=${5:-_} _L_pos_var=${6:-_} || return
+	if [[ -z $_L_it ]]; then L_func_error "iterator not initialized"; return 2; fi
+	if [[ $_L_it == *:[0-9]* ]]; then
+		_L_cur=${_L_it%%:*} _L_idx=${_L_it##*:}
+	else
+		case ${_L_obj[_L_parent = _L_it]-} in MAP|ARRAY) ;; *) _L_it=""; return 1 ;; esac
+		_L_cur=${_L_obj[_L_parent+2]} _L_idx=0
+	fi
+	if [[ -z $_L_cur ]]; then _L_it=""; return 1; fi
+	if [[ ${_L_obj[_L_obj[_L_cur+5]]} == MAP ]]; then _L_key_var=${_L_obj[_L_cur+1]}; else _L_key_var=$_L_idx; fi
+	_L_type_var=${_L_obj[_L_cur]} _L_pos_var=$_L_cur
+	case $_L_type_var in MAP|ARRAY) _L_val_var="" ;; *) _L_val_var=${_L_obj[_L_cur+2]} ;; esac
+	_L_it=${_L_obj[_L_cur+3]}:$((_L_idx+1))
+}
+
+# Iterate over elements in a MAP or ARRAY.
+# @arg $1 L_obj namereference
+# @arg position
+# @arg <cb...> called as: cb... <key|index> <type> <value>
+L_objpos_foreach() {
+	local -n _L_obj=$1 || return
+	(( ${#_L_obj[@]} )) || return 0
+	local _L_kind=${_L_obj[$2]} _L_cur=${_L_obj[$2+2]} _L_i=0
+	shift 2
+	case "$_L_kind" in
+		MAP)
+			for (( ; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+				"$@" "${_L_obj[_L_cur+1]}" "${_L_obj[_L_cur]}" "${_L_obj[_L_cur+2]}" || return
+			done
+			;;
+		ARRAY)
+			for (( ; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
+				"$@" "$((_L_i++))" "${_L_obj[_L_cur]}" "${_L_obj[_L_cur+2]}" || return
+			done
+			;;
+		*) return 1 ;;
+	esac
+}
+
+
+###############################################################################
+
+# Clear the L_obj. Just sets the array to ().
+# @arg $1 L_obj namereference.
+L_obj_clear() { local -n _L_obj=$1 && _L_obj=(); }
+
+# Like L_obj_get, but if not exists, return default.
+# @arg $1 L_obj namereference.
+# @arg [parts...]
+# @arg <default>
+# @option -v <var>
+L_obj_get_default() { L_handle_v_scalar "$@"; }
+L_obj_get_default_vL_RET() { L_objpos_get_default_vL_RET "$1" 0 "${@:2}"; }
+
+# Set the node value with the type.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
+# @arg <value> The value of the node.
+L_obj_set_type_value() { L_objpos_set_type_value "$1" 0 "${@:2}"; }
+
+# Alias for L_obj_set_type_value that passes an empty value.
+# @see L_obj_set_type_value
+L_obj_set_type() { L_objpos_set_type_value "$1" 0 "${@:2}" ""; }
+
+# Set the type and value only if node is unset.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
+# @arg <default> The default value.
+L_obj_set_type_default_value() { L_objpos_set_type_default "$1" 0 "${@:2}"; }
+
 # Like L_obj_set_type_value, but the type is inferred from the value - FLOAT, INTEGER, STRING.
 # @arg $1 L_obj namereference
 # @arg [parts...]
 # @arg <=> The character = to visually sinigify end of parts and start if arguments.
 # @arg <value> The value to set to the node.
 # @see L_obj_set_type_value
-L_obj_set_value() {
-	local L_RET
-	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_obj_set_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
-}
+L_obj_set_value() { L_objpos_set_value "$1" 0 "${@:2}"; }
 
 # Like L_obj_set_value, but only sets value if not already set.
 # @see L_obj_set_value
-L_obj_set_default_value() {
-	local L_RET
-	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_obj_set_type_default_value "${@:1$#-1}" "$L_RET" "${!#}"
-}
-
-_L_obj_rm_fill_stack() {
-	case ${_L_obj[$1]} in MAP|ARRAY)
-		local _L_child=${_L_obj[$1+2]}
-		while [[ -n $_L_child ]]; do
-			_L_stack+=("$_L_child")
-			_L_child=${_L_obj[_L_child+3]}
-		done
-	esac
-}
+L_obj_set_default() { L_objpos_set_default "$1" 0 "${@:2}"; }
 
 # Remove the node at the path and free its subtree
 # No parts = clear the whole object.
 # @arg $1 L_obj namereference
 # @arg [parts...] The path to remove.
 # @return 1 if the path doesn't exist.
-L_obj_rm() {
-	local -n _L_obj=$1 || return
-	if (( $# == 1 )); then _L_obj=(); return; fi
-	if (( ! ${#_L_obj[@]} )); then
-		L_func_error "cannot remove from empty object"
-		return 1
-	fi
-	local L_RET
-	_L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
-	local _L_idx=$L_RET _L_par=${L_RET[1]:-} _L_arg _L_cur _L_child _L_prev _L_next _L_stack=()
-	if (( _L_idx )); then
-		# unlink from the sibling list, or from the parent's first-child field
-		_L_prev=${_L_obj[_L_idx+4]} _L_next=${_L_obj[_L_idx+3]}
-		if [[ -n $_L_prev ]]; then _L_obj[_L_prev+3]=$_L_next; else _L_obj[_L_par+2]=$_L_next; fi
-		if [[ -n $_L_next ]]; then _L_obj[_L_next+4]=$_L_prev; fi
-		_L_stack=("$_L_idx")
-	else
-		# root: free its children, keep node 0 and the free-list head in its key field
-		_L_obj_rm_fill_stack 0
-		_L_obj[0]="FREE" _L_obj[2]="" _L_obj[3]="" _L_obj[4]=""
-	fi
-	# free the subtree iteratively, pushing children before freeing the node
-	while (( ${#_L_stack[@]} )); do
-		_L_cur=${_L_stack[-1]}
-		unset '_L_stack[-1]'
-		_L_obj_rm_fill_stack "$_L_cur"
-		_L_obj[_L_cur]="FREE" _L_obj[_L_cur+1]="" _L_obj[_L_cur+2]="" _L_obj[_L_cur+3]=${_L_obj[1]} _L_obj[_L_cur+4]=""
-		_L_obj[1]=$_L_cur
-	done
-}
+L_obj_rm() { L_objpos_rm "$1" 0 "${@:2}"; }
 
-# Print the L_obj as a table. Usefull in debugging.
-_L_obj_print_table() {
-	local -n _L_obj=$1 || return
-	local _L_idx=0 _L_buf="[idx]|kind|key|val|next|prev" _L_tmp
-	for (( _L_idx = 0; _L_idx < ${#_L_obj[@]}; _L_idx += 5 )); do
-		printf -v _L_tmp "[%d]" "$_L_idx"
-		_L_buf+=$'\n'$_L_tmp
-		printf -v _L_tmp "|%q" "${_L_obj[@]:_L_idx:5}"
-		_L_buf+=$_L_tmp
-	done
-	L_table -t -s '|' "$_L_buf"
-}
+# Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY.
+# Returns 1 if the path is missing or the node is a scalar.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @option -v <var>
+L_obj_keys() { L_handle_v_scalar "$@"; }
+L_obj_keys_vL_RET() { L_objpos_keys_vL_RET "$1" 0 "${@:2}"; }
+
+# The count of elements in an MAP or ARRAY, or the length of value for a scalar.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @option -v <var>
+# @return 1 if the path is missing.
+L_obj_len() { L_handle_v_scalar "$@"; }
+L_obj_len_vL_RET() { L_objpos_len_vL_RET "$1" 0 "${@:2}"; }
+
+# Check if object has a path.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @return 1 if the path is missing.
+L_obj_has() { L_objpos_has "$1" 0 "${@:2}"; }
+
+# Append to the value of a node.
+# Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @arg <+=>
+# @arg value
+# @return 1 if the path is missing.
+L_obj_string_append() { L_objpos_string_append "$1" 0 "${@:2}"; }
+
+# Append value with type to an array.
+# @arg $1 L_obj namereference
+# @arg [parts...]
+# @arg <+=>
+# @arg <type>
+# @arg <value>
+L_obj_array_append_type_value() { L_objpos_array_append_type_value "$1" 0 "${@:2}"; }
+
+# Like L_obj_array_append_type_value but infer type of value.
+# @see L_obj_array_append_type_value
+L_obj_array_append_value() { L_objpos_array_append_value "$1" 0 "${@:2}"; }
 
 # sorts the children of MAP node $1 in place (uses _L_obj from L_obj_walk)
 _L_obj_walk_sort() {
@@ -12478,12 +12907,14 @@ _L_obj_walk_sort() {
 # @arg $1 L_obj namereference
 # @arg <cb...> Callback with arguments to call.
 # @option -S sort keys
+# @option -p <position> Position to iterate from.
 # @option -h print this help and return 0
 L_obj_walk() {
 	local OPTIND OPTARG OPTERR _L_c _L_cur=0 _L_parts=() _L_stack=() _L_kind _L_next _L_par _L_sort=0
-	while getopts Sh _L_c; do
+	while getopts Sp:h _L_c; do
 		case "$_L_c" in
 			S) _L_sort=1 ;;
+			p) _L_cur=$OPTARG ;;
 			h) L_func_help; return 0 ;;
 			*) L_func_usage_error; return "$L_EX_USAGE" ;;
 		esac
@@ -12538,130 +12969,6 @@ L_obj_walk() {
 	done
 }
 
-# Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY.
-# Returns 1 if the path is missing or the node is a scalar.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @option -v <var>
-L_obj_keys() { L_handle_v_array "$@"; }
-L_obj_keys_vL_RET() {
-	local -n _L_obj=$1 || return
-	_L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
-	local _L_cur=$L_RET _L_i=0
-	L_RET=()
-	case ${_L_obj[_L_cur]} in
-		MAP)
-			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
-				L_RET+=("${_L_obj[_L_cur+1]}")
-			done
-			;;
-		ARRAY)
-			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
-				L_RET+=("$((_L_i++))")
-			done
-			;;
-		STRING|INTEGER|FLOAT|BOOL|NULL) L_func_error "Scalar value does not have keys"; return "$L_EX_USAGE" ;;
-		*) L_func_error "Internal error"; return "$L_EX_DATAERR" ;;
-	esac
-}
-
-# The count of elements in an MAP or ARRAY, or the length of value for a scalar.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @option -v <var>
-# @return 1 if the path is missing.
-L_obj_len() { L_handle_v_scalar "$@"; }
-L_obj_len_vL_RET() {
-	local -n _L_obj=$1 || return
-	_L_obj_get_raw_idx_of_vL_RET "${@:2}" || return
-	local _L_cur=$L_RET _L_i=0
-	L_RET=0
-	case ${_L_obj[_L_cur]} in
-		MAP|ARRAY)
-			for (( _L_cur = _L_obj[_L_cur+2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
-				L_RET=$((L_RET+1))
-			done
-			;;
-		*) L_RET=${#_L_obj[_L_cur+2]} ;;
-	esac
-}
-
-# Check if object has a path.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @return 1 if the path is missing.
-L_obj_has() {
-	local -n _L_obj=$1 || return
-	local L_RET
-	_L_obj_maybe_find_child_from_args_vL_RET "${@:2}" && [[ -n "$L_RET" ]]
-}
-
-# Append to the value of a node.
-# Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @arg <+=>
-# @arg value
-# @return 1 if the path is missing.
-L_obj_string_append() {
-	local -n _L_obj=$1 || return
-	local L_RET
-	if [[ "${*:$#-1:1}" != "+=" ]]; then L_func_error "+= missing"; return "$L_EX_USAGE"; fi
-	_L_obj_get_raw_idx_of_vL_RET "${@:2:$#-3}" || return
-	case "${_L_obj[L_RET]}" in
-		MAP|ARRAY)
-			L_func_error "cannot append ${!#} in $1: it is type ${_L_obj[L_RET]}, expected string"
-			return "$L_EX_USAGE"
-			;;
-		STRING) ;;
-		*) _L_obj[L_RET]=STRING ;;
-	esac
-	_L_obj[L_RET+2]+=${!#}
-}
-
-# Append value with type to an array.
-# @arg $1 L_obj namereference
-# @arg [parts...]
-# @arg <+=>
-# @arg <type>
-# @arg <value>
-L_obj_array_append_type_value() {
-	local -n _L_obj=$1 || return
-	local _L_type=${*:$#-1:1} _L_value=${!#} L_RET _L_cur _L_new _L_last=""
-	if [[ "${*:$#-2:1}" != "+=" ]]; then L_func_usage_error "+= missing"; return "$L_EX_USAGE"; fi
-	if (( $# < 3 )); then L_func_usage_error "Not enough arguments"; return "$L_EX_USAGE"; fi
-	_L_obj_descend_vL_RET "${@:2:$#-4}" || return
-	_L_cur=$L_RET
-	if [[ ${_L_obj[_L_cur]:=ARRAY} != "ARRAY" ]]; then
-		L_func_error "cannot append to $1: node is ${_L_obj[_L_cur]}, expected ARRAY"
-		return "$L_EX_DATAERR"
-	fi
-	# find the tail
-	_L_new=${_L_obj[_L_cur+2]}
-	while [[ -n $_L_new ]]; do
-		_L_last=$_L_new
-		_L_new=${_L_obj[_L_new+3]}
-	done
-	# allocate: free-list head is obj[1], otherwise grow the array
-	_L_new=${_L_obj[1]:-${#_L_obj[@]}}
-	if [[ -n ${_L_obj[1]} ]]; then _L_obj[1]=${_L_obj[_L_new+3]}; fi
-	# fill and link at the tail
-	_L_obj[_L_new]=$_L_type _L_obj[_L_new+1]="" _L_obj[_L_new+2]=$_L_value _L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last
-	if [[ -n $_L_last ]]; then
-		_L_obj[_L_last+3]=$_L_new
-	else
-		_L_obj[_L_cur+2]=$_L_new
-	fi
-}
-
-# Like L_obj_array_append_type_value but infer type of value.
-# @see L_obj_array_append_type_value
-L_obj_array_append_value() {
-	local L_RET
-	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_obj_array_append_type_value "${@:1:$#-1}" "$L_RET" "${!#}"
-}
-
 # Structural compare of two objects. MAP key order is ignored, ARRAY order matters.
 # @arg $1 first object name
 # @arg $2 second object name
@@ -12673,59 +12980,145 @@ L_obj_cmp_obj() {
 	fi
 	_L_obj_cmp_node 0 0
 }
-# $1 node index in _L_cmp_a, $2 node index in _L_cmp_b
-_L_obj_cmp_node() {
-	local _L_kind=${_L_cmp_a[$1]} _L_child_a _L_child_b _L_count_a=0 _L_count_b=0
-	[[ $_L_kind == "${_L_cmp_b[$2]}" ]] || return 1
-	case $_L_kind in
-		MAP)
-			for (( _L_child_a = _L_cmp_a[$1+2]; _L_child_a; _L_child_a = _L_cmp_a[_L_child_a+3] )); do
-				(( ++_L_count_a ))
-				for (( _L_child_b = _L_cmp_b[$2+2]; _L_child_b; _L_child_b = _L_cmp_b[_L_child_b+3] )); do
-			[[ ${_L_cmp_a[_L_child_a+1]} == "${_L_cmp_b[_L_child_b+1]}" ]] && break
-				done
-				(( _L_child_b )) || return 1
-				_L_obj_cmp_node "$_L_child_a" "$_L_child_b" || return 1
-			done
-			for (( _L_child_b = _L_cmp_b[$2+2]; _L_child_b; _L_child_b = _L_cmp_b[_L_child_b+3] )); do
-				(( ++_L_count_b ))
-			done
-			(( _L_count_a == _L_count_b ))
-			;;
-		ARRAY)
-			_L_child_a=${_L_cmp_a[$1+2]} _L_child_b=${_L_cmp_b[$2+2]}
-			while [[ -n $_L_child_a && -n $_L_child_b ]]; do
-				_L_obj_cmp_node "$_L_child_a" "$_L_child_b" || return 1
-				_L_child_a=${_L_cmp_a[_L_child_a+3]} _L_child_b=${_L_cmp_b[_L_child_b+3]}
-			done
-			[[ -z $_L_child_a && -z $_L_child_b ]]
-			;;
-		*) [[ ${_L_cmp_a[$1+2]} == "${_L_cmp_b[$2+2]}" ]] ;;
-	esac
-}
 
 # Iterate over elements in a MAP or ARRAY.
 # @arg $1 L_obj namereference
 # @arg <cb...> called as: cb... <key|index> <type> <value>
-L_obj_foreach() {
-	local -n _L_obj=$1 || return
-	shift
-	local _L_cur _L_i=0
-	(( ${#_L_obj[@]} )) || return 0
-	case ${_L_obj[0]} in
-		MAP)
-			for (( _L_cur = _L_obj[2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
-				"$@" "${_L_obj[_L_cur+1]}" "${_L_obj[_L_cur]}" "${_L_obj[_L_cur+2]}" || return
-			done
-			;;
-		ARRAY)
-			for (( _L_cur = _L_obj[2]; _L_cur; _L_cur = _L_obj[_L_cur+3] )); do
-				"$@" "$((_L_i++))" "${_L_obj[_L_cur]}" "${_L_obj[_L_cur+2]}" || return
-			done
-			;;
-		*) return 1 ;;
+L_obj_foreach() { L_objpos_foreach "$1" 0 "${@:2}"; }
+
+# Recursive helper. Copies node $1 of _L_cp_src into existing node $2 of _L_obj.
+# Links of node $2 are left alone.
+_L_objpos_copy_node() {
+	local _L_s=$1 _L_d=$2 _L_c _L_new _L_last=""
+	_L_obj[_L_d]=${_L_cp_src[_L_s]}
+	case ${_L_cp_src[_L_s]} in
+	MAP|ARRAY)
+		_L_obj[_L_d+2]=""
+		for (( _L_c = _L_cp_src[_L_s+2]; _L_c; _L_c = _L_cp_src[_L_c+3] )); do
+			_L_objpos_alloc_v_L_new
+			_L_obj[_L_new]="" _L_obj[_L_new+1]=${_L_cp_src[_L_c+1]} _L_obj[_L_new+2]="" \
+				_L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last _L_obj[_L_new+5]=$_L_d
+			if [[ -n $_L_last ]]; then _L_obj[_L_last+3]=$_L_new; else _L_obj[_L_d+2]=$_L_new; fi
+			_L_last=$_L_new
+			_L_objpos_copy_node "$_L_c" "$_L_new"
+		done
+		;;
+	*) _L_obj[_L_d+2]=${_L_cp_src[_L_s+2]} ;;
 	esac
 }
+
+# Deep copy a subtree. The destination node's old children are removed and replaced.
+# @arg $1 source L_obj
+# @arg $2 source position
+# @arg $3 destination L_obj
+# @arg $4 destination position (0 for the root)
+L_objpos_copy() {
+	local -n _L_cp_src=$1 _L_obj=$3 || return
+	if [[ -z ${_L_cp_src[$2]-} || ${_L_cp_src[$2]} == FREE ]]; then
+		L_func_error "invalid source position: $2"; return 1
+	fi
+	(( ${#_L_obj[@]} )) || _L_obj=("" "" "" "" "" "")
+	_L_objpos_is_valid "$4" || { L_func_error "invalid destination position: $4"; return 1; }
+	case ${_L_obj[$4]} in
+		MAP|ARRAY)
+			while [[ -n ${_L_obj[$4+2]} ]]; do
+				L_objpos_rm "$3" "${_L_obj[$4+2]}" || return
+			done
+			;;
+	esac
+	_L_objpos_copy_node "$2" "$4"
+}
+
+# Deep copy a whole object. Overwrites $2.
+# @arg $1 source L_obj
+# @arg $2 destination L_obj
+L_obj_copy() {
+	[[ $1 != "$2" ]] || return 0
+	local -n _L_cpw_s=$1 _L_cpw_d=$2 || return
+	_L_cpw_d=()
+	(( ${#_L_cpw_s[@]} )) || return 0
+	L_objpos_copy "$1" 0 "$2" 0
+}
+
+# Deep merge src into dst. MAPs merge key by key, everything else
+# (scalars, ARRAYs, type mismatches) is replaced by a copy of the src node.
+# @arg $1 destination L_obj
+# @arg $2 destination position
+# @arg $3 source L_obj
+# @arg $4 source position
+L_objpos_merge() {
+	local -n _L_obj=$1 _L_mg_s=$3 || return
+	local _L_dp=$2 _L_sp=$4 _L_sc _L_dc _L_key _L_new _L_last
+	(( ${#_L_mg_s[@]} )) || return 0
+	if [[ ${_L_mg_s[_L_sp]} != MAP || ${_L_obj[_L_dp]-} != MAP ]]; then
+		L_objpos_copy "$3" "$_L_sp" "$1" "$_L_dp"
+	else
+		for (( _L_sc = _L_mg_s[_L_sp+2]; _L_sc; _L_sc = _L_mg_s[_L_sc+3] )); do
+			_L_key=${_L_mg_s[_L_sc+1]} _L_last=""
+			for (( _L_dc = _L_obj[_L_dp+2]; _L_dc; _L_dc = _L_obj[_L_dc+3] )); do
+				[[ ${_L_obj[_L_dc+1]} != "$_L_key" ]] || break
+				_L_last=$_L_dc
+			done
+			if (( _L_dc )); then
+				L_objpos_merge "$1" "$_L_dc" "$3" "$_L_sc" || return
+			else
+				_L_objpos_alloc_v_L_new
+				_L_obj[_L_new]="" _L_obj[_L_new+1]=$_L_key _L_obj[_L_new+2]="" \
+					_L_obj[_L_new+3]="" _L_obj[_L_new+4]=$_L_last _L_obj[_L_new+5]=$_L_dp
+				if [[ -n $_L_last ]]; then _L_obj[_L_last+3]=$_L_new; else _L_obj[_L_dp+2]=$_L_new; fi
+				L_objpos_copy "$3" "$_L_sc" "$1" "$_L_new" || return
+			fi
+		done
+	fi
+}
+L_obj_merge() { L_objpos_merge "$1" 0 "$2" 0; }
+
+# Insert a new sibling after the node at a position. O(1).
+# @arg $1 L_obj namereference
+# @arg $2 position of an existing non-root node
+# @arg $3 key (ignored if the parent is an ARRAY)
+# @arg $4 type
+# @arg $5 value (ignored for MAP and ARRAY)
+# @option -v <var> position of the new node
+L_objpos_insert_after() { L_handle_v_scalar "$@"; }
+L_objpos_insert_after_vL_RET() {
+	local -n _L_obj=$1 || return
+	local _L_pos=$2 _L_next _L_par _L_new _L_key=$3
+	if (( ! _L_pos )) || ! _L_objpos_is_valid "$_L_pos"; then
+		L_func_error "invalid position: $_L_pos"; return 1
+	fi
+	_L_par=${_L_obj[_L_pos+5]} _L_next=${_L_obj[_L_pos+3]}
+	if [[ ${_L_obj[_L_par]} == ARRAY ]]; then _L_key=""; fi
+	_L_objpos_alloc_v_L_new
+	_L_obj[_L_new]=$4 _L_obj[_L_new+1]=$_L_key _L_obj[_L_new+2]=$5 \
+		_L_obj[_L_new+3]=$_L_next _L_obj[_L_new+4]=$_L_pos _L_obj[_L_new+5]=$_L_par
+	case $4 in MAP|ARRAY) _L_obj[_L_new+2]="" ;; esac
+	_L_obj[_L_pos+3]=$_L_new
+	if [[ -n $_L_next ]]; then _L_obj[_L_next+4]=$_L_new; fi
+	L_RET=$_L_new
+}
+
+# Remove the last element of the ARRAY at the path and return its scalar value.
+# @arg $1 L_obj namereference
+# @arg $2 position
+# @arg [parts...]
+# @option -v <var>
+# @return 1 if the path is missing, not an ARRAY, empty, or the last element is a container.
+L_objpos_pop() { L_handle_v_scalar "$@"; }
+L_objpos_pop_vL_RET() {
+	local -n _L_obj=$1 || return
+	local _L_val
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
+	if [[ ${_L_obj[L_RET]} != ARRAY ]]; then L_func_error "not an ARRAY"; return 1; fi
+	L_RET=${_L_obj[L_RET+2]}
+	if [[ -z $L_RET ]]; then L_func_error "pop from empty array"; return 1; fi
+	while [[ -n ${_L_obj[L_RET+3]} ]]; do L_RET=${_L_obj[L_RET+3]}; done
+	case ${_L_obj[L_RET]} in MAP|ARRAY) L_func_error "cannot pop a container"; return 1 ;; esac
+	_L_val=${_L_obj[L_RET+2]}
+	L_objpos_rm "$1" "$L_RET" || return
+	L_RET=$_L_val
+}
+L_obj_pop() { L_objpos_pop "$1" 0 "${@:2}"; }
 
 # ]]]
 # json [[[

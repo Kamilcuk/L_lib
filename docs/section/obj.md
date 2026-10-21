@@ -142,6 +142,7 @@ OBJ stores a tree structure in a flat Bash array where each node occupies 5 cons
 | 2 | value | For MAP/ARRAY it is the first child index. |
 | 3 | next | If kind is FREE or parent is MAP, the next sibling index. |
 | 4 | prev | If parent is MAP, previous sibling index. |
+| 5 | parent | Pointer to parent |
 
 ```
 "A" becomes: (
