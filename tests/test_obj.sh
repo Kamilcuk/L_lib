@@ -14,17 +14,17 @@ _L_test_obj_1() {
     L_obj_set_value obj a c = dead1
     L_obj_set_value obj a d = dead2
     L_obj_set_value obj a f = dead3
-    L_obj_get_vL_RET obj a b 0
+    L_obj_get_value_vL_RET obj a b 0
     L_unittest_vareq L_RET 1
-    L_obj_get_vL_RET obj a b 1
+    L_obj_get_value_vL_RET obj a b 1
     L_unittest_vareq L_RET 2
-    L_obj_get_vL_RET obj a b 2
+    L_obj_get_value_vL_RET obj a b 2
     L_unittest_vareq L_RET 3
-    L_obj_get_vL_RET obj a c
+    L_obj_get_value_vL_RET obj a c
     L_unittest_vareq L_RET dead1
-    L_obj_get_vL_RET obj a d
+    L_obj_get_value_vL_RET obj a d
     L_unittest_vareq L_RET dead2
-    L_obj_get_vL_RET obj a f
+    L_obj_get_value_vL_RET obj a f
     L_unittest_vareq L_RET dead3
     L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 3
@@ -47,10 +47,10 @@ _L_test_obj_1() {
   }
   {
     L_obj_string_append obj a f += dead
-    L_obj_get_vL_RET obj a f
+    L_obj_get_value_vL_RET obj a f
     L_unittest_vareq L_RET dead3dead
   }
-  _L_obj_print_table obj
+  _L_obj_dump obj
   L_pp obj
 }
 
@@ -83,28 +83,28 @@ _L_test_obj_2() {
     L_obj_set_value obj last_update = "$RANDOM"
   done
 
-  _L_obj_print_table obj
+  _L_obj_dump obj
 
     # --- lookups and lengths
   base=(stations krakow.south)
-  L_obj_get_vL_RET obj "${base[@]}" name
+  L_obj_get_value_vL_RET obj "${base[@]}" name
   L_unittest_vareq L_RET krakow.south
   L_obj_len_vL_RET obj "${base[@]}" sensors
   L_unittest_vareq L_RET 3
   L_obj_len_vL_RET obj "${base[@]}" sensors 1 readings
   L_unittest_vareq L_RET 5
-  L_obj_get_vL_RET obj "${base[@]}" sensors 2 unit
+  L_obj_get_value_vL_RET obj "${base[@]}" sensors 2 unit
   L_unittest_vareq L_RET hPa
 
   # --- iteration 1: by index (arrays), average each sensor of one station
   L_logrun L_obj_len -v nsensors obj "${base[@]}" sensors
   for (( s = 0; s < nsensors; s++ )); do
     local sum=0 name unit
-    L_logrun L_obj_get -v name obj "${base[@]}" sensors "$s" name
-    L_logrun L_obj_get -v unit obj "${base[@]}" sensors "$s" unit
+    L_logrun L_obj_get_value -v name obj "${base[@]}" sensors "$s" name
+    L_logrun L_obj_get_value -v unit obj "${base[@]}" sensors "$s" unit
     L_logrun L_obj_len -v n obj "${base[@]}" sensors "$s" readings
     for (( i = 0; i < n; i++ )); do
-      L_logrun L_obj_get -v L_RET obj "${base[@]}" sensors "$s" readings "$i"
+      L_logrun L_obj_get_value -v L_RET obj "${base[@]}" sensors "$s" readings "$i"
       sum=$(( sum + L_RET ))
     done
     printf '%s avg=%d%s (n=%d)\n' "$name" "$(( sum / n ))" "$unit" "$n"
@@ -120,7 +120,7 @@ _L_test_obj_2() {
   L_obj_walk obj obj_walk_cb
 
   # --- iteration 3: flat dump of the raw keys, to see the escaping
-  _L_obj_print_table obj
+  _L_obj_dump obj
 }
 
 _L_test_obj_walk() {
@@ -163,13 +163,13 @@ _L_test_obj_3() {
   L_obj_array_append_value obj a b += string3
   L_obj_array_append_value obj a b += string4
 
-  # _L_obj_print_table obj
+  # _L_obj_dump obj
   L_obj_rm obj a
   # L_obj_rm obj
   # L_obj_set_value obj a b 2 string
   L_obj_set_type obj a b c = MAP
   L_obj_walk obj echo
-  _L_obj_print_table obj
+  _L_obj_dump obj
 }
 
 _L_test_obj_rm_add() {
@@ -181,6 +181,7 @@ _L_test_obj_rm_add() {
 		# add
 		local obj=()
 		L_obj_set_value obj a b = x
+		_L_obj_dump obj
 		_walk
 		L_unittest_vareq out "\
 START MAP --
@@ -193,6 +194,7 @@ END MAP --
 	{
 		# remove leaf, parent stays
 		L_obj_rm obj a b
+		_L_obj_dump obj
 		_walk
 		L_unittest_vareq out "\
 START MAP --
@@ -204,6 +206,7 @@ END MAP --
 	{
 		# re-add after remove
 		L_obj_set_value obj a b = y
+		_L_obj_dump obj
 		_walk
 		L_unittest_vareq out "\
 START MAP --
@@ -216,6 +219,7 @@ END MAP --
 	{
 		# remove subtree
 		L_obj_rm obj a
+		_L_obj_dump obj
 		_walk
 		L_unittest_vareq out "\
 START MAP --

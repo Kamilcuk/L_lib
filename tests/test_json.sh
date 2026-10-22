@@ -97,8 +97,13 @@ _L_test_json_2() {
   _L_json_test_parse "$_L_JSON_TEST2"
 }
 
+_L_json_fetch_64KB_vL_RET_in() {
+  L_log "Downloding 64KB json"
+  curl -sSL https://microsoftedge.github.io/Demos/json-dummy-data/64KB.json 2>/dev/null
+}
+
 _L_json_fetch_64KB_vL_RET() {
-  L_cache -O L_RET -f /tmp/json_64KB.json -- curl -sSL https://microsoftedge.github.io/Demos/json-dummy-data/64KB.json 2>/dev/null || true
+  L_cache -O L_RET -f /tmp/json_64KB.json -- _L_json_fetch_64KB_vL_RET_in || true
 }
 
 _L_test_json_64KB() {
@@ -308,25 +313,39 @@ null
 {"a b":1,"c\td":2}
 EOF
   _checkit() {
-    local obj back opts=${1:-}
+    local obj back opts=${1:-} idx=$2
     echo "====== $opts $json ======="
-    L_unittest_cmd -cI L_json_to_obj obj <<<"$json"
+    L_time L_json_to_obj obj <<<"$json" || exit
     # L_pp -m obj
-    L_unittest_cmd -c _L_obj_print_table obj
-    L_unittest_cmd -c L_obj_to_json -v back $opts obj
-    local expected=$(jq $opts <<<"$json" | tr -d '\r')
+    L_time _L_obj_dump obj || exit
+    L_time L_obj_to_json -v back $opts obj || exit
+    local expected=$(jq $opts <<<"$json")
+    expected=${expected//$'\r'}
     if [[ "$back" != "$expected" ]]; then
       sdiff <(cat -A <<<"$back") <(cat -A <<<"$expected") || :
       L_unittest_fail "Output mismatch for $opts $json"
     fi
   }
-  for json in "${jsons[@]}"; do
-    _checkit
-    _checkit -S
-    _checkit -c
-    _checkit -cS
-    _checkit -acS
+  local idx json
+  for idx in "${!jsons[@]}"; do
+    json=${jsons[idx]}
+    L_time _checkit "" "$idx"
+    L_time _checkit -S "$idx"
+    L_time _checkit -c "$idx"
+    L_time _checkit -cS "$idx"
+    L_time _checkit -acS "$idx"
   done
 }
 
+
+# _L_test_json_64KB_to_obj() {
+#   local L_RET obj
+#   _L_json_fetch_64KB_vL_RET
+#   if [[ -z "$L_RET" ]]; then
+#     L_unittest_skip "64KB JSON fetch unavailable"
+#     return 0
+#   fi
+#   L_time L_json_to_obj obj <<<"$L_RET"
+#   _L_obj_dump obj
+# }
 
