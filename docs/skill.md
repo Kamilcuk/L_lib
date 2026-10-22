@@ -198,7 +198,7 @@ L_obj_get -v NAME obj name        # "MyApp"
 L_obj_get -v VERSION obj version  # "1.0.0"
 
 # Build nested objects (intermediate nodes auto-created)
-L_obj_set_type obj server = MAP
+L_obj_set_typed obj server = MAP
 L_obj_set_value obj server host = STRING "localhost"
 L_obj_set_value obj server port = INTEGER 8080
 
@@ -206,7 +206,7 @@ L_obj_get -v HOST obj server host   # "localhost"
 L_obj_get -v PORT obj server port   # "8080"
 
 # Append to array
-L_obj_set_type obj arr = ARRAY
+L_obj_set_typed obj arr = ARRAY
 L_obj_array_append_value obj arr += 1
 L_obj_array_append_value obj arr += "two"
 

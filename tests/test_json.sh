@@ -315,7 +315,7 @@ EOF
   _checkit() {
     local obj back opts=${1:-} idx=$2
     echo "====== $opts $json ======="
-    L_time L_json_to_obj obj <<<"$json" || exit
+    L_time L_obj_from_json obj <<<"$json" || exit
     # L_pp -m obj
     L_time _L_obj_dump obj || exit
     L_time L_obj_to_json -v back $opts obj || exit
@@ -345,7 +345,7 @@ EOF
 #     L_unittest_skip "64KB JSON fetch unavailable"
 #     return 0
 #   fi
-#   L_time L_json_to_obj obj <<<"$L_RET"
+#   L_time L_obj_from_json obj <<<"$L_RET"
 #   _L_obj_dump obj
 # }
 

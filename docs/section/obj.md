@@ -17,20 +17,20 @@ Each node holds one of these types: STRING, INTEGER, FLOAT, BOOL, NULL, DATETIME
 
 ```bash
 L_obj_clear obj
-L_obj_set_type_value obj name = STRING "MyApp"
-L_obj_set_type_value obj version = STRING "1.0.0"
+L_obj_set_typed_value obj name = STRING "MyApp"
+L_obj_set_typed_value obj version = STRING "1.0.0"
 ```
 
 The `=` argument is required as the 3rd argument from the back, separating path parts from the type and value. Path parts are all arguments between the object name and the `=`:
 
 ```
-L_obj_set_type_value <obj> <parts...> = <type> <value>
+L_obj_set_typed_value <obj> <parts...> = <type> <value>
 ```
 
-`L_obj_set_type` and `L_obj_set_type_value` auto-create intermediate container nodes as you descend through path parts. Each missing intermediate node is created as MAP by default (ARRAY if the path part is `0`). For example:
+`L_obj_set_typed` and `L_obj_set_typed_value` auto-create intermediate container nodes as you descend through path parts. Each missing intermediate node is created as MAP by default (ARRAY if the path part is `0`). For example:
 
 ```bash
-L_obj_set_type_value obj server host = STRING "localhost"
+L_obj_set_typed_value obj server host = STRING "localhost"
 # Auto-creates: root MAP -> child "server" (MAP) -> grandchild "host" (STRING = "localhost")
 ```
 
@@ -64,7 +64,7 @@ L_obj_array_append_value obj <parts...> += <value>
 The type is inferred from the value (INTEGER, FLOAT, or STRING):
 
 ```bash
-L_obj_set_type obj arr = ARRAY
+L_obj_set_typed obj arr = ARRAY
 L_obj_array_append_value obj arr += 1        # INTEGER
 L_obj_array_append_value obj arr += 2.5      # FLOAT
 L_obj_array_append_value obj arr += "text"   # STRING
@@ -79,7 +79,7 @@ L_obj_string_append obj <parts...> += <text>
 Example:
 
 ```bash
-L_obj_set_type_value obj msg = STRING "Hello"
+L_obj_set_typed_value obj msg = STRING "Hello"
 L_obj_string_append obj msg += ", World"
 L_obj_get -v RESULT obj msg     # "Hello, World"
 ```
@@ -96,9 +96,9 @@ L_obj_get -v version obj version    # "1.0.0"
 ### Building nested objects
 
 ```bash
-L_obj_set_type obj server = MAP
-L_obj_set_type_value obj server host = STRING "localhost"
-L_obj_set_type_value obj server port = INTEGER 8080
+L_obj_set_typed obj server = MAP
+L_obj_set_typed_value obj server host = STRING "localhost"
+L_obj_set_typed_value obj server port = INTEGER 8080
 
 L_obj_get -v host obj server host   # "localhost"
 L_obj_get -v port obj server port   # 8080
