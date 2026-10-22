@@ -49,11 +49,11 @@ m = "n"
 	L_obj_to_toml -v out obj
 	_L_obj_print_table obj
 	# Check that datetime/time/date types are stored correctly in obj
-	L_obj_get_vL_RET obj t e
+	L_obj_get_value_vL_RET obj t e
 	L_unittest_eq "$L_RET" "1979-05-27T07:32:00Z"  # datetime
-	L_obj_get_vL_RET obj t f
+	L_obj_get_value_vL_RET obj t f
 	L_unittest_eq "$L_RET" "1979-05-27"          # date
-	L_obj_get_vL_RET obj t g
+	L_obj_get_value_vL_RET obj t g
 	L_unittest_eq "$L_RET" "07:32:00"            # time
 	declare obj2
 	L_toml_to_obj obj2 <<<"$out"
@@ -121,9 +121,9 @@ _L_test_toml_complex() {
 	local toml='a = { b = 1, c = 2 }'
 	declare obj=()
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj a b
+	L_obj_get_value_vL_RET obj a b
 	L_unittest_eq "$L_RET" "1"
-	L_obj_get_vL_RET obj a c
+	L_obj_get_value_vL_RET obj a c
 	L_unittest_eq "$L_RET" "2"
 
 	# Test inline arrays
@@ -131,11 +131,11 @@ _L_test_toml_complex() {
 	L_toml_to_obj obj <<<"$toml"
 	L_obj_len_vL_RET obj arr
 	L_unittest_eq "$L_RET" "3"
-	L_obj_get_vL_RET obj arr 0
+	L_obj_get_value_vL_RET obj arr 0
 	L_unittest_eq "$L_RET" "1"
-	L_obj_get_vL_RET obj arr 1
+	L_obj_get_value_vL_RET obj arr 1
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj arr 2
+	L_obj_get_value_vL_RET obj arr 2
 	L_unittest_eq "$L_RET" "3"
 
 	# Test datetime
@@ -145,23 +145,23 @@ date = 1979-05-27
 time = 07:32:00
 '
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj dt
+	L_obj_get_value_vL_RET obj dt
 	L_unittest_eq "$L_RET" "1979-05-27T07:32:00Z"
-	L_obj_get_vL_RET obj date
+	L_obj_get_value_vL_RET obj date
 	L_unittest_eq "$L_RET" "1979-05-27"
-	L_obj_get_vL_RET obj time
+	L_obj_get_value_vL_RET obj time
 	L_unittest_eq "$L_RET" "07:32:00"
 
 	# Test nested inline tables and arrays
 	toml='nested = { a = { b = { c = 1 } }, d = [ { e = 1 }, { f = 2 } ] }'
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj nested a b c
+	L_obj_get_value_vL_RET obj nested a b c
 	L_unittest_eq "$L_RET" "1"
 	L_obj_len_vL_RET obj nested d
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj nested d 0 e
+	L_obj_get_value_vL_RET obj nested d 0 e
 	L_unittest_eq "$L_RET" "1"
-	L_obj_get_vL_RET obj nested d 1 f
+	L_obj_get_value_vL_RET obj nested d 1 f
 	L_unittest_eq "$L_RET" "2"
 }
 
@@ -176,17 +176,17 @@ port = 5432
 '
 	declare obj
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj database name
+	L_obj_get_value_vL_RET obj database name
 	L_unittest_eq "$L_RET" "mydb"
-	L_obj_get_vL_RET obj database port
+	L_obj_get_value_vL_RET obj database port
 	L_unittest_eq "$L_RET" "5432"
 	L_obj_to_toml -v out obj
 	# Verify the output is valid TOML
 	declare obj2=()
 	L_toml_to_obj obj2 <<<"$out"
-	L_obj_get_vL_RET obj2 database name
+	L_obj_get_value_vL_RET obj2 database name
 	L_unittest_eq "$L_RET" "mydb"
-	L_obj_get_vL_RET obj2 database port
+	L_obj_get_value_vL_RET obj2 database port
 	L_unittest_eq "$L_RET" "5432"
 
 	# Test array of tables [[section]]
@@ -203,13 +203,13 @@ port = 3306
 	L_toml_to_obj obj3 <<<"$toml"
 	L_obj_len_vL_RET obj3 servers
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj3 servers 0 name
+	L_obj_get_value_vL_RET obj3 servers 0 name
 	L_unittest_eq "$L_RET" "alpha"
-	L_obj_get_vL_RET obj3 servers 0 port
+	L_obj_get_value_vL_RET obj3 servers 0 port
 	L_unittest_eq "$L_RET" "5432"
-	L_obj_get_vL_RET obj3 servers 1 name
+	L_obj_get_value_vL_RET obj3 servers 1 name
 	L_unittest_eq "$L_RET" "beta"
-	L_obj_get_vL_RET obj3 servers 1 port
+	L_obj_get_value_vL_RET obj3 servers 1 port
 	L_unittest_eq "$L_RET" "3306"
 }
 
@@ -221,9 +221,9 @@ b = "test"
 '
 	declare obj=()
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj a
+	L_obj_get_value_vL_RET obj a
 	L_unittest_eq "$L_RET" "1"
-	L_obj_get_vL_RET obj b
+	L_obj_get_value_vL_RET obj b
 	L_unittest_eq "$L_RET" "test"
 
 	L_obj_to_toml -v out obj
@@ -240,9 +240,9 @@ x.y = "hello"
 '
 	declare obj=()
 	L_toml_to_obj obj <<<"$toml"
-	L_obj_get_vL_RET obj a b c
+	L_obj_get_value_vL_RET obj a b c
 	L_unittest_eq "$L_RET" "1"
-	L_obj_get_vL_RET obj x y
+	L_obj_get_value_vL_RET obj x y
 	L_unittest_eq "$L_RET" "hello"
 
 	# Test single bracket table [section]
@@ -256,11 +256,11 @@ name = "web"
 '
 	declare obj2=()
 	L_toml_to_obj obj2 <<<"$toml"
-	L_obj_get_vL_RET obj2 database host
+	L_obj_get_value_vL_RET obj2 database host
 	L_unittest_eq "$L_RET" "localhost"
-	L_obj_get_vL_RET obj2 database port
+	L_obj_get_value_vL_RET obj2 database port
 	L_unittest_eq "$L_RET" "5432"
-	L_obj_get_vL_RET obj2 server name
+	L_obj_get_value_vL_RET obj2 server name
 	L_unittest_eq "$L_RET" "web"
 
 	# Test double bracket array of tables [[section]]
@@ -277,13 +277,13 @@ port = 3306
 	L_toml_to_obj obj3 <<<"$toml"
 	L_obj_len_vL_RET obj3 servers
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj3 servers 0 name
+	L_obj_get_value_vL_RET obj3 servers 0 name
 	L_unittest_eq "$L_RET" "alpha"
-	L_obj_get_vL_RET obj3 servers 0 port
+	L_obj_get_value_vL_RET obj3 servers 0 port
 	L_unittest_eq "$L_RET" "5432"
-	L_obj_get_vL_RET obj3 servers 1 name
+	L_obj_get_value_vL_RET obj3 servers 1 name
 	L_unittest_eq "$L_RET" "beta"
-	L_obj_get_vL_RET obj3 servers 1 port
+	L_obj_get_value_vL_RET obj3 servers 1 port
 	L_unittest_eq "$L_RET" "3306"
 
 	# Test [[ with dot in key name -> creates nested tables
@@ -301,13 +301,13 @@ port = 3306
 	# [[app.servers]] creates app -> servers -> array of tables
 	L_obj_len_vL_RET obj3 app servers
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj3 app servers 0 name
+	L_obj_get_value_vL_RET obj3 app servers 0 name
 	L_unittest_eq "$L_RET" "alpha"
-	L_obj_get_vL_RET obj3 app servers 0 port
+	L_obj_get_value_vL_RET obj3 app servers 0 port
 	L_unittest_eq "$L_RET" "5432"
-	L_obj_get_vL_RET obj3 app servers 1 name
+	L_obj_get_value_vL_RET obj3 app servers 1 name
 	L_unittest_eq "$L_RET" "beta"
-	L_obj_get_vL_RET obj3 app servers 1 port
+	L_obj_get_value_vL_RET obj3 app servers 1 port
 	L_unittest_eq "$L_RET" "3306"
 
 	# Mixed: dots in keys inside tables
@@ -326,15 +326,15 @@ enabled = false
 '
 	declare obj4=()
 	L_toml_to_obj obj4 <<<"$toml"
-	L_obj_get_vL_RET obj4 app config debug
+	L_obj_get_value_vL_RET obj4 app config debug
 	L_unittest_eq "$L_RET" "true"
-	L_obj_get_vL_RET obj4 app config version
+	L_obj_get_value_vL_RET obj4 app config version
 	L_unittest_eq "$L_RET" "1.0"
 	L_obj_len_vL_RET obj4 handlers
 	L_unittest_eq "$L_RET" "2"
-	L_obj_get_vL_RET obj4 handlers 0 name
+	L_obj_get_value_vL_RET obj4 handlers 0 name
 	L_unittest_eq "$L_RET" "main"
-	L_obj_get_vL_RET obj4 handlers 1 enabled
+	L_obj_get_value_vL_RET obj4 handlers 1 enabled
 	L_unittest_eq "$L_RET" "false"
 
 	# Test quoted keys - literal dots in key names
@@ -350,14 +350,14 @@ port = 3306
 	declare obj5=()
 	L_toml_to_obj obj5 <<<"$toml"
 	# Quoted keys: literal dots in key names
-	L_obj_get_vL_RET obj5 "app.servers" name
+	L_obj_get_value_vL_RET obj5 "app.servers" name
 	L_unittest_eq "$L_RET" "alpha"
-	L_obj_get_vL_RET obj5 "app.servers" port
+	L_obj_get_value_vL_RET obj5 "app.servers" port
 	L_unittest_eq "$L_RET" "5432"
 	# Array of tables with quoted key needs index
-	L_obj_get_vL_RET obj5 "app.backups" 0 name
+	L_obj_get_value_vL_RET obj5 "app.backups" 0 name
 	L_unittest_eq "$L_RET" "beta"
-	L_obj_get_vL_RET obj5 "app.backups" 0 port
+	L_obj_get_value_vL_RET obj5 "app.backups" 0 port
 	L_unittest_eq "$L_RET" "3306"
 }
 
