@@ -63,7 +63,7 @@ EOF
   declare out=() tmp
   echo "$var"
   L_obj_from_ini out <<<"$var"
-  _L_obj_print_table out
+  _L_obj_dump out
   L_obj_to_ini -v tmp out
   if [[ "$tmp" != "$expected" ]]; then
     sdiff <(cat <<<"$tmp") - <<<"$expected" || :
