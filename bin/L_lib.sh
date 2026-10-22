@@ -13696,7 +13696,11 @@ L_obj_cmp() {
 	_L_obj_update_L_pos "$1" || return
 	_L_pos_a=$_L_pos _L_pos=0
 	_L_obj_update_L_pos "$2" || return
-	_L_obj_pos_cmp "$_L_pos_a" "$_L_pos"
+	if (( !${#_L_cmp_a[@]} || !${#_L_cmp_b[@]} )); then
+		(( ${#_L_cmp_a[@]} == ${#_L_cmp_b[@]} ))
+	else
+		_L_obj_pos_cmp "$_L_pos_a" "$_L_pos"
+	fi
 }
 # Recursive helper. Compares node $1 of _L_cmp_a with node $2 of _L_cmp_b.
 _L_obj_pos_cmp() {

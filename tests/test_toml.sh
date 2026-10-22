@@ -47,7 +47,7 @@ m = "n"
 	declare obj
 	L_obj_from_toml obj <<<"$toml"
 	L_obj_to_toml -v out obj
-	_L_obj_print_table obj
+	_L_obj_dump obj
 	# Check that datetime/time/date types are stored correctly in obj
 	L_obj_get_vL_RET obj t e
 	L_unittest_eq "$L_RET" "1979-05-27T07:32:00Z"  # datetime
@@ -108,9 +108,9 @@ _L_test_toml_trips() {
       printf -v tomlquoted "%q" "$toml"
       L_unittest_fail "could not read toml:$L_NL$toml----------$tomlquoted"
     }
-		L_obj_to_toml -v out a || L_unittest_fail "reading back failed of: $(_L_obj_print_table a)"
+		L_obj_to_toml -v out a || L_unittest_fail "reading back failed of: $(_L_obj_dump a)"
 		L_obj_from_toml b <<<"$out" || L_unittest_fail "failed reading into b from toml:$L_NL$out"
-		L_obj_cmp a b || L_unittest_fail "roundtrip of obj not same same:${L_NL}%% toml=$L_NL$toml${L_NL}%% a=$L_NL$(_L_obj_print_table a)${L_NL}%% out=${L_NL}$out${L_NL}%% b=$L_NL$(_L_obj_print_table b)"
+		L_obj_cmp a b || L_unittest_fail "roundtrip of obj not same same:${L_NL}%% toml=$L_NL$toml${L_NL}%% a=$L_NL$(_L_obj_dump a)${L_NL}%% out=${L_NL}$out${L_NL}%% b=$L_NL$(_L_obj_dump b)"
   done
 }
 
