@@ -6817,6 +6817,61 @@ _L_unittest_main_finally() {
 	fi
 }
 
+_L_unittest_main_cache_load() {
+  local IFS=" " a=() b=() t file="$_L_u_c_cachedir/L_unittest_main_lastrun"
+  if [[ -r "$file" ]]; then
+  	{
+  			IFS= read -r _L_u_c_pass
+  			IFS= read -r _L_u_c_fail
+  	} <"$file" || :
+  fi
+	case "$_L_u_c_rerun" in
+		a|all) ;;
+		l|last-failed|o|only-failed)
+  		for t in "${_L_u_test_func[@]}"; do [[ " $_L_u_c_fail " == *" $t "* ]] && a+=("$t"); done
+    	if (( ${#a[@]} )); then
+    		_L_u_test_func=("${a[@]}")
+    	elif [[ $_L_u_c_rerun == only ]]; then
+    		_L_u_test_func=()
+    	fi
+    	;;
+		f|failed-first)
+    	for t in "${_L_u_test_func[@]}"; do
+    		if [[ " $_L_u_c_fail " == *" $t "* ]]; then a+=("$t"); else b+=("$t"); fi
+    	done
+    	_L_u_test_func=("${a[@]}" "${b[@]}")
+    	;;
+		n|new-first)
+    	for t in "${_L_u_test_func[@]}"; do
+    		if [[ " $_L_u_c_pass $_L_u_c_fail " == *" $t "* ]]; then b+=("$t"); else a+=("$t"); fi
+    	done
+    	_L_u_test_func=("${a[@]}" "${b[@]}")
+    	;;
+		c|clear) L_logrun rm -v "$file"; exit ;;
+		*) L_func_usage_error "invalid -r value: $OPTARG" 1; return "$L_EX_USAGE" ;;
+	esac
+}
+
+_L_unittest_main_cache_save() {
+	local IFS=' ' t pass="" fail="" ran=" ${_L_u_test_func[*]} " failed=""
+	# keep old state of tests that did not run
+	for t in $_L_u_c_pass; do if [[ $ran != *" $t "* ]]; then pass+=" $t"; fi; done
+	for t in $_L_u_c_fail; do if [[ $ran != *" $t "* ]]; then fail+=" $t"; fi; done
+	# add this run's results
+	for t in "${!_L_u_test_func[@]}"; do
+		if (( _L_u_test_ret[t] )); then
+			failed+=" ${_L_u_test_func[$t]}"
+		fi
+	done
+	for t in "${_L_u_test_func[@]}"; do
+		if [[ $failed == *" $t "* ]]; then fail+=" $t"; else pass+=" $t"; fi
+	done
+	local file="$_L_u_c_cachedir/L_unittest_main_lastrun"
+	mkdir -p "$_L_u_c_cachedir" &&
+		printf '%s\n%s\n' "${pass# }" "${fail# }" > "$file.$$" &&
+		mv -f "$file.$$" "$file"
+}
+
 # @description
 # Uninteresting unittesting suite runner.
 # @option -p <prefix> Get functions with this prefix to test
@@ -6850,6 +6905,8 @@ _L_unittest_main_finally() {
 # @option -E Execute trap - ERR.
 # @option -M <global-max-time> If running longer then specified time, tasks are getting killed.
 # @option -m <task-max-time> If a task is running longer then specified time, it is killed.
+# @option -C <cache-dir> Cache directory location to store state.
+# @option -r <mode> Rerun specific tests from state. The mode can be one of: a all l last-failed f failed-first n new-first c clear. Option -r is ignored without -C option. Clear clears the cache without execution.
 # @arg <patterns...> Like -k argument, but allows one word only and joins arguments with AND.
 # shellcheck disable=SC2179
 L_unittest_main() {
@@ -6878,9 +6935,10 @@ L_unittest_main() {
 		_L_u_spinner_buf="" \
 		_L_u_k="" \
 		_L_u_args="" \
-		_L_u_xargs_args=()
+		_L_u_xargs_args=() \
+		_L_u_c_cachedir="" _L_u_c_rerun="all" _L_u_c_pass="" _L_u_c_fail=""
 	while (( $# >= OPTIND )); do
-		if getopts p:k:P:Elqd:xsScFvThm:M: _L_i; then
+		if getopts p:k:P:Elqd:xsScFvThm:M:C:r: _L_i; then
 			case "$_L_i" in
 				p)
 					L_printf_append _L_u_msg "; Functions [%q*]" "${OPTARG}"
@@ -6910,6 +6968,8 @@ L_unittest_main() {
 				v) _L_u_verbose=1 ;;
 				T) NO_COLOR=1 _L_u_use_term=0 ;;
 				m|M) _L_u_xargs_args+=("-$_L_i" "$OPTARG") ;;
+				C) _L_u_c_cachedir=$OPTARG ;;
+				r) _L_u_c_rerun=$OPTARG ;;
 				h) L_func_help; return 0 ;;
 				*) L_func_usage_error; return "$L_EX_USAGE" ;;
 			esac
@@ -6927,13 +6987,12 @@ L_unittest_main() {
 	if [[ -n "$_L_u_args" ]];then
 		_L_unittest_main_handle_k "$_L_u_args"
 	fi
+	if [[ -n "$_L_u_c_cachedir" ]]; then
+		_L_unittest_main_cache_load || exit
+	fi
 	# Detect colors.
 	L_color_detect
-	if [[ -n "$L_RESET" ]]; then
-		_L_u_use_term=1
-	else
-		_L_u_use_term=0
-	fi
+	if [[ -n "$L_RESET" ]]; then _L_u_use_term=1; else _L_u_use_term=0; fi
 	# If there is only one test, no reason to run in parallel.
 	if (( ${#_L_u_test_func[*]} == 1 && _L_u_nproc > 1 )); then
 		_L_u_nproc=1
@@ -7082,6 +7141,9 @@ L_unittest_main() {
 		_L_unittest_main_print_line "=" "$msg in $duration" "$L_BOLD"
 	}
 	L_finally_pop -n -i "$_L_u_finally_idx"
+	if [[ -n "$_L_u_c_cachedir" ]]; then
+		_L_unittest_main_cache_save || exit
+	fi
 	if (( failed )); then
 		exit 1
 	fi

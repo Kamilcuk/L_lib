@@ -2118,7 +2118,7 @@ if L_is_main; then
 	if [[ "$OSTYPE" == *cygwin* ]]; then
 		test_timeout=300
 	fi
-	L_unittest_main -p _L_test_ -m "$test_timeout" -m "$test_timeout" "$@"
+	L_unittest_main -p _L_test_ -m "$test_timeout" -m "$test_timeout" -C "$dir"/../.git "$@"
 
 	# Check for any new variables.
 	diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
