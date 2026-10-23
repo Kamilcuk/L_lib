@@ -55,7 +55,7 @@ L_json_path_to_obj_key_vL_RET() {
 	L_json_path_normalize_vL_RET "$@"
 	local _L_tmp _L_i
 	for _L_i in "${!L_RET[@]}"; do
-		if [[ "${L_RET[_L_i]}" == '"'* ]]; then
+		if [[ "${L_RET[_L_i]}" == "\""* ]]; then
 			if (( _L_i != 0 )); then
 				_L_tmp=${L_RET[0]}
 			fi
@@ -68,8 +68,26 @@ L_json_path_to_obj_key_vL_RET() {
 	done
 }
 
+# "a/b" -> "a~1b", "a~b" -> "a~0b". Order matters: ~ first.
+# @see RFC6901
+L_json_pointer_escape() { L_handle_v_scalar "$@"; }
+L_json_pointer_escape_vL_RET() { L_RET=${1//\~/\~0}; L_RET=${L_RET//\//\~1}; }
 
-
+# "/a/b~1c/0" -> L_RET=(a 'b/c' 0). "" is the whole document -> L_RET=().
+L_json_pointer_parse() { L_handle_v_array "$@"; }
+L_json_pointer_parse_vL_RET() {
+	local _L_p=$1 _L_i
+	L_RET=()
+	if [[ -z $_L_p ]]; then return; fi
+	if [[ $_L_p != /* ]]; then L_func_error "pointer must start with /: $1"; return "$L_EX_DATAERR"; fi
+	_L_p=${_L_p:1}/
+	while [[ -n $_L_p ]]; do
+		_L_i=${_L_p%%/*}
+		_L_i=${_L_i//\~1//}
+		L_RET+=("${_L_i//\~0/\~}")
+		_L_p=${_L_p#*/}
+	done
+}
 
 _L_test_json_path() {
   obj_skip_test

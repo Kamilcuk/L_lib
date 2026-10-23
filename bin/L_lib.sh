@@ -13696,8 +13696,8 @@ L_obj_cmp() {
 	_L_obj_update_L_pos "$1" || return
 	_L_pos_a=$_L_pos _L_pos=0
 	_L_obj_update_L_pos "$2" || return
-	if (( !${#_L_cmp_a[@]} || !${#_L_cmp_b[@]} )); then
-		(( ${#_L_cmp_a[@]} == ${#_L_cmp_b[@]} ))
+	if (( !${_L_cmp_a[@]+1}0 || !${_L_cmp_b[@]+1}0 )); then
+		(( ${_L_cmp_a[@]+1}0 == ${_L_cmp_b[@]+1}0 ))
 	else
 		_L_obj_pos_cmp "$_L_pos_a" "$_L_pos"
 	fi
