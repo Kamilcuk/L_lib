@@ -14,7 +14,7 @@ TOML (Tom's Obvious, Minimal, Top-level) is a human-readable configuration forma
 ### Parsing TOML
 
 ```bash
-L_toml_to_obj config <<'TOML'
+L_obj_from_toml config <<'TOML'
 [database]
 host = "localhost"
 port = 5432
@@ -46,7 +46,7 @@ L_obj_to_toml -v toml_text config
 ### Simple configuration
 
 ```bash
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 [database]
 host = "db.example.com"
 port = 5432
@@ -59,7 +59,7 @@ L_obj_get -v DB_PORT cfg database port
 ### Inline tables
 
 ```bash
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 a = { b = 1, c = 2 }
 TOML
 
@@ -70,7 +70,7 @@ L_obj_get -v AC cfg a c   # 2
 ### Root key-value pairs
 
 ```bash
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 app_name = "MyApp"
 version = "1.2.3"
 TOML
@@ -82,7 +82,7 @@ L_obj_get -v VERSION cfg version
 ### Datetime, date, and time values
 
 ```bash
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 odt = 1979-05-27T07:32:00Z
 ld = 1979-05-27
 lt = 07:32:00
@@ -96,7 +96,7 @@ L_obj_get -v LT cfg lt
 ### Multiline strings
 
 ```bash
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 [description]
 text = """
 This is a multiline
@@ -119,7 +119,7 @@ TOML parsing uses a recursive descent parser:
 
 - `L_toml_read()` - Main entry point, reads TOML from stdin and dispatches to callbacks
 - `L_toml_parse()` - Recursive parser that processes tokens and emits events
-- `L_toml_to_obj()` - Wrapper that calls `L_toml_read` and builds an L_obj structure
+- `L_obj_from_toml()` - Wrapper that calls `L_toml_read` and builds an L_obj structure
 
 Parser events include: VALUE, START/END (inline containers), TABLE MAP, TABLE ARRAY.
 

@@ -191,24 +191,24 @@ L_obj stores arbitrary nested data in a flat Bash array with 5 elements per node
 
 ```bash
 L_obj_clear obj
-L_obj_set_value obj name = STRING "MyApp"
-L_obj_set_value obj version = STRING "1.0.0"
+L_obj_set obj name = STRING "MyApp"
+L_obj_set obj version = STRING "1.0.0"
 
 L_obj_get -v NAME obj name        # "MyApp"
 L_obj_get -v VERSION obj version  # "1.0.0"
 
 # Build nested objects (intermediate nodes auto-created)
 L_obj_set_typed obj server = MAP
-L_obj_set_value obj server host = STRING "localhost"
-L_obj_set_value obj server port = INTEGER 8080
+L_obj_set obj server host = STRING "localhost"
+L_obj_set obj server port = INTEGER 8080
 
 L_obj_get -v HOST obj server host   # "localhost"
 L_obj_get -v PORT obj server port   # "8080"
 
 # Append to array
 L_obj_set_typed obj arr = ARRAY
-L_obj_array_append_value obj arr += 1
-L_obj_array_append_value obj arr += "two"
+L_obj_array_append obj arr += 1
+L_obj_array_append obj arr += "two"
 
 # Iterate
 L_obj_keys -v KEYS obj
@@ -218,15 +218,15 @@ for key in "${KEYS[@]}"; do
 done
 ```
 
-📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set_value
+📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set
 
-### JSON — `L_json_to_obj`, `L_obj_to_json`
+### JSON — `L_obj_from_json`, `L_obj_to_json`
 
 Parse JSON into L_obj and serialize back with optional pretty-printing.
 
 ```bash
 # Parse JSON into L_obj
-L_json_to_obj obj <<'JSON'
+L_obj_from_json obj <<'JSON'
 {"name": "MyApp", "version": "1.2.3", "server": {"host": "localhost", "port": 8080}}
 JSON
 
@@ -236,21 +236,21 @@ L_obj_get -v HOST obj server host
 L_obj_get -v PORT obj server port
 
 # Set values with type inference
-L_obj_set_value obj server.port = 9090
+L_obj_set obj server.port = 9090
 
 # Serialize back to JSON
 L_obj_to_json -v json_text obj
 ```
 
-📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_json_to_obj
+📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_obj_from_json
 
-### INI — `L_ini_to_obj`, `L_obj_to_ini`
+### INI — `L_obj_from_ini`, `L_obj_to_ini`
 
 Parse INI configuration files into L_obj and serialize back.
 
 ```bash
 # Parse INI text
-L_ini_to_obj obj <<'INI'
+L_obj_from_ini obj <<'INI'
 root = hello
 
 [server]
@@ -267,18 +267,18 @@ L_obj_get -v PORT obj server port
 L_obj_to_ini -v ini_text obj
 
 # Parse from file
-L_ini_file_to_obj obj "/etc/app/config.ini"
+L_obj_from_ini obj < "/etc/app/config.ini"
 ```
 
-📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_ini_to_obj
+📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_obj_from_ini
 
-### TOML — `L_toml_to_obj`, `L_obj_to_toml`
+### TOML — `L_obj_from_toml`, `L_obj_to_toml`
 
 Parse TOML configuration files into L_obj and serialize back.
 
 ```bash
 # Parse TOML text
-L_toml_to_obj cfg <<'TOML'
+L_obj_from_toml cfg <<'TOML'
 [database]
 host = "db.example.com"
 port = 5432
@@ -297,7 +297,7 @@ L_obj_get -v VERSION cfg version
 L_obj_to_toml -v toml_text cfg
 ```
 
-📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_toml_to_obj
+📖 **Full docs**: https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_obj_from_toml
 
 ### Colors & Terminal
 

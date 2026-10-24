@@ -17,57 +17,57 @@ Each node holds one of these types: STRING, INTEGER, FLOAT, BOOL, NULL, DATETIME
 
 ```bash
 L_obj_clear obj
-L_obj_set_typed_value obj name = STRING "MyApp"
-L_obj_set_typed_value obj version = STRING "1.0.0"
+L_obj_set_typed obj name = STRING "MyApp"
+L_obj_set_typed obj version = STRING "1.0.0"
 ```
 
 The `=` argument is required as the 3rd argument from the back, separating path parts from the type and value. Path parts are all arguments between the object name and the `=`:
 
 ```
-L_obj_set_typed_value <obj> <parts...> = <type> <value>
+L_obj_set_typed <obj> <parts...> = <type> <value>
 ```
 
-`L_obj_set_typed` and `L_obj_set_typed_value` auto-create intermediate container nodes as you descend through path parts. Each missing intermediate node is created as MAP by default (ARRAY if the path part is `0`). For example:
+`L_obj_set_typed` and `L_obj_set_typed` auto-create intermediate container nodes as you descend through path parts. Each missing intermediate node is created as MAP by default (ARRAY if the path part is `0`). For example:
 
 ```bash
-L_obj_set_typed_value obj server host = STRING "localhost"
+L_obj_set_typed obj server host = STRING "localhost"
 # Auto-creates: root MAP -> child "server" (MAP) -> grandchild "host" (STRING = "localhost")
 ```
 
 Only the final node in the path gets its type set; intermediate nodes default to MAP.
 
-### Value type inference with `L_obj_set_value`
+### Value type inference with `L_obj_set`
 
-`L_obj_set_value` infers the type from the value without requiring an explicit type argument:
+`L_obj_set` infers the type from the value without requiring an explicit type argument:
 
 - **INTEGER** – whole numbers (e.g. `42`, `-7`, `+100`)
 - **FLOAT** – numbers with a decimal point or exponent (e.g. `3.14`, `-2.5e10`, `1E3`)
 - **STRING** – everything else
 
 ```bash
-L_obj_set_value obj count = 42          # inferred: INTEGER
-L_obj_set_value obj pi = 3.14           # inferred: FLOAT
-L_obj_set_value obj name = "MyApp"      # inferred: STRING
-L_obj_set_value obj exp = 1e10          # inferred: FLOAT
+L_obj_set obj count = 42          # inferred: INTEGER
+L_obj_set obj pi = 3.14           # inferred: FLOAT
+L_obj_set obj name = "MyApp"      # inferred: STRING
+L_obj_set obj exp = 1e10          # inferred: FLOAT
 ```
 
-`L_obj_set_default_value` works the same but only sets the value if the node is not already set.
+`L_obj_set_default` works the same but only sets the value if the node is not already set.
 
 ### Appending values
 
-`L_obj_array_append_value` appends a new element to an ARRAY node. The `+=` argument is required as the second-to-last argument, before the value:
+`L_obj_array_append` appends a new element to an ARRAY node. The `+=` argument is required as the second-to-last argument, before the value:
 
 ```bash
-L_obj_array_append_value obj <parts...> += <value>
+L_obj_array_append obj <parts...> += <value>
 ```
 
 The type is inferred from the value (INTEGER, FLOAT, or STRING):
 
 ```bash
 L_obj_set_typed obj arr = ARRAY
-L_obj_array_append_value obj arr += 1        # INTEGER
-L_obj_array_append_value obj arr += 2.5      # FLOAT
-L_obj_array_append_value obj arr += "text"   # STRING
+L_obj_array_append obj arr += 1        # INTEGER
+L_obj_array_append obj arr += 2.5      # FLOAT
+L_obj_array_append obj arr += "text"   # STRING
 ```
 
 `L_obj_string_append` appends text to an existing STRING node. The `+=` argument is required as the second-to-last argument:
@@ -79,7 +79,7 @@ L_obj_string_append obj <parts...> += <text>
 Example:
 
 ```bash
-L_obj_set_typed_value obj msg = STRING "Hello"
+L_obj_set_typed obj msg = STRING "Hello"
 L_obj_string_append obj msg += ", World"
 L_obj_get -v RESULT obj msg     # "Hello, World"
 ```
@@ -97,8 +97,8 @@ L_obj_get -v version obj version    # "1.0.0"
 
 ```bash
 L_obj_set_typed obj server = MAP
-L_obj_set_typed_value obj server host = STRING "localhost"
-L_obj_set_typed_value obj server port = INTEGER 8080
+L_obj_set_typed obj server host = STRING "localhost"
+L_obj_set_typed obj server port = INTEGER 8080
 
 L_obj_get -v host obj server host   # "localhost"
 L_obj_get -v port obj server port   # 8080

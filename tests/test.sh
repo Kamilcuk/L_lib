@@ -1429,10 +1429,11 @@ _L_test_no_duplicate_functions() {
 }
 
 _L_test_indentation() {
-	local line heredoc=""
+	local line heredoc="" num=0
 	local pattern_heredoc='<<-?[[:space:]]*['\''"]?([a-zA-Z_][a-zA-Z0-9_]*)'
 	local pattern_indent='^[[:space:]]* [^[:space:]#]'
 	while IFS= read -r line || [[ -n "$line" ]]; do
+		num=$(( num + 1 ))
 		# 1. Skip if currently inside a here-document
 		if [[ -n "$heredoc" ]]; then
 			[[ "${line//[$' \t']/}" == "$heredoc" ]] && heredoc=""
@@ -1444,7 +1445,7 @@ _L_test_indentation() {
 		fi
 		# 3. Assert no leading spaces on active code lines
 		if [[ "$line" =~ $pattern_indent ]]; then
-			L_unittest_eq "tabs" "spaces" "Line has space-based indentation: $line"
+			L_unittest_eq "tabs" "spaces" "Line $num has space-based indentation: $line"
 		fi
 	done < "$L_LIB_SCRIPT"
 }
@@ -2118,7 +2119,10 @@ if L_is_main; then
 	if [[ "$OSTYPE" == *cygwin* ]]; then
 		test_timeout=300
 	fi
-	L_unittest_main -p _L_test_ -m "$test_timeout" -m "$test_timeout" -C "$dir"/../.git "$@"
+	if [[ -w "$dir"/../.git ]]; then
+		set -- -C "$dir"/../.git "$@"
+	fi
+	L_unittest_main -p _L_test_ -m "$test_timeout" -m "$test_timeout" "$@"
 
 	# Check for any new variables.
 	diff -biw - <<<"$VARIABLES_BEFORE" <(get_all_variables) | sed -n 's/^> /+ /p' || :
