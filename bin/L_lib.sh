@@ -1070,10 +1070,10 @@ L_getopts_run() {
 		if getopts ":${_L_spec//::/:}h" _L_opt; then
 			# Execute action given by -e.
 			if (( ${_L_es[@]+1}0 )); then
-    		printf -v _L_tmp '%d' "'$_L_opt"
-    		if [[ -n "${_L_es[_L_tmp]-}" ]]; then
-    			eval "${_L_es[_L_tmp]}"
-    		fi
+ 				printf -v _L_tmp '%d' "'$_L_opt"
+ 				if [[ -n "${_L_es[_L_tmp]-}" ]]; then
+ 					eval "${_L_es[_L_tmp]}"
+ 				fi
 			fi
 			# Parse the command.
 			case "$_L_spec" in
@@ -1088,10 +1088,10 @@ L_getopts_run() {
 			esac
 		elif (( _L_interleave )); then
 			_L_args+=("${!OPTIND}")
-      ((OPTIND++))
-    else
-      break
-    fi
+			((OPTIND++))
+		else
+			break
+		fi
 	done
 	if (( _L_interleave )); then
 		set -- ${_L_args[@]+"${_L_args[@]}"}
