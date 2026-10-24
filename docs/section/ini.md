@@ -16,7 +16,7 @@ INI is a configuration file format with sections, key-value pairs, and comments.
 ### Parsing INI
 
 ```bash
-L_ini_to_obj config <<'INI'
+L_obj_from_ini config <<'INI'
 [database]
 host = localhost
 port = 5432
@@ -54,7 +54,7 @@ L_obj_to_ini -v ini_text config
 ### Parsing from file
 
 ```bash
-L_ini_file_to_obj config "/etc/app/config.ini"
+L_obj_from_ini config < "/etc/app/config.ini"
 ```
 
 ## Examples
@@ -62,7 +62,7 @@ L_ini_file_to_obj config "/etc/app/config.ini"
 ### Root and section keys
 
 ```bash
-L_ini_to_obj obj <<'INI'
+L_obj_from_ini obj <<'INI'
 root = value1
 
 [section]
@@ -76,7 +76,7 @@ L_obj_get -v SECTION_KEY obj section key
 ### Comments and quoted values
 
 ```bash
-L_ini_to_obj obj <<'INI'
+L_obj_from_ini obj <<'INI'
 ; this is a comment
 # this is also a comment
 
@@ -94,7 +94,7 @@ L_obj_get -v PORT obj database port
 Continuation lines are joined with newlines; leading whitespace is trimmed:
 
 ```bash
-L_ini_to_obj obj <<'INI'
+L_obj_from_ini obj <<'INI'
 [server]
 long = first line
    second line
@@ -116,7 +116,7 @@ L_obj_get -v LONG obj server long   # "first line\nsecond line\nthird line"
 INI parsing is line-based:
 
 - `L_ini_read()` - Core parsing logic, reads INI from stdin and emits KV/CONTINUATION events
-- `L_ini_to_obj()` - Wrapper that calls `L_ini_read` and builds an L_obj structure
+- `L_obj_from_ini()` - Wrapper that calls `L_ini_read` and builds an L_obj structure
 - `L_obj_to_ini()` - Serializes an L_obj back to INI text
 
 ## API Reference

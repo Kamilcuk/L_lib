@@ -16,7 +16,7 @@ JSON (JavaScript Object Notation) is a data-interchange format. L_lib.sh provide
 ### Parsing JSON into L_obj
 
 ```bash
-L_json_to_obj obj <<'JSON'
+L_obj_from_json obj <<'JSON'
 {"name": "MyApp", "version": "1.2.3"}
 JSON
 ```
@@ -49,7 +49,7 @@ JSON
 ### Simple object
 
 ```bash
-L_json_to_obj obj <<'JSON'
+L_obj_from_json obj <<'JSON'
 {"name": "MyApp", "version": "1.2.3"}
 JSON
 
@@ -60,7 +60,7 @@ L_obj_get -v VERSION obj version
 ### Nested object
 
 ```bash
-L_json_to_obj obj <<'JSON'
+L_obj_from_json obj <<'JSON'
 {"server": {"host": "localhost", "port": 8080}}
 JSON
 
@@ -95,7 +95,7 @@ L_json_rm -v json_no_d '{"a": 1, "d": 2}' d
 
 JSON processing uses a recursive descent parser:
 
-- `L_json_to_obj()` - Parses JSON from stdin into an L_obj structure
+- `L_obj_from_json()` - Parses JSON from stdin into an L_obj structure
 - `L_json_get()` / `L_json_get_all()` - Query raw JSON directly, returning value, type, and byte offsets
 - `L_json_rm()` - Remove an element from a JSON string
 - `L_obj_to_json()` - Serializes an L_obj back to JSON with formatting options

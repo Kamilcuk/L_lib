@@ -38,15 +38,15 @@ _L_test_obj_1() {
     L_unittest_cmd -r '.*' ! L_obj_len_vL_RET obj a b c
   }
   {
-    L_obj_append obj a b += 4
+    L_obj_array_append obj a b += 4
     L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 4
-    L_obj_append obj a b += 5
+    L_obj_array_append obj a b += 5
     L_obj_len_vL_RET obj a b
     L_unittest_vareq L_RET 5
   }
   {
-    L_obj_concat obj a f += dead
+    L_obj_string_append obj a f += dead
     L_obj_get_vL_RET obj a f
     L_unittest_vareq L_RET dead3dead
   }
@@ -77,7 +77,7 @@ _L_test_obj_2() {
     for station in "${stations[@]}"; do
       base=(stations "$station")
       for s in 0 1 2; do
-        L_obj_append obj "${base[@]}" sensors "$s" readings += "$(( RANDOM % 100 ))"
+        L_obj_array_append obj "${base[@]}" sensors "$s" readings += "$(( RANDOM % 100 ))"
       done
     done
     L_obj_set obj last_update = "$RANDOM"
@@ -158,16 +158,16 @@ _L_test_obj_3() {
   L_obj_set obj a b 1 = string
   L_obj_set obj a b 2 = string
 
-  L_obj_append obj a b += string1
-  L_obj_append obj a b += string2
-  L_obj_append obj a b += string3
-  L_obj_append obj a b += string4
+  L_obj_array_append obj a b += string1
+  L_obj_array_append obj a b += string2
+  L_obj_array_append obj a b += string3
+  L_obj_array_append obj a b += string4
 
   # _L_obj_dump obj
   L_obj_rm obj a
   # L_obj_rm obj
   # L_obj_set obj a b 2 string
-  L_obj_set_typed obj a b c = MAP ""
+  L_obj_set_map obj a b c =
   L_obj_walk obj echo
   _L_obj_dump obj
 }
@@ -229,7 +229,7 @@ END MAP --
 	{
 		# add array after remove
 		L_obj_set obj c 0 = s1
-		L_obj_append obj c += s2
+		L_obj_array_append obj c += s2
 		_walk
 		L_unittest_vareq out "\
 START MAP --
@@ -243,7 +243,7 @@ END MAP --
 	{
 		# remove array, add map at the same key
 		L_obj_rm obj c
-		L_obj_set_typed obj c d = MAP ""
+		L_obj_set_map obj c d =
 		_walk
 		L_unittest_vareq out "\
 START MAP --
@@ -330,7 +330,7 @@ _L_test_obj_get_pos() {
   L_obj_pos -v pos2 "obj+${pos}" b
   (( pos2 > 0 ))
   # Test with array position
-  L_obj_append obj arr += val
+  L_obj_array_append obj arr += val
   L_obj_pos -v pos obj arr 0
   L_unittest_checkexit 0 L_obj_is_valid "obj+${pos}"
 }
@@ -376,8 +376,8 @@ _L_test_obj_get_type() {
   L_obj_set obj str = "hello"
   L_obj_set_typed obj bool = BOOL ""
   L_obj_set obj boolstr = true
-  L_obj_set_typed obj map = MAP ""
-  L_obj_set_typed obj arr = ARRAY ""
+  L_obj_set_map obj map =
+  L_obj_set_array obj arr =
   # Get types
   L_obj_type -v L_RET obj int
   L_unittest_vareq L_RET INTEGER
@@ -421,19 +421,18 @@ _L_test_obj_set_type() {
   local L_RET
   local obj
   # Set as MAP
-  L_obj_set_typed obj a = MAP ""
+  L_obj_set_map obj a =
   L_obj_type -v L_RET obj a
   L_unittest_vareq L_RET MAP
   # Set as ARRAY
-  L_obj_set_typed obj b = ARRAY ""
+  L_obj_set_array obj b =
   L_obj_type -v L_RET obj b
   L_unittest_vareq L_RET ARRAY
   # Set as NULL
   L_obj_set_typed obj c = NULL ""
   L_obj_type -v L_RET obj c
   L_unittest_vareq L_RET NULL
-  # Cannot set type twice (already a container)
-  L_unittest_cmd -r '.*' ! L_obj_set_typed obj a = STRING ""
+  L_obj_set_typed obj a = STRING ""
 }
 
 # Tests for _L_obj_set_typed_default
@@ -519,14 +518,14 @@ _L_test_obj_keys() {
   L_unittest_eq "${keys[2]}" "c"
   # ARRAY indices
   L_obj_clear obj
-  L_obj_append obj arr += one
-  L_obj_append obj arr += two
+  L_obj_array_append obj arr += one
+  L_obj_array_append obj arr += two
   L_obj_keys -v keys obj arr
   L_unittest_eq ${#keys[@]} 2
   L_unittest_eq "${keys[0]}" "0"
   L_unittest_eq "${keys[1]}" "1"
   # Empty map
-  L_obj_set_typed obj empty = MAP ""
+  L_obj_set_map obj empty =
   L_obj_keys -v keys obj empty
   L_unittest_eq ${#keys[@]} 0
   # Cannot get keys from scalar
@@ -542,55 +541,57 @@ _L_test_obj_has() {
   L_obj_set obj b c = 2
   # Existing paths
   L_unittest_checkexit 0 L_obj_has obj a
+  L_unittest_checkexit 0 L_obj_has obj b
   L_unittest_checkexit 0 L_obj_has obj b c
   # Non-existing paths
-  L_unittest_checkexit 1 L_obj_has obj x
-  L_unittest_checkexit 1 L_obj_has obj a b
+  L_unittest_failure L_obj_has obj x
+  L_unittest_failure L_obj_has obj a b
+  L_unittest_failure L_obj_has obj b d
 }
 
-# Tests for L_obj_concat with type coercion
+# Tests for L_obj_string_append with type coercion
 _L_test_obj_string_append_types() {
   obj_skip_test
   local L_RET
   local obj
   # Append to existing STRING
   L_obj_set obj s = "hello"
-  L_obj_concat obj s += " world"
+  L_obj_string_append obj s += " world"
   L_obj_get -v L_RET obj s
   L_unittest_vareq L_RET "hello world"
   # Append to INTEGER coerces to STRING
   L_obj_set obj n = 42
-  L_obj_concat obj n += "extra"
+  L_obj_string_append obj n += "extra"
   L_obj_type -v L_RET obj n
   L_unittest_vareq L_RET STRING
   L_obj_get -v L_RET obj n
   L_unittest_vareq L_RET "42extra"
   # Append to FLOAT coerces to STRING
   L_obj_set obj f = 3.14
-  L_obj_concat obj f += "end"
+  L_obj_string_append obj f += "end"
   L_obj_type -v L_RET obj f
   L_unittest_vareq L_RET STRING
   L_obj_get -v L_RET obj f
   L_unittest_vareq L_RET "3.14end"
   # Cannot append to container
-  L_obj_set_typed obj map = MAP ""
-  L_unittest_cmd -r '.*' ! L_obj_concat obj map += "val"
+  L_obj_set_map obj map =
+  L_unittest_cmd -r '.*' ! L_obj_string_append obj map += "val"
 }
 
-# Tests for L_obj_insert_typed and L_obj_insert
+# Tests for L_obj_array_insert_typed and L_obj_array_insert
 _L_test_obj_array_insert() {
   obj_skip_test
   local L_RET
   local obj
   # Insert at beginning
-  L_obj_append obj arr += c
-  L_obj_insert_typed obj arr 0 = STRING "a"
+  L_obj_array_append obj arr += c
+  L_obj_array_insert_typed obj arr 0 = STRING "a"
   L_obj_get -v L_RET obj arr 0
   L_unittest_vareq L_RET "a"
   L_obj_get -v L_RET obj arr 1
   L_unittest_vareq L_RET "c"
   # Insert in middle
-  L_obj_insert_typed obj arr 1 = STRING "b"
+  L_obj_array_insert_typed obj arr 1 = STRING "b"
   L_obj_len -v L_RET obj arr
   L_unittest_vareq L_RET 3
   L_obj_get -v L_RET obj arr 0
@@ -600,18 +601,18 @@ _L_test_obj_array_insert() {
   L_obj_get -v L_RET obj arr 2
   L_unittest_vareq L_RET "c"
   # Insert at end (append)
-  L_obj_insert_typed obj arr 3 = INTEGER 99
+  L_obj_array_insert_typed obj arr 3 = INTEGER 99
   L_obj_get -v L_RET obj arr 3
   L_unittest_vareq L_RET "99"
   # Insert with inferred type
-  L_obj_insert obj arr 1 = "middle"
+  L_obj_array_insert obj arr 1 = "middle"
   L_obj_get -v L_RET obj arr 1
   L_unittest_vareq L_RET "middle"
   # Invalid index - out of bounds
-  L_unittest_cmd -r '.*' ! L_obj_insert_typed obj arr 10 = STRING "x"
+  L_unittest_cmd -r '.*' ! L_obj_array_insert_typed obj arr 10 = STRING "x"
   # Insert into non-array
-  L_obj_set_typed obj notarr = MAP ""
-  L_unittest_cmd -r '.*' ! L_obj_insert_typed obj notarr 0 = STRING "x"
+  L_obj_set_map obj notarr =
+  L_unittest_cmd -r '.*' ! L_obj_array_insert_typed obj notarr 0 = STRING "x"
 }
 
 # Tests for L_obj_foreach
@@ -627,15 +628,15 @@ _L_test_obj_foreach() {
   [[ $out == *"b::MAP"* ]] || L_unittest_fail "foreach did not match b.c"
   # Iterate over ARRAY
   L_obj_clear obj
-  L_obj_append obj arr += first
-  L_obj_append obj arr += second
+  L_obj_array_append obj arr += first
+  L_obj_array_append obj arr += second
   out=""
   L_obj_foreach obj cb
   # out should contain entries for "arr" key (which is an ARRAY) and its children
   [[ $out == *"arr"* ]] || L_unittest_fail "foreach did not iterate over arr"
   # Empty container
   L_obj_clear obj
-  L_obj_set_typed obj empty = MAP ""
+  L_obj_set_map obj empty =
   out=""
   # Iterate over the empty map's children - it has none
   L_obj_pos -v pos obj empty
@@ -665,8 +666,8 @@ _L_test_obj_iter() {
   done
   # Iterate over ARRAY
   L_obj_clear obj
-  L_obj_append obj arr += x
-  L_obj_append obj arr += y
+  L_obj_array_append obj arr += x
+  L_obj_array_append obj arr += y
   it=""
   local indices=()
   local arr_pos
@@ -723,30 +724,30 @@ _L_test_obj_merge() {
   L_logrun L_unittest_vareq L_RET 3
 }
 
-# Tests for L_obj_pop
+# Tests for L_obj_array_pop
 _L_test_obj_array_pop() {
   obj_skip_test
   local L_RET
   local obj
-  L_obj_append obj arr += a
-  L_obj_append obj arr += b
-  L_obj_append obj arr += c
+  L_obj_array_append obj arr += a
+  L_obj_array_append obj arr += b
+  L_obj_array_append obj arr += c
   # Pop last element
-  L_obj_pop -v L_RET obj arr
+  L_obj_array_pop -v L_RET obj arr
   L_unittest_vareq L_RET c
   L_obj_len -v L_RET obj arr
   L_unittest_vareq L_RET 2
   # Pop again
-  L_obj_pop -v L_RET obj arr
+  L_obj_array_pop -v L_RET obj arr
   L_unittest_vareq L_RET b
-  L_obj_pop -v L_RET obj arr
+  L_obj_array_pop -v L_RET obj arr
   L_unittest_vareq L_RET a
   # Pop from empty array
-  L_unittest_cmd -r '.*' ! L_obj_pop -v L_RET obj arr
+  L_unittest_cmd -r '.*' ! L_obj_array_pop -v L_RET obj arr
   # Cannot pop from non-ARRAY
   L_obj_clear obj
   L_obj_set obj scalar = "value"
-  L_unittest_cmd -r '.*' ! L_obj_pop -v L_RET obj scalar
+  L_unittest_cmd -r '.*' ! L_obj_array_pop -v L_RET obj scalar
 }
 
 # Tests for position references (obj+pos syntax)
@@ -767,8 +768,8 @@ _L_test_obj_position_refs() {
   L_obj_get -v val "obj+${pos}" c
   L_unittest_vareq val 2
   # Get position of array and use obj+pos syntax
-  L_obj_append obj list += x
-  L_obj_append obj list += y
+  L_obj_array_append obj list += x
+  L_obj_array_append obj list += y
   L_obj_pos -v pos obj list
   local list_pos=$pos
   L_obj_get -v val "obj+${list_pos}" 0
@@ -912,17 +913,17 @@ _L_test_obj_deep_nesting() {
   L_unittest_vareq L_RET 1
 }
 
-# Tests for L_obj_append_typed
+# Tests for L_obj_array_append_typed
 _L_test_obj_array_append_type_value() {
   obj_skip_test
   local L_RET
   local obj
   # Append with explicit type
-  L_obj_append_typed obj arr += INTEGER 1
-  L_obj_append_typed obj arr += FLOAT 2.5
-  L_obj_append_typed obj arr += STRING "hello"
-  L_obj_append_typed obj arr += BOOL true
-  L_obj_append_typed obj arr += NULL ""
+  L_obj_array_append_typed obj arr += INTEGER 1
+  L_obj_array_append_typed obj arr += FLOAT 2.5
+  L_obj_array_append_typed obj arr += STRING "hello"
+  L_obj_array_append_typed obj arr += BOOL true
+  L_obj_array_append_typed obj arr += NULL ""
   # Check types
   L_obj_type -v L_RET obj arr 0
   L_unittest_vareq L_RET INTEGER
@@ -936,7 +937,7 @@ _L_test_obj_array_append_type_value() {
   L_unittest_vareq L_RET NULL
   # Append to non-array should fail
   L_obj_clear obj
-  L_obj_set_typed obj notarr = MAP ""
-  L_unittest_cmd -r '.*' ! L_obj_append_typed obj notarr += STRING "val"
+  L_obj_set_map obj notarr =
+  L_unittest_cmd -r '.*' ! L_obj_array_append_typed obj notarr += STRING "val"
 }
 
