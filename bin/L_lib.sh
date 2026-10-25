@@ -12266,20 +12266,34 @@ L_json_quote_vL_RET() {
 L_json_quote_ascii() { L_handle_v_scalar "$@"; }
 L_json_quote_ascii_vL_RET() {
 	L_json_quote_vL_RET "$1"
-	local _L_s=$L_RET _L_out="" _L_pre _L_c _L_cp LC_ALL=C.UTF-8
-	while [[ $_L_s == *[^$'\x01'-$'\x7f']* ]]; do
-		_L_pre=${_L_s%%[^$'\x01'-$'\x7f']*}  # ASCII run before the first non-ASCII char
-		printf -v _L_cp %d "'${_L_s:${#_L_pre}:1}"  # the non-ASCII char
-		_L_s=${_L_s:${#_L_pre}+1}
-		if ((_L_cp < 0x10000)); then
-			printf -v _L_c '\\u%04x' "$_L_cp"
+	local _L_str=$L_RET _L_pre _L_char _L_codepoint LC_ALL=C.UTF-8
+	L_RET=""
+	while [[ $_L_str == *[^$'\x01'-$'\x7f']* ]]; do
+		_L_pre=${_L_str%%[^$'\x01'-$'\x7f']*}  # ASCII run before the first non-ASCII char
+		printf -v _L_codepoint %d "'${_L_str:${#_L_pre}:1}"
+		if [[ "$OSTYPE" == cygwin || "$OSTYPE" == msys ]] && (( _L_codepoint >= 0xD800 && _L_codepoint <= 0xDBFF )); then
+			# On cygwin, wchar_t is 16 bits. We have to decode the higher unicode bytes ourselves.
+			_L_str=${_L_str:${#_L_pre}}
+			_L_json_quote_ascii_decode4
 		else
-			(( _L_cp -= 0x10000 ))
-			printf -v _L_c '\\u%04x\\u%04x' "$((0xd800 + (_L_cp >> 10)))" "$((0xdc00 + (_L_cp & 0x3ff)))"
+			_L_str=${_L_str:${#_L_pre}+1}
 		fi
-		_L_out+="$_L_pre$_L_c"
+		if ((_L_codepoint < 0x10000)); then
+			printf -v _L_char '\\u%04x' "$_L_codepoint"
+		else
+			(( _L_codepoint -= 0x10000 ))
+			printf -v _L_char '\\u%04x\\u%04x' "$((0xd800 + (_L_codepoint >> 10)))" "$((0xdc00 + (_L_codepoint & 0x3ff)))"
+		fi
+		L_RET+=$_L_pre$_L_char
 	done
-	L_RET=$_L_out$_L_s
+	L_RET+=$_L_str
+}
+_L_json_quote_ascii_decode4() {
+	local LC_ALL=C b2 b3
+	printf -v b2 %d "'${_L_str:2:1}"
+	printf -v b3 %d "'${_L_str:3:1}"
+	_L_codepoint=$(( 0x10000 + ((_L_codepoint - 0xD800) << 10) + ((b2 & 0xF) << 6) + (b3 & 0x3F) ))
+	_L_str=${_L_str:4}
 }
 
 # $1 = Unicode code point (number) -> UTF-8 bytes, any locale.
