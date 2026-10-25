@@ -6818,57 +6818,48 @@ _L_unittest_main_finally() {
 }
 
 _L_unittest_main_cache_load() {
-  local IFS=" " a=() b=() t file="$_L_u_c_cachedir/L_unittest_main_lastrun"
-  if [[ -r "$file" ]]; then
-  	{
-  			IFS= read -r _L_u_c_pass
-  			IFS= read -r _L_u_c_fail
-  	} <"$file" || :
-  fi
+	local IFS=" " a=() b=() t file="$_L_u_c_cachedir/L_unittest_main_lastrun"
+	if [[ -r "$file" ]]; then
+		{ IFS= read -r _L_u_c_pass; IFS= read -r _L_u_c_fail; } <"$file" || :
+	fi
 	case "$_L_u_c_rerun" in
 		a|all) ;;
 		l|last-failed|o|only-failed)
-  		for t in "${_L_u_test_func[@]}"; do [[ " $_L_u_c_fail " == *" $t "* ]] && a+=("$t"); done
-    	if (( ${#a[@]} )); then
-    		_L_u_test_func=("${a[@]}")
-    	elif [[ $_L_u_c_rerun == only ]]; then
-    		_L_u_test_func=()
-    	fi
-    	;;
+			for t in "${_L_u_test_func[@]}"; do [[ " $_L_u_c_fail " == *" $t "* ]] && a+=("$t"); done
+			if (( ${#a[@]} )); then
+				_L_u_test_func=("${a[@]}")
+			elif [[ $_L_u_c_rerun == o* ]]; then
+				_L_u_test_func=()
+			fi
+			;;
 		f|failed-first)
-    	for t in "${_L_u_test_func[@]}"; do
-    		if [[ " $_L_u_c_fail " == *" $t "* ]]; then a+=("$t"); else b+=("$t"); fi
-    	done
-    	_L_u_test_func=("${a[@]}" "${b[@]}")
-    	;;
+			for t in "${_L_u_test_func[@]}"; do
+				if [[ " $_L_u_c_fail " == *" $t "* ]]; then a+=("$t"); else b+=("$t"); fi
+			done
+			_L_u_test_func=("${a[@]}" "${b[@]}")
+			;;
 		n|new-first)
-    	for t in "${_L_u_test_func[@]}"; do
-    		if [[ " $_L_u_c_pass $_L_u_c_fail " == *" $t "* ]]; then b+=("$t"); else a+=("$t"); fi
-    	done
-    	_L_u_test_func=("${a[@]}" "${b[@]}")
-    	;;
+			for t in "${_L_u_test_func[@]}"; do
+				if [[ " $_L_u_c_pass $_L_u_c_fail " == *" $t "* ]]; then b+=("$t"); else a+=("$t"); fi
+			done
+			_L_u_test_func=("${a[@]}" "${b[@]}")
+			;;
 		c|clear) L_logrun rm -v "$file"; exit ;;
 		*) L_func_usage_error "invalid -r value: $OPTARG" 1; return "$L_EX_USAGE" ;;
 	esac
 }
 
 _L_unittest_main_cache_save() {
-	local IFS=' ' t pass="" fail="" ran=" ${_L_u_test_func[*]} " failed=""
-	# keep old state of tests that did not run
-	for t in $_L_u_c_pass; do if [[ $ran != *" $t "* ]]; then pass+=" $t"; fi; done
-	for t in $_L_u_c_fail; do if [[ $ran != *" $t "* ]]; then fail+=" $t"; fi; done
-	# add this run's results
-	for t in "${!_L_u_test_func[@]}"; do
-		if (( _L_u_test_ret[t] )); then
-			failed+=" ${_L_u_test_func[$t]}"
-		fi
+	local idx func file="$_L_u_c_cachedir/L_unittest_main_lastrun"
+	_L_u_c_pass=" $_L_u_c_pass " _L_u_c_fail=" $_L_u_c_fail "
+	for idx in "${!_L_u_test_func[@]}"; do
+		func=${_L_u_test_func[idx]}
+		_L_u_c_pass=${_L_u_c_pass/" $func "/ }
+		_L_u_c_fail=${_L_u_c_fail/" $func "/ }
+		if (( _L_u_test_ret[idx] )); then _L_u_c_fail+="$func "; else _L_u_c_pass+="$n "; fi
 	done
-	for t in "${_L_u_test_func[@]}"; do
-		if [[ $failed == *" $t "* ]]; then fail+=" $t"; else pass+=" $t"; fi
-	done
-	local file="$_L_u_c_cachedir/L_unittest_main_lastrun"
 	mkdir -p "$_L_u_c_cachedir" &&
-		printf '%s\n%s\n' "${pass# }" "${fail# }" > "$file.$$" &&
+		printf '%s\n%s\n' "${_L_u_c_pass# }" "${_L_u_c_fail# }" > "$file.$$" &&
 		mv -f "$file.$$" "$file"
 }
 
@@ -6889,8 +6880,8 @@ _L_unittest_main_cache_save() {
 #         -k 'foo && bar'    tests matching both 'foo' and 'bar'
 #         -k '! slow'        tests not matching 'slow'
 #         -k '(foo || bar) && ! slow'
-# @option -P <nproc> Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
-# @option -l Do not run the tests. Instead print the tests to exeucte.
+# @option -P <NPROC> Run tests in parallel using NPROC worker processes. If NPROC is 'n' or 'nproc', use number of cores.
+# @option -l Print the tests to exeucte and exit without running tests.
 # @option -q Run tests in command substitution. Print only failed tests output.
 #            Great for LLM for reducing context size.
 # @option -d <int> Print a list of the slowest number of tests. Negative to print all.
@@ -6906,7 +6897,14 @@ _L_unittest_main_cache_save() {
 # @option -M <global-max-time> If running longer then specified time, tasks are getting killed.
 # @option -m <task-max-time> If a task is running longer then specified time, it is killed.
 # @option -C <cache-dir> Cache directory location to store state.
-# @option -r <mode> Rerun specific tests from state. The mode can be one of: a all l last-failed f failed-first n new-first c clear. Option -r is ignored without -C option. Clear clears the cache without execution.
+# @option -r <mode>   Select or order tests using the saved state. Requires -C.
+#              Mode         Short  Behavior
+#              all          a      Ignore state, run everything (default).
+#              last-failed  l      Run only tests that failed last time; if none recorded, run all.
+#              only-failed  o      Run only tests that failed last time; if none recorded, run nothing.
+#              failed-first f      Failed tests first, then the rest.
+#              new-first    n      Tests with no recorded state first, then the rest.
+#              clear        c      Delete the state and exit without running tests.
 # @arg <patterns...> Like -k argument, but allows one word only and joins arguments with AND.
 # shellcheck disable=SC2179
 L_unittest_main() {
