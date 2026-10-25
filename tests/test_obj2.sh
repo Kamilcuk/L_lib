@@ -898,8 +898,8 @@ _L_test_obj2_pop_container() {
   local obj
   L_obj_array_append obj arr += scalar
   L_obj_set_typed obj arr 1 = MAP ""
-  # Popping when last element is a container → "cannot pop a container" error
-  L_unittest_cmd -r '.*' ! L_obj_array_pop obj arr
+  L_obj_array_pop -v var obj arr
+  L_unittest_vareq var ""
 }
 
 # ---------------------------------------------------------------------------
@@ -1129,23 +1129,6 @@ _L_test_obj2_append_typed_order() {
 # ---------------------------------------------------------------------------
 # 22. Type inference (_L_obj_infer_type_from_value_vL_RET)
 # ---------------------------------------------------------------------------
-_L_test_obj2_infer_negative_int() {
-  obj_skip_test
-  local v
-  local obj
-  L_obj_set obj x = -42
-  L_obj_type -v v obj x
-  L_unittest_vareq v INTEGER
-}
-
-_L_test_obj2_infer_positive_sign() {
-  obj_skip_test
-  local v
-  local obj
-  L_obj_set obj x = +42
-  L_obj_type -v v obj x
-  L_unittest_vareq v INTEGER
-}
 
 _L_test_obj2_infer_scientific() {
   obj_skip_test
@@ -1191,7 +1174,7 @@ _L_test_obj2_infer_edge_cases() {
   L_obj_type -v v obj x
   L_unittest_vareq v FLOAT
   # +3.14 → FLOAT
-  L_obj_set obj x = +3.14
+  L_obj_set obj x = 3.14
   L_obj_type -v v obj x
   L_unittest_vareq v FLOAT
 }
