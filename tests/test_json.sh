@@ -167,6 +167,17 @@ _L_test_json_change_1() {
   test_json_roundtrip "$_L_JSON_TEST1" "$j" "$j"
 }
 
+_L_test_json_change_unicode() {
+  obj_skip_test
+  local compact='{"k":"ąę😀"}'
+  local compact_ascii='{"k":"\u0105\u0119\ud83d\ude00"}'
+  test_json_roundtrip "$compact" "$compact" "$compact_ascii"
+  test_json_roundtrip "$compact_ascii" "$compact" "$compact_ascii"
+  local LC_ALL=C
+  test_json_roundtrip "$compact" "$compact" "$compact_ascii"
+  test_json_roundtrip "$compact_ascii" "$compact" "$compact_ascii"
+}
+
 _L_test_json_change_2() {
   obj_skip_test
   local compact='{"str":"a","empty_str":"","esc .\\":"q\"\\/\b\f\n\r\té .","uni":"ąę😀","int":1,"neg":-1,"zero":0,"float":1.5,"exp":1e3,"negexp":-2.5E-2,"t":true,"f":false,"n":null,"arr":[],"obj":{},"mixed":["d",1,true,null,[],{}],"nest":{"f.":{"g":null}}}'

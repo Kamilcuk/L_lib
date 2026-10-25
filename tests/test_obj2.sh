@@ -289,7 +289,7 @@ _L_test_obj2_json_null() {
   L_obj_to_json -cv out obj
   echo "$out"
   # NULL value should serialize as null
-  L_unittest_cmd L_regex_match "$out" '"n":\s*null'
+  L_unittest_cmd L_regex_match "$out" '"n": *null'
 }
 
 _L_test_obj2_json_bool() {
@@ -298,8 +298,8 @@ _L_test_obj2_json_bool() {
   L_obj_set_typed obj b1 = BOOL true
   L_obj_set_typed obj b2 = BOOL false
   L_obj_to_json -v out obj
-  L_unittest_cmd L_regex_match "$out" '"b1":\s*true'
-  L_unittest_cmd L_regex_match "$out" '"b2":\s*false'
+  L_unittest_cmd L_regex_match "$out" '"b1": *true'
+  L_unittest_cmd L_regex_match "$out" '"b2": *false'
 }
 
 # ---------------------------------------------------------------------------
