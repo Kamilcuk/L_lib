@@ -391,7 +391,7 @@ This is exactly like L_decorate, but does not preserve FUNCNAME, so it is faster
 - **`$@`** Decorator to apply with arguments.
 - **`$#-1`** Function.
 
-### L_getopts_in
+### L_getopts_run
 
 Wrapper around getopts that executes subcommand with local-ed variables.
 
@@ -408,7 +408,7 @@ Invalid option triggers L_func_usage_error and returns 64 ($L_EX_USAGE).
 Example
 
 ```
-myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+myfunc() { L_getopts_run -p opt_ n::vq myfunc_in "$@"; }
 myfunc_in() {
   echo "${opt_n[@]} $opt_v $opt_q"
 }
@@ -423,6 +423,7 @@ myfunc_in() {
 - **`-g`** Declare variables globally with `declare -g`.
 - **`-w`** Just set variables, without `local` or `declare -g`.
 - **`-E`** eval the command.
+- **`-i`** Interleave positional arguments with options.
 - **`-h`** Show this help and return 0.
 
 **Arguments:**
@@ -448,7 +449,7 @@ The fucntion L_handle_v_scalar handles only scalar value of `L_RET` or 0-th inde
 Example
 
 ```
-L_hello() { L_handle_v_arr "$@"; }
+L_hello() { L_handle_v_scalar "$@"; }
 L_hello_vL_RET() { L_RET="hello world"; }
 L_hello          # outputs 'hello world'
 L_hello -v var   # assigns var="hello world"
@@ -491,10 +492,18 @@ L_hello -v var   # assigns var=(hello world)
 
 **See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
 
-### L_handle_v_asa
+### L_handle_v_silent
 
-Version of L_handle_v_scalar for associative arrays.
+This is very similar to L_handle_v_array, but it does not print the output. Instead, when called without -v option, the L_RET value is just ignored. This is used to functions that do want to optionally set a value, but do not output anything. For example array_pop might store -v index of the popped element, but by itself not output anything.
 
 **Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
 
-**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar)
+
+### L_handle_v_asa
+
+Version of L_handle_v_scalar for associative arrays. Instead of L_RET variable it uses L_ARET variable. The L_ARET variable has to be defined with define -A by the caller.
+
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar)

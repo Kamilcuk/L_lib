@@ -943,28 +943,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_json" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_json
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1926,28 +1904,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_json" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_json
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2713,28 +2669,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_json" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_json
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2910,7 +2844,7 @@
 </ul>
 <h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <h3 id="parsing-json-into-l_obj">Parsing JSON into L_obj<a class="headerlink" href="#parsing-json-into-l_obj" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_json_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
 <span class="s">{&quot;name&quot;: &quot;MyApp&quot;, &quot;version&quot;: &quot;1.2.3&quot;}</span>
 <span class="s">JSON</span>
 </code></pre></div>
@@ -2929,7 +2863,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w
 </code></pre></div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="simple-object">Simple object<a class="headerlink" href="#simple-object" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_json_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
 <span class="s">{&quot;name&quot;: &quot;MyApp&quot;, &quot;version&quot;: &quot;1.2.3&quot;}</span>
 <span class="s">JSON</span>
 
@@ -2937,7 +2871,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w"> </span>obj<span class="w"> </span>version
 </code></pre></div>
 <h3 id="nested-object">Nested object<a class="headerlink" href="#nested-object" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_json_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
 <span class="s">{&quot;server&quot;: {&quot;host&quot;: &quot;localhost&quot;, &quot;port&quot;: 8080}}</span>
 <span class="s">JSON</span>
 
@@ -2963,7 +2897,7 @@ L_json_get<span class="w"> </span>-v<span class="w"> </span>COUNT<span class="w"
 <h2 id="internal-implementation">Internal Implementation<a class="headerlink" href="#internal-implementation" title="Permanent link">&para;</a></h2>
 <p>JSON processing uses a recursive descent parser:</p>
 <ul>
-<li><code>L_json_to_obj()</code> - Parses JSON from stdin into an L_obj structure</li>
+<li><code>L_obj_from_json()</code> - Parses JSON from stdin into an L_obj structure</li>
 <li><code>L_json_get()</code> / <code>L_json_get_all()</code> - Query raw JSON directly, returning value, type, and byte offsets</li>
 <li><code>L_json_rm()</code> - Remove an element from a JSON string</li>
 <li><code>L_obj_to_json()</code> - Serializes an L_obj back to JSON with formatting options</li>
@@ -2972,7 +2906,7 @@ L_json_get<span class="w"> </span>-v<span class="w"> </span>COUNT<span class="w"
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--json">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     json
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12731"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12212"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2998,7 +2932,7 @@ L_json_get<span class="w"> </span>-v<span class="w"> </span>COUNT<span class="w"
 
 <h3 id="L_lib.sh--L_json_quote">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_quote
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12739"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12217"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3045,7 +2979,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_json_quote_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_quote_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12740"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12218"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3072,7 +3006,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_json_quote_ascii">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_quote_ascii
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12784"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12262"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3119,7 +3053,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_json_quote_ascii_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_quote_ascii_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12785"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12263"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3146,7 +3080,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_json_unquote">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_unquote
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12826"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12304"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3193,7 +3127,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_json_unquote_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_unquote_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12856"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12334"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3218,112 +3152,9 @@ Argument:
   
 
 
-<h3 id="L_lib.sh--L_json_to_obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_json_to_obj
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13012"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_json_to_obj" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Convert a json into an object.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>Arguments:</strong>
-<ul><li>                <strong><code>&lt;object&gt;</code></strong>
-    
-
-</li><li>                <strong><code>&lt;offset...&gt;</code></strong>
-    
-
-</li></ul>    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_obj_to_json">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_obj_to_json
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13038"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_obj_to_json" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Convert obj into json.
-
-    </p>
-
-  
-  
-  
-  
-      <p>
-        <strong>Options:</strong>
-<ul><li>                <strong><code>-a</code></strong>
-    Use only ascii characters escapes in strings.
-
-</li><li>                <strong><code>-c</code></strong>
-    Compact output.
-
-</li><li>                <strong><code>-i &lt;int&gt;</code></strong>
-    Indent count of spaces.
-
-</li><li>                <strong><code>-C</code></strong>
-    Color output.
-
-</li><li>                <strong><code>-S</code></strong>
-    Sort keys.
-
-</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
-    Store the output in variable instead of printing it.
-
-</li><li>                <strong><code>-h</code></strong>
-    Print this help and return 0.
-
-</li></ul>    </p>
-
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$1</code></strong>
-    JSON
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
 <h3 id="L_lib.sh--L_json_get_all">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_get_all
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13110"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12490"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3370,7 +3201,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_get_all_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_get_all_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13111"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12491"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3397,7 +3228,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_get
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13139"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12519"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3437,7 +3268,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_get_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13140"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12520"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3464,7 +3295,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_rm">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_rm
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13145"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12525"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3504,7 +3335,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_rm_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_rm_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13146"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12526"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3531,7 +3362,7 @@ Return:
 
 <h3 id="L_lib.sh--L_json_print">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_json_print
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13161"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12541"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -3592,7 +3423,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 23:06:18 UTC">October 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 20:55:05 UTC">October 24, 2026</span>
   </span>
 
     

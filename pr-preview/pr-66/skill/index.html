@@ -1861,10 +1861,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#json-l_json_to_obj-l_obj_to_json" class="md-nav__link">
+  <a href="#json-l_obj_from_json-l_obj_to_json" class="md-nav__link">
     <span class="md-ellipsis">
       
-        JSON — L_json_to_obj, L_obj_to_json
+        JSON — L_obj_from_json, L_obj_to_json
       
     </span>
   </a>
@@ -1872,10 +1872,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ini-l_ini_to_obj-l_obj_to_ini" class="md-nav__link">
+  <a href="#ini-l_obj_from_ini-l_obj_to_ini" class="md-nav__link">
     <span class="md-ellipsis">
       
-        INI — L_ini_to_obj, L_obj_to_ini
+        INI — L_obj_from_ini, L_obj_to_ini
       
     </span>
   </a>
@@ -1883,10 +1883,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#toml-l_toml_to_obj-l_obj_to_toml" class="md-nav__link">
+  <a href="#toml-l_obj_from_toml-l_obj_to_toml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TOML — L_toml_to_obj, L_obj_to_toml
+        TOML — L_obj_from_toml, L_obj_to_toml
       
     </span>
   </a>
@@ -2334,10 +2334,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#json-l_json_to_obj-l_obj_to_json" class="md-nav__link">
+  <a href="#json-l_obj_from_json-l_obj_to_json" class="md-nav__link">
     <span class="md-ellipsis">
       
-        JSON — L_json_to_obj, L_obj_to_json
+        JSON — L_obj_from_json, L_obj_to_json
       
     </span>
   </a>
@@ -2345,10 +2345,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#ini-l_ini_to_obj-l_obj_to_ini" class="md-nav__link">
+  <a href="#ini-l_obj_from_ini-l_obj_to_ini" class="md-nav__link">
     <span class="md-ellipsis">
       
-        INI — L_ini_to_obj, L_obj_to_ini
+        INI — L_obj_from_ini, L_obj_to_ini
       
     </span>
   </a>
@@ -2356,10 +2356,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#toml-l_toml_to_obj-l_obj_to_toml" class="md-nav__link">
+  <a href="#toml-l_obj_from_toml-l_obj_to_toml" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TOML — L_toml_to_obj, L_obj_to_toml
+        TOML — L_obj_from_toml, L_obj_to_toml
       
     </span>
   </a>
@@ -2767,24 +2767,24 @@ L_uv_run
 <h3 id="l_obj-core-data-structure-l_obj">L_obj Core Data Structure — <code>L_obj</code><a class="headerlink" href="#l_obj-core-data-structure-l_obj" title="Permanent link">&para;</a></h3>
 <p>L_obj stores arbitrary nested data in a flat Bash array with 5 elements per node. Two container types: MAP and ARRAY. Value types: STRING, INTEGER, FLOAT, BOOL, NULL, DATETIME, DATE, TIME.</p>
 <div class="highlight"><pre><span></span><code>L_obj_clear<span class="w"> </span>obj
-L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;MyApp&quot;</span>
-L_obj_set_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span>
+L_obj_set<span class="w"> </span>obj<span class="w"> </span><span class="nv">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;MyApp&quot;</span>
+L_obj_set<span class="w"> </span>obj<span class="w"> </span><span class="nv">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;1.0.0&quot;</span>
 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> </span>obj<span class="w"> </span>name<span class="w">        </span><span class="c1"># &quot;MyApp&quot;</span>
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w"> </span>obj<span class="w"> </span>version<span class="w">  </span><span class="c1"># &quot;1.0.0&quot;</span>
 
 <span class="c1"># Build nested objects (intermediate nodes auto-created)</span>
-L_obj_set_type<span class="w"> </span>obj<span class="w"> </span><span class="nv">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>MAP
-L_obj_set_value<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;localhost&quot;</span>
-L_obj_set_value<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>INTEGER<span class="w"> </span><span class="m">8080</span>
+L_obj_set_typed<span class="w"> </span>obj<span class="w"> </span><span class="nv">server</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>MAP
+L_obj_set<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">host</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>STRING<span class="w"> </span><span class="s2">&quot;localhost&quot;</span>
+L_obj_set<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span><span class="nv">port</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>INTEGER<span class="w"> </span><span class="m">8080</span>
 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>HOST<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>host<span class="w">   </span><span class="c1"># &quot;localhost&quot;</span>
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>PORT<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>port<span class="w">   </span><span class="c1"># &quot;8080&quot;</span>
 
 <span class="c1"># Append to array</span>
-L_obj_set_type<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>ARRAY
-L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="m">1</span>
-L_obj_array_append_value<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s2">&quot;two&quot;</span>
+L_obj_set_typed<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>ARRAY
+L_obj_array_append<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="m">1</span>
+L_obj_array_append<span class="w"> </span>obj<span class="w"> </span><span class="nv">arr</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="s2">&quot;two&quot;</span>
 
 <span class="c1"># Iterate</span>
 L_obj_keys<span class="w"> </span>-v<span class="w"> </span>KEYS<span class="w"> </span>obj
@@ -2793,11 +2793,11 @@ L_obj_keys<span class="w"> </span>-v<span class="w"> </span>KEYS<span class="w">
 <span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$key</span><span class="s2">: </span><span class="nv">$value</span><span class="s2">&quot;</span>
 <span class="k">done</span>
 </code></pre></div>
-<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set_value">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set_value</a></p>
-<h3 id="json-l_json_to_obj-l_obj_to_json">JSON — <code>L_json_to_obj</code>, <code>L_obj_to_json</code><a class="headerlink" href="#json-l_json_to_obj-l_obj_to_json" title="Permanent link">&para;</a></h3>
+<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/obj.md#L_lib.sh--L_obj_set</a></p>
+<h3 id="json-l_obj_from_json-l_obj_to_json">JSON — <code>L_obj_from_json</code>, <code>L_obj_to_json</code><a class="headerlink" href="#json-l_obj_from_json-l_obj_to_json" title="Permanent link">&para;</a></h3>
 <p>Parse JSON into L_obj and serialize back with optional pretty-printing.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Parse JSON into L_obj</span>
-L_json_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
 <span class="s">{&quot;name&quot;: &quot;MyApp&quot;, &quot;version&quot;: &quot;1.2.3&quot;, &quot;server&quot;: {&quot;host&quot;: &quot;localhost&quot;, &quot;port&quot;: 8080}}</span>
 <span class="s">JSON</span>
 
@@ -2807,16 +2807,16 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>HOST<span class="w"> 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>PORT<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>port
 
 <span class="c1"># Set values with type inference</span>
-L_obj_set_value<span class="w"> </span>obj<span class="w"> </span>server.port<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">9090</span>
+L_obj_set<span class="w"> </span>obj<span class="w"> </span>server.port<span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">9090</span>
 
 <span class="c1"># Serialize back to JSON</span>
 L_obj_to_json<span class="w"> </span>-v<span class="w"> </span>json_text<span class="w"> </span>obj
 </code></pre></div>
-<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_json_to_obj">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_json_to_obj</a></p>
-<h3 id="ini-l_ini_to_obj-l_obj_to_ini">INI — <code>L_ini_to_obj</code>, <code>L_obj_to_ini</code><a class="headerlink" href="#ini-l_ini_to_obj-l_obj_to_ini" title="Permanent link">&para;</a></h3>
+<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_obj_from_json">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/json.md#L_lib.sh--L_obj_from_json</a></p>
+<h3 id="ini-l_obj_from_ini-l_obj_to_ini">INI — <code>L_obj_from_ini</code>, <code>L_obj_to_ini</code><a class="headerlink" href="#ini-l_obj_from_ini-l_obj_to_ini" title="Permanent link">&para;</a></h3>
 <p>Parse INI configuration files into L_obj and serialize back.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Parse INI text</span>
-L_ini_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
+L_obj_from_ini<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
 <span class="s">root = hello</span>
 
 <span class="s">[server]</span>
@@ -2833,13 +2833,13 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>PORT<span class="w"> 
 L_obj_to_ini<span class="w"> </span>-v<span class="w"> </span>ini_text<span class="w"> </span>obj
 
 <span class="c1"># Parse from file</span>
-L_ini_file_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s2">&quot;/etc/app/config.ini&quot;</span>
+L_obj_from_ini<span class="w"> </span>obj<span class="w"> </span>&lt;<span class="w"> </span><span class="s2">&quot;/etc/app/config.ini&quot;</span>
 </code></pre></div>
-<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_ini_to_obj">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_ini_to_obj</a></p>
-<h3 id="toml-l_toml_to_obj-l_obj_to_toml">TOML — <code>L_toml_to_obj</code>, <code>L_obj_to_toml</code><a class="headerlink" href="#toml-l_toml_to_obj-l_obj_to_toml" title="Permanent link">&para;</a></h3>
+<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_obj_from_ini">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/ini.md#L_lib.sh--L_obj_from_ini</a></p>
+<h3 id="toml-l_obj_from_toml-l_obj_to_toml">TOML — <code>L_obj_from_toml</code>, <code>L_obj_to_toml</code><a class="headerlink" href="#toml-l_obj_from_toml-l_obj_to_toml" title="Permanent link">&para;</a></h3>
 <p>Parse TOML configuration files into L_obj and serialize back.</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Parse TOML text</span>
-L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">[database]</span>
 <span class="s">host = &quot;db.example.com&quot;</span>
 <span class="s">port = 5432</span>
@@ -2857,7 +2857,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w
 <span class="c1"># Serialize back to TOML</span>
 L_obj_to_toml<span class="w"> </span>-v<span class="w"> </span>toml_text<span class="w"> </span>cfg
 </code></pre></div>
-<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_toml_to_obj">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_toml_to_obj</a></p>
+<p>📖 <strong>Full docs</strong>: <a href="https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_obj_from_toml">https://raw.githubusercontent.com/Kamilcuk/L_lib/main/docs/section/toml.md#L_lib.sh--L_obj_from_toml</a></p>
 <h3 id="colors-terminal">Colors &amp; Terminal<a class="headerlink" href="#colors-terminal" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>L_color_detect
 <span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">L_RED</span><span class="si">}</span><span class="s2">Error</span><span class="si">${</span><span class="nv">L_RESET</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -3008,7 +3008,7 @@ my_function<span class="w">  </span><span class="c1"># prints to stdout</span>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 17, 2026 08:36:22 UTC">October 17, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 20:55:05 UTC">October 24, 2026</span>
   </span>
 
     

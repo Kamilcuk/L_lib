@@ -1531,28 +1531,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_toml_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_toml_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_toml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_toml
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2130,28 +2108,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_toml_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_toml_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_toml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_toml
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2249,7 +2205,7 @@
 </ul>
 <h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <h3 id="parsing-toml">Parsing TOML<a class="headerlink" href="#parsing-toml" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>config<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>config<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">[database]</span>
 <span class="s">host = &quot;localhost&quot;</span>
 <span class="s">port = 5432</span>
@@ -2270,7 +2226,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>S_HOST<span class="w"
 </code></pre></div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="simple-configuration">Simple configuration<a class="headerlink" href="#simple-configuration" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">[database]</span>
 <span class="s">host = &quot;db.example.com&quot;</span>
 <span class="s">port = 5432</span>
@@ -2280,7 +2236,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>DB_HOST<span class="w
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>DB_PORT<span class="w"> </span>cfg<span class="w"> </span>database<span class="w"> </span>port
 </code></pre></div>
 <h3 id="inline-tables">Inline tables<a class="headerlink" href="#inline-tables" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">a = { b = 1, c = 2 }</span>
 <span class="s">TOML</span>
 
@@ -2288,7 +2244,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>AB<span class="w"> </
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>AC<span class="w"> </span>cfg<span class="w"> </span>a<span class="w"> </span>c<span class="w">   </span><span class="c1"># 2</span>
 </code></pre></div>
 <h3 id="root-key-value-pairs">Root key-value pairs<a class="headerlink" href="#root-key-value-pairs" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">app_name = &quot;MyApp&quot;</span>
 <span class="s">version = &quot;1.2.3&quot;</span>
 <span class="s">TOML</span>
@@ -2297,7 +2253,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w"> </span>cfg<span class="w"> </span>version
 </code></pre></div>
 <h3 id="datetime-date-and-time-values">Datetime, date, and time values<a class="headerlink" href="#datetime-date-and-time-values" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">odt = 1979-05-27T07:32:00Z</span>
 <span class="s">ld = 1979-05-27</span>
 <span class="s">lt = 07:32:00</span>
@@ -2308,7 +2264,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>LD<span class="w"> </
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>LT<span class="w"> </span>cfg<span class="w"> </span>lt
 </code></pre></div>
 <h3 id="multiline-strings">Multiline strings<a class="headerlink" href="#multiline-strings" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_toml_to_obj<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_toml<span class="w"> </span>cfg<span class="w"> </span><span class="s">&lt;&lt;&#39;TOML&#39;</span>
 <span class="s">[description]</span>
 <span class="s">text = &quot;&quot;&quot;</span>
 <span class="s">This is a multiline</span>
@@ -2329,14 +2285,14 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>TEXT<span class="w"> 
 <ul>
 <li><code>L_toml_read()</code> - Main entry point, reads TOML from stdin and dispatches to callbacks</li>
 <li><code>L_toml_parse()</code> - Recursive parser that processes tokens and emits events</li>
-<li><code>L_toml_to_obj()</code> - Wrapper that calls <code>L_toml_read</code> and builds an L_obj structure</li>
+<li><code>L_obj_from_toml()</code> - Wrapper that calls <code>L_toml_read</code> and builds an L_obj structure</li>
 </ul>
 <p>Parser events include: VALUE, START/END (inline containers), TABLE MAP, TABLE ARRAY.</p>
 <p>This design avoids process spawning overhead by doing all parsing in-process.</p>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--toml">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     toml
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13323"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12617"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2362,7 +2318,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>TEXT<span class="w"> 
 
 <h3 id="L_lib.sh--L_toml_read">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_toml_read
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13648"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12942"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2396,96 +2352,6 @@ Argument:
 
 
 
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_toml_to_obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_toml_to_obj
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13656"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_toml_to_obj" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Parse TOML into an L_obj.
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$1</code></strong>
-    obj variable name
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_obj_to_toml">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_obj_to_toml
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13787"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_obj_to_toml" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Convert obj into toml.
-
-    </p>
-
-  
-  
-  
-  
-      <p>
-        <strong>Options:</strong>
-<ul><li>                <strong><code>-S</code></strong>
-    sort keys
-
-</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
-    Store output in variable.
-
-</li><li>                <strong><code>-h</code></strong>
-    Print this help and return 0.
-
-</li></ul>    </p>
-
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code> </code></strong>
-    obj
-
-    </p>
-
-
-
 
 
 
@@ -2503,7 +2369,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 23:06:18 UTC">October 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 20:55:05 UTC">October 24, 2026</span>
   </span>
 
     

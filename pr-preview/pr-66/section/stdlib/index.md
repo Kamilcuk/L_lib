@@ -377,9 +377,9 @@ declare -A map2=$tmp
 - [L_HAS_QEPAa_EXPANSIONS](#L_lib.sh--L_HAS_QEPAa_EXPANSIONS)
 - [L_cache](#L_lib.sh--L_cache)
 
-### L_var_is_notarray
+### L_var_is_scalar
 
-Return 0 if variable is not an array neither an associative array.
+Return 0 if variable is defined but is not an array neither an associative array.
 
 **Argument:** **`$1`** variable nameref
 

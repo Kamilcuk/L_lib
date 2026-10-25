@@ -1503,28 +1503,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_ini_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_ini_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_ini" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_ini
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2130,28 +2108,6 @@
   
 </li>
         
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_ini_to_obj" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_ini_to_obj
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#L_lib.sh--L_obj_to_ini" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_obj_to_ini
-      
-    </span>
-  </a>
-  
-</li>
-        
       </ul>
     </nav>
   
@@ -2251,7 +2207,7 @@
 </ul>
 <h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
 <h3 id="parsing-ini">Parsing INI<a class="headerlink" href="#parsing-ini" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_ini_to_obj<span class="w"> </span>config<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_ini<span class="w"> </span>config<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
 <span class="s">[database]</span>
 <span class="s">host = localhost</span>
 <span class="s">port = 5432</span>
@@ -2275,11 +2231,11 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>S_HOST<span class="w"
 <div class="highlight"><pre><span></span><code>L_obj_to_ini<span class="w"> </span>-v<span class="w"> </span>ini_text<span class="w"> </span>config
 </code></pre></div>
 <h3 id="parsing-from-file">Parsing from file<a class="headerlink" href="#parsing-from-file" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_ini_file_to_obj<span class="w"> </span>config<span class="w"> </span><span class="s2">&quot;/etc/app/config.ini&quot;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_ini<span class="w"> </span>config<span class="w"> </span>&lt;<span class="w"> </span><span class="s2">&quot;/etc/app/config.ini&quot;</span>
 </code></pre></div>
 <h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
 <h3 id="root-and-section-keys">Root and section keys<a class="headerlink" href="#root-and-section-keys" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_ini_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_ini<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
 <span class="s">root = value1</span>
 
 <span class="s">[section]</span>
@@ -2290,7 +2246,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>ROOT<span class="w"> 
 L_obj_get<span class="w"> </span>-v<span class="w"> </span>SECTION_KEY<span class="w"> </span>obj<span class="w"> </span>section<span class="w"> </span>key
 </code></pre></div>
 <h3 id="comments-and-quoted-values">Comments and quoted values<a class="headerlink" href="#comments-and-quoted-values" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>L_ini_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_ini<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
 <span class="s">; this is a comment</span>
 <span class="s"># this is also a comment</span>
 
@@ -2304,7 +2260,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>PORT<span class="w"> 
 </code></pre></div>
 <h3 id="multi-line-values">Multi-line values<a class="headerlink" href="#multi-line-values" title="Permanent link">&para;</a></h3>
 <p>Continuation lines are joined with newlines; leading whitespace is trimmed:</p>
-<div class="highlight"><pre><span></span><code>L_ini_to_obj<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
+<div class="highlight"><pre><span></span><code>L_obj_from_ini<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;INI&#39;</span>
 <span class="s">[server]</span>
 <span class="s">long = first line</span>
 <span class="s">   second line</span>
@@ -2324,13 +2280,13 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>LONG<span class="w"> 
 <p>INI parsing is line-based:</p>
 <ul>
 <li><code>L_ini_read()</code> - Core parsing logic, reads INI from stdin and emits KV/CONTINUATION events</li>
-<li><code>L_ini_to_obj()</code> - Wrapper that calls <code>L_ini_read</code> and builds an L_obj structure</li>
+<li><code>L_obj_from_ini()</code> - Wrapper that calls <code>L_ini_read</code> and builds an L_obj structure</li>
 <li><code>L_obj_to_ini()</code> - Serializes an L_obj back to INI text</li>
 </ul>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--ini">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     ini
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13165"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12545"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2356,7 +2312,7 @@ L_obj_get<span class="w"> </span>-v<span class="w"> </span>LONG<span class="w"> 
 
 <h3 id="L_lib.sh--L_ini_read">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_ini_read
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13196"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L12576"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2386,96 +2342,6 @@ Argument:
 
 
 
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_ini_to_obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_ini_to_obj
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13238"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_ini_to_obj" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Convert ini to L_obj
-
-    </p>
-
-  
-  
-  
-  
-  
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$1</code></strong>
-    L_obj namerefrence
-
-    </p>
-
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_obj_to_ini">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_obj_to_ini
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13273"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_obj_to_ini" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            Serializes OBJ to INI text.
-
-    </p>
-
-  
-  
-  
-  
-      <p>
-        <strong>Options:</strong>
-<ul><li>                <strong><code>-S</code></strong>
-    sort keys
-
-</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
-    Store into varaible instead of printing.
-
-</li><li>                <strong><code>-h</code></strong>
-    
-
-</li></ul>    </p>
-
-      <p>
-        <strong>
-Argument:
-        </strong>
-            <strong><code>$1</code></strong>
-    L_obj namereference.
-
-    </p>
-
-
-
 
 
 
@@ -2493,7 +2359,7 @@ Argument:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 16, 2026 23:06:18 UTC">October 16, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 20:55:05 UTC">October 24, 2026</span>
   </span>
 
     
