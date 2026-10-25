@@ -117,9 +117,9 @@ Uninteresting unittesting suite runner.
 
 - **`-q`**
 
-  Run tests in command substitution. Print only failed tests output.
+  Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.
 
-  Great for LLM for reducing context size.
+  With double -q -q will do not print skip reasons.
 
 - **`-d <int>`** Print a list of the slowest number of tests. Negative to print all.
 

@@ -459,7 +459,7 @@ L_hello -v var   # assigns var="hello world"
 
 **Argument:** **`$@`** arbitrary function arguments
 
-**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317) [SC2059](https://www.shellcheck.net/wiki/SC2059)
 
 **Exit:** Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
 

@@ -1075,7 +1075,7 @@ L_hello -v var   # assigns var="hello world"
 
 **Argument:** **`$@`** arbitrary function arguments
 
-**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317) [SC2059](https://www.shellcheck.net/wiki/SC2059)
 
 **Exit:** Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
 
@@ -4341,9 +4341,9 @@ Uninteresting unittesting suite runner.
 
 - **`-q`**
 
-  Run tests in command substitution. Print only failed tests output.
+  Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.
 
-  Great for LLM for reducing context size.
+  With double -q -q will do not print skip reasons.
 
 - **`-d <int>`** Print a list of the slowest number of tests. Negative to print all.
 
@@ -6056,6 +6056,8 @@ Extract elemtns from MAP or ARRAY from L_obj as an associative array.
 
 Like L_obj_set_typed, but the type is inferred from the value - FLOAT, INTEGER, STRING.
 
+**Option:** **`-v <var>`** Assign the position of new node to var.
+
 **Arguments:**
 
 - **`$1`** L_obj namereference, optionally with a position: obj+12
@@ -6065,9 +6067,13 @@ Like L_obj_set_typed, but the type is inferred from the value - FLOAT, INTEGER, 
 
 **See:** [L_obj_set_typed](#L_lib.sh--L_obj_set_typed)
 
+#### L_obj_set_vL_RET
+
 #### L_obj_set_typed
 
 Set scalar type and value of the node.
+
+**Option:** **`-v <var>`** Assign the position of new node to var.
 
 **Arguments:**
 
@@ -6077,15 +6083,21 @@ Set scalar type and value of the node.
 - **`<type>`** Scalar type. For MAP and ARRAY the value is ignored.
 - **`[value]`** The value of the node.
 
+#### L_obj_set_typed_vL_RET
+
 #### L_obj_set_default
 
 Like L_obj_set, but only sets value if not already set.
 
 **See:** [L_obj_set](#L_lib.sh--L_obj_set)
 
+#### L_obj_set_default_vL_RET
+
 #### L_obj_set_array
 
 Set values from an bash array as an ARRAY.
+
+**Option:** **`-v <var>`** Store the position of the node that was set.
 
 **Arguments:**
 
@@ -6094,9 +6106,13 @@ Set values from an bash array as an ARRAY.
 - **`<=>`** The character = to visually sinigify end of parts and start if arguments.
 - **`[array]`** Optional array variable namereference.
 
+#### L_obj_set_array_vL_RET
+
 #### L_obj_set_map
 
 Set values from an bash array as a MAP.
+
+**Option:** **`-v <var>`** Store the position of the node that was set.
 
 **Arguments:**
 
@@ -6104,6 +6120,8 @@ Set values from an bash array as a MAP.
 - **`[parts...]`** The path to remove.
 - **`<=>`** The character = to visually sinigify end of parts and start if arguments.
 - **`[array]`** Optional associative or normal array variable namereference.
+
+#### L_obj_set_map_vL_RET
 
 #### L_obj_retype
 
@@ -6152,25 +6170,58 @@ Append to the value of a node. Node cannot be MAP or ARRAY. If it is not a STRIN
 
 **Arguments:**
 
-- **`$1`** L_obj namereference
-- **`$2`** position
+- **`$1`** L_obj namereference, optionally with a position: obj+12
 - **`[parts...]`**
 - **`<+=>`**
 - value
 
 **Return:** 1 if the path is missing.
 
+#### L_obj_path
+
+Path of a node: the inverse of L_obj_pos. Climbs the parent links from the node to the root. The parts are MAP keys, or ARRAY indexes counted from 0. The root has an empty path. Finding an ARRAY index walks the previous siblings, so it is O(n) per ARRAY level. Use -v: without it the parts are printed one per line, which breaks on keys with newlines.
+
+Example
+
+```
+L_obj_pos -v pos obj a b 0
+L_obj_path -v parts "obj+$pos" c d 1   # parts=(a b 0 c d 1)
+L_obj_get obj "${parts[@]}"            # round-trips to the same node
+```
+
+**Option:** **`-v <var>`** Store the parts in an indexed array.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference with a position: obj+12. Without a position, the root.
+- **`[parts...]`**
+
+**Return:** 1 if the position is not a live node.
+
+#### L_obj_path_vL_RET
+
 #### L_obj_array_append
 
 Like \_L_obj_array_append_type_value but infer type of value.
 
+**Option:** **`-v <var>`** Store the position of the new element.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+- **`<+=>`**
+- **`<value>`**
+
 **See:** \_L_obj_array_append_type_value
+
+#### L_obj_array_append_vL_RET
 
 #### L_obj_array_append_typed
 
 Append value with type to an array.
 
-**Option:** **`-v <var>`** Store the potision of new node in variable.
+**Option:** **`-v <var>`** Store the position of the new element.
 
 **Arguments:**
 
@@ -6188,7 +6239,7 @@ Like L_obj_array_insert_typed, but the type is inferred from the value - FLOAT, 
 
 **Options:**
 
-- **`-v <var>`** Store the potision of new node in variable.
+- **`-v <var>`** Store the position of the new element.
 - **`-v <var>`** position of the new node
 
 **Arguments:**
@@ -6201,11 +6252,13 @@ Like L_obj_array_insert_typed, but the type is inferred from the value - FLOAT, 
 
 **Return:** 1 if index out of bounds or container is not ARRAY.
 
+#### L_obj_array_insert_vL_RET
+
 #### L_obj_array_insert_typed
 
 Insert a new element into an ARRAY at index. Shifts existing elements right.
 
-**Option:** **`-v <var>`** Store the potision of new node in variable.
+**Option:** **`-v <var>`** Store the position of the new element.
 
 **Arguments:**
 
@@ -6224,7 +6277,7 @@ Insert a new element into an ARRAY at index. Shifts existing elements right.
 
 Remove the first element of an ARRAY and return its scalar value.
 
-**Option:** **`-v <var>`** Store the value of the removed element in var.
+**Option:** **`-v <var>`** If the popped node is scalar, store the popped value in var. Otherwise will store empty.
 
 **Arguments:**
 
@@ -6235,22 +6288,17 @@ Remove the first element of an ARRAY and return its scalar value.
 
 #### L_obj_array_shift_vL_RET
 
+#### L_obj_array_shift_vL_RET
+
 #### L_obj_array_pop
 
-**Option:** **`-v <var>`** Store position of popped node in var.
+Remove the last element of the ARRAY at the path and return its scalar value.
+
+**Option:** **`-v <var>`** If the popped node is scalar, store the popped value in var. Otherwise will store empty.
 
 **Arguments:**
 
-- **`$1`** L_obj namereference
-
-- **`$2`**
-
-  position
-
-  Remove the last element of the ARRAY at the path and return its scalar value.
-
 - **`$1`** L_obj namereference, optionally with a position: obj or obj+12
-
 - **`[parts...]`**
 
 **Return:** 1 if the path is missing, not an ARRAY, empty, or the last element is a container.
@@ -6270,14 +6318,34 @@ Append all elements of a bash array to an ARRAY. Types are inferred per element.
 
 **Return:** 1 if the node is not an ARRAY.
 
+#### L_obj_set_obj
+
+Set a path to a deep copy of another object. Same as L_obj_copy, with the destination first.
+
+**Option:** **`-v <var>`** Store the position of the destination node.
+
+**Arguments:**
+
+- **`$1`** destination L_obj, optionally with position: obj or obj+12
+- **`[parts...]`** destination path
+- **`<=>`** The character = to visually signify end of parts and start of arguments.
+- **`<src>`** source L_obj, optionally with position: obj or obj+12
+
+#### L_obj_set_obj_vL_RET
+
 #### L_obj_copy
 
 Deep copy a subtree. The destination node's old children are removed and replaced.
+
+**Option:** **`-v <var>`** Store the position of the newly created node.
 
 **Arguments:**
 
 - **`$1`** source L_obj, optionally with position: obj or obj+12
 - **`$2`** destination L_obj, optionally with position: obj or obj+12
+- **`[parts...]`** destination L_obj parts
+
+#### L_obj_copy_vL_RET
 
 #### L_obj_merge
 
