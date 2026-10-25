@@ -285,9 +285,15 @@ Return 0 if the string characters is an integer
 
 ### L_is_float
 
-Return 0 if the string characters is a float
+Return 0 if the string characters is a float +-*.[0-9]*
 
 **Argument:** **`$1`** string to check
+
+### L_is_natural_integer
+
+Return 0 if the string is an integer. No leading +-.
+
+**Argument:** **`$1`** string
 
 ### $L_NL
 

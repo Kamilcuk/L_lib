@@ -15,10 +15,10 @@
         <link rel="canonical" href="https://Kamilcuk.github.io/L_lib/pr-preview/pr-68/section/json/">
       
       
-        <link rel="prev" href="../cache/">
+        <link rel="prev" href="../obj/">
       
       
-        <link rel="next" href="../exit_to/">
+        <link rel="next" href="../ini/">
       
       
         
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#api-reference" class="md-skip">
+        <a href="#json" class="md-skip">
           Skip to content
         </a>
       
@@ -645,6 +645,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -687,12 +689,169 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parsing-json-into-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing JSON into L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-values-from-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting values from L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converting-l_obj-to-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting L_obj to JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pretty-printing-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pretty printing JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nested object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-json-querying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct JSON querying
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removing-elements-from-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removing elements from JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Implementation
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#api-reference" class="md-nav__link">
@@ -718,10 +877,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_escape" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_escape
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote
       
     </span>
   </a>
@@ -729,10 +888,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_escape_vL_RET" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_escape_vL_RET
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_vL_RET
       
     </span>
   </a>
@@ -740,10 +899,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_create" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_ascii" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_create
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii
       
     </span>
   </a>
@@ -751,10 +910,109 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_create_vL_RET" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_ascii_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_create_vL_RET
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_print" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_print
       
     </span>
   </a>
@@ -1314,6 +1572,491 @@
   
   
     <li class="md-nav__item">
+      <a href="../obj/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    obj
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parsing-json-into-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing JSON into L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-values-from-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting values from L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converting-l_obj-to-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting L_obj to JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pretty-printing-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pretty printing JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nested object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-json-querying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct JSON querying
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removing-elements-from-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removing elements from JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Implementation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#L_lib.sh--json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code> json
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="json">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_quote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_quote_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_quote_ascii" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_quote_ascii_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_print" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_print
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ini/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ini
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    toml
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../lib/" class="md-nav__link">
         
   
@@ -1672,12 +2415,169 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#key-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Features
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#basic-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Basic Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#parsing-json-into-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parsing JSON into L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-values-from-l_obj" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting values from L_obj
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#converting-l_obj-to-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Converting L_obj to JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pretty-printing-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pretty printing JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#nested-object" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Nested object
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#direct-json-querying" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Direct JSON querying
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#removing-elements-from-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Removing elements from JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#internal-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Internal Implementation
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#api-reference" class="md-nav__link">
@@ -1703,10 +2603,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_escape" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_escape
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote
       
     </span>
   </a>
@@ -1714,10 +2614,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_escape_vL_RET" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_escape_vL_RET
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_vL_RET
       
     </span>
   </a>
@@ -1725,10 +2625,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_create" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_ascii" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_create
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii
       
     </span>
   </a>
@@ -1736,10 +2636,109 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#L_lib.sh--L_json_create_vL_RET" class="md-nav__link">
+  <a href="#L_lib.sh--L_json_quote_ascii_vL_RET" class="md-nav__link">
     <span class="md-ellipsis">
       
-        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_create_vL_RET
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_quote_ascii_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_unquote_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_unquote_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_all_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_all_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_get_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_get_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_rm_vL_RET" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_rm_vL_RET
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#L_lib.sh--L_json_print" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code> L_json_print
       
     </span>
   </a>
@@ -1832,12 +2831,82 @@
   
 
 
-  <h1>json</h1>
+<h1 id="json">JSON<a class="headerlink" href="#json" title="Permanent link">&para;</a></h1>
+<p>JSON (JavaScript Object Notation) is a data-interchange format. L_lib.sh provides functions to parse JSON into L_obj structures, query JSON directly, and serialize L_obj back to JSON.</p>
+<h2 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Full JSON support (objects, arrays, strings, numbers, booleans, null)</li>
+<li>Unicode handling with proper escaping</li>
+<li>Path-based access to nested values</li>
+<li>Round-trip compatibility</li>
+<li>Pretty printing with configurable indentation</li>
+<li>Direct JSON querying without L_obj conversion</li>
+</ul>
+<h2 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h2>
+<h3 id="parsing-json-into-l_obj">Parsing JSON into L_obj<a class="headerlink" href="#parsing-json-into-l_obj" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<span class="s">{&quot;name&quot;: &quot;MyApp&quot;, &quot;version&quot;: &quot;1.2.3&quot;}</span>
+<span class="s">JSON</span>
+</code></pre></div>
+<h3 id="extracting-values-from-l_obj">Extracting values from L_obj<a class="headerlink" href="#extracting-values-from-l_obj" title="Permanent link">&para;</a></h3>
+<p>Use <code>L_obj_get</code> with separate path arguments:</p>
+<div class="highlight"><pre><span></span><code>L_obj_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> </span>obj<span class="w"> </span>name<span class="w">           </span><span class="c1"># &quot;MyApp&quot;</span>
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w"> </span>obj<span class="w"> </span>version<span class="w">     </span><span class="c1"># &quot;1.2.3&quot;</span>
+</code></pre></div>
+<h3 id="converting-l_obj-to-json">Converting L_obj to JSON<a class="headerlink" href="#converting-l_obj-to-json" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_to_json<span class="w"> </span>-v<span class="w"> </span>json_text<span class="w"> </span>obj
+</code></pre></div>
+<h3 id="pretty-printing-json">Pretty printing JSON<a class="headerlink" href="#pretty-printing-json" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_json_print<span class="w"> </span>-i<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<span class="s">{&quot;a&quot;:1,&quot;b&quot;:{&quot;c&quot;:2}}</span>
+<span class="s">JSON</span>
+</code></pre></div>
+<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
+<h3 id="simple-object">Simple object<a class="headerlink" href="#simple-object" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<span class="s">{&quot;name&quot;: &quot;MyApp&quot;, &quot;version&quot;: &quot;1.2.3&quot;}</span>
+<span class="s">JSON</span>
 
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> </span>obj<span class="w"> </span>name
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>VERSION<span class="w"> </span>obj<span class="w"> </span>version
+</code></pre></div>
+<h3 id="nested-object">Nested object<a class="headerlink" href="#nested-object" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_obj_from_json<span class="w"> </span>obj<span class="w"> </span><span class="s">&lt;&lt;&#39;JSON&#39;</span>
+<span class="s">{&quot;server&quot;: {&quot;host&quot;: &quot;localhost&quot;, &quot;port&quot;: 8080}}</span>
+<span class="s">JSON</span>
+
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>SERVER_HOST<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>host
+L_obj_get<span class="w"> </span>-v<span class="w"> </span>SERVER_PORT<span class="w"> </span>obj<span class="w"> </span>server<span class="w"> </span>port
+</code></pre></div>
+<h3 id="direct-json-querying">Direct JSON querying<a class="headerlink" href="#direct-json-querying" title="Permanent link">&para;</a></h3>
+<p>Query a JSON string directly without converting to L_obj first:</p>
+<div class="highlight"><pre><span></span><code>L_json_get<span class="w"> </span>-v<span class="w"> </span>NAME<span class="w"> </span><span class="s1">&#39;{&quot;name&quot;: &quot;MyApp&quot;}&#39;</span><span class="w"> </span>name
+L_json_get<span class="w"> </span>-v<span class="w"> </span>COUNT<span class="w"> </span><span class="s1">&#39;{&quot;a&quot;: [1, 2, 3]}&#39;</span><span class="w"> </span>a<span class="w"> </span><span class="m">1</span><span class="w"> </span>c
+</code></pre></div>
+<h3 id="removing-elements-from-json">Removing elements from JSON<a class="headerlink" href="#removing-elements-from-json" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>L_json_rm<span class="w"> </span>-v<span class="w"> </span>json_no_d<span class="w"> </span><span class="s1">&#39;{&quot;a&quot;: 1, &quot;d&quot;: 2}&#39;</span><span class="w"> </span>d
+</code></pre></div>
+<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
+<ul>
+<li><code>L_obj_get</code> takes path parts as separate arguments (e.g. <code>server host</code>), not dot notation</li>
+<li><code>L_json_get</code> queries raw JSON strings directly (no L_obj needed)</li>
+<li><code>L_json_print</code> parses JSON to L_obj internally then serializes with formatting</li>
+<li>Use <code>-i &lt;indent&gt;</code> with <code>L_obj_to_json</code> or <code>L_json_print</code> for indented output</li>
+<li>Use <code>-c</code> for compact output</li>
+</ul>
+<h2 id="internal-implementation">Internal Implementation<a class="headerlink" href="#internal-implementation" title="Permanent link">&para;</a></h2>
+<p>JSON processing uses a recursive descent parser:</p>
+<ul>
+<li><code>L_obj_from_json()</code> - Parses JSON from stdin into an L_obj structure</li>
+<li><code>L_json_get()</code> / <code>L_json_get_all()</code> - Query raw JSON directly, returning value, type, and byte offsets</li>
+<li><code>L_json_rm()</code> - Remove an element from a JSON string</li>
+<li><code>L_obj_to_json()</code> - Serializes an L_obj back to JSON with formatting options</li>
+<li><code>L_json_print()</code> - Convenience: parse to L_obj then pretty-print</li>
+</ul>
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--json">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     json
-      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L3627"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12215"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -1861,25 +2930,18 @@
   
   
 
-<h3 id="L_lib.sh--L_json_escape">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_json_escape
-      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L3637"
+<h3 id="L_lib.sh--L_json_quote">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_quote
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12220"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_json_escape" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_json_quote" class="headerlink" title="Permanent link">&para;</a></h3>
       <p>
-            <p>Produces a string properly quoted for JSON inclusion</p>
-<p>Poor man's jq</p>
+            Convert Bash string into Json string.
 
     </p>
 
-      <div class="admonition example">
-<p class="admonition-title">Example</p>
-<pre><code>L_json_escape -v tmp "some string"
-echo "{\"key\":$tmp}" | jq .
-</code></pre>
-</div>
   
   
   
@@ -1889,85 +2951,219 @@ echo "{\"key\":$tmp}" | jq .
 Option:
         </strong>
             <strong><code>-v &lt;var&gt;</code></strong>
-    Store the output in variable instead of printing it.
+    
 
     </p>
 
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>&lt;str&gt;</code></strong>
+    
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_quote_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_quote_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12221"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_quote_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
   
 
 
   
   
 
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_quote_ascii">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_quote_ascii
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12265"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_quote_ascii" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert Bash string into Json string with only ASCII characters.
+
+    </p>
 
   
   
   
   
       <p>
-        <strong>See:</strong>
-<ul><li>                <a href="https://ecma-international.org/wp-content/uploads/ECMA-404.pdf">https://ecma-international.org/wp-content/uploads/ECMA-404.pdf</a> figure 5
-
-</li><li>                <a href="https://stackoverflow.com/a/27516892/9072753">https://stackoverflow.com/a/27516892/9072753
-</a>
-
-</li></ul>    </p>
-
-
-
-<h3 id="L_lib.sh--L_json_escape_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_json_escape_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L3638"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_json_escape_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
-  
-  
-  
-  
-  
-  
-  
-
-
-  
-  
-
-
-  
-  
-  
-  
-  
-
-
-<h3 id="L_lib.sh--L_json_create">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_json_create
-      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L3695"
-        title="Go to source code of this symbol"
-        class="doc-symbol-sh-link">
-      </a>
-<a href="#L_lib.sh--L_json_create" class="headerlink" title="Permanent link">&para;</a></h3>
-      <p>
-            <p>Very simple function to create JSON.</p>
-<p>Every second argument is quoted for JSON, unless
-This argument is preceeded by a previous argument ending with ] or },
-when the counter starts over.</p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
 
     </p>
 
-      <div class="admonition example">
-<p class="admonition-title">Example</p>
-<pre><code>L_json_create { \
-  a : b , \
-  b :[ 1 , 2 , 3 , 4 ] \
-  c :[true, 1 ,null,false] \
-}
-#   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
-# outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
-</code></pre>
-</div>
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>&lt;str&gt;</code></strong>
+    
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_quote_ascii_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_quote_ascii_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12266"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_quote_ascii_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_unquote">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_unquote
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12321"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_unquote" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Convert Json string into Bash string.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>
+Option:
+        </strong>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>&lt;str&gt;</code></strong>
+    
+
+    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_unquote_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_unquote_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12351"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_unquote_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_get_all">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_get_all
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12507"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_get_all" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Get a value from json including additional info.
+
+    </p>
+
   
   
   
@@ -1975,10 +3171,84 @@ when the counter starts over.</p>
       <p>
         <strong>Options:</strong>
 <ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
-    Store the output in variable instead of printing it.
+    
 
 </li><li>                <strong><code>-h</code></strong>
-    Print this help and return 0.
+    
+
+</li></ul>    </p>
+
+  
+
+
+  
+  
+
+
+  
+      <p>
+        <strong>
+Return:
+        </strong>
+            (<value> <type> <start_byte_count> <end_byte_count>)
+
+    </p>
+
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_get_all_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_get_all_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12508"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_get_all_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_get">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_get
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12536"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_get" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Get a value from json.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+</li><li>                <strong><code>-h</code></strong>
+    
 
 </li></ul>    </p>
 
@@ -1996,13 +3266,143 @@ when the counter starts over.</p>
   
 
 
-<h3 id="L_lib.sh--L_json_create_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
-    L_json_create_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L3696"
+<h3 id="L_lib.sh--L_json_get_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_get_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12537"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
-<a href="#L_lib.sh--L_json_create_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+<a href="#L_lib.sh--L_json_get_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_rm">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_rm
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12542"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_rm" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Remove an element from json.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    
+
+</li><li>                <strong><code>-h</code></strong>
+    
+
+</li></ul>    </p>
+
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_rm_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_rm_vL_RET
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12543"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_rm_vL_RET" class="headerlink" title="Permanent link">&para;</a></h3>
+  
+  
+  
+  
+  
+  
+  
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
+
+
+<h3 id="L_lib.sh--L_json_print">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
+    L_json_print
+      <a href="https://github.com/Kamilcuk/L_lib/blob/dependabot/github_actions/MeilCli/bump-release-action-3.0.13/bin/L_lib.sh#L12558"
+        title="Go to source code of this symbol"
+        class="doc-symbol-sh-link">
+      </a>
+<a href="#L_lib.sh--L_json_print" class="headerlink" title="Permanent link">&para;</a></h3>
+      <p>
+            Print nicely looking version of the json.
+
+    </p>
+
+  
+  
+  
+  
+      <p>
+        <strong>Options:</strong>
+<ul><li>                <strong><code>-a</code></strong>
+    Use only ascii characters escapes in strings.
+
+</li><li>                <strong><code>-c</code></strong>
+    Compact output.
+
+</li><li>                <strong><code>-i &lt;int&gt;</code></strong>
+    Indent count of spaces.
+
+</li><li>                <strong><code>-C</code></strong>
+    Color output.
+
+</li><li>                <strong><code>-v &lt;var&gt;</code></strong>
+    Store the output in variable instead of printing it.
+
+</li></ul>    </p>
+
+      <p>
+        <strong>
+Argument:
+        </strong>
+            <strong><code>$1</code></strong>
+    JSON
+
+    </p>
 
 
 
@@ -2023,7 +3423,7 @@ when the counter starts over.</p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 22, 2026 23:32:20 UTC">July 22, 2026</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="October 24, 2026 20:55:05 UTC">October 24, 2026</span>
   </span>
 
     
@@ -2113,7 +3513,7 @@ when the counter starts over.</p>
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../cache/" class="md-footer__link md-footer__link--prev" aria-label="Previous: cache">
+          <a href="../obj/" class="md-footer__link md-footer__link--prev" aria-label="Previous: obj">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -2123,20 +3523,20 @@ when the counter starts over.</p>
                 Previous
               </span>
               <div class="md-ellipsis">
-                cache
+                obj
               </div>
             </div>
           </a>
         
         
           
-          <a href="../exit_to/" class="md-footer__link md-footer__link--next" aria-label="Next: exit_to">
+          <a href="../ini/" class="md-footer__link md-footer__link--next" aria-label="Next: ini">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                exit_to
+                ini
               </div>
             </div>
             <div class="md-footer__button md-icon">

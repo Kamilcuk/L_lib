@@ -111,15 +111,15 @@ Uninteresting unittesting suite runner.
 
   Examples: -k foo tests matching 'foo' -k 'foo && bar' tests matching both 'foo' and 'bar' -k '! slow' tests not matching 'slow' -k '(foo || bar) && ! slow'
 
-- **`-P <nproc>`** Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
+- **`-P <NPROC>`** Run tests in parallel using NPROC worker processes. If NPROC is 'n' or 'nproc', use number of cores.
 
-- **`-l`** Do not run the tests. Instead print the tests to exeucte.
+- **`-l`** Print the tests to exeucte and exit without running tests.
 
 - **`-q`**
 
-  Run tests in command substitution. Print only failed tests output.
+  Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.
 
-  Great for LLM for reducing context size.
+  With double -q -q will do not print skip reasons.
 
 - **`-d <int>`** Print a list of the slowest number of tests. Negative to print all.
 
@@ -144,6 +144,14 @@ Uninteresting unittesting suite runner.
 - **`-M <global-max-time>`** If running longer then specified time, tasks are getting killed.
 
 - **`-m <task-max-time>`** If a task is running longer then specified time, it is killed.
+
+- **`-C <cache-dir>`** Cache directory location to store state.
+
+- **`-r <mode>`**
+
+  Select or order tests using the saved state. Requires -C.
+
+  Mode Short Behavior all a Ignore state, run everything (default). last-failed l Run only tests that failed last time; if none recorded, run all. only-failed o Run only tests that failed last time; if none recorded, run nothing. failed-first f Failed tests first, then the rest. new-first n Tests with no recorded state first, then the rest. clear c Delete the state and exit without running tests.
 
 **Argument:** **`<patterns...>`** Like -k argument, but allows one word only and joins arguments with AND.
 
