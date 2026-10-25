@@ -13102,9 +13102,9 @@ _L_obj_pos_descend_vL_RET() {
 _L_obj_infer_type_from_value_vL_RET() {
 	case "$1" in
 		true|false) L_RET=BOOL ;;
-		*)
-			if [[ $1 =~ ^[-+]?(0|[1-9][0-9]*)((\.[0-9]+)?([eE][+-]?[0-9]+)?)$ ]]; then
-				if [[ -z "${BASH_REMATCH[2]}" ]]; then
+		-[0-9]*|[0-9]*)
+			if [[ $1 =~ ^-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?$ ]]; then
+				if [[ -z "${BASH_REMATCH[2]}${BASH_REMATCH[3]}" ]]; then
 					L_RET=INTEGER
 				else
 					L_RET=FLOAT
@@ -13112,6 +13112,8 @@ _L_obj_infer_type_from_value_vL_RET() {
 			else
 				L_RET=STRING
 			fi
+			;;
+		*) L_RET=STRING ;;
 	esac
 }
 
@@ -13387,26 +13389,29 @@ L_obj_get_map_vL_ARET() {
 # obj write [[[2
 
 # Like L_obj_set_typed, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+# @option -v <var> Assign the position of new node to var.
 # @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...]
 # @arg <=> The character = to visually sinigify end of parts and start if arguments.
 # @arg <value> The value to set to the node.
 # @see L_obj_set_typed
-L_obj_set() {
-	local L_RET
+L_obj_set() { L_handle_v_silent "$@"; }
+L_obj_set_vL_RET() {
 	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_obj_set_typed "${@:1:$#-1}" "$L_RET" "${!#}"
+	L_obj_set_typed_vL_RET "${@:1:$#-1}" "$L_RET" "${!#}"
 }
 
 # Set scalar type and value of the node.
+# @option -v <var> Assign the position of new node to var.
 # @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...]
 # @arg <=> The character = to visually sinigify end of parts and start of arguments.
 # @arg <type> Scalar type. For MAP and ARRAY the value is ignored.
 # @arg [value] The value of the node.
-L_obj_set_typed() {
+L_obj_set_typed() { L_handle_v_silent "$@"; }
+L_obj_set_typed_vL_RET() {
 	local -n _L_obj=${1%%+*} || return
-	local L_RET _L_p=0 _L_type=${*:$#-1:1} _L_value=${!#}
+	local _L_p=0 _L_type=${*:$#-1:1} _L_value=${!#}
 	case $_L_type in
 		MAP|ARRAY|NULL) _L_value="" ;;
 		STRING|INTEGER|DATETIME|DATE|TIME|FLOAT|BOOL) ;;
@@ -13419,23 +13424,29 @@ L_obj_set_typed() {
 	_L_obj_pos_reset "$L_RET" "$_L_type" "$_L_value"
 }
 
-# Like L_obj_set, but only sets value if not already set.
-# @see L_obj_set
-L_obj_set_default() {
-	local L_RET
+# Set the type and value only if node is unset. Type is inferred from default.
+# @option -v <var> assign the position of new or existing node to var
+# @arg $1 L_obj namereference, optionally with a position: obj+12
+# @arg [parts...] The path to remove.
+# @arg <=> The character = to visually sinigify end of parts and start if arguments.
+# @arg <default> The default value.
+L_obj_set_default() { L_handle_v_silent "$@"; }
+L_obj_set_default_vL_RET() {
 	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_logrun _L_obj_set_typed_default "${@:1:$#-1}" "$L_RET" "${!#}"
+	_L_obj_set_typed_default_vL_RET "${@:1:$#-1}" "$L_RET" "${!#}"
 }
 
 # Set the type and value only if node is unset.
+# @option -v <var> assign the position of new or existing node to var
 # @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...] The path to remove.
 # @arg <=> The character = to visually sinigify end of parts and start if arguments.
 # @arg <type> The type of the value. If type is MAP or ARRAY, the value is ignored.
 # @arg <default> The default value.
-_L_obj_set_typed_default() {
+_L_obj_set_typed_default() { L_handle_v_silent "$@"; }
+_L_obj_set_typed_default_vL_RET() {
 	local -n _L_obj=${1%%+*} || return
-	local L_RET _L_type=${*:$#-1:1} _L_value=${!#}
+	local _L_type=${*:$#-1:1} _L_value=${!#}
 	if (( $# < 4 )); then L_func_usage_error "Not enough argumetns"; return "$L_EX_USAGE"; fi;
 	if [[ "${*:$#-2:1}" != "=" ]]; then L_func_error "missing '='"; return "$L_EX_USAGE"; fi
 	case $_L_type in
@@ -13451,12 +13462,14 @@ _L_obj_set_typed_default() {
 }
 
 # Set values from an bash array as an ARRAY.
+# @option -v <var> Store the position of the node that was set.
 # @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...] The path to remove.
 # @arg <=> The character = to visually sinigify end of parts and start if arguments.
 # @arg [array] Optional array variable namereference.
-L_obj_set_array() {
-	local L_RET _L_i=0 _L_v
+L_obj_set_array() { L_handle_v_silent "$@"; }
+L_obj_set_array_vL_RET() {
+	local _L_i=0 _L_v
 	if [[ "${!#}" == "=" ]]; then
 		local -n _L_obj=${1%%+*} || return
 		_L_obj_pos_descend_vL_RET "${@:1:$#-1}" || return
@@ -13473,12 +13486,14 @@ L_obj_set_array() {
 }
 
 # Set values from an bash array as a MAP.
+# @option -v <var> Store the position of the node that was set.
 # @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...] The path to remove.
 # @arg <=> The character = to visually sinigify end of parts and start if arguments.
 # @arg [array] Optional associative or normal array variable namereference.
-L_obj_set_map() {
-	local L_RET _L_i
+L_obj_set_map() { L_handle_v_silent "$@"; }
+L_obj_set_map_vL_RET() {
+	local _L_i
 	if [[ "${!#}" == "=" ]]; then
 		local -n _L_obj=${1%%+*} || return
 		_L_obj_pos_descend_vL_RET "${@:1:$#-1}" || return
@@ -13554,6 +13569,7 @@ L_obj_new() {
 # @arg [parts...] The path to remove.
 L_obj_clear() {
 	local -n _L_obj=${1%+*} || return
+	if (( !${_L_obj[@]+1}0 )); then return 0; fi
 	local L_RET
 	_L_obj_pos_get_pos_verbose_vL_RET "$@" || return
 	case ${_L_obj[L_RET]-} in
@@ -13565,8 +13581,7 @@ L_obj_clear() {
 
 # Append to the value of a node.
 # Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
-# @arg $1 L_obj namereference
-# @arg $2 position
+# @arg $1 L_obj namereference, optionally with a position: obj+12
 # @arg [parts...]
 # @arg <+=>
 # @arg value
@@ -13587,19 +13602,58 @@ L_obj_string_append() {
 	_L_obj[L_RET+2]+=${!#}
 }
 
+# Path of a node: the inverse of L_obj_pos.
+# Climbs the parent links from the node to the root. The parts are MAP keys,
+# or ARRAY indexes counted from 0. The root has an empty path.
+# Finding an ARRAY index walks the previous siblings, so it is O(n) per ARRAY level.
+# Use -v: without it the parts are printed one per line, which breaks on keys
+# with newlines.
+# @option -v <var> Store the parts in an indexed array.
+# @arg $1 L_obj namereference with a position: obj+12. Without a position, the root.
+# @arg [parts...]
+# @return 1 if the position is not a live node.
+# @example
+#   L_obj_pos -v pos obj a b 0
+#   L_obj_path -v parts "obj+$pos" c d 1   # parts=(a b 0 c d 1)
+#   L_obj_get obj "${parts[@]}"            # round-trips to the same node
+L_obj_path() { L_handle_v_array "$@"; }
+L_obj_path_vL_RET() {
+	local -n _L_obj=${1%%+*} || return
+	_L_obj_pos_get_pos_verbose_vL_RET "$@" || return
+	local _L_cur=$L_RET _L_par _L_i _L_p
+	L_RET=()
+	while (( _L_cur )); do
+		_L_par=${_L_obj[_L_cur+5]}
+		case ${_L_obj[_L_par]} in
+			MAP) L_RET=("${_L_obj[_L_cur+1]}" ${L_RET[@]+"${L_RET[@]}"}) ;;
+			ARRAY)
+				for (( _L_i = 0, _L_p = _L_obj[_L_cur+4]; _L_p; _L_p = _L_obj[_L_p+4], ++_L_i )); do :; done
+				L_RET=("$_L_i" ${L_RET[@]+"${L_RET[@]}"})
+				;;
+			*) L_func_error "Internal error: the obj is invalid. Child $_L_cur points at parent $_L_par that is not an ARRAY nor MAP but ${_L_obj[_L_par]}"; return "$L_EX_DATAERR" ;;
+		esac
+		_L_cur=$_L_par
+	done
+}
+
 # ]]]2
 # obj array [[[2
 
 # Like _L_obj_array_append_type_value but infer type of value.
 # @see _L_obj_array_append_type_value
-L_obj_array_append() {
-	local L_RET
+# @option -v <var> Store the position of the new element.
+# @arg $1 L_obj namereference, optionally with a position: obj or obj+12
+# @arg [parts...]
+# @arg <+=>
+# @arg <value>
+L_obj_array_append() { L_handle_v_silent "$@"; }
+L_obj_array_append_vL_RET() {
 	_L_obj_infer_type_from_value_vL_RET "${!#}"
-	L_obj_array_append_typed "${@:1:$#-1}" "$L_RET" "${!#}"
+	L_obj_array_append_typed_vL_RET "${@:1:$#-1}" "$L_RET" "${!#}"
 }
 
 # Append value with type to an array.
-# @option -v <var> Store the potision of new node in variable.
+# @option -v <var> Store the position of the new element.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
 # @arg [parts...]
 # @arg <+=>
@@ -13634,7 +13688,7 @@ L_obj_array_append_typed_vL_RET() {
 }
 
 # Like L_obj_array_insert_typed, but the type is inferred from the value - FLOAT, INTEGER, STRING.
-# @option -v <var> Store the potision of new node in variable.
+# @option -v <var> Store the position of the new element.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
 # @arg [parts...] Path parts to the ARRAY container
 # @arg $index index (0-based, must be <= current length)
@@ -13642,14 +13696,15 @@ L_obj_array_append_typed_vL_RET() {
 # @arg <value> The value to set to the node.
 # @option -v <var> position of the new node
 # @return 1 if index out of bounds or container is not ARRAY.
-L_obj_array_insert() {
+L_obj_array_insert() { L_handle_v_silent "$@"; }
+L_obj_array_insert_vL_RET() {
 	local _L_type
 	_L_obj_infer_type_from_value_vL_RET "${!#}"
 	L_obj_array_insert_typed "${@:1:$#-1}" "$L_RET" "${!#}"
 }
 
 # Insert a new element into an ARRAY at index. Shifts existing elements right.
-# @option -v <var> Store the potision of new node in variable.
+# @option -v <var> Store the position of the new element.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
 # @arg [parts...] Path parts to the ARRAY container
 # @arg $index index (0-based, must be <= current length)
@@ -13677,42 +13732,33 @@ L_obj_array_insert_typed_vL_RET() {
 }
 
 # Remove the first element of an ARRAY and return its scalar value.
-# @option -v <var> Store the value of the removed element in var.
+# @option -v <var> If the popped node is scalar, store the popped value in var. Otherwise will store empty.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
 # @arg [parts...] Path to the ARRAY
 # @return 1 if the path is missing, not an ARRAY, empty, or the first element is a container.
 L_obj_array_shift() { L_handle_v_silent "$@"; }
-L_obj_array_shift_vL_RET() {
-	local -n _L_obj=${1%%+*} || return
-	_L_obj_pos_get_pos_verbose_vL_RET "$@" || return
-	local _L_first=${_L_obj[L_RET+2]} _L_val
-	if [[ ${_L_obj[L_RET]} != ARRAY ]]; then L_func_error "not an ARRAY"; return 1; fi
-	if [[ -z $_L_first ]]; then L_func_error "shift from empty array"; return 1; fi
-	case ${_L_obj[_L_first]} in MAP|ARRAY) L_func_error "cannot shift a container"; return 1 ;; esac
-	_L_val=${_L_obj[_L_first+2]}
-	L_obj_rm "${!_L_obj}+$_L_first" || return
-	L_RET=$_L_val
-}
+L_obj_array_shift_vL_RET() { _L_obj_array_pop_or_shift_vL_RET "shift" "$@"; }
 
-# @arg $1 L_obj namereference
-# @arg $2 position
 # Remove the last element of the ARRAY at the path and return its scalar value.
+# @option -v <var> If the popped node is scalar, store the popped value in var. Otherwise will store empty.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
 # @arg [parts...]
-# @option -v <var> Store position of popped node in var.
 # @return 1 if the path is missing, not an ARRAY, empty, or the last element is a container.
 L_obj_array_pop() { L_handle_v_silent "$@"; }
-L_obj_array_pop_vL_RET() {
-	local -n _L_obj=${1%%+*} || return
-	_L_obj_pos_get_pos_verbose_vL_RET "$@" || return
+L_obj_array_pop_vL_RET() { _L_obj_array_pop_or_shift_vL_RET "pop" "$@"; }
+
+_L_obj_array_pop_or_shift_vL_RET() {
+	local -n _L_obj=${2%%+*} || return
+	_L_obj_pos_get_pos_verbose_vL_RET "${@:2}" || return
 	if [[ ${_L_obj[L_RET]} != ARRAY ]]; then L_func_error "not an ARRAY"; return 1; fi
 	L_RET=${_L_obj[L_RET+2]}
 	if [[ -z $L_RET ]]; then L_func_error "pop from empty array"; return 1; fi
-	while [[ -n ${_L_obj[L_RET+3]} ]]; do L_RET=${_L_obj[L_RET+3]}; done
-	case ${_L_obj[L_RET]} in MAP|ARRAY) L_func_error "cannot pop a container"; return 1 ;; esac
-	local _L_val=${_L_obj[L_RET+2]}
+	if [[ "$1" == "pop" ]]; then
+		while [[ -n ${_L_obj[L_RET+3]} ]]; do L_RET=${_L_obj[L_RET+3]}; done
+	fi
+	local _L_type=${_L_obj[L_RET]} _L_val=${_L_obj[L_RET+2]}
 	L_obj_rm "${!_L_obj}+$L_RET" || return
-	L_RET=$_L_val
+	case "$_L_type" in ARRAY|MAP) L_RET="" ;; *) L_RET=$_L_val ;; esac
 }
 
 # Append all elements of a bash array to an ARRAY. Types are inferred per element.
@@ -13746,17 +13792,38 @@ L_obj_array_extend() {
 # ]]]2
 # obj two objects [[[2
 
+# Set a path to a deep copy of another object. Same as L_obj_copy, with the destination first.
+# @option -v <var> Store the position of the destination node.
+# @arg $1 destination L_obj, optionally with position: obj or obj+12
+# @arg [parts...] destination path
+# @arg <=> The character = to visually signify end of parts and start of arguments.
+# @arg <src> source L_obj, optionally with position: obj or obj+12
+L_obj_set_obj() { L_handle_v_silent "$@"; }
+L_obj_set_obj_vL_RET() {
+	if (( $# < 3 )); then L_func_usage_error "not enough arguments"; return "$L_EX_USAGE"; fi
+	if [[ ${*:$#-1:1} != "=" ]]; then L_func_usage_error "missing '='"; return "$L_EX_USAGE"; fi
+	L_obj_copy_vL_RET "${!#}" "${@:1:$#-2}"
+}
+
 # Deep copy a subtree. The destination node's old children are removed and replaced.
+# @option -v <var> Store the position of the newly created node.
 # @arg $1 source L_obj, optionally with position: obj or obj+12
 # @arg $2 destination L_obj, optionally with position: obj or obj+12
-L_obj_copy() {
+# @arg [parts...] destination L_obj parts
+L_obj_copy() { L_handle_v_silent "$@"; }
+L_obj_copy_vL_RET() {
 	if ! L_var_is_set "${1%%+*}"; then
 		L_func_usage_error "Source ${1%%+*} is not defined"
 		return "$L_EX_USAGE"
 	fi
-	[[ $1 != "$2" ]] || return 0
+	local _L_pos=0 _L_src_pos _L_snap
+	if [[ ${1%%+*} == "${2%%+*}" ]]; then
+		# same variable: copy from a snapshot, so freeing or growing the destination can't touch the source
+		local -n _L_orig=${1%%+*} || return
+		_L_snap=(${_L_orig[@]+"${_L_orig[@]}"})
+		set -- "${1//${1%%+*}/_L_snap}" "${@:2}"
+	fi
 	local -n _L_src=${1%%+*} _L_obj=${2%%+*} || return
-	local _L_pos=0 L_RET _L_src_pos
 	_L_obj_update_L_pos "$1" || { L_func_error "invalid source position: $1"; return 1; }
 	_L_src_pos=$_L_pos _L_pos=0
 	_L_obj_pos_descend_vL_RET "${@:2}" || { L_func_error "invalid destination position: ${*:2}"; return 1; }
@@ -13771,7 +13838,7 @@ _L_obj_pos_clear_and_copy() {
 	else
 		_L_obj_pos_free_children "$2"
 	fi
-	(( ${#_L_src[@]} )) || return 0
+	(( ${_L_src[@]+1}0 )) || return 0
 	_L_obj_pos_copy_node "$@"
 }
 # <source position> <destination position>
@@ -13801,9 +13868,15 @@ L_obj_merge() {
 		L_func_usage_error "Source ${1%%+*} is not defined"
 		return "$L_EX_USAGE"
 	fi
+	local _L_pos=0 _L_src_pos _L_snap
+	if [[ ${1%%+*} == "${2%%+*}" ]]; then
+		# same variable: copy from a snapshot, so freeing or growing the destination can't touch the source
+		local -n _L_orig=${1%%+*} || return
+		_L_snap=(${_L_orig[@]+"${_L_orig[@]}"})
+		set -- "${1//${1%%+*}/_L_snap}" "${@:2}"
+	fi
 	local -n _L_src=${1%%+*} _L_obj=${2%%+*} || return
 	(( ${_L_src[@]+1}0 )) || return 0
-	local _L_pos=0 _L_src_pos
 	_L_obj_update_L_pos "$1" || { L_func_error "invalid destination position: $1"; return 1; }
 	_L_src_pos=$_L_pos _L_pos=0
 	_L_obj_update_L_pos "$2" || { L_func_error "invalid source position: $2"; return 1; }
@@ -13920,10 +13993,10 @@ _L_obj_pos_cmp() {
 # @return 0 done, 1 not a container, or the nonzero return of the callback
 L_obj_foreach() {
 	local -n _L_obj=${1%%+*} || return
+	if (( !${_L_obj[@]+1}0 )); then return 1; fi
 	local _L_pos=0 _L_cur _L_next _L_i=0 _L_k _L_v _L_t
 	if [[ $1 == *+* ]]; then _L_pos=${1##*+}; fi
 	shift
-	(( ${#_L_obj[@]} )) || return 0
 	case ${_L_obj[_L_pos]-} in MAP|ARRAY) ;; *) return 1 ;; esac
 	for (( _L_cur = _L_obj[_L_pos+2]; _L_cur; _L_cur = _L_next )); do
 		_L_next=${_L_obj[_L_cur+3]} _L_t=${_L_obj[_L_cur]}
