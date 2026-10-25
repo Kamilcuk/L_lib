@@ -1166,63 +1166,37 @@ if ((!L_HAS_NAMEREF)); then
 # @arg $@ arbitrary function arguments
 # @exitcode Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
 # @example
-#    L_hello() { L_handle_v_arr "$@"; }
+#    L_hello() { L_handle_v_scalar "$@"; }
 #    L_hello_vL_RET() { L_RET="hello world"; }
 #    L_hello          # outputs 'hello world'
 #    L_hello -v var   # assigns var="hello world"
 # @see L_handle_v_array
 # shellcheck disable=SC2317
 L_handle_v_scalar() {
-	local L_RET
 	case "${1:-}" in
-	-v?*)
-		if
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
+		-v)
+			if [[ $2 == L_RET ]]; then
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
 			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
+				local L_RET _L_hvr=0
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi || _L_hvr=$?
+				printf -v "$2" "%s" "${L_RET-}" || return; return "$_L_hvr"
 			fi
-		then
-			printf -v "${1##-v}" "%s" "${L_RET:-}" || return
-		else
-			local _L_r=$?
-			printf -v "${1##-v}" "%s" "${L_RET:-}" || return
-			return "$_L_r"
-		fi
-		;;
-	-v)
-		if
-			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:4}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			fi
-		then
-			printf -v "$2" "%s" "${L_RET:-}" || return
-		else
-			local _L_r=$?
-			printf -v "$2" "%s" "${L_RET:-}" || return
-			return "$_L_r"
-		fi
-		;;
-	--)
-		if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
-			printf "%s" "${L_RET+$L_RET$'\n'}" || return
-		else
-			local _L_r=$?
-			printf "%s" "${L_RET+$L_RET$'\n'}" || return
-			return "$_L_r"
-		fi
-		;;
-	-h) L_func_help 1; return 0 ;;
-	*)
-		if "${FUNCNAME[1]}"_vL_RET "$@"; then
-			printf "%s" "${L_RET+$L_RET$'\n'}" || return
-		else
-			local _L_r=$?
-			printf "%s" "${L_RET+$L_RET$'\n'}" || return
-			return "$_L_r"
-		fi
+			;;
+		-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+		-v*)
+			local L_RET _L_hvr=0
+			if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi || _L_hvr=$?
+			printf "$1" "%s" "${L_RET-}" || return; return "$_L_hvr"
+			;;
+		-h) L_func_help 1; return 0 ;;
+		--)
+			local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "${@:2}" || _L_hvr=$?
+			printf "%s" "${L_RET+$L_RET$'\n'}"; return "$_L_hvr"
+			;;
+		*)
+			local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "$@" || _L_hvr=$?
+			printf "%s" "${L_RET+$L_RET$'\n'}"; return "$_L_hvr"
 	esac
 }
 
@@ -1247,113 +1221,120 @@ L_handle_v_scalar() {
 # @see L_handle_v_scalar.
 # shellcheck disable=SC2317
 L_handle_v_array() {
-	local L_RET
 	case "${1:-}" in
-	-v?*)
-		if ! L_is_valid_variable_name "${1##-v}"; then
-			L_func_error "not a valid identifier: ${1##-v}" 1; return "$L_EX_USAGE"
-		fi
-		if
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
+		-v)
+			if ! L_is_valid_variable_name "${2:-}"; then
+				L_func_error "not a valid identifier: $2" 1; return "$L_EX_USAGE"
 			fi
-		then
-			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return
-		else
-			local _L_r=$?
-			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return
-			return "$_L_r"
-		fi
-		;;
-	-v)
-		if ! L_is_valid_variable_name "${2:-}"; then
-			L_func_error "not a valid identifier: $2" 1; return 1
-		fi
-		if
-			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:4}"
+			if [[ $2 == L_RET ]]; then
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
 			else
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
+				local L_RET _L_hvr=0
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi || _L_hvr=$?
+				eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return
+				return "$_L_hvr"
 			fi
-		then
-			eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return
-		else
-			local _L_r=$?
-			eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return
-			return "$_L_r"
-		fi
-		;;
-	--)
-		if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
-			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-		else
-			local _L_r=$?
-			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			return "$_L_r"
-		fi
-		;;
-	-h) L_func_help 1; return 0 ;;
-	*)
-		if "${FUNCNAME[1]}"_vL_RET "$@"; then
-			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-		else
-			local _L_r=$?
-			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			return "$_L_r"
-		fi
+			;;
+		-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+		-v*)
+			if ! L_is_valid_variable_name "${1##-v}"; then
+				L_func_error "not a valid identifier: ${1##-v}" 1; return "$L_EX_USAGE"
+			fi
+			local L_RET _L_hvr=0
+			if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi || _L_hvr=$?
+			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return
+			return "$_L_hvr"
+			;;
+		-h) L_func_help 1; return 0 ;;
+		--)
+			local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "${@:2}" || _L_hvr=$?
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}"; return "$_L_hvr"
+			;;
+		*)
+			local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "$@" || _L_hvr=$?
+			printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}"; return "$_L_hvr"
 	esac
 }
 
-# @description Version of L_handle_v_scalar for associative arrays.
-# @see L_handle_v_scalar.
+# This is very similar to L_handle_v_array, but it does not print the output.
+# Instead, when called without -v option, the L_RET value is just ignored.
+# This is used to functions that do want to optionally set a value, but do not output anything.
+# For example array_pop might store -v index of the popped element, but by itself not output anything.
+# @see L_handle_v_scalar
+# shellcheck disable=SC2317
+L_handle_v_silent() {
+	case "${1:-}" in
+		-v)
+			if ! L_is_valid_variable_name "${2:-}"; then
+				L_func_error "not a valid identifier: $2" 1; return "$L_EX_USAGE"
+			fi
+			if [[ $2 == L_RET ]]; then
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
+			else
+				local L_RET _L_hvr=0
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi || _L_hvr=$?
+				eval "$2"'=(${L_RET[@]+"${L_RET[@]}"})' || return
+				return "$_L_hvr"
+			fi
+			;;
+		-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+		-v*)
+			if ! L_is_valid_variable_name "${1##-v}"; then
+				L_func_error "not a valid identifier: ${1##-v}" 1; return "$L_EX_USAGE"
+			fi
+			local L_RET _L_hvr=0
+			if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi || _L_hvr=$?
+			eval "${1##-v}"'=(${L_RET[@]+"${L_RET[@]}"})' || return
+			return "$_L_hvr"
+			;;
+		-h) L_func_help 1; return 0 ;;
+		--) local L_RET; "${FUNCNAME[1]}"_vL_RET "${@:2}" ;;
+		*) local L_RET; "${FUNCNAME[1]}"_vL_RET "$@" ;;
+	esac
+}
+
+# Version of L_handle_v_scalar for associative arrays.
+# Instead of L_RET variable it uses L_ARET variable.
+# The L_ARET variable has to be defined with define -A by the caller.
+# @see L_handle_v_scalar
 # shellcheck disable=SC2317
 L_handle_v_asa() {
 	case "${1:-}" in
-		-vL_ARET)
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
-			fi
-			;;
-		-v?*)
-			local -n L_ARET="${1##-v}" || return "$L_EX_USAGE"
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_ARET "${@:2}"
-			fi
-			;;
 		-v)
-			if [[ "$2" != L_ARET ]]; then
-				local -n L_ARET="$2" || return "$L_EX_USAGE"
-			fi
-			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_ARET "${@:4}"
+			if ! L_var_is_associative "$2"; then L_func_error "not an associative array: $2" 1; return "$L_EX_USAGE"; fi
+			if [[ $2 == L_ARET ]]; then
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:4}"; else "${FUNCNAME[1]}"_vL_ARET "${@:3}"; fi
 			else
-				"${FUNCNAME[1]}"_vL_ARET "${@:3}"
+				local -A L_ARET; local _L_hvr=0
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:4}"; else "${FUNCNAME[1]}"_vL_ARET "${@:3}"; fi || _L_hvr=$?
+				declare -p "$2" >&2
+				L_asa_copy L_ARET "$2" || return
+				return "$_L_hvr"
 			fi
 			;;
-		--)
-			local -A L_ARET
-			local _L_handle_v_i _L_r=0
-			"${FUNCNAME[1]}"_vL_ARET "${@:2}" || _L_r=$?
-			for _L_handle_v_i in "${!L_ARET[@]}"; do
-				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
-			done
-			return "$_L_r"
+		-vL_ARET)
+			if ! L_var_is_associative L_ARET; then L_func_error "not an associative array: L_ARET" 1; return "$L_EX_USAGE"; fi
+			if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:3}"; else "${FUNCNAME[1]}"_vL_ARET "${@:2}"; fi
+			;;
+		-v*)
+			if ! L_var_is_associative "${1##-v}"; then
+				L_func_error "not an associative array: ${1##-v}" 1; return "$L_EX_USAGE"
+			fi
+			local -A L_ARET; local _L_hvr=0
+			if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:3}"; else "${FUNCNAME[1]}"_vL_ARET "${@:2}"; fi || _L_hvr=$?
+			L_asa_copy L_ARET "${1##-v}" || return
+			return "$_L_hvr"
 			;;
 		-h) L_func_help 1; return 0 ;;
+		--)
+			local -A L_ARET; local _L_hvi _L_hvr=0; "${FUNCNAME[1]}"_vL_ARET "${@:2}" || _L_hvr=$?
+			for _L_hvi in ${L_ARET[@]+"${!L_ARET[@]}"}; do printf "%s=%s\n" "$_L_hvi" "${L_ARET["$_L_hvi"]}"; done
+			return "$_L_hvr"
+			;;
 		*)
-			local -A L_ARET
-			local _L_handle_v_i _L_r=0
-			"${FUNCNAME[1]}"_vL_ARET "$@" || _L_r=$?
-			for _L_handle_v_i in "${!L_ARET[@]}"; do
-				printf "%q=%s\n" "$_L_handle_v_i" "${L_ARET[@]}" || return
-			done
-			return "$_L_r"
+			local -A L_ARET; local _L_hvi _L_hvr=0; "${FUNCNAME[1]}"_vL_ARET "$@" || _L_hvr=$?
+			for _L_hvi in ${L_ARET[@]+"${!L_ARET[@]}"}; do printf "%s=%s\n" "$_L_hvi" "${L_ARET["$_L_hvi"]}"; done
+			return "$_L_hvr"
 	esac
 }
 
@@ -1361,101 +1342,90 @@ else  # L_HAS_NAMEREF
 
 	L_handle_v_scalar() {
 		case "${1:-}" in
-		-vL_RET)
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
-			fi
-			;;
-		-v?*)
-			local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
-			fi
-			;;
-		-v)
-			if [[ "$2" != L_RET ]]; then
-				local -n L_RET="$2" || return "$L_EX_USAGE"
-			fi
-			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:4}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			fi
-			;;
-		--)
-			local L_RET
-			if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			else
-				local _L_r=$?
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-				return "$_L_r"
-			fi
-			;;
-		-h) L_func_help 1; return 0 ;;
-		*)
-			local L_RET
-			if "${FUNCNAME[1]}"_vL_RET "$@"; then
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			else
-				local _L_r=$?
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-				return "$_L_r"
-			fi
+			-v)
+				if [[ "$2" != L_RET ]]; then local -n L_RET="$2" || return "$L_EX_USAGE"; fi
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
+				;;
+			-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+			-v*)
+				local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
+				if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi
+				;;
+			-h) L_func_help 1; return 0 ;;
+			--)
+				local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "${@:2}" || _L_hvr=$?
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}"; return "$_L_hvr"
+				;;
+			*)
+				local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "$@" || _L_hvr=$?
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}"; return "$_L_hvr"
 		esac
 	}
 
 	L_handle_v_array() {
 		case "${1:-}" in
-		-vL_RET)
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
-			fi
-			;;
-		-v?*)
-			local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
-			if [[ "${2:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:2}"
-			fi
-			;;
-		-v)
-			if [[ "$2" != L_RET ]]; then
-				local -n L_RET="$2" || return "$L_EX_USAGE"
-			fi
-			if [[ "${3:-}" == -- ]]; then
-				"${FUNCNAME[1]}"_vL_RET "${@:4}"
-			else
-				"${FUNCNAME[1]}"_vL_RET "${@:3}"
-			fi
-			;;
-		--)
-			local L_RET
-			if "${FUNCNAME[1]}"_vL_RET "${@:2}"; then
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			else
-				local _L_r=$?
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-				return "$_L_r"
-			fi
-			;;
-		-h) L_func_help 1; return 0 ;;
-		*)
-			local L_RET
-			if "${FUNCNAME[1]}"_vL_RET "$@"; then
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-			else
-				local _L_r=$?
-				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return
-				return "$_L_r"
-			fi
+			-v)
+				if [[ "$2" != L_RET ]]; then local -n L_RET="$2" || return "$L_EX_USAGE"; fi
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
+				;;
+			-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+			-v*)
+				local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
+				if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi
+				;;
+			-h) L_func_help 1; return 0 ;;
+			--)
+				local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "${@:2}" || _L_hvr=$?
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return; return "$_L_hvr" ;;
+			*)
+				local L_RET _L_hvr=0; "${FUNCNAME[1]}"_vL_RET "$@" || _L_hvr=$?
+				printf "%s" "${L_RET[@]+${L_RET[@]/%/$'\n'}}" || return; return "$_L_hvr" ;;
+		esac
+	}
+
+	L_handle_v_silent() {
+		case "${1:-}" in
+			-v)
+				if [[ "$2" != L_RET ]]; then local -n L_RET="$2" || return "$L_EX_USAGE"; fi
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:4}"; else "${FUNCNAME[1]}"_vL_RET "${@:3}"; fi
+				;;
+			-vL_RET) if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi ;;
+			-v*)
+				local -n L_RET="${1##-v}" || return "$L_EX_USAGE"
+				if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_RET "${@:3}"; else "${FUNCNAME[1]}"_vL_RET "${@:2}"; fi
+				;;
+			-h) L_func_help 1; return 0 ;;
+			--) local L_RET; "${FUNCNAME[1]}"_vL_RET "${@:2}" ;;
+			*) local L_RET; "${FUNCNAME[1]}"_vL_RET "$@" ;;
+		esac
+	}
+
+	L_handle_v_asa() {
+		case "${1:-}" in
+			-v)
+				if [[ "$2" != L_ARET ]]; then local -n L_ARET="$2" || return "$L_EX_USAGE"; fi
+				if ! L_var_is_associative "$2"; then L_func_error "not an associative array: $2" 1; return "$L_EX_USAGE"; fi
+				if [[ ${3-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:4}"; else "${FUNCNAME[1]}"_vL_ARET "${@:3}"; fi
+				;;
+			-vL_ARET)
+				if ! L_var_is_associative L_ARET; then L_func_error "not an associative array: L_ARET" 1; return "$L_EX_USAGE"; fi
+				if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:3}"; else "${FUNCNAME[1]}"_vL_ARET "${@:2}"; fi
+				;;
+			-v*)
+				local -n L_ARET="${1##-v}" || return "$L_EX_USAGE"
+				if ! L_var_is_associative "${1##-v}"; then L_func_error "not an associative array: ${1##-v}" 1; return "$L_EX_USAGE"; fi
+				if [[ ${2-} == -- ]]; then "${FUNCNAME[1]}"_vL_ARET "${@:3}"; else "${FUNCNAME[1]}"_vL_ARET "${@:2}"; fi
+				;;
+			-h) L_func_help 1; return 0 ;;
+			--)
+				local -A L_ARET; local _L_hvi _L_hvr=0; "${FUNCNAME[1]}"_vL_ARET "${@:2}" || _L_hvr=$?
+				for _L_hvi in ${L_ARET[@]+"${!L_ARET[@]}"}; do printf "%s=%s\n" "$_L_hvi" "${L_ARET["$_L_hvi"]}"; done
+				return "$_L_hvr"
+				;;
+			*)
+				local -A L_ARET; local _L_hvi _L_hvr=0; "${FUNCNAME[1]}"_vL_ARET "$@" || _L_hvr=$?
+				for _L_hvi in ${L_ARET[@]+"${!L_ARET[@]}"}; do printf "%s=%s\n" "$_L_hvi" "${L_ARET["$_L_hvi"]}"; done
+				return "$_L_hvr"
 		esac
 	}
 
@@ -2159,40 +2129,9 @@ L_var_is_notnull() { [[ -n "${!1:+y}" ]]; }
 # @see L_cache
 L_var_to_string() { L_handle_v_scalar "$@"; }
 
-if (( L_HAS_QEPAa_EXPANSIONS )); then
-	# The set +u is needed when the variable is unset, but has attributes.
-	# For example `declare -r var` makes `var` readonly without assigning any value to it.
-	L_var_is_notarray() { local -; set +u; [[ -n "${!1+y}" && "${!1@a}" != *[aA]* ]]; }
-	L_var_is_array() { local -; set +u; [[ "${!1@a}" == *a* ]]; }
-	L_var_is_readonly() { local -; set +u; [[ "${!1@a}" == *r* ]]; }
-	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
-	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
-	# Indirect expansion `${!1@a}` is fast but expands to empty for defined but unset arrays.
-	# Fall back to `declare -p` to correctly identify unset associative arrays with attributes.
-	L_var_is_associative() {
-		local -; set +u
-		[[ "${!1@a}" == *A* ]] || {
-			[[ -z "${!1@a}" ]] && [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -A* ]]
-		}
-	}
-
-	L_var_to_string_vL_RET() {
-		local -; set +u
-		if [[ "${!1@a}" == [aA]* ]]; then
-			# Indirect expansion with @A does not work in Bash5.0
-			# We know $1 is a sane valid variable name, becuase above worked.
-			eval "L_RET=\"\${$1[@]@A}\""
-			L_RET="${L_RET#*=}"
-		else
-			# Non array variable.
-			printf -v L_RET "%q" "${!1}"
-		fi
-	}
-else
-
-# @description Return 0 if variable is not an array neither an associative array.
+# @description Return 0 if variable is defined but is not an array neither an associative array.
 # @arg $1 variable nameref
-L_var_is_notarray() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA]* ]]; }
+L_var_is_scalar() { [[ "$(declare -p "$1" 2>/dev/null || :)" == declare\ -[^aA]* ]]; }
 
 # @description Return 0 if variable is an indexed integer array, not an associative array.
 # @arg $1 variable nameref
@@ -2239,6 +2178,30 @@ L_var_to_string_vL_RET() {
 	esac
 }
 
+if (( L_HAS_BASH5_0 )); then
+	L_var_is_scalar() { local -n _L_var=$1 && [[ -n ${_L_var+y} && ${_L_var@a} != *[aA]* ]]; }
+	L_var_is_array() { local -; set +u; local -n _L_var=$1 && [[ "${_L_var@a}" == *a* ]]; }
+	L_var_is_readonly() { local -; set +u; [[ "${!1@a}" == *r* ]]; }
+	L_var_is_integer() { local -; set +u; [[ "${!1@a}" == *i* ]]; }
+	L_var_is_exported() { local -; set +u; [[ "${!1@a}" == *x* ]]; }
+	L_var_is_associative() { local -; set +u; local -n _L_var=$1 && [[ ${_L_var@a} == *A* ]]; }
+fi
+if (( L_HAS_BASH5_1 )); then
+	L_var_to_string_vL_RET() { local -n _L_var=$1 && L_RET=${_L_var[@]@A} && L_RET=${L_RET#*=}; }
+elif (( L_HAS_BASH4_4 )); then
+	L_var_to_string_vL_RET() {
+		local -; set +u
+		# Bash 5.0 generates mingled quotes on non-array variables.
+		if [[ ${!1@a} == [aA]* ]]; then
+			# Indirect expansion with @A does not work in Bash5.0
+			# We know $1 is a sane valid variable name, becuase above worked.
+			eval "L_RET=\"\${$1[@]@A}\""
+			L_RET="${L_RET#*=}"
+		else
+			# Non array variable.
+			printf -v L_RET "%q" "${!1}"
+		fi
+	}
 fi
 
 # @description Get the namereference variable name that the variable references to.
@@ -6856,7 +6819,7 @@ _L_unittest_main_cache_save() {
 		func=${_L_u_test_func[idx]}
 		_L_u_c_pass=${_L_u_c_pass/" $func "/ }
 		_L_u_c_fail=${_L_u_c_fail/" $func "/ }
-		if (( _L_u_test_ret[idx] )); then _L_u_c_fail+="$func "; else _L_u_c_pass+="$n "; fi
+		if (( _L_u_test_ret[idx] )); then _L_u_c_fail+="$func "; else _L_u_c_pass+="$func "; fi
 	done
 	mkdir -p "$_L_u_c_cachedir" &&
 		printf '%s\n%s\n' "${_L_u_c_pass# }" "${_L_u_c_fail# }" > "$file.$$" &&
@@ -7052,7 +7015,7 @@ L_unittest_main() {
 	if (( _L_u_quiet )); then
 		# When quiet the _L_unittest_main_worker writes one character per test, without any newlines.
 		# Write a newline now.
-		printf "\n" >&2
+		printf "\n"
 	fi
 	# local IFS=' '
 	# L_log "Done testing: ${_L_u_test_func[*]}"
@@ -7674,7 +7637,6 @@ L_map_save() {
 }
 
 # ]]]
-if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 # asa [[[
 # @section asa
 # @description Collection of function to work on associative array.
@@ -7694,7 +7656,7 @@ if ((L_HAS_ASSOCIATIVE_ARRAY)); then
 #   local -A mapcopy=()
 #   L_asa_copy map mapcopy
 L_asa_copy() {
-	local L_RET
+	if [[ "$2" != L_RET ]]; then local L_RET; fi
 	L_var_to_string_vL_RET "$1" || return "$L_EX_USAGE"
 	eval "$2=$L_RET"
 }
@@ -7784,7 +7746,6 @@ L_asa_cmp() {
 }
 
 # ]]]
-fi
 # argparse [[[
 # @section argparse
 # @description argument parsing in bash
@@ -12993,13 +12954,9 @@ L_toml_read() {
 # @arg $@ [parts...]
 # @set L_RET
 _L_obj_pos_try_get_pos_vL_RET() {
-	local _L_arg _L_lead
-	if [[ $1 == *+* ]]; then
-		L_RET="${1#*+}"
-		_L_obj_pos_is_valid "$L_RET" || return
-	else
-		L_RET=0
-	fi
+	local _L_arg _L_lead _L_pos=0
+	_L_obj_update_L_pos "$1"
+	L_RET=$_L_pos
 	for _L_arg in "${@:2}"; do
 		case "${_L_obj[L_RET]-}" in
 			MAP)
@@ -13015,7 +12972,10 @@ _L_obj_pos_try_get_pos_vL_RET() {
 				if [[ "$_L_arg" == -* ]]; then
 					# From the back.
 					_L_arg=${_L_arg#-}
-					L_is_natural_integer "$_L_arg" && (( _L_arg > 0 )) || { L_RET=""; return 1; }
+					if ! L_is_natural_integer "$_L_arg"; then
+						L_RET="Not a natural integer index: $_L_arg"
+						return 10
+					fi
 					L_RET=${_L_obj[L_RET+2]} _L_lead=$L_RET
 					while (( _L_arg -- > 0 )); do
 						if (( !_L_lead )); then L_RET=""; return 0; fi
@@ -13025,6 +12985,10 @@ _L_obj_pos_try_get_pos_vL_RET() {
 						L_RET=${_L_obj[L_RET+3]} _L_lead=${_L_obj[_L_lead+3]}
 					done
 				else
+					if ! L_is_natural_integer "$_L_arg"; then
+						L_RET="Not a natural integer index: $_L_arg"
+						return 18
+					fi
 					L_RET=${_L_obj[L_RET+2]}
 					while
 						if (( !L_RET )); then L_RET=""; return 0; fi
@@ -13034,7 +12998,7 @@ _L_obj_pos_try_get_pos_vL_RET() {
 					done
 				fi
 				;;
-			*) L_RET=""; return 1 ;;
+			*) L_RET="Can't index into scalar ${_L_obj[L_RET]-} value"; return 11 ;;
 		esac
 	done
 }
