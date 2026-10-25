@@ -1489,6 +1489,118 @@
   
   
     <li class="md-nav__item">
+      <a href="../obj/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    obj
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../json/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    json
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ini/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ini
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    toml
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../lib/" class="md-nav__link">
         
   
@@ -2225,7 +2337,7 @@ L_unittest_main<span class="w"> </span>-p<span class="w"> </span><span class="s2
 <h2 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h2>
 <h2 id="L_lib.sh--unittest">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     unittest
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6335"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6339"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2266,7 +2378,7 @@ Testing library for testing if variables are commands are returning as expected.
 
 <h3 id="L_lib.sh--L_unittest_notice">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_notice
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6370"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6374"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2293,7 +2405,7 @@ Testing library for testing if variables are commands are returning as expected.
 
 <h3 id="L_lib.sh--L_unittest_warning">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_warning
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6374"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6378"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2320,7 +2432,7 @@ Testing library for testing if variables are commands are returning as expected.
 
 <h3 id="L_lib.sh--L_unittest_fail">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_fail
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6378"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6382"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2347,7 +2459,7 @@ Testing library for testing if variables are commands are returning as expected.
 
 <h3 id="L_lib.sh--L_unittest_skip">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_skip
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6482"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6486"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2386,7 +2498,7 @@ Option:
 
 <h3 id="L_lib.sh--L_unittest_main">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_main
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6806"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L6875"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2421,15 +2533,15 @@ EXPR | EXPR        either must match
   -k '! slow'        tests not matching 'slow'
   -k '(foo || bar) &amp;&amp; ! slow'</p>
 
-</li><li>                <strong><code>-P &lt;nproc&gt;</code></strong>
-    Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
+</li><li>                <strong><code>-P &lt;NPROC&gt;</code></strong>
+    Run tests in parallel using NPROC worker processes. If NPROC is 'n' or 'nproc', use number of cores.
 
 </li><li>                <strong><code>-l</code></strong>
-    Do not run the tests. Instead print the tests to exeucte.
+    Print the tests to exeucte and exit without running tests.
 
 </li><li>                <strong><code>-q</code></strong>
-    <p>Run tests in command substitution. Print only failed tests output.</p>
-<p>Great for LLM for reducing context size.</p>
+    <p>Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.</p>
+<p>With double -q -q will do not print skip reasons.</p>
 
 </li><li>                <strong><code>-d &lt;int&gt;</code></strong>
     Print a list of the slowest number of tests. Negative to print all.
@@ -2467,6 +2579,19 @@ EXPR | EXPR        either must match
 </li><li>                <strong><code>-m &lt;task-max-time&gt;</code></strong>
     If a task is running longer then specified time, it is killed.
 
+</li><li>                <strong><code>-C &lt;cache-dir&gt;</code></strong>
+    Cache directory location to store state.
+
+</li><li>                <strong><code>-r &lt;mode&gt;</code></strong>
+    <p>Select or order tests using the saved state. Requires -C.</p>
+<p>Mode         Short  Behavior
+all          a      Ignore state, run everything (default).
+last-failed  l      Run only tests that failed last time; if none recorded, run all.
+only-failed  o      Run only tests that failed last time; if none recorded, run nothing.
+failed-first f      Failed tests first, then the rest.
+new-first    n      Tests with no recorded state first, then the rest.
+clear        c      Delete the state and exit without running tests.</p>
+
 </li></ul>    </p>
 
       <p>
@@ -2497,7 +2622,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_checkexit">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_checkexit
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7045"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7119"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2541,7 +2666,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_success">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_success
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7061"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7134"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2580,7 +2705,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_failure">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_failure
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7067"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7140"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2619,7 +2744,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_failure_capture">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_failure_capture
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7074"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7147"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2659,7 +2784,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_cmd">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_cmd
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7107"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7180"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2753,7 +2878,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_vareq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_vareq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7238"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7313"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2796,7 +2921,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_eq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_eq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7251"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7326"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2836,7 +2961,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_arreq">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_arreq
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7264"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7339"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2876,7 +3001,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_ne">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_ne
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7291"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7366"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2916,7 +3041,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_regex">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_regex
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7302"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7377"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -2956,7 +3081,7 @@ Argument:
 
 <h3 id="L_lib.sh--L_unittest_contains">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_unittest_contains
-      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7315"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/main/bin/L_lib.sh#L7390"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>

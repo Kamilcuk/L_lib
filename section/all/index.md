@@ -1007,7 +1007,7 @@ This is exactly like L_decorate, but does not preserve FUNCNAME, so it is faster
 - **`$@`** Decorator to apply with arguments.
 - **`$#-1`** Function.
 
-#### L_getopts_in
+#### L_getopts_run
 
 Wrapper around getopts that executes subcommand with local-ed variables.
 
@@ -1024,7 +1024,7 @@ Invalid option triggers L_func_usage_error and returns 64 ($L_EX_USAGE).
 Example
 
 ```
-myfunc() { L_getopts_in -p opt_ n::vq myfunc_in "$@"; }
+myfunc() { L_getopts_run -p opt_ n::vq myfunc_in "$@"; }
 myfunc_in() {
   echo "${opt_n[@]} $opt_v $opt_q"
 }
@@ -1039,6 +1039,7 @@ myfunc_in() {
 - **`-g`** Declare variables globally with `declare -g`.
 - **`-w`** Just set variables, without `local` or `declare -g`.
 - **`-E`** eval the command.
+- **`-i`** Interleave positional arguments with options.
 - **`-h`** Show this help and return 0.
 
 **Arguments:**
@@ -1064,7 +1065,7 @@ The fucntion L_handle_v_scalar handles only scalar value of `L_RET` or 0-th inde
 Example
 
 ```
-L_hello() { L_handle_v_arr "$@"; }
+L_hello() { L_handle_v_scalar "$@"; }
 L_hello_vL_RET() { L_RET="hello world"; }
 L_hello          # outputs 'hello world'
 L_hello -v var   # assigns var="hello world"
@@ -1074,7 +1075,7 @@ L_hello -v var   # assigns var="hello world"
 
 **Argument:** **`$@`** arbitrary function arguments
 
-**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317) [SC2059](https://www.shellcheck.net/wiki/SC2059)
 
 **Exit:** Whatever exitcode does the `<caller>_vL_RET` funtion exits with.
 
@@ -1106,6 +1107,22 @@ L_hello -v var   # assigns var=(hello world)
 **Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
 
 **See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar).
+
+#### L_handle_v_silent
+
+This is very similar to L_handle_v_array, but it does not print the output. Instead, when called without -v option, the L_RET value is just ignored. This is used to functions that do want to optionally set a value, but do not output anything. For example array_pop might store -v index of the popped element, but by itself not output anything.
+
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar)
+
+#### L_handle_v_asa
+
+Version of L_handle_v_scalar for associative arrays. Instead of L_RET variable it uses L_ARET variable. The L_ARET variable has to be defined with define -A by the caller.
+
+**Shellcheck disable=** [SC2317](https://www.shellcheck.net/wiki/SC2317)
+
+**See:** [L_handle_v_scalar](#L_lib.sh--L_handle_v_scalar)
 
 ### cache
 
@@ -1568,9 +1585,9 @@ declare -A map2=$tmp
 - [L_HAS_QEPAa_EXPANSIONS](#L_lib.sh--L_HAS_QEPAa_EXPANSIONS)
 - [L_cache](#L_lib.sh--L_cache)
 
-#### L_var_is_notarray
+#### L_var_is_scalar
 
-Return 0 if variable is not an array neither an associative array.
+Return 0 if variable is defined but is not an array neither an associative array.
 
 **Argument:** **`$1`** variable nameref
 
@@ -2173,9 +2190,15 @@ Return 0 if the string characters is an integer
 
 #### L_is_float
 
-Return 0 if the string characters is a float
+Return 0 if the string characters is a float +-*.[0-9]*
 
 **Argument:** **`$1`** string to check
+
+#### L_is_natural_integer
+
+Return 0 if the string is an integer. No leading +-.
+
+**Argument:** **`$1`** string
 
 #### $L_NL
 
@@ -2775,55 +2798,6 @@ Fuzzy search a key in a list of strings, returning matches in L_RET.
 
 #### L_fuzzy_vL_RET
 
-### json
-
-#### L_json_escape
-
-Produces a string properly quoted for JSON inclusion
-
-Poor man's jq
-
-Example
-
-```
-L_json_escape -v tmp "some string"
-echo "{\"key\":$tmp}" | jq .
-```
-
-**Option:** **`-v <var>`** Store the output in variable instead of printing it.
-
-**See:**
-
-- <https://ecma-international.org/wp-content/uploads/ECMA-404.pdf> figure 5
-- <https://stackoverflow.com/a/27516892/9072753>
-
-#### L_json_escape_vL_RET
-
-#### L_json_create
-
-Very simple function to create JSON.
-
-Every second argument is quoted for JSON, unless This argument is preceeded by a previous argument ending with \] or }, when the counter starts over.
-
-Example
-
-```
-L_json_create { \
-  a : b , \
-  b :[ 1 , 2 , 3 , 4 ] \
-  c :[true, 1 ,null,false] \
-}
-#   ^^^^^^    ^^^^^^^^^^^^ - unquoted, added literally to the string
-# outputs: {"a":"b","b":[1,2,3,4],"c":[true,"1",false,null]}
-```
-
-**Options:**
-
-- **`-v <var>`** Store the output in variable instead of printing it.
-- **`-h`** Print this help and return 0.
-
-#### L_json_create_vL_RET
-
 ### array
 
 Operations on various lists, arrays and arguments. L_array\_\*
@@ -3039,6 +3013,30 @@ echo "${arr[@]}"  # prints Hello world
 ```
 
 **Argument:** **`$1`** array nameref
+
+#### L_cat_into
+
+Cat from stdin into a variable.
+
+Warning
+
+Do not use with positional arguments. To read a file in bash, use var=$(\<file) expansion.
+
+This function is meant to read from a file descriptor. It is roughly equal to IFS= read -r -d '' var || :
+
+Warning
+
+To be fast, read errors are not properly handled. You have to pass correct -t -u options.
+
+**Options:**
+
+- **`-u`** fd
+- **`-N`** count
+- **`-t`** timeout
+- **`-n`** Strip trailing newlines, just like $(cat) does.
+- **`-h`**
+
+**Argument:** **`$1`** Variable to store the result into.
 
 #### L_readarray
 
@@ -3306,6 +3304,7 @@ name1 name2 name3
 - **`-o <str>`** Output separator to use
 - **`-R <list[int]>`** Right align columns with these indexes
 - **`-X`** Ignore color escape sequences when calculting column width.
+- **`-t`** Ignored
 - **`-h`** Print this help and return 0.
 
 **Argument:** **`$@`** Lines to print, joined and separated by newline.
@@ -3381,6 +3380,7 @@ humans_name=(Carl Susan [5]=Mike) humans_age=(15 30 40); L_pp 'humans_**'
 - **`-c`** Make the output compact. The default.
 - **`-m`** Multiline output. Invert of -c.
 - **`-C`** Alias for -m.
+- **`-Q`** Use different quoting style.
 - **`-h`** Print this help and return 0.
 
 **Argument:** **`<expr...>`** Expressions to pretty print.
@@ -4335,15 +4335,15 @@ Uninteresting unittesting suite runner.
 
   Examples: -k foo tests matching 'foo' -k 'foo && bar' tests matching both 'foo' and 'bar' -k '! slow' tests not matching 'slow' -k '(foo || bar) && ! slow'
 
-- **`-P <nproc>`** Run tests in parallel using NPROC worker processes. If NPROC is 'nproc', use number of cores.
+- **`-P <NPROC>`** Run tests in parallel using NPROC worker processes. If NPROC is 'n' or 'nproc', use number of cores.
 
-- **`-l`** Do not run the tests. Instead print the tests to exeucte.
+- **`-l`** Print the tests to exeucte and exit without running tests.
 
 - **`-q`**
 
-  Run tests in command substitution. Print only failed tests output.
+  Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.
 
-  Great for LLM for reducing context size.
+  With double -q -q will do not print skip reasons.
 
 - **`-d <int>`** Print a list of the slowest number of tests. Negative to print all.
 
@@ -4368,6 +4368,14 @@ Uninteresting unittesting suite runner.
 - **`-M <global-max-time>`** If running longer then specified time, tasks are getting killed.
 
 - **`-m <task-max-time>`** If a task is running longer then specified time, it is killed.
+
+- **`-C <cache-dir>`** Cache directory location to store state.
+
+- **`-r <mode>`**
+
+  Select or order tests using the saved state. Requires -C.
+
+  Mode Short Behavior all a Ignore state, run everything (default). last-failed l Run only tests that failed last time; if none recorded, run all. only-failed o Run only tests that failed last time; if none recorded, run nothing. failed-first f Failed tests first, then the rest. new-first n Tests with no recorded state first, then the rest. clear c Delete the state and exit without running tests.
 
 **Argument:** **`<patterns...>`** Like -k argument, but allows one word only and joins arguments with AND.
 
@@ -5752,6 +5760,737 @@ Wake up the event loop immediately.
 Note
 
 This skips the next polling delay (sleep), causing the loop to proceed immediately to the next iteration. Useful for signaling state changes from traps or async callbacks.
+
+### json
+
+#### L_json_quote
+
+Convert Bash string into Json string.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_quote_vL_RET
+
+#### L_json_quote_ascii
+
+Convert Bash string into Json string with only ASCII characters.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_quote_ascii_vL_RET
+
+#### L_json_unquote
+
+Convert Json string into Bash string.
+
+**Option:** **`-v <var>`**
+
+**Argument:** **`<str>`**
+
+#### L_json_unquote_vL_RET
+
+#### L_json_get_all
+
+Get a value from json including additional info.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+**Return:** ( )
+
+#### L_json_get_all_vL_RET
+
+#### L_json_get
+
+Get a value from json.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+#### L_json_get_vL_RET
+
+#### L_json_rm
+
+Remove an element from json.
+
+**Options:**
+
+- **`-v <var>`**
+- **`-h`**
+
+#### L_json_rm_vL_RET
+
+#### L_json_print
+
+Print nicely looking version of the json.
+
+**Options:**
+
+- **`-a`** Use only ascii characters escapes in strings.
+- **`-c`** Compact output.
+- **`-i <int>`** Indent count of spaces.
+- **`-C`** Color output.
+- **`-v <var>`** Store the output in variable instead of printing it.
+
+**Argument:** **`$1`** JSON
+
+### ini
+
+#### L_ini_read
+
+Parses ini file. Calls: callback... SECTION section callback... KV section key value callback... CONTINUATION section key value
+
+**Argument:** **`<callback...>`** Callback to call.
+
+### toml
+
+#### L_toml_read
+
+Parse TOML, call callback for every event. Events:
+
+```
+VALUE <type> <value> <parts...>   type: STRING|INTEGER|FLOAT|BOOL|DATETIME|DATE|TIME
+START <MAP|ARRAY> <parts...>      inline table / array
+END   <MAP|ARRAY> <parts...>
+TABLE MAP <parts...>              [a.b] header, also emitted for each [[a.b]] element (last part is the index)
+TABLE ARRAY <parts...>            emitted once, before the first [[a.b]] element
+```
+
+A nonzero callback return aborts the parse and is returned.
+
+**Argument:** **`<callback...>`**
+
+### obj
+
+obj internals \[\[\[2
+
+#### L_obj_get
+
+**Options:**
+
+- **`-v <var>`** Get value in the object. The value can't be MAP or ARRAY type.
+- **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference.
+- **`$2`** position
+- **`[parts...]`**
+- **`$1`** L_obj namereference, optionally with a position: obj or obj[12]
+- **`[parts...]`**
+
+#### L_obj_get_vL_RET
+
+#### L_obj_get_or
+
+Like L_obj_get, but if not exists, return default.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`**
+- **`<default>`**
+
+#### L_obj_get_or_vL_RET
+
+#### L_obj_get_array
+
+Alias for L_obj_values. Store values of a MAP or ARRAY into an Bash array.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`**
+
+#### L_obj_get_array_vL_RET
+
+#### L_obj_type
+
+Get type of node.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`$2`** position
+- **`[parts...]`**
+- **`<default>`**
+
+#### L_obj_type_vL_RET
+
+#### L_obj_pos
+
+Get position of a parts path in L_obj objects.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj[12]
+- **`[parts...]`**
+
+#### L_obj_pos_vL_RET
+
+#### L_obj_value_pos
+
+Get value position inside L_obj object. You can use this index to modify or reference the value.
+
+Example
+
+```
+obj=()
+L_obj_set obj a b c = "Hello"
+L_obj_value_pos -v pos obj a b c
+echo "Hello ${obj[pos]//Hello/world}!"
+```
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj[12]
+- **`[parts...]`**
+
+#### L_obj_value_pos_vL_RET
+
+#### L_obj_len
+
+The count of elements in an MAP or ARRAY, or the length of value for a scalar.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_len_vL_RET
+
+#### L_obj_keys
+
+Keys of the MAP at the path (insertion order), or indices 0..n-1 for an ARRAY. Returns 1 if the path is missing or the node is a scalar.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+#### L_obj_keys_vL_RET
+
+#### L_obj_values
+
+Values of the MAP or ARRAY at the path. Returns 1 if the path is missing or the node is a scalar.
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+#### L_obj_values_vL_RET
+
+#### L_obj_items
+
+Children of a container as triples: .
+
+**Option:** **`-v <var>`**
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj[12]
+- **`[parts...]`**
+
+#### L_obj_items_vL_RET
+
+#### L_obj_has
+
+Check if object has a path. Check if object has a path.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_is_valid
+
+Extract L_obj name and optional +position from $1. Check that a position is a live node.
+
+**Argument:** **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+
+**Return:** 0 if valid
+
+#### L_obj_get_map
+
+Extract elemtns from MAP or ARRAY from L_obj as an associative array.
+
+**Option:** **`-v <var>`** The destination associative array variable.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+#### L_obj_get_map_vL_ARET
+
+#### L_obj_set
+
+Like L_obj_set_typed, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+
+**Option:** **`-v <var>`** Assign the position of new node to var.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`**
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<value>`** The value to set to the node.
+
+**See:** [L_obj_set_typed](#L_lib.sh--L_obj_set_typed)
+
+#### L_obj_set_vL_RET
+
+#### L_obj_set_typed
+
+Set scalar type and value of the node.
+
+**Option:** **`-v <var>`** Assign the position of new node to var.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`**
+- **`<=>`** The character = to visually sinigify end of parts and start of arguments.
+- **`<type>`** Scalar type. For MAP and ARRAY the value is ignored.
+- **`[value]`** The value of the node.
+
+#### L_obj_set_typed_vL_RET
+
+#### L_obj_set_default
+
+Set the type and value only if node is unset. Type is inferred from default.
+
+**Option:** **`-v <var>`** assign the position of new or existing node to var
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<default>`** The default value.
+
+#### L_obj_set_default_vL_RET
+
+#### L_obj_set_array
+
+Set values from an bash array as an ARRAY.
+
+**Option:** **`-v <var>`** Store the position of the node that was set.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`[array]`** Optional array variable namereference.
+
+#### L_obj_set_array_vL_RET
+
+#### L_obj_set_map
+
+Set values from an bash array as a MAP.
+
+**Option:** **`-v <var>`** Store the position of the node that was set.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`[array]`** Optional associative or normal array variable namereference.
+
+#### L_obj_set_map_vL_RET
+
+#### L_obj_retype
+
+Change the type of a scalar value. Not possible to call on MAP or ARRAY.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<type>`**
+
+#### L_obj_rm
+
+Remove the node at a position, or at a path below it, and free its subtree.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+
+**Return:** 1 if the path doesn't exist.
+
+#### L_obj_new
+
+Sets the object to an empty array to a type and value.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference
+- **`[$2]`** Optional root type, can be MAP or ARRAY.
+- **`[$3]`** Optional value for scalar type.
+
+#### L_obj_clear
+
+Clear the children of a MAP or ARRAY, preserving the container itself.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+
+#### L_obj_string_append
+
+Append to the value of a node. Node cannot be MAP or ARRAY. If it is not a STRING, it will be set to STRING.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`**
+- **`<+=>`**
+- value
+
+**Return:** 1 if the path is missing.
+
+#### L_obj_path
+
+Path of a node: the inverse of L_obj_pos. Climbs the parent links from the node to the root. The parts are MAP keys, or ARRAY indexes counted from 0. The root has an empty path. Finding an ARRAY index walks the previous siblings, so it is O(n) per ARRAY level. Use -v: without it the parts are printed one per line, which breaks on keys with newlines.
+
+Example
+
+```
+L_obj_pos -v pos obj a b 0
+L_obj_path -v parts "obj+$pos" c d 1   # parts=(a b 0 c d 1)
+L_obj_get obj "${parts[@]}"            # round-trips to the same node
+```
+
+**Option:** **`-v <var>`** Store the parts in an indexed array.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference with a position: obj+12. Without a position, the root.
+- **`[parts...]`**
+
+**Return:** 1 if the position is not a live node.
+
+#### L_obj_path_vL_RET
+
+#### L_obj_array_append
+
+Like \_L_obj_array_append_type_value but infer type of value.
+
+**Option:** **`-v <var>`** Store the position of the new element.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+- **`<+=>`**
+- **`<value>`**
+
+**See:** \_L_obj_array_append_type_value
+
+#### L_obj_array_append_vL_RET
+
+#### L_obj_array_append_typed
+
+Append value with type to an array.
+
+**Option:** **`-v <var>`** Store the position of the new element.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+- **`<+=>`**
+- **`<type>`**
+- **`[value]`**
+
+#### L_obj_array_append_typed_vL_RET
+
+#### L_obj_array_insert
+
+Like L_obj_array_insert_typed, but the type is inferred from the value - FLOAT, INTEGER, STRING.
+
+**Options:**
+
+- **`-v <var>`** Store the position of the new element.
+- **`-v <var>`** position of the new node
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`** Path parts to the ARRAY container
+- **`$index`** index (0-based, must be \<= current length)
+- **`<=>`** The character = to visually signify end of index and start of arguments.
+- **`<value>`** The value to set to the node.
+
+**Return:** 1 if index out of bounds or container is not ARRAY.
+
+#### L_obj_array_insert_vL_RET
+
+#### L_obj_array_insert_typed
+
+Insert a new element into an ARRAY at index. Shifts existing elements right.
+
+**Option:** **`-v <var>`** Store the position of the new element.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`** Path parts to the ARRAY container
+- **`$index`** index (0-based, must be \<= current length)
+- **`<=>`** The character = to visually signify end of index and start of arguments.
+- **`<type>`** The type of the value. If type is MAP or ARRAY, the value is ignored.
+- **`<value>`** The value of the node.
+
+**Return:** 1 if index out of bounds or container is not ARRAY.
+
+#### L_obj_array_insert_typed_vL_RET
+
+#### L_obj_array_shift
+
+Remove the first element of an ARRAY and return its scalar value.
+
+**Option:** **`-v <var>`** If the popped node is scalar, store the popped value in var. Otherwise will store empty.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`** Path to the ARRAY
+
+**Return:** 1 if the path is missing, not an ARRAY, empty, or the first element is a container.
+
+#### L_obj_array_shift_vL_RET
+
+#### L_obj_array_pop
+
+Remove the last element of the ARRAY at the path and return its scalar value.
+
+**Option:** **`-v <var>`** If the popped node is scalar, store the popped value in var. Otherwise will store empty.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`**
+
+**Return:** 1 if the path is missing, not an ARRAY, empty, or the last element is a container.
+
+#### L_obj_array_pop_vL_RET
+
+#### L_obj_array_extend
+
+Append all elements of a bash array to an ARRAY. Types are inferred per element. A missing path is created as an ARRAY. An empty bash array is a no-op.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`[parts...]`** Path to the ARRAY
+- **`<+=>`** The characters += to visually signify end of parts and start of arguments.
+- **`<array>`** Name of a bash indexed array.
+
+**Return:** 1 if the node is not an ARRAY.
+
+#### L_obj_set_obj
+
+Set a path to a deep copy of another object. Same as L_obj_copy, with the destination first.
+
+**Option:** **`-v <var>`** Store the position of the destination node.
+
+**Arguments:**
+
+- **`$1`** destination L_obj, optionally with position: obj or obj+12
+- **`[parts...]`** destination path
+- **`<=>`** The character = to visually signify end of parts and start of arguments.
+- **`<src>`** source L_obj, optionally with position: obj or obj+12
+
+#### L_obj_set_obj_vL_RET
+
+#### L_obj_copy
+
+Deep copy a subtree. The destination node's old children are removed and replaced.
+
+**Option:** **`-v <var>`** Store the position of the newly created node.
+
+**Arguments:**
+
+- **`$1`** source L_obj, optionally with position: obj or obj+12
+- **`$2`** destination L_obj, optionally with position: obj or obj+12
+- **`[parts...]`** destination L_obj parts
+
+#### L_obj_copy_vL_RET
+
+#### L_obj_merge
+
+Deep merge src into dst. MAPs merge key by key, everything else (scalars, ARRAYs, type mismatches) is replaced by a copy of the src node.
+
+**Arguments:**
+
+- **`$1`** source L_obj, optionally with position: obj or obj+12
+- **`$2`** destination L_obj, optionally with position: obj or obj+12
+
+#### L_obj_cmp
+
+**Arguments:**
+
+- **`$1`** first object name, optionally with position: obj or obj+12
+- **`$2`** second object name, optionally with position: obj or obj+12
+
+**Return:** 0 if equal, 1 if different
+
+#### L_obj_foreach
+
+Call a callback for each direct child of a container. The next node is read before the callback runs, so the callback may L_obj_rm the current child.
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+
+- **`<cb...>`**
+
+  called as: cb...
+
+  value is empty for MAP and ARRAY, pos is the child position.
+
+**Return:** 0 done, 1 not a container, or the nonzero return of the callback
+
+#### L_obj_iter
+
+Cursor over the direct children of a container. Same fields as L_obj_foreach. Set the iterator to empty before the loop. It holds "next:index" while looping and is emptied at the end. After a break, reset it before reuse. Removing the current child inside the loop is safe.
+
+Example
+
+```
+it=; while L_obj_iter obj it k v t pos; do echo "$k=$v"; done
+```
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`$2`** iterator variable, empty to start
+- **`$3`** variable for the key (MAP) or index (ARRAY)
+- **`[$4]`** variable for the value
+- **`[$5]`** variable for the type
+- **`[$6]`** variable for the child position
+
+**Return:** 0 got a child, 1 end or not a container
+
+#### L_obj_walk
+
+Walks the L_obj recursively and calls the callback with the following arguments:
+
+```
+cb... START <type>      -- <parts...>  for type: MAP|ARRAY
+cb... VALUE <type> <value> <parts...>  for other types
+cb... END   <type>      -- <parts...>
+```
+
+Parts exclude the root. A nonzero callback return aborts the walk and is returned.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-h`** print this help and return 0
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj or obj+12
+- **`<cb...>`** Callback with arguments to call.
+
+#### L_obj_from_json
+
+Convert a json into an object.
+
+**Arguments:**
+
+- **`<object>`**
+- **`<offset...>`**
+
+#### L_obj_to_json
+
+Convert obj into json.
+
+**Options:**
+
+- **`-a`** Use only ascii characters escapes in strings.
+- **`-c`** Compact output.
+- **`-i <int>`** Indent count of spaces.
+- **`-C`** Color output.
+- **`-S`** Sort keys.
+- **`-v <var>`** Store the output in variable instead of printing it.
+- **`-h`** Print this help and return 0.
+
+**Argument:** **`$1`** JSON
+
+#### L_obj_from_ini
+
+Convert ini to L_obj
+
+**Argument:** **`$1`** L_obj namerefrence
+
+#### L_obj_to_ini
+
+Serializes OBJ to INI text.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-v <var>`** Store into varaible instead of printing.
+- **`-h`**
+
+**Argument:** **`$1`** L_obj namereference.
+
+#### L_obj_from_toml
+
+Parse TOML into an L_obj.
+
+**Argument:** **`$1`** obj variable name
+
+#### L_obj_to_toml
+
+Convert obj into toml.
+
+**Options:**
+
+- **`-S`** sort keys
+- **`-v <var>`** Store output in variable.
+- **`-h`** Print this help and return 0.
+
+**Argument:**
+
+obj
 
 ### xargs
 
