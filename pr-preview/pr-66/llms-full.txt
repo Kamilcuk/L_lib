@@ -15603,8 +15603,6 @@ Remove the first element of an ARRAY and return its scalar value.
 
 #### L_obj_array_shift_vL_RET
 
-#### L_obj_array_shift_vL_RET
-
 #### L_obj_array_pop
 
 Remove the last element of the ARRAY at the path and return its scalar value.
