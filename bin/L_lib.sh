@@ -1171,7 +1171,7 @@ if ((!L_HAS_NAMEREF)); then
 #    L_hello          # outputs 'hello world'
 #    L_hello -v var   # assigns var="hello world"
 # @see L_handle_v_array
-# shellcheck disable=SC2317
+# shellcheck disable=SC2317,SC2059
 L_handle_v_scalar() {
 	case "${1:-}" in
 		-v)
@@ -2187,6 +2187,7 @@ if (( L_HAS_BASH5_0 )); then
 	L_var_is_associative() { local -; set +u; local -n _L_var=$1 && [[ ${_L_var@a} == *A* ]]; }
 fi
 if (( L_HAS_BASH5_1 )); then
+	# shellcheck disable=SC2124
 	L_var_to_string_vL_RET() { local -n _L_var=$1 && L_RET=${_L_var[@]@A} && L_RET=${L_RET#*=}; }
 elif (( L_HAS_BASH4_4 )); then
 	L_var_to_string_vL_RET() {
@@ -13023,12 +13024,13 @@ _L_obj_pos_get_pos_verbose_vL_RET() {
 }
 
 # Extract positions stored in obj+<pos> and store it in _L_pos.
+# shellcheck disable=SC2309
 _L_obj_update_L_pos() {
 	if [[ $1 == *+* ]]; then
 		_L_pos=${1##*+}
 		L_is_natural_integer "$_L_pos" &&
 			local -n _L_obj=${1%%+*} &&
-			[[ "$_L_pos%6" -eq 0 && "$_L_pos" -lt "${_L_obj[@]+${#_L_obj[@]}}+0" && -n "${_L_obj[_L_pos]}" && "${_L_obj[_L_pos]}" != FREE ]]
+			[[ $_L_pos%6 -eq 0 && $_L_pos -lt ${_L_obj[*]+${#_L_obj[*]}}+0 && -n ${_L_obj[_L_pos]} && ${_L_obj[_L_pos]} != FREE ]]
 	fi
 }
 
@@ -13136,8 +13138,8 @@ _L_obj_dump() {
 _L_obj_pos_free_children() {
 	case ${_L_obj[$1]} in
 		MAP|ARRAY)
-			local _L_stack=(${_L_obj[$1+2]}) _L_cur _L_next
-			_L_obj[$1+2]=
+			local _L_stack=("${_L_obj[$1+2]}") _L_cur _L_next
+			_L_obj[$1+2]=""
 			while (( ${#_L_stack[@]} )); do
 				_L_cur=${_L_stack[-1]}; unset '_L_stack[-1]'
 				for (( ; _L_cur; _L_cur = _L_next )); do
@@ -13240,7 +13242,7 @@ L_obj_pos_vL_RET() {
 #   L_obj_value_pos -v pos obj a b c
 #   echo "Hello ${obj[pos]//Hello/world}!"
 L_obj_value_pos() { L_handle_v_scalar "$@"; }
-L_obj_value_pos_vL_RET() { L_obj_pos_vL_RET && L_RET=$(( L_RET + 2 )); }
+L_obj_value_pos_vL_RET() { L_obj_pos_vL_RET "$@" && L_RET=$(( L_RET + 2 )); }
 
 # The count of elements in an MAP or ARRAY, or the length of value for a scalar.
 # @arg $1 L_obj namereference, optionally with a position: obj or obj+12
@@ -13662,7 +13664,7 @@ L_obj_array_insert_typed_vL_RET() {
 		L_func_usage_error "usage: obj [parts...] index = type value"; return "$L_EX_USAGE"
 	fi
 	_L_obj_pos_get_pos_verbose_vL_RET "${@:1:$#-4}" || return
-	local _L_par=$L_RET _L_idx=${*:$#-3:1} _L_type=${*:$#-1:1} _L_value=${!#} _L_cur _L_last= _L_new _L_i=0
+	local _L_par=$L_RET _L_idx=${*:$#-3:1} _L_type=${*:$#-1:1} _L_value=${!#} _L_cur _L_last="" _L_new _L_i=0
 	if [[ ${_L_obj[_L_par]} != ARRAY ]]; then L_func_error "container is not ARRAY"; return 1; fi
 	if [[ -z $_L_idx || $_L_idx == *[!0-9]* ]]; then L_func_error "index must be a natural integer"; return 1; fi
 	for (( _L_cur = _L_obj[_L_par+2]; _L_cur && _L_i < _L_idx; _L_i++, _L_last = _L_cur, _L_cur = _L_obj[_L_cur+3] )); do
