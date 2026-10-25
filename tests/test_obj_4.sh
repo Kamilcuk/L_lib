@@ -446,7 +446,7 @@ _L_test_obj_4_path_map_keys() {
 	L_obj_pos -v pos obj a b
 	L_obj_path -v parts "obj+$pos"
 	# Path from root to obj.a.b: (a b).
-	L_unittest_eq "${parts[*]}" "a b"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "a b"
 	# Round-trip: recomposing the path reaches the same scalar.
 	L_obj_get -v v obj "${parts[@]}"; L_unittest_vareq v 1
 }
@@ -461,10 +461,10 @@ _L_test_obj_4_path_array_index() {
 	L_obj_pos -v p0 obj arr 0
 	L_obj_pos -v p1 obj arr 1
 	L_obj_path -v parts "obj+$p0"
-	L_unittest_eq "${parts[*]}" "arr 0"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "arr 0"
 	L_obj_get -v v obj "${parts[@]}"; L_unittest_vareq v x
 	L_obj_path -v parts "obj+$p1"
-	L_unittest_eq "${parts[*]}" "arr 1"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "arr 1"
 	L_obj_get -v v obj "${parts[@]}"; L_unittest_vareq v y
 }
 
@@ -477,7 +477,7 @@ _L_test_obj_4_path_mixed_map_array() {
 	L_obj_array_append obj list += n
 	L_obj_pos -v pos obj list 1
 	L_obj_path -v parts "obj+$pos"
-	L_unittest_eq "${parts[*]}" "list 1"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "list 1"
 	L_obj_get -v v obj "${parts[@]}"; L_unittest_vareq v n
 }
 
@@ -490,9 +490,9 @@ _L_test_obj_4_path_extra_parts_descend() {
 	L_obj_pos -v pos obj a b
 	# Path to obj.a.b is (a b) ...
 	L_obj_path -v parts "obj+$pos"
-	L_unittest_eq "${parts[*]}" "a b"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "a b"
 	# ... descending one more level ("c") yields (a b c).
 	L_obj_path -v parts "obj+$pos" c
-	L_unittest_eq "${parts[*]}" "a b c"
+	L_unittest_eq "${parts[*]+"${parts[*]}"}" "a b c"
 	L_obj_get -v v obj "${parts[@]}"; L_unittest_vareq v 1
 }
