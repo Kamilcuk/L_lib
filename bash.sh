@@ -111,6 +111,7 @@ else
   else
     if true; then
       rets=()
+      trap - ERR
       L_xargs -OO -Pn -v rets -A versions docker_run
       IFS=+
       exit "$(( ${rets[*]} + 0 ))"

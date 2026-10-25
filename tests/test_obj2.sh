@@ -1510,7 +1510,7 @@ _L_test_obj2_traverse_through_scalar_set() {
 # ---------------------------------------------------------------------------
 _L_test_obj2_get_map_map() {
   obj_skip_test
-  local -A asa
+  local -A asa=()
   local obj
   L_obj_set obj a = 1
   L_obj_set obj b = 2
@@ -1529,7 +1529,7 @@ _L_test_obj2_get_map_map() {
 
 _L_test_obj2_get_map_array() {
   obj_skip_test
-  local -A asa
+  local -A asa=()
   local obj
   L_obj_array_append obj arr += first
   L_obj_array_append obj arr += second
