@@ -47122,27 +47122,15 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_set_default">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_default
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13430"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13434"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
 <a href="#L_lib.sh--L_obj_set_default" class="headerlink" title="Permanent link">&para;</a></h4>
       <p>
-            Like L_obj_set, but only sets value if not already set.
+            Set the type and value only if node is unset. Type is inferred from default.
 
     </p>
-
-  
-  
-  
-  
-  
-  
-
-
-  
-  
-
 
   
   
@@ -47150,17 +47138,45 @@ Option:
   
       <p>
         <strong>
-See:
+Option:
         </strong>
-            <a href="#L_lib.sh--L_obj_set">L_obj_set</a>
+            <strong><code>-v &lt;var&gt;</code></strong>
+    assign the position of new or existing node to var
 
     </p>
 
+      <p>
+        <strong>Arguments:</strong>
+<ul><li>                <strong><code>$1</code></strong>
+    L_obj namereference, optionally with a position: obj+12
+
+</li><li>                <strong><code>[parts...]</code></strong>
+    The path to remove.
+
+</li><li>                <strong><code>&lt;=&gt;</code></strong>
+    The character = to visually sinigify end of parts and start if arguments.
+
+</li><li>                <strong><code>&lt;default&gt;</code></strong>
+    The default value.
+
+</li></ul>    </p>
+
+
+
+  
+  
+
+
+  
+  
+  
+  
+  
 
 
 <h4 id="L_lib.sh--L_obj_set_default_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_default_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13431"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13435"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47187,7 +47203,7 @@ See:
 
 <h4 id="L_lib.sh--L_obj_set_array">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_array
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13467"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13471"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47241,7 +47257,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_set_array_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_array_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13468"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13472"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47268,7 +47284,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_set_map">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_map
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13491"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13495"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47322,7 +47338,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_set_map_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_map_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13492"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13496"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47349,7 +47365,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_retype">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_retype
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13514"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13518"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47395,7 +47411,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_rm">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_rm
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13533"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13537"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47442,7 +47458,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_new">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_new
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13554"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13558"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47485,7 +47501,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_clear">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_clear
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13567"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13571"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47525,7 +47541,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_string_append">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_string_append
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13586"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13590"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47579,7 +47595,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_path">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_path
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13616"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13620"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47646,7 +47662,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_path_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_path_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13617"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13621"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47673,7 +47689,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_append">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_append
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13646"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13650"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47734,7 +47750,7 @@ See:
 
 <h4 id="L_lib.sh--L_obj_array_append_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_append_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13647"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13651"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47761,7 +47777,7 @@ See:
 
 <h4 id="L_lib.sh--L_obj_array_append_typed">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_append_typed
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13659"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13663"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47818,7 +47834,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_array_append_typed_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_append_typed_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13660"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13664"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47845,7 +47861,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_array_insert">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_insert
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13696"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13700"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47910,7 +47926,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_insert_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_insert_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13697"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13701"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -47937,7 +47953,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_insert_typed">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_insert_typed
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13712"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13716"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48004,7 +48020,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_insert_typed_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_insert_typed_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13713"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13717"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48031,7 +48047,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_shift">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_shift
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13736"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13740"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48086,7 +48102,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_shift_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_shift_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13737"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13741"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48113,7 +48129,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_pop">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_pop
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13744"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13748"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48168,7 +48184,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_pop_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_pop_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13745"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13749"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48195,7 +48211,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_array_extend">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_array_extend
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13768"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13772"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48249,7 +48265,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_set_obj">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_obj
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13798"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13802"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48303,7 +48319,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_set_obj_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_set_obj_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13799"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13803"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48330,7 +48346,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_copy">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_copy
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13810"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13814"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48381,7 +48397,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_copy_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_copy_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13811"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13815"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48408,7 +48424,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_merge">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_merge
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13863"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13867"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48449,7 +48465,7 @@ Option:
 
 <h4 id="L_lib.sh--L_obj_cmp">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_cmp
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13940"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13944"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48492,7 +48508,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_foreach">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_foreach
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13991"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L13995"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48541,7 +48557,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_iter">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_iter
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14018"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14022"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48608,7 +48624,7 @@ Return:
 
 <h4 id="L_lib.sh--L_obj_walk">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_walk
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14046"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14050"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48662,7 +48678,7 @@ cb... END   &lt;type&gt;      -- &lt;parts...&gt;
 
 <h4 id="L_lib.sh--L_obj_from_json">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_from_json
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14142"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14146"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48702,7 +48718,7 @@ cb... END   &lt;type&gt;      -- &lt;parts...&gt;
 
 <h4 id="L_lib.sh--L_obj_to_json">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_to_json
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14168"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14172"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48765,7 +48781,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_obj_from_ini">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_from_ini
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14239"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14243"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48804,7 +48820,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_obj_to_ini">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_to_ini
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14274"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14278"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48855,7 +48871,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_obj_from_toml">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_from_toml
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14325"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14329"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48894,7 +48910,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_obj_to_toml">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_obj_to_toml
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14456"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14460"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48946,7 +48962,7 @@ Argument:
 
 <h3 id="L_lib.sh--xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14480"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14484"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -48972,7 +48988,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_nproc">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14486"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14490"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -49013,7 +49029,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_nproc_vL_RET">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_nproc_vL_RET
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14487"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14491"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -49040,7 +49056,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_sleep">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_sleep
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14528"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L14532"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -49079,7 +49095,7 @@ Argument:
 
 <h4 id="L_lib.sh--L_xargs">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-function"></code>
     L_xargs
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L15029"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L15033"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>
@@ -49241,7 +49257,7 @@ Return:
 
 <h3 id="L_lib.sh--lib">    <code class="doc-symbol doc-symbol-heading doc-symbol-sh-section"></code>
     lib
-      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L15142"
+      <a href="https://github.com/Kamilcuk/L_lib/blob/cukrowsk/add-autodownloadable-script/bin/L_lib.sh#L15146"
         title="Go to source code of this symbol"
         class="doc-symbol-sh-link">
       </a>

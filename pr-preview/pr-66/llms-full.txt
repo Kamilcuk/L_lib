@@ -15402,9 +15402,16 @@ Set scalar type and value of the node.
 
 #### L_obj_set_default
 
-Like L_obj_set, but only sets value if not already set.
+Set the type and value only if node is unset. Type is inferred from default.
 
-**See:** [L_obj_set](#L_lib.sh--L_obj_set)
+**Option:** **`-v <var>`** assign the position of new or existing node to var
+
+**Arguments:**
+
+- **`$1`** L_obj namereference, optionally with a position: obj+12
+- **`[parts...]`** The path to remove.
+- **`<=>`** The character = to visually sinigify end of parts and start if arguments.
+- **`<default>`** The default value.
 
 #### L_obj_set_default_vL_RET
 
