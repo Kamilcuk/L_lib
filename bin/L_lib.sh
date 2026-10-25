@@ -3834,7 +3834,9 @@ L_array_extract() {
 # 	echo "${arr[@]}"  # prints Hello world
 L_array_reverse() {
 	# eval is the fastest, see scripts/array_reverse_test.sh
-	L_assert "not a valid variable name: $1" L_is_valid_variable_name "$1"
+	if ! L_is_valid_variable_name "$1"; then
+		L_func_error "not a valid identifier: $1"; return "$L_EX_USAGE"
+	fi
 	eval "local _L_len=\${#$1[@]}"
 	if ((_L_len)); then
 		eval eval "'$1=(' '\"\${$1['{$((_L_len-1))..0}']}\"' ')'"
@@ -6846,8 +6848,8 @@ _L_unittest_main_cache_save() {
 #         -k '(foo || bar) && ! slow'
 # @option -P <NPROC> Run tests in parallel using NPROC worker processes. If NPROC is 'n' or 'nproc', use number of cores.
 # @option -l Print the tests to exeucte and exit without running tests.
-# @option -q Run tests in command substitution. Print only failed tests output.
-#            Great for LLM for reducing context size.
+# @option -q Quiet output. Run tests in command substitution. Print only failed tests output and skip reasons.
+#            With double -q -q will do not print skip reasons.
 # @option -d <int> Print a list of the slowest number of tests. Negative to print all.
 # @option -x Exit after the first failure.
 # @option -s Stream output directly to terminal. Do not capture stdout and stderr.
@@ -6920,7 +6922,7 @@ L_unittest_main() {
 					;;
 				E) trap - ERR ;;
 				l) _L_u_list=1 ;;
-				q) _L_u_quiet=1 ;;
+				q) _L_u_quiet=$(( _L_u_quiet + 1 )) ;;
 				d) _L_u_durations=$OPTARG ;;
 				x) _L_u_exitfirst=1 ;;
 				s) _L_u_stream=1 ;;
@@ -7034,7 +7036,7 @@ L_unittest_main() {
 			_L_unittest_main_print_line "=" "$passed PASSES" "$L_GREEN$L_BOLD"
 			_L_unittest_main_output_printer "0"
 		fi
-		if (( skipped )); then
+		if (( skipped && _L_u_quiet < 2 )); then
 			_L_unittest_main_print_line "=" "$skipped SKIPPED" "$L_YELLOW$L_BOLD"
 			for _L_i in "${!_L_u_test_func[@]}"; do
 				if [[ -n "${_L_u_test_skipped[_L_i]:-}" ]]; then
