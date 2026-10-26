@@ -21,14 +21,14 @@ The library is one file. Download the latest release from GitHub and put in your
 
 ```bash
 mkdir -vp ~/.local/bin/
-wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v2.1.0/L_lib.sh
+wget -O ~/.local/bin/L_lib.sh https://github.com/Kamilcuk/L_lib/releases/download/v2.2.0/L_lib.sh
 export PATH=~/.local/bin:$PATH
 ```
 
 ### Quick testing one-liner
 
 ```bash
-bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.1.0/L_lib.sh) L_setx L_log 'Hello world'
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.2.0/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
 ### Pip
@@ -50,7 +50,7 @@ If you have a script that you want to auto-download the library for use, conside
 ```bash
 pull_L_lib() {
 	[[ -n "${L_LIB_VERSION:-}" ]] && return
-	local ver=2.1.0
+	local ver=2.2.0
 	local cache="${XDG_CACHE_HOME:-$HOME/.cache}/L_lib-$ver.sh"
 	if [[ ! -s "$cache" ]]; then
 		local url=https://github.com/Kamilcuk/L_lib/releases/download/v$ver/L_lib.sh
@@ -95,7 +95,7 @@ L_info "This is an info message"
 You can test the library ad-hoc:
 
 ```bash
-bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.1.0/L_lib.sh) L_setx L_log 'Hello world'
+bash <(wget -qO- https://github.com/Kamilcuk/L_lib/releases/download/v2.2.0/L_lib.sh) L_setx L_log 'Hello world'
 ```
 
 # Commonly used functions
